@@ -429,19 +429,20 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   spreadDist = spreadNH*calcVariableCovarianceBasic(addEntr)
   # ENT = generateNullhypoEntropy(addEntr, nn, spreadDist)
   if !ccwl.partial
-      addEntr[:,ahmask] = ccwl.measurement[1][:,ahmask]
-      # ongoing part of RoME.jl #244
-      addEntropyOnManifoldHack!(addEntrNH, addOps, spreadDist)
+    addEntr[:,ahmask] = ccwl.measurement[1][:,ahmask]
+    # ongoing part of RoME.jl #244
+    addEntropyOnManifoldHack!(addEntrNH, addOps, spreadDist)
     # return ccwl.measurement[1]
   else
-    i = 0
-    for dimnum in fnc.partial
-      i += 1
-      addEntr[dimnum,ahmask] = ccwl.measurement[1][i,ahmask]
-      addEntrNHp = view(addEntr, dimnum, nhmask)
-      # ongoing part of RoME.jl #244
-      addEntropyOnManifoldHack!(addEntrNHp, addOps[dimnum:dimnum], spreadDist)
-    end
+    # i = 0
+    pvec = [fnc.partial...]
+    # null hypo mask that needs to be perturbed by "noise"
+    addEntrNHp = view(addEntr, :, nhmask)
+    # active hypo that receives the regular measurement information
+    addEntr[pvec,ahmask] = ccwl.measurement[1][:,ahmask]
+    # ongoing part of RoME.jl #244
+    @debug "nullhypo on partial" fnc.partial addOps size(addEntrNHp)
+    addEntropyOnManifoldHack!(addEntrNHp, addOps, spreadDist, pvec)
   end
   return addEntr
 end
