@@ -72,7 +72,9 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   #
 
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
-  vecPtsArr = Vector{Vector{Vector{Float64}}}()
+  pttypes = getVariableType.(Xi) .|> getPointType
+  PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
+  vecPtsArr = Vector{Vector{PointType}}()
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
   maxlen, sfidx, mani = prepareparamsarray!(vecPtsArr, Xi, solvefor, N, solveKey=solveKey)
 

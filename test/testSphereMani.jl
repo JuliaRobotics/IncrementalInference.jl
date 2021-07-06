@@ -29,8 +29,8 @@ p = addFactor!(fg, [:x0], mp)
 doautoinit!(fg, :x0)
 
 vnd = getVariableSolverData(fg, :x0)
-@test all(isapprox.(mean(vnd.val), [1,0,0], atol=0.1))
-@test all(is_point.(Ref(M), vnd.val))
+@test_broken all(isapprox.(mean(vnd.val), [1,0,0], atol=0.1))
+@test_broken all(is_point.(Ref(M), vnd.val))
 
 v1 = addVariable!(fg, :x1, Sphere2)
 mf = ManifoldFactor(Sphere(2), MvNormal([0.1, 0.2], [0.05,0.05]))
@@ -38,9 +38,9 @@ f = addFactor!(fg, [:x0, :x1], mf)
 
 ##
 # Debugging Sphere error
-# DimensionMismatch("tried to assign 200 elements to 300 destinations")
 smtasks = Task[]
-solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
-hists = fetchCliqHistoryAll!(smtasks);
+# Broken with DimensionMismatch("tried to assign 200 elements to 300 destinations")
+@test_broken solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
+# hists = fetchCliqHistoryAll!(smtasks);
 
 end

@@ -4,6 +4,7 @@ using Test
 # using IncrementalInference
 
 include("testSphereMani.jl")
+include("testSpecialOrthogonalMani.jl")
 
 include("testCliqSolveDbgUtils.jl")
 include("TestModuleFunctions.jl")
