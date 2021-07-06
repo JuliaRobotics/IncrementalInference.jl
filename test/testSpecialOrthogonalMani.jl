@@ -4,7 +4,7 @@ using Manifolds
 using StaticArrays
 using Test
 
-# @testset "Test SpecialOrthogonal(2) prior" begin
+@testset "Test SpecialOrthogonal(2) prior" begin
 
 Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{2}) = (:Euclid,)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{2}})  = (:Euclid,)
@@ -41,7 +41,57 @@ v1 = addVariable!(fg, :x1, SpecialOrthogonal2)
 mf = ManifoldFactor(SpecialOrthogonal(2), MvNormal([pi], [0.01]))
 f = addFactor!(fg, [:x0, :x1], mf)
 
-@test_broken doautoinit!(fg, :x1)
+doautoinit!(fg, :x1)
+
+##
+# Debugging SpecialOrthogonal error
+smtasks = Task[]
+@test_broken solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
+# hists = fetchCliqHistoryAll!(smtasks);
+
+end
+
+
+@testset "Test SpecialOrthogonal(3) prior" begin
+
+Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{3}) = (:Euclid, :Euclid, :Euclid)
+Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{3}})  =  (:Euclid, :Euclid, :Euclid)
+
+# @defVariable SO3 SpecialOrthogonal(3) @MMatrix([1.0 0.0; 0.0 1.0])
+@defVariable SO3 SpecialOrthogonal(3) [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0]
+
+M = getManifold(SO3)
+@test M == SpecialOrthogonal(3)
+pT = getPointType(SO3)
+# @test pT == MMatrix{2, 2, Float64, 4}
+@test pT == Matrix{Float64}
+pϵ = getPointIdentity(SO3)
+@test pϵ == [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0]
+
+@test is_point(getManifold(SO3), getPointIdentity(SO3))
+
+fg = initfg()
+
+v0 = addVariable!(fg, :x0, SO3)
+
+mp = ManifoldPrior(SpecialOrthogonal(3), SA[1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0], MvNormal([0.01, 0.01, 0.01]))
+p = addFactor!(fg, [:x0], mp)
+
+doautoinit!(fg, :x0)
+
+vnd = getVariableSolverData(fg, :x0)
+@test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
+@test all(is_point.(Ref(M), vnd.val))
+
+points = sampleFactor(fg, :x0f1, 100)[1]
+IIF.calcVariableCovarianceBasic(SpecialOrthogonal(3), points)
+
+##
+v1 = addVariable!(fg, :x1, SO3)
+mf = ManifoldFactor(SpecialOrthogonal(3), MvNormal([0.01,0.01,0.01], [0.01,0.01,0.01]))
+f = addFactor!(fg, [:x0, :x1], mf)
+
+doautoinit!(fg, :x1)
 
 ##
 # Debugging SpecialOrthogonal error
