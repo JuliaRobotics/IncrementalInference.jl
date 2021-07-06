@@ -875,6 +875,25 @@ function findRelatedFromPotential(dfg::AbstractDFG,
 end
 
 
+function findRelatedFromPotential(dfg::AbstractDFG,
+                                  fct::DFGFactor{<:CommonConvWrapper{<:PartialPriorPassThrough}},
+                                  target::Symbol,
+                                  measurement::Tuple=(zeros(0,0),);
+                                  N::Int=size(measurement[1],2),
+                                  solveKey::Symbol=:default,
+                                  dbg::Bool=false  )
+  #
+
+  # density passed through directly from PartialPriorPassThrough.Z
+  proposal = getFactorType(fct).Z.densityFnc
+
+  # determine if evaluation is "dimension-deficient"
+  # solvable dimension
+  inferdim = getFactorSolvableDim(dfg, fct, target, solveKey)
+
+  return (proposal, inferdim)
+end
+
 # function _expandNamedTupleType()
   
 # end

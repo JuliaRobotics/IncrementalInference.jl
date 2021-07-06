@@ -452,6 +452,7 @@ include("Factors/EuclidDistance.jl")
 include("Factors/Circular.jl")
 include("Variables/Circular.jl")
 include("Factors/PartialPrior.jl")
+include("Factors/PartialPriorPassThrough.jl")
 include("DefaultNodeTypes.jl") # older file
 
 # solving graphs
