@@ -81,7 +81,7 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
                               islen1::Bool=false  )  where {N_,F<:AbstractManifoldMinimize,S,T}
                               # retries::Int=3 )
   #
-
+  #TODO we need the point identity also
   M = fcttype.M
   # the variable is a manifold point, we are working on the tangent plane in optim for now.
   # 

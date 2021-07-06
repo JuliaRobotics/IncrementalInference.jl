@@ -223,7 +223,8 @@ $(TYPEDEF)
 mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
                                   H<:Union{Nothing, Distributions.Categorical},
                                   C<:Union{Nothing, Vector{Int}},
-                                  P } <: FactorOperationalMemory
+                                  P,
+                                  M <: Tuple } <: FactorOperationalMemory
   #
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function
@@ -239,6 +240,7 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
   certainhypo::C
   nullhypo::Float64
   # values specific to one complete convolution operation
+  # FIXME ? JT - What if all points are not on the same manifold?
   params::Vector{Vector{P}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
   # FIXME make type stable
@@ -250,6 +252,9 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
   inflation::Float64
   # DONT USE THIS YET which dimensions does this factor influence
   partialDims::Vector{Int} # should become SVector{N, Int32}
+  
+  # manifolds for points in params
+  manifolds::M
 end
 
 
@@ -290,8 +295,8 @@ function CommonConvWrapper( fnc::T,
                                               activehypo=activehypo, p=partialDims, 
                                               perturb=perturb, res=res )).(1:Threads.nthreads()),
                             inflation,
-                            partialDims  # SVector(Int32.()...)
-                            )
+                            partialDims,  # SVector(Int32.()...)
+                            tuple(getManifold.(factormetadata.fullvariables)...))
 end
 
 
