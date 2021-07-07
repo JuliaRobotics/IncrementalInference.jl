@@ -178,7 +178,7 @@ function calcVariableCovarianceBasic(M::AbstractManifold, ptsArr::Vector{P}) whe
   #TODO double check the maths,. it looks like its working at least for groups
   μ = mean(M, ptsArr)
   Xcs = vee.(Ref(M), Ref(μ), log.(Ref(M), Ref(μ), ptsArr))
-  Σ = mean(Xcs .* adjoint.(Xcs))
+  Σ = mean(Xcs .* transpose.(Xcs))
   @debug "calcVariableCovarianceBasic" μ
   @debug "calcVariableCovarianceBasic" Σ
   # TODO don't know what to do here so keeping as before, #FIXME it will break

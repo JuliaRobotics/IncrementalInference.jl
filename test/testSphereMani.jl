@@ -39,8 +39,7 @@ f = addFactor!(fg, [:x0, :x1], mf)
 ##
 # Debugging Sphere error
 smtasks = Task[]
-# Broken with DimensionMismatch("tried to assign 200 elements to 300 destinations")
-@test_broken solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
+solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
 # hists = fetchCliqHistoryAll!(smtasks);
 
 end
