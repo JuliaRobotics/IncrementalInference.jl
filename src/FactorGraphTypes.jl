@@ -277,7 +277,9 @@ function CommonConvWrapper( fnc::T,
                             perturb=zeros(zDim),
                             res::AbstractVector{<:Real}=zeros(zDim),
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
-                            inflation::Real=3.0  ) where {T<:FunctorInferenceType,P,H}
+                            inflation::Real=3.0,
+                            manifolds=tuple(getManifold.(factormetadata.fullvariables)...)  
+                            ) where {T<:FunctorInferenceType,P,H}
   #
   return  CommonConvWrapper(fnc,
                             xDim,
@@ -296,7 +298,7 @@ function CommonConvWrapper( fnc::T,
                                               perturb=perturb, res=res )).(1:Threads.nthreads()),
                             inflation,
                             partialDims,  # SVector(Int32.()...)
-                            tuple(getManifold.(factormetadata.fullvariables)...))
+                            manifolds,)
 end
 
 
