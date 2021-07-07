@@ -6,8 +6,8 @@ using Test
 
 @testset "Test SpecialOrthogonal(2) prior" begin
 
-Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{2}) = (:Euclid,)
-Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{2}})  = (:Euclid,)
+Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{2}) = (:Circular,)
+Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{2}})  = (:Circular,)
 
 # @defVariable SpecialOrthogonal2 SpecialOrthogonal(2) @MMatrix([1.0 0.0; 0.0 1.0])
 @defVariable SpecialOrthogonal2 SpecialOrthogonal(2) [1.0 0.0; 0.0 1.0]
@@ -44,9 +44,8 @@ f = addFactor!(fg, [:x0, :x1], mf)
 doautoinit!(fg, :x1)
 
 ##
-# Debugging SpecialOrthogonal error
 smtasks = Task[]
-@test_broken solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
+solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
 # hists = fetchCliqHistoryAll!(smtasks);
 
 end
@@ -93,10 +92,12 @@ f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
 
-##
-# Debugging SpecialOrthogonal error
+vnd = getVariableSolverData(fg, :x1)
+@test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
+@test all(is_point.(Ref(M), vnd.val))
+
 smtasks = Task[]
-@test_broken solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
-# hists = fetchCliqHistoryAll!(smtasks);
+solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
+
 
 end

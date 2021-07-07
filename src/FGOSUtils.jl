@@ -263,16 +263,16 @@ function calcPPE( var::DFGVariable,
   Pme = calcMean(P)  # getKDEMean(P) #, addop=ops[1], diffop=ops[2]
 
   # returns coordinates at identify
-  Xc_max = getKDEMax(P, addop=ops[1], diffop=ops[2])
+  Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
   # calculate point
-  M = getManifold(varType)
-  ϵ = identity(M, Pme)
-  X = hat(M, ϵ, Xc_max)
-  Pma = exp(M, ϵ, X)
+ 
+  ## TODO make PPE only use getCoordinates for now (IIF v0.25)
+  Pme_ = getCoordinates(typeof(varType),Pme)
+  # Pma_ = getCoordinates(M,Pme)
   
   # suggested, max, mean, current time
   # TODO, poor constructor argument assumptions on `ppeType`
-  ppeType(ppeKey, Pme, Pma, Pme, timestamp)
+  ppeType(ppeKey, Pme_, Pma, Pme_, timestamp)
 end
 
 
