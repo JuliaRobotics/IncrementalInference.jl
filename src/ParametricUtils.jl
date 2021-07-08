@@ -187,29 +187,25 @@ function CalcFactorMahalanobis(fct::DFGFactor)
 end
 
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
-function (cfp::CalcFactorMahalanobis)(variables...)
+function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W}})(variables...) where {T<:AbstractFactor, U, V, W}
+  # call the user function (be careful to call the new CalcFactor version only!!!)
+  res = cfp.calcfactor!(cfp.meas[1], variables...)
+  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+  return res' * cfp.iΣ[1] * res
+end
+
+function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W}})(variables...) where {T<:Union{ManifoldFactor, ManifoldPrior} , U, V, W}
   # call the user function (be careful to call the new CalcFactor version only!!!)
   M = cfp.calcfactor!.factor.M
   X = cfp.calcfactor!(cfp.meas[1], variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
   # return mahalanobus_distance2(M, X, cfp.iΣ[1])
-  # Xc = vee(M, variables[1], X)
+  
   #TODO do something about basis?
   # Xc = get_coordinates(M, variables[1], X, DefaultOrthogonalBasis())
-
-  # @time _X = rand(3)+X
-  # @time _Xc = get_coordinates(M, variables[1], _X, DefaultOrthonormalBasis())
-  # @show X
-  Xc = get_coordinates(M, variables[1], X, DefaultOrthonormalBasis())
-
-  # @show variables
-  # @show X
-  # @show Xc
-  # @show cfp.iΣ[1] 
-
-  return Xc' * cfp.iΣ[1] * Xc
-  
-  # return res' * cfp.iΣ[1] * res
+  # Xc = get_coordinates(M, variables[1], X, DefaultOrthonormalBasis())
+  Xc = vee(M, variables[1], X)
+  return X, Xc' * cfp.iΣ[1] * Xc
 end
 
 function calcFactorMahalanobisDict(fg)
@@ -232,7 +228,7 @@ function _totalCost(M, cfvec::Vector{<:CalcFactorMahalanobis}, labeldict, points
       factor_point_params = [points[M, i] for i in varOrder]
 
       # call the user function
-      retval = cfp(factor_point_params...)
+      _,retval = cfp(factor_point_params...)
 
       # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
       obj += 1/2*retval
