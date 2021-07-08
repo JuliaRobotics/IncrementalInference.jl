@@ -19,7 +19,7 @@ pT = getPointType(SpecialEuclidean2)
 # @test pT == ProductRepr{Tuple{MVector{2, Float64}, MMatrix{2, 2, Float64, 4}}}
 pϵ = getPointIdentity(SpecialEuclidean2)
 # @test_broken pϵ == ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0]))
-@test_broken pϵ == ProductRepr([0.0,0.0], [1.0 0.0; 0.0 1.0])
+@test all(isapprox.(pϵ,ProductRepr([0.0,0.0], [1.0 0.0; 0.0 1.0])).parts)
 
 @test is_point(getManifold(SpecialEuclidean2), getPointIdentity(SpecialEuclidean2))
 
@@ -32,7 +32,7 @@ v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
 p = addFactor!(fg, [:x0], mp)
 
-@test_broken doautoinit!(fg, :x0)
+doautoinit!(fg, :x0)
 
 ##
 vnd = getVariableSolverData(fg, :x0)
@@ -41,14 +41,26 @@ vnd = getVariableSolverData(fg, :x0)
 
 ##
 v1 = addVariable!(fg, :x1, SpecialEuclidean2)
-mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([pi], [0.01]))
+mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([1,2,pi/4], [0.01,0.01,0.01]))
 f = addFactor!(fg, [:x0, :x1], mf)
 
-@test_broken doautoinit!(fg, :x1)
+doautoinit!(fg, :x1)
+
+vnd = getVariableSolverData(fg, :x1)
+@test all(isapprox.(mean(vnd.val), ProductRepr([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071]), atol=0.1).parts)
+@test all(is_point.(Ref(M), vnd.val))
 
 ##
 smtasks = Task[]
-@test_broken solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
+solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
 # hists = fetchCliqHistoryAll!(smtasks);
+
+vnd = getVariableSolverData(fg, :x0)
+@test all(isapprox.(mean(vnd.val), ProductRepr([0.0,0.0], [1.0 0.0; 0.0 1.0]), atol=0.1).parts)
+@test all(is_point.(Ref(M), vnd.val))
+
+vnd = getVariableSolverData(fg, :x1)
+@test all(isapprox.(mean(vnd.val), ProductRepr([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071]), atol=0.1).parts)
+@test all(is_point.(Ref(M), vnd.val))
 
 end

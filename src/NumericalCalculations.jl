@@ -301,10 +301,11 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid], ccwl.vartypes[sfidx](), islen1)
   
   # Check for NaNs
-  if sum(isnan.(retval)) != 0
-    @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(retval)\n"
-    return nothing
-  end
+  # FIXME isnan for manifold ProductRepr
+  # if sum(isnan.(retval)) != 0
+    # @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(retval)\n"
+    # return nothing
+  # end
 
   # insert result back at the correct variable element location
   cpt_.X[smpid] .= retval
