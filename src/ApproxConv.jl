@@ -503,7 +503,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   if !ccwl.partial
       # TODO for now require measurements to be coordinates too
       # @show typeof(ccwl.measurement[1])
-      for m in (1:length(ahmask))[ahmask]
+      for m in (1:length(addEntr))[ahmask]
         # @show m, addEntr[m], ccwl.measurement[1][m]
         addEntr[m] .= ccwl.measurement[1][m]
       end
@@ -513,7 +513,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
     i = 0
     for dimnum in fnc.partial
       i += 1
-      for m in (1:length(ahmask))[ahmask]
+      for m in (1:length(addEntr))[ahmask]
         addEntr[m][dimnum] = ccwl.measurement[1][m][i]
       end
       # @show size(addEntr), dimnum, nhmask
