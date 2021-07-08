@@ -100,7 +100,7 @@ f1_ = DFG.unpackFactor(fg_, pf1)
 
 # ENV["JULIA_DEBUG"] = "DistributedFactorGraphs"
 @warn("Skipping pack/unpack compareFactor test for `timezone` and `zone`")
-@test DFG.compareFactor(f1, f1_, skip=[:components;:labels;:timezone;:zone])
+@test DFG.compareFactor(f1, f1_, skip=[:components;:labels;:timezone;:zone;:vartypes])
 
 @test IIF._getCCW(f1).usrfnc!.components.naive == IIF._getCCW(f1).usrfnc!.components.naive
 

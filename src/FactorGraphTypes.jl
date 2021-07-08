@@ -223,8 +223,7 @@ $(TYPEDEF)
 mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
                                   H<:Union{Nothing, Distributions.Categorical},
                                   C<:Union{Nothing, Vector{Int}},
-                                  P,
-                                  M <: Tuple } <: FactorOperationalMemory
+                                  P} <: FactorOperationalMemory
   #
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function
@@ -253,8 +252,8 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
   # DONT USE THIS YET which dimensions does this factor influence
   partialDims::Vector{Int} # should become SVector{N, Int32}
   
-  # manifolds for points in params
-  manifolds::M
+  # variable types for points in params
+  vartypes::Vector{DataType}
 end
 
 
@@ -278,7 +277,7 @@ function CommonConvWrapper( fnc::T,
                             res::AbstractVector{<:Real}=zeros(zDim),
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
                             inflation::Real=3.0,
-                            manifolds=tuple(getManifold.(factormetadata.fullvariables)...)  
+                            vartypes=typeof.(getVariableType.(factormetadata.fullvariables))
                             ) where {T<:FunctorInferenceType,P,H}
   #
   return  CommonConvWrapper(fnc,
@@ -298,7 +297,7 @@ function CommonConvWrapper( fnc::T,
                                               perturb=perturb, res=res )).(1:Threads.nthreads()),
                             inflation,
                             partialDims,  # SVector(Int32.()...)
-                            manifolds,)
+                            vartypes)
 end
 
 

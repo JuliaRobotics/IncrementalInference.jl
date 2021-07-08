@@ -68,8 +68,10 @@ include("testMixtureLinearConditional.jl")
 include("testFluxModelsDistribution.jl")
 include("testDERelative.jl")
 include("testAnalysisTools.jl")
-include("testBasicParametric.jl")
-include("testMixtureParametric.jl")
+
+@warn "Skipping parametric tests for now"
+@test_skip include("testBasicParametric.jl")
+@test_skip include("testMixtureParametric.jl")
 
 # dont run test on ARM, as per issue #527
 if Base.Sys.ARCH in [:x86_64;]

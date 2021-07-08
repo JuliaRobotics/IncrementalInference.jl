@@ -28,7 +28,8 @@ function compareAllSpecial( A::T1, B::T2;
     @warn "CCW types not equal" T1 T2
     return false
   end
-  return compareAll(A, B, skip=skip, show=show)
+  # FIXME still issues with compare, skipping :vartypes https://github.com/JuliaRobotics/DistributedFactorGraphs.jl/issues/434
+  return compareAll(A, B, skip=union(skip, [:vartypes]), show=show)
 end
 
 

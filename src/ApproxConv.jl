@@ -77,7 +77,7 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   vecPtsArr = Vector{Vector{PointType}}()
 
   #TODO some better consolidate is needed
-  ccwl.manifolds = tuple(getManifold.(Xi)...)
+  ccwl.vartypes = typeof.(getVariableType.(Xi))
 
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
   maxlen, sfidx, mani = prepareparamsarray!(vecPtsArr, Xi, solvefor, N, solveKey=solveKey)
@@ -204,7 +204,7 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
                                                 kappa::Float64=3.0  )
   #
   if sfidx in certainidx
-    msst_ = calcVariableCovarianceBasic(ccwl.manifolds[sfidx], ccwl.params[sfidx])
+    msst_ = calcVariableCovarianceBasic(getManifold(ccwl.vartypes[sfidx]), ccwl.params[sfidx])
     return kappa*msst_
   end
   # @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"

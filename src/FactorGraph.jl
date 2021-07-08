@@ -656,7 +656,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
           threadmodel=threadmodel,
           inflation=inflation,
           partialDims=partialDims,
-          manifolds = tuple(getManifold.(Xi)...)
+          vartypes = typeof.(getVariableType.(Xi))
         )
   #
   return ccw
