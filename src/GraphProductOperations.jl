@@ -72,7 +72,7 @@ function localProduct(dfg::AbstractDFG,
 
   # make manifold belief from product
   vari = getVariable(dfg, sym)
-  pp = AMP.manikde!(pGM, getVariableType(vari) |> getManifold )
+  pp = AMP.manikde!(getManifold(getVariableType(vari)), pGM )
 
   return pp, dens, lb, sinfd
 end
