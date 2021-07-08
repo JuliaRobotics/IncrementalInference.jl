@@ -41,14 +41,26 @@ vnd = getVariableSolverData(fg, :x0)
 
 ##
 v1 = addVariable!(fg, :x1, SpecialEuclidean2)
-mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([1,2,pi/1], [0.01,0.01,0.01]))
+mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([1,2,pi/4], [0.01,0.01,0.01]))
 f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
+
+vnd = getVariableSolverData(fg, :x1)
+@test all(isapprox.(mean(vnd.val), ProductRepr([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071]), atol=0.1).parts)
+@test all(is_point.(Ref(M), vnd.val))
 
 ##
 smtasks = Task[]
 solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
 # hists = fetchCliqHistoryAll!(smtasks);
+
+vnd = getVariableSolverData(fg, :x0)
+@test all(isapprox.(mean(vnd.val), ProductRepr([0.0,0.0], [1.0 0.0; 0.0 1.0]), atol=0.1).parts)
+@test all(is_point.(Ref(M), vnd.val))
+
+vnd = getVariableSolverData(fg, :x1)
+@test all(isapprox.(mean(vnd.val), ProductRepr([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071]), atol=0.1).parts)
+@test all(is_point.(Ref(M), vnd.val))
 
 end
