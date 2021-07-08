@@ -881,7 +881,8 @@ function findRelatedFromPotential(dfg::AbstractDFG,
   # vdim = getVariableDim(DFG.getVariable(dfg, target))
 
   # TODO -- better to upsample before the projection
-  Ndim = length(pts[1])
+  # Ndim = length(pts[1]) # not used, should maybe be: 
+  # Ndim = manifold_dimension(M)
   Npoints = length(pts) # size(pts,2)
   # Assume we only have large particle population sizes, thanks to addNode!
   M = getManifold(getVariableType(dfg, target))
