@@ -9,4 +9,4 @@ struct PartialPriorPassThrough{B <: HeatmapDensityRegular, T <:Tuple} <: Abstrac
 end
 
 # this step is skipped during main inference process
-getSample(cf::CalcFactor{<:PartialPriorPassThrough}, N::Int=1) = (reshape(rand(cf.factor.Z.densityFnc,N),:,N), )
+getSample(cf::CalcFactor{<:PartialPriorPassThrough}, N::Int=1) = ([rand(cf.factor.Z.densityFnc,1) for _ in 1:N], )
