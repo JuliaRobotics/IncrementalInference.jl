@@ -25,7 +25,7 @@ function compareAllSpecial( A::T1, B::T2;
                             skip=Symbol[], show::Bool=true) where {T1 <: CommonConvWrapper, T2 <: CommonConvWrapper}
   #
   if T1 != T2
-    @warn "CCW types not equal" T1 T2
+    @warn "CCW types T1 and T2 not equal=>" T1 T2
     return false
   end
   # FIXME still issues with compare, skipping :vartypes https://github.com/JuliaRobotics/DistributedFactorGraphs.jl/issues/434

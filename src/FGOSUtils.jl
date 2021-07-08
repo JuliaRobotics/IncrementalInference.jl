@@ -140,19 +140,7 @@ function manikde!(pts::AbstractVector{P},
   return AMP.manikde!(M, pts)
 end
 
-# manikde!( pts::AbstractVector{<:Real}, 
-#           vartype::Type{<:ContinuousScalar}) = manikde!(reshape(pts,1,:), vartype)
-#
 
-# TEMPORARY legacy wrapper
-# function manikde!(ptsArr::Vector{Vector{Float64}}, 
-#                   bw::Vector{Float64}, 
-#                   varType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}} )
-#   #
-#   arr = Matrix{Float64}(undef, length(ptsArr[1]), length(ptsArr))
-#   @cast arr[i,j] = ptsArr[j][i]
-#   manikde!( arr, bw, varType )  
-# end
 
 """
     $SIGNATURES

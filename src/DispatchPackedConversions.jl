@@ -52,10 +52,12 @@ function convert(
   # reconstitute from stored data
   # FIXME, add threadmodel=threadmodel
   # FIXME https://github.com/JuliaRobotics/DistributedFactorGraphs.jl/issues/590#issuecomment-776838053
+  # FIXME dont know what manifolds to use in ccw
   ccw = prepgenericconvolution(DFG.DFGVariable[], usrfnc, multihypo=mhcat, nullhypo=nh, inflation=packed.inflation)
   ccw.certainhypo = packed.certainhypo
 
-  ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(packed.eliminated, packed.potentialused, packed.edgeIDs, ccw,
+  # CommonConvWrapper{typeof(usrfnc)}
+  ret = FunctionNodeData{typeof(ccw)}(packed.eliminated, packed.potentialused, packed.edgeIDs, ccw,
                                                             packed.multihypo, packed.certainhypo, packed.nullhypo, 
                                                             packed.solveInProgress, packed.inflation )
   #
