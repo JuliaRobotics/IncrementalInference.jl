@@ -594,19 +594,20 @@ Notes
 - Will not work in all situations, but good enough so far.
   - # TODO standardize via domain or manifold definition...??
 """
-function calcZDim(cf::CalcFactor{T}) where {T <: FunctorInferenceType}
+function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
   #
-  # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
-  zdim = if T != GenericMarginal
-    # vnds = Xi # (x->getSolverData(x)).(Xi)
-    # NOTE try to make sure we get matrix back (not a vector)
-    smpls = sampleFactor(cf, 2)[1]
-    length(smpls[1])
-  else
-    0
-  end
-  return zdim
+
+  # NOTE try to make sure we get matrix back (not a vector)
+  smpls = sampleFactor(cf, 2)[1]
+  return length(smpls[1])
 end
+
+# FIXME THIS IS NEW REPLACEMENT FUNCTION
+# function calcZDim(cf::CalcFactor{T}) where T <: AbstractFactor
+#   return manifold_dimension(getManifold(cf.factor))
+# end
+
+calcZDim(cf::CalcFactor{<:GenericMarginal}) = 0
 
 calcZDim(cf::CalcFactor{<:ManifoldPrior}) = manifold_dimension(cf.factor.M)
 
