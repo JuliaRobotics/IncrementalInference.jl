@@ -99,5 +99,14 @@ vnd = getVariableSolverData(fg, :x1)
 smtasks = Task[]
 solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
 
+# test them again after solve
+vnd = getVariableSolverData(fg, :x0)
+@test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
+@test all(is_point.(Ref(M), vnd.val))
+
+vnd = getVariableSolverData(fg, :x1)
+@test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
+@test all(is_point.(Ref(M), vnd.val))
+
 
 end

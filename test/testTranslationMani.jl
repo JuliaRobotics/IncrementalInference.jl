@@ -1,8 +1,10 @@
 using DistributedFactorGraphs
 using IncrementalInference
-using StaticArrays
 using Manifolds
+using StaticArrays
+using Test
 
+@testset "Test TranslationGroup(2)" begin
 ## ======================================================================================
 ## 
 ## ======================================================================================
@@ -26,11 +28,9 @@ p = addFactor!(fg, [:x0], mp;  graphinit=true)
 
 doautoinit!(fg, :x0)
 
-# @enter addFactor!(fg, [:x0], mp;  graphinit=true)
-
-
 mf = ManifoldFactor(TranslationGroup(2), MvNormal([1.0, 2.0], [0.1,0.1]))
 f = addFactor!(fg, [:x0, :x1], mf)
 
-
 solveGraph!(fg)
+
+end

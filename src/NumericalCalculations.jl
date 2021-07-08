@@ -78,14 +78,15 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
                               objResX::Function,
                               residual::AbstractVector{<:Real},
                               u0,#::AbstractVector{<:Real},
-                              islen1::Bool=false  )  where {N_,F<:AbstractManifoldMinimize,S,T}
-                              # retries::Int=3 )
+                              variableType::InferenceVariable,  
+                              islen1::Bool=false)  where {N_,F<:AbstractManifoldMinimize,S,T}
   #
-  M = fcttype.M
+  M = getManifold(variableType)#fcttype.M
   # the variable is a manifold point, we are working on the tangent plane in optim for now.
   # 
-  #TODO this is not correct we need the point identity also
-  ϵ = identity(M, u0)
+  #TODO this is not general to all manifolds, should work for lie groups.
+  # ϵ = identity(M, u0)
+  ϵ = getPointIdentity(variableType)
   # X0c = get_coordinates(M, u0, log(M, ϵ, u0), DefaultOrthogonalBasis()) 
   X0c = vee(M, u0, log(M, ϵ, u0)) 
 
@@ -296,7 +297,8 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
 
   # do the parameter search over defined decision variables using Minimization
   # retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid][cpt_.p], islen1 )
-  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid], islen1 )
+  sfidx = ccwl.varidx
+  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid], ccwl.vartypes[sfidx](), islen1)
   
   # Check for NaNs
   if sum(isnan.(retval)) != 0
