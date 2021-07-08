@@ -72,7 +72,13 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   #
 
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
-  vecPtsArr = Vector{Vector{Vector{Float64}}}()
+  pttypes = getVariableType.(Xi) .|> getPointType
+  PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
+  vecPtsArr = Vector{Vector{PointType}}()
+
+  #TODO some better consolidate is needed
+  ccwl.vartypes = typeof.(getVariableType.(Xi))
+
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
   maxlen, sfidx, mani = prepareparamsarray!(vecPtsArr, Xi, solvefor, N, solveKey=solveKey)
 
@@ -157,13 +163,27 @@ function generateNullhypoEntropy( val::AbstractMatrix{<:Real},
   MvNormal( mu, cVar )
 end
 
-# FIXME SWITCH TO ON-MANIFOLD VERSION
-function calcVariableCovarianceBasic(ptsArr::Vector{Vector{Float64}})
+# FIXME SWITCH TO ON-MANIFOLD VERSION (see next, #TODO remove this one if manifold version is correct)
+function calcVariableCovarianceBasic(M::AbstractManifold, ptsArr::Vector{Vector{Float64}})
   # cannot calculate the stdev from uninitialized state
   # FIXME assume point type is only Vector{Float} at this time
   @cast arr[i,j] := ptsArr[j][i]
   msst = Statistics.std(arr, dims=2)
   # FIXME use adaptive scale, see #802
+  msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
+  return msst_
+end
+
+function calcVariableCovarianceBasic(M::AbstractManifold, ptsArr::Vector{P}) where P
+  #TODO double check the maths,. it looks like its working at least for groups
+  μ = mean(M, ptsArr)
+  Xcs = vee.(Ref(M), Ref(μ), log.(Ref(M), Ref(μ), ptsArr))
+  Σ = mean(Xcs .* transpose.(Xcs))
+  @debug "calcVariableCovarianceBasic" μ
+  @debug "calcVariableCovarianceBasic" Σ
+  # TODO don't know what to do here so keeping as before, #FIXME it will break
+  # a change between this and previous is that a full covariance matrix is returned
+  msst = Σ
   msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
   return msst_
 end
@@ -184,7 +204,7 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
                                                 kappa::Float64=3.0  )
   #
   if sfidx in certainidx
-    msst_ = calcVariableCovarianceBasic(ccwl.params[sfidx])
+    msst_ = calcVariableCovarianceBasic(getManifold(ccwl.vartypes[sfidx]), ccwl.params[sfidx])
     return kappa*msst_
   end
   # @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
@@ -488,7 +508,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   end
   # @show nn, size(addEntr), size(nhmask), size(solveForPts)
   addEntrNH = view(addEntr, nhmask)
-  spreadDist = spreadNH*calcVariableCovarianceBasic(addEntr)
+  spreadDist = spreadNH*calcVariableCovarianceBasic(mani, addEntr)
   # partials are treated differently
   if !ccwl.partial
       # TODO for now require measurements to be coordinates too

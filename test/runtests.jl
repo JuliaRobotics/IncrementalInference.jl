@@ -3,6 +3,8 @@ using Test
 # using Compat
 # using IncrementalInference
 
+include("testSphereMani.jl")
+include("testSpecialOrthogonalMani.jl")
 
 include("testCliqSolveDbgUtils.jl")
 include("TestModuleFunctions.jl")
@@ -66,6 +68,7 @@ include("testMixtureLinearConditional.jl")
 include("testFluxModelsDistribution.jl")
 include("testDERelative.jl")
 include("testAnalysisTools.jl")
+
 include("testBasicParametric.jl")
 include("testMixtureParametric.jl")
 

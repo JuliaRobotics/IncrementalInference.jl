@@ -77,21 +77,24 @@ end
 function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
                               objResX::Function,
                               residual::AbstractVector{<:Real},
-                              u0::AbstractVector{<:Real},
+                              u0,#::AbstractVector{<:Real},
                               islen1::Bool=false  )  where {N_,F<:AbstractManifoldMinimize,S,T}
                               # retries::Int=3 )
   #
-
   M = fcttype.M
   # the variable is a manifold point, we are working on the tangent plane in optim for now.
   # 
+  #TODO this is not correct we need the point identity also
   ϵ = identity(M, u0)
   # X0c = get_coordinates(M, u0, log(M, ϵ, u0), DefaultOrthogonalBasis()) 
   X0c = vee(M, u0, log(M, ϵ, u0)) 
 
+  # objResX(p) returns tangent vector at p, X=log(M, p, ...)
+  # norm(M, p, X) == distance(M, p, X)
   function cost(Xc)
-    x = exp(M, ϵ, hat(M, ϵ, Xc))  
-    return objResX(x)^2
+    p = exp(M, ϵ, hat(M, ϵ, Xc))  
+    X = objResX(p)
+    return norm(M, p, X)^2 #TODO verify 
   end
 
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead() 
@@ -156,7 +159,7 @@ DevNotes
 function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
                                       smpid::Int,
                                       cpt_::ConvPerThread = ccwl.cpt[Threads.threadid()],
-                                      target::AbstractVector = view(ccwl.params[ccwl.varidx][smpid], cpt_.p),
+                                      target::AbstractArray = view(ccwl.params[ccwl.varidx][smpid], cpt_.p),
                                       measurement_ = ccwl.measurement,
                                       fmd_::FactorMetadata = cpt_.factormetadata  )
   #
@@ -221,6 +224,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   #
   thrid = Threads.threadid()
   cpt_ = ccwl.cpt[thrid]
+
   smpid = cpt_.particleidx
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
   islen1 = length(cpt_.p) == 1 || ccwl.partial
@@ -258,6 +262,53 @@ end
 # need to shuffle content inside .cpt.fmd as well as .params accordingly
 #
 
+function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
+                                        CommonConvWrapper{Mixture{N_,F,S,T}}};
+                            perturb::Real=1e-10,
+                            testshuffle::Bool=false  ) where {N_,F<:AbstractManifoldMinimize,S,T}
+  #
+    # FIXME, move this check higher and out of smpid loop
+  _checkErrorCCWNumerics(ccwl, testshuffle)
+
+  #
+  thrid = Threads.threadid()
+  cpt_ = ccwl.cpt[thrid]
+
+  smpid = cpt_.particleidx
+  # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
+  islen1 = length(cpt_.p) == 1 || ccwl.partial
+  # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
+
+  # build the pre-objective function for this sample's hypothesis selection
+  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, cpt_, view(ccwl.params[ccwl.varidx], smpid))
+  
+  # broadcast updates original view memory location
+  ## using CalcFactor legacy path inside (::CalcFactor)
+  # _hypoObj = (x) -> (target.=x; unrollHypo!())
+  function _hypoObj(x)
+    target[] .= x
+    return unrollHypo!()
+  end
+  
+  # TODO small off-manifold perturbation is a numerical workaround only, make on-manifold requires RoME.jl #244
+  # use all element dimensions : ==> 1:ccwl.xDim
+  # F <: AbstractRelativeRoots && (target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb))
+
+  # do the parameter search over defined decision variables using Minimization
+  # retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid][cpt_.p], islen1 )
+  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid], islen1 )
+  
+  # Check for NaNs
+  if sum(isnan.(retval)) != 0
+    @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(retval)\n"
+    return nothing
+  end
+
+  # insert result back at the correct variable element location
+  cpt_.X[smpid] .= retval
+  
+  nothing
+end
 
 
 
