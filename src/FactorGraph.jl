@@ -308,7 +308,8 @@ function DefaultNodeDataParametric( dodims::Int,
     #                         dims, false, :_null, Symbol[], variableType, true, 0.0, false, dontmargin)
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
-    return VariableNodeData([zeros(dims) for _ in 1:1],
+    ϵ = getPointIdentity(variableType)
+    return VariableNodeData([ϵ],
                             zeros(dims,dims), Symbol[], sp,
                             dims, false, :_null, Symbol[], variableType, false, 0.0, false, dontmargin, 0, 0, :parametric)
   end
@@ -593,19 +594,20 @@ Notes
 - Will not work in all situations, but good enough so far.
   - # TODO standardize via domain or manifold definition...??
 """
-function calcZDim(cf::CalcFactor{T}) where {T <: FunctorInferenceType}
+function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
   #
-  # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
-  zdim = if T != GenericMarginal
-    # vnds = Xi # (x->getSolverData(x)).(Xi)
-    # NOTE try to make sure we get matrix back (not a vector)
-    smpls = sampleFactor(cf, 2)[1]
-    length(smpls[1])
-  else
-    0
-  end
-  return zdim
+
+  # NOTE try to make sure we get matrix back (not a vector)
+  smpls = sampleFactor(cf, 2)[1]
+  return length(smpls[1])
 end
+
+# FIXME THIS IS NEW REPLACEMENT FUNCTION
+# function calcZDim(cf::CalcFactor{T}) where T <: AbstractFactor
+#   return manifold_dimension(getManifold(cf.factor))
+# end
+
+calcZDim(cf::CalcFactor{<:GenericMarginal}) = 0
 
 calcZDim(cf::CalcFactor{<:ManifoldPrior}) = manifold_dimension(cf.factor.M)
 
@@ -654,7 +656,8 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
           nullhypo=nullhypo,
           threadmodel=threadmodel,
           inflation=inflation,
-          partialDims=partialDims
+          partialDims=partialDims,
+          vartypes = typeof.(getVariableType.(Xi))
         )
   #
   return ccw
@@ -687,7 +690,7 @@ function getDefaultFactorData(dfg::AbstractDFG,
   ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel, inflation=inflation)
 
   # and the factor data itself
-  return FunctionNodeData{CommonConvWrapper{T}}(eliminated, potentialused, edgeIDs, ccw, multihypo, ccw.certainhypo, nullhypo, solveInProgress, inflation)
+  return FunctionNodeData{typeof(ccw)}(eliminated, potentialused, edgeIDs, ccw, multihypo, ccw.certainhypo, nullhypo, solveInProgress, inflation)
 end
 
 
@@ -1022,10 +1025,10 @@ Related
 initManual!, graphinit (keyword)
 """
 function resetInitialValues!(dest::AbstractDFG,
-                             src::AbstractDFG=dest,
-                             initKey::Symbol=:graphinit,
-                             solveKey::Symbol=:default;
-                             varList::AbstractVector{Symbol}=ls(dest))
+                            src::AbstractDFG=dest,
+                            initKey::Symbol=:graphinit,
+                            solveKey::Symbol=:default;
+                            varList::AbstractVector{Symbol}=ls(dest))
   #
   for vs in varList
     vnd = getSolverData(getVariable(src, vs), initKey)
@@ -1143,24 +1146,23 @@ variables are related to data association uncertainty.
 Experimental
 - `inflation`, to better disperse kernels before convolution solve, see IIF #1051.
 """
-function addFactor!(dfg::AbstractDFG,
-                    Xi::Vector{<:DFGVariable},
-                    usrfnc::R;
-                    multihypo::Vector{Float64}=Float64[],
-                    nullhypo::Float64=0.0,
-                    solvable::Int=1,
-                    tags::Vector{Symbol}=Symbol[],
-                    timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
-                    graphinit::Bool=getSolverParams(dfg).graphinit,
-                    threadmodel=SingleThreaded,
-                    suppressChecks::Bool=false,
-                    inflation::Real=getSolverParams(dfg).inflation  ) where
-                      {R <: FunctorInferenceType}
+function DFG.addFactor!(dfg::AbstractDFG,
+                        Xi::Vector{<:DFGVariable},
+                        usrfnc::AbstractFactor;
+                        multihypo::Vector{Float64}=Float64[],
+                        nullhypo::Float64=0.0,
+                        solvable::Int=1,
+                        tags::Vector{Symbol}=Symbol[],
+                        timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
+                        graphinit::Bool=getSolverParams(dfg).graphinit,
+                        threadmodel=SingleThreaded,
+                        suppressChecks::Bool=false,
+                        inflation::Real=getSolverParams(dfg).inflation,
+                        namestring::Symbol = assembleFactorName(dfg, Xi)  )
   #
   # depcrecation
 
   varOrderLabels = Symbol[v.label for v=Xi]
-  namestring = assembleFactorName(dfg, Xi)
   solverData = getDefaultFactorData(dfg, 
                                     Xi, 
                                     deepcopy(usrfnc), 
@@ -1186,16 +1188,17 @@ end
 
 function DFG.addFactor!(dfg::AbstractDFG,
                         xisyms::Vector{Symbol},
-                        usrfnc::FunctorInferenceType;
-                        multihypo::Vector{<:Real}=Float64[],
-                        nullhypo::Float64=0.0,
-                        solvable::Int=1,
-                        timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
-                        tags::Vector{Symbol}=Symbol[],
-                        graphinit::Bool=getSolverParams(dfg).graphinit,
-                        threadmodel=SingleThreaded,
-                        inflation::Real=getSolverParams(dfg).inflation,
-                        suppressChecks::Bool=false  )
+                        usrfnc::AbstractFactor;
+                        suppressChecks::Bool=false,
+                        kw...  )
+                        # multihypo::Vector{<:Real}=Float64[],
+                        # nullhypo::Float64=0.0,
+                        # solvable::Int=1,
+                        # timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
+                        # tags::Vector{Symbol}=Symbol[],
+                        # graphinit::Bool=getSolverParams(dfg).graphinit,
+                        # threadmodel=SingleThreaded,
+                        # inflation::Real=getSolverParams(dfg).inflation,
   #
   # depcrecation
 
@@ -1206,7 +1209,7 @@ function DFG.addFactor!(dfg::AbstractDFG,
 
   variables = getVariable.(dfg, xisyms)
   # verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, variables, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, tags=tags, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp, inflation=inflation )
+  addFactor!(dfg, variables, usrfnc; suppressChecks=suppressChecks, kw... ) # multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, tags=tags, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp, inflation=inflation )
 end
 
 

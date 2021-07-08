@@ -422,6 +422,7 @@ include("Factors/GenericFunctions.jl")
 # Refactoring in progress
 include("Factors/MsgLikelihoods.jl")
 
+include("entities/GraphConstraintTypes.jl")
 include("CliqueTypes.jl")
 
 include("JunctionTreeTypes.jl")
@@ -444,7 +445,6 @@ include("TreeBasedInitialization.jl")
 include("HeatmapSampler.jl")
 
 # special variables and factors, see RoME.jl for more examples
-include("GraphConstraintTypes.jl")
 include("Factors/Mixture.jl")
 include("Factors/DefaultPrior.jl")
 include("Factors/LinearRelative.jl")
