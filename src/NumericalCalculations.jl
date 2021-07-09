@@ -92,10 +92,11 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
 
   # objResX(p) returns tangent vector at p, X=log(M, p, ...)
   # norm(M, p, X) == distance(M, p, X)
+  #TODO fix closure for performance
   function cost(Xc)
     p = exp(M, ϵ, hat(M, ϵ, Xc))  
     X = objResX(p)
-    return norm(M, p, X)^2 #TODO verify 
+    return norm(fcttype.M, p, X)^2 #TODO verify 
   end
 
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead() 
@@ -301,10 +302,11 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid], ccwl.vartypes[sfidx](), islen1)
   
   # Check for NaNs
-  if sum(isnan.(retval)) != 0
-    @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(retval)\n"
-    return nothing
-  end
+  # FIXME isnan for manifold ProductRepr
+  # if sum(isnan.(retval)) != 0
+    # @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(retval)\n"
+    # return nothing
+  # end
 
   # insert result back at the correct variable element location
   cpt_.X[smpid] .= retval

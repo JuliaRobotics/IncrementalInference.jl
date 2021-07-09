@@ -74,7 +74,8 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
-  vecPtsArr = Vector{Vector{PointType}}()
+  #FIXME
+  vecPtsArr = Vector{Vector{Any}}()
 
   #TODO some better consolidate is needed
   ccwl.vartypes = typeof.(getVariableType.(Xi))
@@ -503,7 +504,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   if !ccwl.partial
       # TODO for now require measurements to be coordinates too
       # @show typeof(ccwl.measurement[1])
-      for m in (1:length(ahmask))[ahmask]
+      for m in (1:length(addEntr))[ahmask]
         # @show m, addEntr[m], ccwl.measurement[1][m]
         addEntr[m] .= ccwl.measurement[1][m]
       end
@@ -513,7 +514,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
     i = 0
     for dimnum in fnc.partial
       i += 1
-      for m in (1:length(ahmask))[ahmask]
+      for m in (1:length(addEntr))[ahmask]
         addEntr[m][dimnum] = ccwl.measurement[1][m][i]
       end
       # @show size(addEntr), dimnum, nhmask
@@ -871,7 +872,8 @@ function findRelatedFromPotential(dfg::AbstractDFG,
   # vdim = getVariableDim(DFG.getVariable(dfg, target))
 
   # TODO -- better to upsample before the projection
-  Ndim = length(pts[1])
+  # Ndim = length(pts[1]) # not used, should maybe be: 
+  # Ndim = manifold_dimension(M)
   Npoints = length(pts) # size(pts,2)
   # Assume we only have large particle population sizes, thanks to addNode!
   M = getManifold(getVariableType(dfg, target))

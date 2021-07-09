@@ -621,7 +621,8 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   #
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
-  ARR = Vector{Vector{PointType}}()
+  # FIXME maybe a product manifold and not any
+  ARR = Vector{Vector{Any}}()
   maxlen, sfidx, mani = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
 
   # standard factor metadata

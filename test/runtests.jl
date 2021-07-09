@@ -5,6 +5,7 @@ using Test
 
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
+include("testSpecialEuclidean2Mani.jl")
 
 include("testCliqSolveDbgUtils.jl")
 include("TestModuleFunctions.jl")
