@@ -205,7 +205,7 @@ function ConvPerThread( X::AbstractVector{P},
                         res=zeros(zDim),
                         thrid_ = 0  ) where P
   #
-  return ConvPerThread( thrid_,
+  return ConvPerThread{typeof(res), typeof(factormetadata), Any}( thrid_,
                         particleidx,
                         factormetadata,
                         Int[activehypo;],
@@ -260,7 +260,7 @@ end
 function CommonConvWrapper( fnc::T,
                             X::AbstractVector{P},
                             zDim::Int,
-                            params::AbstractVector{Vector{P}},
+                            params::AbstractVector{Vector{Q}},
                             factormetadata::FactorMetadata;
                             specialzDim::Bool=false,
                             partial::Bool=false,
@@ -278,7 +278,7 @@ function CommonConvWrapper( fnc::T,
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
                             inflation::Real=3.0,
                             vartypes=typeof.(getVariableType.(factormetadata.fullvariables))
-                            ) where {T<:FunctorInferenceType,P,H}
+                            ) where {T<:FunctorInferenceType,P,H,Q}
   #
   return  CommonConvWrapper(fnc,
                             xDim,

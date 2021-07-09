@@ -74,7 +74,8 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
-  vecPtsArr = Vector{Vector{PointType}}()
+  #FIXME
+  vecPtsArr = Vector{Vector{Any}}()
 
   #TODO some better consolidate is needed
   ccwl.vartypes = typeof.(getVariableType.(Xi))
