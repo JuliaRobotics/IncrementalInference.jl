@@ -359,6 +359,7 @@ function setDefaultNodeData!( v::DFGVariable,
                             varType, true, 0.0, false, dontmargin,0,0,solveKey), solveKey)
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
+    @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defVariable $varType arguments is correct"
     valpts = Vector{getPointType(varType)}(undef,N)
     for i in 1:length(valpts)
       valpts[i] = getPointIdentity(varType)
