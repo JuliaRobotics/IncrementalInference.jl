@@ -597,6 +597,12 @@ Notes
 """
 function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
   #
+  try
+    @show M = getManifold(T)
+    return manifold_dimension(M)
+  catch
+    @warn "no method getManifold(::$T), calcZDim will attempt legacy length(sample) method instead"
+  end
 
   # NOTE try to make sure we get matrix back (not a vector)
   smpls = sampleFactor(cf, 2)[1]
