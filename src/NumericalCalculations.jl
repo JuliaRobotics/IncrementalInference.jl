@@ -92,10 +92,11 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
 
   # objResX(p) returns tangent vector at p, X=log(M, p, ...)
   # norm(M, p, X) == distance(M, p, X)
+  #TODO fix closure for performance
   function cost(Xc)
     p = exp(M, ϵ, hat(M, ϵ, Xc))  
     X = objResX(p)
-    return norm(M, p, X)^2 #TODO verify 
+    return norm(fcttype.M, p, X)^2 #TODO verify 
   end
 
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead() 
