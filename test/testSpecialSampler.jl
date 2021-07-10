@@ -11,7 +11,7 @@ import IncrementalInference: getSample
 struct SpecialPrior{T <: SamplableBelief} <: AbstractPrior
   z::T
 end
-getSample(s::CalcFactor{<:SpecialPrior}, N::Int) = (reshape(rand(s.factor.z,N),1,:), )
+getSample(s::CalcFactor{<:SpecialPrior}, N::Int) = ([rand(s.factor.z,1) for _ in 1:N], )
 
 struct SpecialLinearOffset{T <: SamplableBelief} <: AbstractRelativeRoots
   z::T
