@@ -36,7 +36,7 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                 elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {N_,F<:AbstractRelative,S,T}
   #
   for n in elements
-    ccwl.cpt[Threads.threadid()].particleidx = n    
+    ccwl.cpt[Threads.threadid()].particleidx = n
     _solveCCWNumeric!( ccwl )
   end
   nothing
@@ -506,7 +506,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
       # @show typeof(ccwl.measurement[1])
       for m in (1:length(addEntr))[ahmask]
         # @show m, addEntr[m], ccwl.measurement[1][m]
-        addEntr[m] .= ccwl.measurement[1][m]
+        # FIXME, selection for all measurement::Tuple elements
+        addEntr[m] = ccwl.measurement[1][m]
       end
       # ongoing part of RoME.jl #244
       addEntropyOnManifold!(mani, addEntrNH, 1:getDimension(mani), spreadDist)
