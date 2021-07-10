@@ -299,7 +299,7 @@ function solveTree!(dfgl::AbstractDFG,
 
   if opt.graphinit
     @info "Ensure variables are all initialized (graphinit)"
-    ensureAllInitialized!(dfgl, solveKey)
+    initAll!(dfgl, solveKey)
     if algorithm==:parametric
       @warn "Parametric is using default graphinit (and ignoring solveKey)"
       initParametricFrom!(dfgl)
