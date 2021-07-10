@@ -239,7 +239,8 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
   certainhypo::C
   nullhypo::Float64
   # values specific to one complete convolution operation
-  # FIXME ? JT - What if all points are not on the same manifold?
+  # FIXME ? JT - What if all points are not on the same manifold? 
+  #          DF, just make it NamedTuple? -- some detail on pinning CCW down at construction only
   params::Vector{Vector{P}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
   # FIXME make type stable
