@@ -3,6 +3,7 @@ using Test
 # using Compat
 # using IncrementalInference
 
+include("testEuclidDistance.jl")
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
 include("testSpecialEuclidean2Mani.jl")
@@ -50,7 +51,6 @@ include("testBasicTreeInit.jl")
 include("testSolveOrphanedFG.jl")
 include("testSolveSetPPE.jl")
 include("testSolveKey.jl")
-include("testEuclidDistance.jl")
 include("priorusetest.jl")
 include("testVariousNSolveSize.jl")
 include("testExplicitMultihypo.jl")
