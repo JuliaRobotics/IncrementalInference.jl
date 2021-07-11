@@ -33,11 +33,9 @@ function predictbelief( dfg::AbstractDFG,
   else
     sample(oldBel, N)[1]
   end
-
+  
   varType = getVariableType(dfg, destvertlabel)
   pGM = AMP.productbelief(oldpts, getManifold(varType), dens, N, dbg=dbg, logger=logger, asPartial=false )
-
-  # @error "PREDICT BELIEF" N length(pGM) Npts.(dens)
 
   return pGM, sum(inferdim)
 end

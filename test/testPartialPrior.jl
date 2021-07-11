@@ -31,6 +31,14 @@ f0 = addFactor!(fg, [:x0], PartialDim2(Normal()))
 
 @test IIF._getDimensionsPartial(f0) == [2]
 
+##
+
+dens = Vector{ManifoldKernelDensity}()
+IIF.proposalbeliefs!(fg, :x0, [f0], dens)
+
+pts = getPoints(dens[1], false)
+
+##
 
 predictbelief(fg, :x0, [:x0f1;])
 @test true
