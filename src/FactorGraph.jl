@@ -130,6 +130,8 @@ function setValKDE!(vd::VariableNodeData,
                     setinit::Bool=true,
                     inferdim::Float64=0.0 ) where P
   #
+
+  
   setVal!(vd, pts, bws) # BUG ...al!(., val, . ) ## TODO -- this can be a little faster
   setinit ? (vd.initialized = true) : nothing
   vd.inferdim = inferdim
@@ -343,20 +345,15 @@ function setDefaultNodeData!( v::DFGVariable,
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   data = nothing
-  if initialized
-
-      pN = AMP.manikde!(randn(dims, N), getManifolds(varType));
-
-    sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
-    gbw = getBW(pN)[:,1]
-    gbw2 = Array{Float64}(undef, length(gbw),1)
-    gbw2[:,1] = gbw[:]
+  isinit = false
+  sp = Int[0;]
+  (valpts, bws) = if initialized
+    pN = resample(getBelief(v))
+    # pN = AMP.manikde!(randn(dims, N), getManifolds(varType));
+    bws = getBW(pN)[:,1:1]
     pNpts = getPoints(pN)
-    #initval, stdev
-    setSolverData!(v, VariableNodeData(pNpts,
-                            gbw2, Symbol[], sp,
-                            dims, false, :_null, Symbol[], 
-                            varType, true, 0.0, false, dontmargin,0,0,solveKey), solveKey)
+    isinit = true
+    (pNpts, bws)
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defVariable $varType arguments is correct"
@@ -365,12 +362,14 @@ function setDefaultNodeData!( v::DFGVariable,
       valpts[i] = getPointIdentity(varType)
     end
     bws = zeros(dims,1)
-    setSolverData!(v, VariableNodeData(valpts, bws,
-                                        Symbol[], sp,
-                                        dims, false, :_null, Symbol[], 
-                                        varType, false, 0.0, false, dontmargin,0,0,solveKey), solveKey)
     #
+    (valpts, bws)
   end
+  # make and set the new solverData
+  setSolverData!(v, VariableNodeData( valpts, bws,
+                                      Symbol[], sp,
+                                      dims, false, :_null, Symbol[], 
+                                      varType, isinit, 0.0, false, dontmargin,0,0,solveKey), solveKey)
   return nothing
 end
 # if size(initval,2) < N && size(initval, 1) == dims
@@ -532,7 +531,7 @@ function prepareparamsarray!( ARR::AbstractVector{<:AbstractVector{P}},
     vecP = getVal(xi, solveKey=solveKey)
     push!(ARR, vecP)
     LEN = length.(ARR)
-    maxlen = maximum(LEN)
+    maxlen = maximum([N; LEN])
     count += 1
     if xi.label == solvefor
       sfidx = count #xi.index
@@ -598,12 +597,12 @@ Notes
 function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
   #
   try
-    @show M = getManifold(T)
+    M = getManifold(T)
     return manifold_dimension(M)
   catch
     @warn "no method getManifold(::$T), calcZDim will attempt legacy length(sample) method instead"
   end
-
+  
   # NOTE try to make sure we get matrix back (not a vector)
   smpls = sampleFactor(cf, 2)[1]
   return length(smpls[1])
@@ -831,7 +830,7 @@ function doautoinit!( dfg::AbstractDFG,
                       xi::DFGVariable;
                       solveKey::Symbol=:default,
                       singles::Bool=true,
-                      N::Int=100,
+                      N::Int=maximum([length(getPoints(getBelief(xi, solveKey))); getSolverParams(dfg).N]),
                       logger=ConsoleLogger() )
   #
   didinit = false
@@ -880,12 +879,12 @@ function doautoinit!( dfg::AbstractDFG,
   return didinit
 end
 
-function doautoinit!( dfg::T,
+function doautoinit!( dfg::AbstractDFG,
                       Xi::Vector{<:DFGVariable};
                       solveKey::Symbol=:default,
                       singles::Bool=true,
-                      N::Int=100,
-                      logger=ConsoleLogger() )::Bool where T <: AbstractDFG
+                      N::Int=getSolverParams(dfg).N,
+                      logger=ConsoleLogger()  )
   #
   #
   # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
@@ -900,22 +899,22 @@ function doautoinit!( dfg::T,
   return didinit
 end
 
-function doautoinit!( dfg::T,
+function doautoinit!( dfg::AbstractDFG,
                       xsyms::Vector{Symbol};
                       solveKey::Symbol=:default,
                       singles::Bool=true,
-                      N::Int=100,
-                      logger=ConsoleLogger()  )::Bool where T <: AbstractDFG
+                      N::Int=getSolverParams(dfg).N,
+                      logger=ConsoleLogger()  )
   #
   verts = getVariable.(dfg, xsyms)
   return doautoinit!(dfg, verts, solveKey=solveKey, singles=singles, N=N, logger=logger)
 end
-function doautoinit!( dfg::T,
+function doautoinit!( dfg::AbstractDFG,
                       xsym::Symbol;
                       solveKey::Symbol=:default,
                       singles::Bool=true,
-                      N::Int=100,
-                      logger=ConsoleLogger()  )::Bool where T <: AbstractDFG
+                      N::Int=getSolverParams(dfg).N,
+                      logger=ConsoleLogger()  )
   #
   return doautoinit!(dfg, [getVariable(dfg, xsym);], solveKey=solveKey, singles=singles, N=N, logger=logger)
 end
@@ -953,7 +952,7 @@ function initManual!( variable::DFGVariable,
                       ptsArr::ManifoldKernelDensity,
                       solveKey::Symbol=:default;
                       dontmargin::Bool=false,
-                      N::Int=100 )
+                      N::Int=length(getPoints(ptsArr)) )
   #
   @debug "initManual! $label"
   if !(solveKey in listSolveKeys(variable))

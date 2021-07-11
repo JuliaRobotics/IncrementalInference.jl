@@ -87,6 +87,17 @@ DFG.getDimension(fct::DFGFactor) = _getZDim(fct)
 
 
 """
+    $SIGNATURES
+
+Return the manifold on which this ManifoldKernelDensity is defined.
+
+DevNotes
+- TODO currently ignores the .partial aspect (captured in parameter `L`)
+"""
+getManifold(mkd::ManifoldKernelDensity{M,B,L}) where {M,B,L} = mkd.manifold
+
+
+"""
     $TYPEDSIGNATURES
 
 Return the number of dimensions this factor vertex `fc` influences.
@@ -141,19 +152,12 @@ function manikde!(pts::AbstractVector{P},
 end
 
 
-
 """
     $SIGNATURES
 
-Return N=100 measurement samples for a factor in `<:AbstractDFG`.
+Return params.N measurement samples for a factor in `<:AbstractDFG`.
 """
-function getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int=100)
-  # fnc = getFactorFunction(dfg, fsym)
-  ## getSample(fnc, N)
-  # Xi = (v->getVariable(dfg, v)).(getVariableOrder(dfg, fsym))
-  # sampleFactor(fnc, N)
-  sampleFactor(dfg, fsym, N)
-end
+getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int=getSolverParams(dfg).N) = sampleFactor(dfg, fsym, N)
 
 
 """

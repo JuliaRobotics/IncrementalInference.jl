@@ -117,7 +117,7 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   if ccwl.specialzDim
     ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
   else
-    ccwl.zDim = length(ccwl.measurement[1][1]) # FIXME -- zDim aspect needs to be reviewed
+    ccwl.zDim = calcZDim(CalcFactor(ccwl))
   end
   ccwl.varidx = sfidx
 
@@ -126,15 +126,10 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
     cpt_ = ccwl.cpt[thrid] 
     cpt_.X = ccwl.params[sfidx]
 
-    # NOTE should be done during constructor for this factor only
-    # resize!(cpt_.p, ccwl.xDim) 
-    # cpt_.p .= 1:ccwl.xDim
-
     # used in ccw functor for AbstractRelativeMinimize
     # TODO JT - Confirm it should be updated here. Testing in prepgenericconvolution
     resize!(cpt_.res, ccwl.zDim) 
     fill!(cpt_.res, 0.0)
-    # cpt_.res = zeros(ccwl.xDim) 
   end
 
   return sfidx, maxlen, mani
@@ -146,10 +141,9 @@ function prepareCommonConvWrapper!( ccwl::Union{CommonConvWrapper{F},
                                     Xi::AbstractVector{<:DFGVariable},
                                     solvefor::Symbol,
                                     N::Int;
-                                    needFreshMeasurements::Bool=true,
-                                    solveKey::Symbol=:default  ) where {N_,F<:AbstractRelative,S,T}
+                                    kw...  ) where {N_,F<:AbstractRelative,S,T}
   #
-  prepareCommonConvWrapper!(F, ccwl, Xi, solvefor, N, needFreshMeasurements=needFreshMeasurements, solveKey=solveKey)
+  prepareCommonConvWrapper!(F, ccwl, Xi, solvefor, N; kw...)
 end
 
 function generateNullhypoEntropy( val::AbstractMatrix{<:Real},
@@ -164,16 +158,16 @@ function generateNullhypoEntropy( val::AbstractMatrix{<:Real},
   MvNormal( mu, cVar )
 end
 
-# FIXME SWITCH TO ON-MANIFOLD VERSION (see next, #TODO remove this one if manifold version is correct)
-function calcVariableCovarianceBasic(M::AbstractManifold, ptsArr::Vector{Vector{Float64}})
-  # cannot calculate the stdev from uninitialized state
-  # FIXME assume point type is only Vector{Float} at this time
-  @cast arr[i,j] := ptsArr[j][i]
-  msst = Statistics.std(arr, dims=2)
-  # FIXME use adaptive scale, see #802
-  msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
-  return msst_
-end
+# # FIXME SWITCH TO ON-MANIFOLD VERSION (see next, #TODO remove this one if manifold version is correct)
+# function calcVariableCovarianceBasic(M::AbstractManifold, ptsArr::Vector{Vector{Float64}})
+#   # cannot calculate the stdev from uninitialized state
+#   # FIXME assume point type is only Vector{Float} at this time
+#   @cast arr[i,j] := ptsArr[j][i]
+#   msst = Statistics.std(arr, dims=2)
+#   # FIXME use adaptive scale, see #802
+#   msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
+#   return msst_
+# end
 
 function calcVariableCovarianceBasic(M::AbstractManifold, ptsArr::Vector{P}) where P
   #TODO double check the maths,. it looks like its working at least for groups
@@ -399,10 +393,10 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
                                 T_::Type{<:AbstractRelative},
-                                measurement::Tuple=(zeros(0,100),);
+                                measurement::Tuple=(Vector{Float64}(),);
                                 needFreshMeasurements::Bool=true,
                                 solveKey::Symbol=:default,
-                                N::Int=size(measurement[1],2),
+                                N::Int= 0<length(measurement[1]) ? length(measurement[1]) : maximum(Npts.(getBelief.(Xi, solveKey))),
                                 spreadNH::Real=3.0,
                                 inflateCycles::Int=3,
                                 dbg::Bool=false,
@@ -419,7 +413,6 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
 
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
-  
   
   # assemble how hypotheses should be computed
   # TODO convert to HypothesisRecipeElements result
@@ -460,7 +453,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # setup the partial or complete decision variable dimensions for this ccwl object
   # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
   _setCCWDecisionDimsConv!(ccwl)
-  
+
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
   sfidx = findfirst(getLabel.(Xi) .== solvefor)
@@ -532,53 +525,28 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
                                 solvefor::Symbol,
                                 measurement::Tuple=(Vector{Vector{Float64}}(),);
-                                needFreshMeasurements::Bool=true,
-                                solveKey::Symbol=:default,
-                                N::Int=length(measurement[1]),
-                                dbg::Bool=false,
-                                spreadNH::Real=3.0,
-                                inflateCycles::Int=3,
-                                skipSolve::Bool=false ) where {N_,F<:AbstractFactor,S,T}
+                                kw... ) where {N_,F<:AbstractFactor,S,T}
   #
   evalPotentialSpecific(Xi,
                         ccwl,
                         solvefor,
                         F,
                         measurement;
-                        needFreshMeasurements=needFreshMeasurements,
-                        solveKey=solveKey,
-                        N=N,
-                        dbg=dbg,
-                        spreadNH=spreadNH,
-                        inflateCycles=inflateCycles,
-                        skipSolve=skipSolve )
+                        kw... )
 end
-
 
 function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{F},
                                 solvefor::Symbol,
                                 measurement::Tuple=(Vector{Vector{Float64}}(),);
-                                needFreshMeasurements::Bool=true,
-                                solveKey::Symbol=:default,
-                                N::Int=length(measurement[1]),
-                                dbg::Bool=false,
-                                spreadNH::Real=3.0,
-                                inflateCycles::Int=3,
-                                skipSolve::Bool=false ) where {F <: AbstractFactor}
+                                kw... ) where {F <: AbstractFactor}
   #
   evalPotentialSpecific(Xi,
                         ccwl,
                         solvefor,
                         F,
                         measurement;
-                        needFreshMeasurements=needFreshMeasurements,
-                        solveKey=solveKey,
-                        N=N,
-                        dbg=dbg,
-                        spreadNH=spreadNH,
-                        inflateCycles=inflateCycles,
-                        skipSolve=skipSolve )
+                        kw... )
 end
 
 
@@ -645,7 +613,7 @@ function approxConv(dfg::AbstractDFG,
                     skipSolve::Bool=false )
   #
   v1 = getVariable(dfg, target)
-  N = N == 0 ? getNumPts(v1) : N
+  N = N == 0 ? getNumPts(v1, solveKey=solveKey) : N
   return evalFactor(dfg, fc, v1.label, measurement, solveKey=solveKey, N=N, skipSolve=skipSolve)
 end
 
@@ -699,7 +667,7 @@ function approxConv(dfg::AbstractDFG,
     # must first discover shortest factor path in dfg
     # TODO DFG only supports LightDFG.findShortestPathDijkstra at the time of writing (DFG v0.10.9)
     path = 0 == length(path) ? findShortestPathDijkstra(dfg, from, target) : path
-    @assert path[1] == from "sanity check that shortest path function is working as expected"
+    @assert path[1] == from "sanity check failing for shortest path function"
 
     # list of variables
     fctMsk = isFactor.(dfg, path)
@@ -719,7 +687,7 @@ function approxConv(dfg::AbstractDFG,
   idxS = 1
   pts = if varLbls[1] == from
     # starting from a variable
-    pts0 = getBelief(dfg, varLbls[1]) |> getPoints
+    getBelief(dfg, varLbls[1]) |> getPoints
   else
     # chain would start one later
     idxS += 1
@@ -892,7 +860,7 @@ function findRelatedFromPotential(dfg::AbstractDFG,
                                   fct::DFGFactor{<:CommonConvWrapper{<:PartialPriorPassThrough}},
                                   target::Symbol,
                                   measurement::Tuple=(zeros(0,0),);
-                                  N::Int=size(measurement[1],2),
+                                  N::Int=length(measurement[1]),
                                   solveKey::Symbol=:default,
                                   dbg::Bool=false  )
   #
@@ -928,7 +896,7 @@ function proposalbeliefs!(dfg::AbstractDFG,
                           # partials::Dict{Any, Vector{ManifoldKernelDensity}}, # TODO change this structure
                           measurement::Tuple=(Vector{Vector{Float64}}(),);
                           solveKey::Symbol=:default,
-                          N::Int=100,
+                          N::Int=maximum([length(getPoints(getBelief(dfg, destvertlabel, solveKey))); getSolverParams(dfg).N]),
                           dbg::Bool=false  )
   #
   

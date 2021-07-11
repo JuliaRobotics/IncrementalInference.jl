@@ -147,7 +147,7 @@ function presolveChecklist_StateMachine(csmc::CliqStateMachineContainer)
       setDefaultNodeData!(var, 0, getSolverParams(csmc.cliqSubFg).N, getDimension(varType), solveKey=csmc.solveKey, 
                           initialized=false, varType=varType, dontmargin=false)
       #
-      @info "create vnd solveKey" csmc.solveKey
+      @info "create vnd solveKey" csmc.solveKey N
       @info "also" listSolveKeys(var)
     end
   end
