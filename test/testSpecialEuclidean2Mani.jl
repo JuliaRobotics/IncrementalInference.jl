@@ -52,8 +52,10 @@ vnd = getVariableSolverData(fg, :x1)
 
 ##
 smtasks = Task[]
-solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
+solveTree!(fg; smtasks)
+# solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
 # hists = fetchCliqHistoryAll!(smtasks);
+# repeatCSMStep!(hists[1], 6)
 
 vnd = getVariableSolverData(fg, :x0)
 @test all(isapprox.(mean(vnd.val), ProductRepr([0.0,0.0], [1.0 0.0; 0.0 1.0]), atol=0.1).parts)
@@ -121,7 +123,8 @@ vnd = getVariableSolverData(fg, :x1)
 # ##
 smtasks = Task[]
 solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
-# # hists = fetchCliqHistoryAll!(smtasks);
+# hists = fetchCliqHistoryAll!(smtasks);
+# repeatCSMStep!(hists[1], 6);
 
 vnd = getVariableSolverData(fg, :x0)
 @test all(isapprox.(mean(vnd.val), ProductRepr([0.0,0.0], [1.0 0.0; 0.0 1.0]), atol=0.1).parts)

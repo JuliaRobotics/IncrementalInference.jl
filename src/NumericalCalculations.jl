@@ -92,7 +92,6 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
 
   # objResX(p) returns tangent vector at p, X=log(M, p, ...)
   # norm(M, p, X) == distance(M, p, X)
-  #TODO fix closure for performance
   function cost(Xc)
     p = exp(M, ϵ, hat(M, ϵ, Xc))  
     X = objResX(p)
@@ -107,6 +106,56 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
 
 end
 
+function _solveLambdaNumericManopt( fcttype::Union{F,<:Mixture{N_,F,S,T}},
+                                    objResX::Function,
+                                    residual::AbstractVector{<:Real},
+                                    u0,#::AbstractVector{<:Real},
+                                    variableType::InferenceVariable,  
+                                    islen1::Bool=false,
+                                    sfidx::Int=1)  where {N_,F<:AbstractManifoldMinimize,S,T}
+  #
+  #variable manifold
+  vM = getManifold(variableType)
+  #factor manifold
+  fM = fcttype.M
+  # 
+  # ϵ = identity(M, u0)
+  ϵ = getPointIdentity(variableType)
+
+  function costF(M, p)
+    X = objResX(p)
+    return norm(fM, p, X)^2
+  end
+
+  _sign = sfidx == 1 ? 1 : -1
+
+  function gradcostF(M, p)
+    X = objResX(p)
+    return _sign*X #FIXME
+    # Manifolds.gradient(M, (x)->costF(M, x), p)
+  end
+
+  #manopt setup and solve
+  stopping_criterion = StopWhenCostLess(1e-5) | StopWhenGradientNormLess(1e-5) | StopAfterIteration(1000) 
+  #stepsize options
+  stepsize = ConstantStepsize(0.1)
+  # stepsize=ArmijoLinesearch()
+  # stepsize = WolfePowellBinaryLinesearch()
+  #debug options
+  # debug= [:Iteration, :Cost,"\n",10]  
+  # debug= [:Iteration, " ", :Cost, " ", DebugStepsize(), " ", DebugGradient(), "\n",1];
+  point = gradient_descent(vM, costF, gradcostF, u0; stopping_criterion, stepsize, debug, return_options=false)
+  
+  #check point 
+  if costF(vM, point) > 1e-5 && norm(vM, point, gradcostF(vM, point)) > 1e-5 
+    @warn "No convergence with result: " point
+    debug= [:Iteration, " ", :Cost, " ", DebugStepsize(), " ", DebugGradientNorm(), "\n",1];
+    stopping_criterion = StopWhenCostLess(1e-5) | StopWhenGradientNormLess(1e-5) | StopAfterIteration(100) 
+    point = gradient_descent(vM, costF, gradcostF, u0; stopping_criterion, stepsize, debug, return_options=false)
+    error("_solveLambdaNumericManopt did not converge")
+  end
+  return point
+end
 
 
 ## ================================================================================================
@@ -300,6 +349,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   # retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid][cpt_.p], islen1 )
   sfidx = ccwl.varidx
   retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid], ccwl.vartypes[sfidx](), islen1)
+  # retval = _solveLambdaNumericManopt(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid], ccwl.vartypes[sfidx](), islen1, sfidx)
   
   # Check for NaNs
   # FIXME isnan for manifold ProductRepr

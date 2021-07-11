@@ -13,6 +13,7 @@ using Reexport
 @reexport using LinearAlgebra
 
 using Manifolds
+using Manopt
 
 export ℝ, AbstractManifold, Euclidean, Circle
 
