@@ -14,7 +14,7 @@ end
 
 PartialDim2(Z::D) where {D <: IIF.SamplableBelief} = PartialDim2(Z, (2,))
 
-getSample(cfo::CalcFactor{<:PartialDim2}, N::Int=1) = (reshape(rand(cfo.factor.Z, N),1,N),)
+getSample(cfo::CalcFactor{<:PartialDim2}, N::Int=1) = ([rand(cfo.factor.Z, 1)[:] for _ in 1:N],)
 
 
 ##
