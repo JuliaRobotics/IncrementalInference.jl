@@ -464,8 +464,10 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # FIXME better standardize in-place operations (considering solveKey)
   if needFreshMeasurements
     cf = CalcFactor( ccwl )
-    ccwl.measurement = sampleFactor(cf, nn)
+    newMeas = sampleFactor(cf, nn)
+    ccwl.measurement = newMeas
   end
+
   # Check which variables have been initialized
   isinit::Vector{Bool} = Xi .|> isInitialized .|> Bool
   _, _, _, mhidx = assembleHypothesesElements!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, ccwl.nullhypo )

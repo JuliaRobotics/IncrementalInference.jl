@@ -270,7 +270,7 @@ function CommonConvWrapper( fnc::T,
                             activehypo= 1:length(params),
                             nullhypo::Real=0,
                             varidx::Int=1,
-                            measurement::Tuple=(zeros(0,1),),
+                            measurement::Tuple=(Vector{Vector{Float64}}(),),  # FIXME should not be a Matrix
                             particleidx::Int=1,
                             xDim::Int=size(X,1),
                             partialDims::AbstractVector{<:Integer}=collect(1:size(X,1)), # TODO make this SVector, and name partialDims

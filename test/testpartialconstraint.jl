@@ -13,13 +13,13 @@ mutable struct DevelopPartial{P <: Tuple} <: AbstractPrior
   x::Distribution
   partial::P 
 end
-getSample(cf::CalcFactor{<:DevelopPartial}, N::Int=1) = (reshape(rand(cf.factor.x, N),1,N), )
+getSample(cf::CalcFactor{<:DevelopPartial}, N::Int=1) = ([rand(cf.factor.x, 1)[:] for _ in 1:N], )
 
 
 mutable struct DevelopDim2 <: AbstractPrior
   x::Distribution
 end
-getSample(cf::CalcFactor{<:DevelopDim2}, N::Int=1) = (rand(cf.factor.x, N), )
+getSample(cf::CalcFactor{<:DevelopDim2}, N::Int=1) = ([rand(cf.factor.x, 1)[:] for _ in 1:N], )
 
 
 ##
@@ -35,8 +35,11 @@ pr = DevelopDim2(MvNormal([0.0;0.0], diagm([0.01;0.01]))) # *Matrix{Float64}(Lin
 f1  = addFactor!(fg,[:x1],pr)
 
 dp = DevelopPartial(Normal(2.0, 1.0),(1,))
-f2  = addFactor!(fg,[:x1],dp)
+f2  = addFactor!(fg,[:x1],dp, graphinit=false)
 
+doautoinit!(fg, :x1)
+
+##
 
 @testset "test evaluation of full constraint prior" begin
 
