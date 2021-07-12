@@ -69,23 +69,13 @@ function sampleFactor!( ccwl::CommonConvWrapper,
   nothing
 end
 
+sampleFactor(fct::DFGFactor, N::Int=1) = sampleFactor(_getCCW(fct), N)
 
 function sampleFactor(dfg::AbstractDFG, 
                       sym::Symbol, 
                       N::Int=1 )
   #
-  # fct = getFactor(dfg, sym)
-  return sampleFactor(_getCCW(dfg, sym), N)
-  # usrfnc = getFactorType(fct)
-  # variables = getVariable.(dfg, getVariableOrder(fct))
-  
-  # FIXME why not use ccwl.cpt[thrid].fmd rather than building a new one 
-  # fmd = _getFMdThread() # what about shared mem concurrancy?
-  # FIXME fix/avoid getSample issue in testMultihypoFMD.jl: ummm, can we sample without knowing the hypotheses?
-  # also deconv?
-  # not really, because that would imply stochastic dependency on association before noise process??
-  # fmd = FactorMetadata(variables, getLabel.(variables), Vector{Matrix{Float64}}(), :null, nothing)
-  # sampleFactor(usrfnc, N, fmd )
+  return sampleFactor(getFactor(dfg, sym), N)
 end
 
 
