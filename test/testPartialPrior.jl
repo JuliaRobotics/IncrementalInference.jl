@@ -14,7 +14,7 @@ end
 
 PartialDim2(Z::D) where {D <: IIF.SamplableBelief} = PartialDim2(Z, (2,))
 
-getSample(cfo::CalcFactor{<:PartialDim2}, N::Int=1) = (reshape(rand(cfo.factor.Z, N),1,N),)
+getSample(cfo::CalcFactor{<:PartialDim2}, N::Int=1) = ([rand(cfo.factor.Z, 1)[:] for _ in 1:N],)
 
 
 ##
@@ -31,6 +31,14 @@ f0 = addFactor!(fg, [:x0], PartialDim2(Normal()))
 
 @test IIF._getDimensionsPartial(f0) == [2]
 
+##
+
+dens = Vector{ManifoldKernelDensity}()
+IIF.proposalbeliefs!(fg, :x0, [f0], dens)
+
+pts = getPoints(dens[1], false)
+
+##
 
 predictbelief(fg, :x0, [:x0f1;])
 @test true

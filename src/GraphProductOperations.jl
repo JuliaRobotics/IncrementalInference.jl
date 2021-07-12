@@ -1,6 +1,5 @@
 
 
-
 """
     $SIGNATURES
 
@@ -16,18 +15,25 @@ function predictbelief( dfg::AbstractDFG,
                         factors::Vector{<:DFGFactor};
                         solveKey::Symbol=:default,
                         dens = Vector{ManifoldKernelDensity}(),
-                        N::Int=length(getVal(destvert, solveKey=solveKey)),
+                        N::Int=maximum([length(getPoints(getBelief(destvert, solveKey))); getSolverParams(dfg).N]),
                         needFreshMeasurements::Bool=true,
                         dbg::Bool=false,
                         logger=ConsoleLogger()  )
   #
-  
+
   # get proposal beliefs
   destvertlabel = destvert.label
   inferdim = proposalbeliefs!(dfg, destvertlabel, factors, dens, solveKey=solveKey, N=N, dbg=dbg)
 
   # take the product
-  oldpts = getBelief(dfg, destvertlabel, solveKey) |> getPoints
+  # TODO, make sure oldpts has right number of points!
+  oldBel = getBelief(dfg, destvertlabel, solveKey)
+  oldpts = if Npts(oldBel) == N
+    getPoints(oldBel)
+  else
+    sample(oldBel, N)[1]
+  end
+  
   varType = getVariableType(dfg, destvertlabel)
   pGM = AMP.productbelief(oldpts, getManifold(varType), dens, N, dbg=dbg, logger=logger, asPartial=false )
 
@@ -58,7 +64,7 @@ Return: product belief, full proposals, partial dimension proposals, labels
 function localProduct(dfg::AbstractDFG,
                       sym::Symbol;
                       solveKey::Symbol=:default,
-                      N::Int=100,
+                      N::Int=maximum([length(getPoints(getBelief(dfg, sym, solveKey))); getSolverParams(dfg).N]),
                       dbg::Bool=false,
                       logger=ConsoleLogger() )
   #
@@ -68,15 +74,15 @@ function localProduct(dfg::AbstractDFG,
   # # get proposal beliefs
   dens = Array{ManifoldKernelDensity,1}()
   # partials = Dict{Any, Vector{ManifoldKernelDensity}}()
-  pGM, sinfd = predictbelief(dfg, sym, lb, solveKey=solveKey, logger=logger, dens=dens )
+  pGM, sinfd = predictbelief(dfg, sym, lb, solveKey=solveKey, logger=logger, dens=dens, N=N )
 
   # make manifold belief from product
   vari = getVariable(dfg, sym)
-  pp = AMP.manikde!(pGM, getVariableType(vari) |> getManifold )
+  pp = AMP.manikde!(getManifold(getVariableType(vari)), pGM )
 
   return pp, dens, lb, sinfd
 end
-localProduct(dfg::AbstractDFG, lbl::AbstractString; solveKey::Symbol=:default, N::Int=100, dbg::Bool=false) = localProduct(dfg, Symbol(lbl), solveKey=solveKey, N=N, dbg=dbg)
+localProduct(dfg::AbstractDFG, lbl::AbstractString; kw...) = localProduct(dfg, Symbol(lbl); kw...)
 
 
 

@@ -61,8 +61,6 @@ import KernelDensityEstimate: getBW
 import KernelDensityEstimate: getPoints
 import ApproxManifoldProducts: kde!, manikde!
 import ApproxManifoldProducts: mmd
-# import ApproxManifoldProducts: getManifolds # Deprecated
-# import ApproxManifoldProducts: getManifold # might be used again later
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!
@@ -422,6 +420,7 @@ include("Factors/GenericFunctions.jl")
 # Refactoring in progress
 include("Factors/MsgLikelihoods.jl")
 
+include("entities/GraphConstraintTypes.jl")
 include("CliqueTypes.jl")
 
 include("JunctionTreeTypes.jl")
@@ -444,7 +443,6 @@ include("TreeBasedInitialization.jl")
 include("HeatmapSampler.jl")
 
 # special variables and factors, see RoME.jl for more examples
-include("GraphConstraintTypes.jl")
 include("Factors/Mixture.jl")
 include("Factors/DefaultPrior.jl")
 include("Factors/LinearRelative.jl")
@@ -452,6 +450,7 @@ include("Factors/EuclidDistance.jl")
 include("Factors/Circular.jl")
 include("Variables/Circular.jl")
 include("Factors/PartialPrior.jl")
+include("Factors/PartialPriorPassThrough.jl")
 include("DefaultNodeTypes.jl") # older file
 
 # solving graphs

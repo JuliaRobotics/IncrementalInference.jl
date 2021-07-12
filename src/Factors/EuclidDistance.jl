@@ -14,15 +14,9 @@ end
 
 EuclidDistance(::UniformScaling=LinearAlgebra.I) = EuclidDistance(Normal())
 
+getManifold(::InstanceType{EuclidDistance}) = Euclidean(1)
 getDimension(::InstanceType{<:EuclidDistance}) = 1
 
-# before consolidation, see RoME.jl #244
-# getManifold(::T) where{T <:EuclidDistance} = Euclidean(1)
-# getManifold(::Type{T}) where{T <:EuclidDistance} = Euclidean(1)
-# getManifolds(::T) where {T <:EuclidDistance} = convert(Tuple, T)
-# getManifolds(::Type{<:T}) where {T <:EuclidDistance} = convert(Tuple, T)
-
-getManifold(::InstanceType{<:EuclidDistance}) = ContinuousEuclid{1}
 
 function getSample(cf::CalcFactor{<:EuclidDistance}, N::Int=1)
   ret = [rand(cf.factor.Z,1) for _ in 1:N]

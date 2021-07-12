@@ -275,7 +275,7 @@ addLikelihoodsDifferential!(subfg::AbstractDFG, msgs::LikelihoodMessage) = addLi
 # FIXME, must be renamed and standardized
 function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
                                           seps::Vector{Symbol}, 
-                                          tfg::AbstractDFG=initfg();
+                                          tfg::AbstractDFG=initfg(InMemDFGType(solverParams=SolverParams(N=getSolverParams(cliqSubFG).N)));
                                           solveKey::Symbol=:default )
   #
   # return list of differential factors the parent should add as part upward partial joint posterior

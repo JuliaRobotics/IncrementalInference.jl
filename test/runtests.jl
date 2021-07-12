@@ -3,6 +3,11 @@ using Test
 # using Compat
 # using IncrementalInference
 
+# temporarily moved to start (for debugging)
+
+include("testSphereMani.jl")
+include("testSpecialOrthogonalMani.jl")
+include("testSpecialEuclidean2Mani.jl")
 
 include("testCliqSolveDbgUtils.jl")
 include("TestModuleFunctions.jl")
@@ -50,6 +55,8 @@ include("testSolveSetPPE.jl")
 include("testSolveKey.jl")
 include("testEuclidDistance.jl")
 include("priorusetest.jl")
+include("testpartialconstraint.jl")
+include("testnullhypothesis.jl") 
 include("testVariousNSolveSize.jl")
 include("testExplicitMultihypo.jl")
 include("TestCSMMultihypo.jl")
@@ -58,8 +65,6 @@ include("testMultiHypo2Door.jl")
 include("testMultimodal1D.jl")
 include("testMultihypoAndChain.jl")
 include("testMultithreaded.jl")
-include("testpartialconstraint.jl")
-include("testnullhypothesis.jl")
 include("testmultihypothesisapi.jl")
 include("fourdoortest.jl")
 include("testCircular.jl")
@@ -67,6 +72,7 @@ include("testMixtureLinearConditional.jl")
 include("testFluxModelsDistribution.jl")
 include("testDERelative.jl")
 include("testAnalysisTools.jl")
+
 include("testBasicParametric.jl")
 include("testMixtureParametric.jl")
 
@@ -77,7 +83,6 @@ end
 
 include("testMultiprocess.jl")
 include("testDeadReckoningTether.jl")
-
 
 
 

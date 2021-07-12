@@ -13,13 +13,13 @@ mutable struct DevelopPartial{P <: Tuple} <: AbstractPrior
   x::Distribution
   partial::P 
 end
-getSample(cf::CalcFactor{<:DevelopPartial}, N::Int=1) = (reshape(rand(cf.factor.x, N),1,N), )
+getSample(cf::CalcFactor{<:DevelopPartial}, N::Int=1) = ([rand(cf.factor.x, 1)[:] for _ in 1:N], )
 
 
 mutable struct DevelopDim2 <: AbstractPrior
   x::Distribution
 end
-getSample(cf::CalcFactor{<:DevelopDim2}, N::Int=1) = (rand(cf.factor.x, N), )
+getSample(cf::CalcFactor{<:DevelopDim2}, N::Int=1) = ([rand(cf.factor.x, 1)[:] for _ in 1:N], )
 
 
 ##
@@ -35,8 +35,11 @@ pr = DevelopDim2(MvNormal([0.0;0.0], diagm([0.01;0.01]))) # *Matrix{Float64}(Lin
 f1  = addFactor!(fg,[:x1],pr)
 
 dp = DevelopPartial(Normal(2.0, 1.0),(1,))
-f2  = addFactor!(fg,[:x1],dp)
+f2  = addFactor!(fg,[:x1],dp, graphinit=false)
 
+doautoinit!(fg, :x1)
+
+##
 
 @testset "test evaluation of full constraint prior" begin
 
@@ -102,7 +105,7 @@ mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
   partial::Tuple
   DevelopPartialPairwise(x::Distribution) = new(x, (2,))
 end
-getSample(cf::CalcFactor{<:DevelopPartialPairwise}, N::Int=1) = (reshape(rand(cf.factor.x, N),1,N), )
+getSample(cf::CalcFactor{<:DevelopPartialPairwise}, N::Int=1) = ([rand(cf.factor.x, 1)[:] for _ in 1:N], )
 
 function (dp::CalcFactor{<:DevelopPartialPairwise})(meas,
                                                     x1,
@@ -138,13 +141,13 @@ global fg
 initAll!(fg)
 valx2_ = getVal(fg, :x2)
 @cast valx2[i,j] := valx2_[j][i]
-pts_ = approxConv(fg, :x1x2f1, :x2, N=N) # evalFactor(fg, f3, v2.index, N=N)
+pts_ = approxConv(fg, :x1x2f1, :x2, N=N)
 @cast pts[i,j] := pts_[j][i]
 @test size(pts,1) == 2
 @test norm(Statistics.mean(pts,dims=2)[2] .- [10.0]) < 3.0
 @test norm(valx2[1,:] - pts[1,:]) < 1e-5
 
-pts_ = approxConv(fg, :x2f1, :x2, N=N) # evalFactor(fg, f4, v2.index, N=N)
+pts_ = approxConv(fg, :x2f1, :x2, N=N)
 @cast pts[i,j] := pts_[j][i]
 @test size(pts,1) == 2
 @test norm(Statistics.mean(pts,dims=2)[1] .- [-20.0]) < 0.75
@@ -235,6 +238,7 @@ val2_ = getVal(v1)
 @cast val2[i,j] := val2_[j][i]
 @test abs(Statistics.mean(val[2,:] - val2[2,:]) .- 10.0) < 0.75
 
+##
 
 # combination of partials
 val_, = predictbelief(fg, v2, [f3;f4], N=N)
@@ -245,7 +249,7 @@ val_, = predictbelief(fg, v2, [f3;f4], N=N)
 @test (Statistics.std(val,dims=2)[1] .- 1.0) < 3.0
 @test (Statistics.std(val,dims=2)[2] .- 1.0) < 3.0
 
-
+##
 
 getSolverParams(fg).N = N
 tree, smt, hist = solveTree!(fg)

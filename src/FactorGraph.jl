@@ -130,6 +130,8 @@ function setValKDE!(vd::VariableNodeData,
                     setinit::Bool=true,
                     inferdim::Float64=0.0 ) where P
   #
+
+  
   setVal!(vd, pts, bws) # BUG ...al!(., val, . ) ## TODO -- this can be a little faster
   setinit ? (vd.initialized = true) : nothing
   vd.inferdim = inferdim
@@ -308,7 +310,8 @@ function DefaultNodeDataParametric( dodims::Int,
     #                         dims, false, :_null, Symbol[], variableType, true, 0.0, false, dontmargin)
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
-    return VariableNodeData([zeros(dims) for _ in 1:1],
+    ϵ = getPointIdentity(variableType)
+    return VariableNodeData([ϵ],
                             zeros(dims,dims), Symbol[], sp,
                             dims, false, :_null, Symbol[], variableType, false, 0.0, false, dontmargin, 0, 0, :parametric)
   end
@@ -342,33 +345,31 @@ function setDefaultNodeData!( v::DFGVariable,
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   data = nothing
-  if initialized
-
-      pN = AMP.manikde!(randn(dims, N), getManifolds(varType));
-
-    sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
-    gbw = getBW(pN)[:,1]
-    gbw2 = Array{Float64}(undef, length(gbw),1)
-    gbw2[:,1] = gbw[:]
+  isinit = false
+  sp = Int[0;]
+  (valpts, bws) = if initialized
+    pN = resample(getBelief(v))
+    # pN = AMP.manikde!(randn(dims, N), getManifolds(varType));
+    bws = getBW(pN)[:,1:1]
     pNpts = getPoints(pN)
-    #initval, stdev
-    setSolverData!(v, VariableNodeData(pNpts,
-                            gbw2, Symbol[], sp,
-                            dims, false, :_null, Symbol[], 
-                            varType, true, 0.0, false, dontmargin,0,0,solveKey), solveKey)
+    isinit = true
+    (pNpts, bws)
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
+    @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defVariable $varType arguments is correct"
     valpts = Vector{getPointType(varType)}(undef,N)
     for i in 1:length(valpts)
       valpts[i] = getPointIdentity(varType)
     end
     bws = zeros(dims,1)
-    setSolverData!(v, VariableNodeData(valpts, bws,
-                                        Symbol[], sp,
-                                        dims, false, :_null, Symbol[], 
-                                        varType, false, 0.0, false, dontmargin,0,0,solveKey), solveKey)
     #
+    (valpts, bws)
   end
+  # make and set the new solverData
+  setSolverData!(v, VariableNodeData( valpts, bws,
+                                      Symbol[], sp,
+                                      dims, false, :_null, Symbol[], 
+                                      varType, isinit, 0.0, false, dontmargin,0,0,solveKey), solveKey)
   return nothing
 end
 # if size(initval,2) < N && size(initval, 1) == dims
@@ -530,7 +531,7 @@ function prepareparamsarray!( ARR::AbstractVector{<:AbstractVector{P}},
     vecP = getVal(xi, solveKey=solveKey)
     push!(ARR, vecP)
     LEN = length.(ARR)
-    maxlen = maximum(LEN)
+    maxlen = maximum([N; LEN])
     count += 1
     if xi.label == solvefor
       sfidx = count #xi.index
@@ -593,19 +594,26 @@ Notes
 - Will not work in all situations, but good enough so far.
   - # TODO standardize via domain or manifold definition...??
 """
-function calcZDim(cf::CalcFactor{T}) where {T <: FunctorInferenceType}
+function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
   #
-  # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
-  zdim = if T != GenericMarginal
-    # vnds = Xi # (x->getSolverData(x)).(Xi)
-    # NOTE try to make sure we get matrix back (not a vector)
-    smpls = sampleFactor(cf, 2)[1]
-    length(smpls[1])
-  else
-    0
+  try
+    M = getManifold(T)
+    return manifold_dimension(M)
+  catch
+    @warn "no method getManifold(::$T), calcZDim will attempt legacy length(sample) method instead"
   end
-  return zdim
+  
+  # NOTE try to make sure we get matrix back (not a vector)
+  smpls = sampleFactor(cf, 2)[1]
+  return length(smpls[1])
 end
+
+# FIXME THIS IS NEW REPLACEMENT FUNCTION
+# function calcZDim(cf::CalcFactor{T}) where T <: AbstractFactor
+#   return manifold_dimension(getManifold(cf.factor))
+# end
+
+calcZDim(cf::CalcFactor{<:GenericMarginal}) = 0
 
 calcZDim(cf::CalcFactor{<:ManifoldPrior}) = manifold_dimension(cf.factor.M)
 
@@ -619,7 +627,8 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   #
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
-  ARR = Vector{Vector{PointType}}()
+  # FIXME maybe a product manifold and not any
+  ARR = Vector{Vector{Any}}()
   maxlen, sfidx, mani = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
 
   # standard factor metadata
@@ -654,7 +663,8 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
           nullhypo=nullhypo,
           threadmodel=threadmodel,
           inflation=inflation,
-          partialDims=partialDims
+          partialDims=partialDims,
+          vartypes = typeof.(getVariableType.(Xi))
         )
   #
   return ccw
@@ -687,7 +697,7 @@ function getDefaultFactorData(dfg::AbstractDFG,
   ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel, inflation=inflation)
 
   # and the factor data itself
-  return FunctionNodeData{CommonConvWrapper{T}}(eliminated, potentialused, edgeIDs, ccw, multihypo, ccw.certainhypo, nullhypo, solveInProgress, inflation)
+  return FunctionNodeData{typeof(ccw)}(eliminated, potentialused, edgeIDs, ccw, multihypo, ccw.certainhypo, nullhypo, solveInProgress, inflation)
 end
 
 
@@ -820,7 +830,7 @@ function doautoinit!( dfg::AbstractDFG,
                       xi::DFGVariable;
                       solveKey::Symbol=:default,
                       singles::Bool=true,
-                      N::Int=100,
+                      N::Int=maximum([length(getPoints(getBelief(xi, solveKey))); getSolverParams(dfg).N]),
                       logger=ConsoleLogger() )
   #
   didinit = false
@@ -869,12 +879,12 @@ function doautoinit!( dfg::AbstractDFG,
   return didinit
 end
 
-function doautoinit!( dfg::T,
+function doautoinit!( dfg::AbstractDFG,
                       Xi::Vector{<:DFGVariable};
                       solveKey::Symbol=:default,
                       singles::Bool=true,
-                      N::Int=100,
-                      logger=ConsoleLogger() )::Bool where T <: AbstractDFG
+                      N::Int=getSolverParams(dfg).N,
+                      logger=ConsoleLogger()  )
   #
   #
   # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
@@ -889,22 +899,22 @@ function doautoinit!( dfg::T,
   return didinit
 end
 
-function doautoinit!( dfg::T,
+function doautoinit!( dfg::AbstractDFG,
                       xsyms::Vector{Symbol};
                       solveKey::Symbol=:default,
                       singles::Bool=true,
-                      N::Int=100,
-                      logger=ConsoleLogger()  )::Bool where T <: AbstractDFG
+                      N::Int=getSolverParams(dfg).N,
+                      logger=ConsoleLogger()  )
   #
   verts = getVariable.(dfg, xsyms)
   return doautoinit!(dfg, verts, solveKey=solveKey, singles=singles, N=N, logger=logger)
 end
-function doautoinit!( dfg::T,
+function doautoinit!( dfg::AbstractDFG,
                       xsym::Symbol;
                       solveKey::Symbol=:default,
                       singles::Bool=true,
-                      N::Int=100,
-                      logger=ConsoleLogger()  )::Bool where T <: AbstractDFG
+                      N::Int=getSolverParams(dfg).N,
+                      logger=ConsoleLogger()  )
   #
   return doautoinit!(dfg, [getVariable(dfg, xsym);], solveKey=solveKey, singles=singles, N=N, logger=logger)
 end
@@ -942,7 +952,7 @@ function initManual!( variable::DFGVariable,
                       ptsArr::ManifoldKernelDensity,
                       solveKey::Symbol=:default;
                       dontmargin::Bool=false,
-                      N::Int=100 )
+                      N::Int=length(getPoints(ptsArr)) )
   #
   @debug "initManual! $label"
   if !(solveKey in listSolveKeys(variable))
@@ -1022,10 +1032,10 @@ Related
 initManual!, graphinit (keyword)
 """
 function resetInitialValues!(dest::AbstractDFG,
-                             src::AbstractDFG=dest,
-                             initKey::Symbol=:graphinit,
-                             solveKey::Symbol=:default;
-                             varList::AbstractVector{Symbol}=ls(dest))
+                            src::AbstractDFG=dest,
+                            initKey::Symbol=:graphinit,
+                            solveKey::Symbol=:default;
+                            varList::AbstractVector{Symbol}=ls(dest))
   #
   for vs in varList
     vnd = getSolverData(getVariable(src, vs), initKey)
@@ -1143,24 +1153,23 @@ variables are related to data association uncertainty.
 Experimental
 - `inflation`, to better disperse kernels before convolution solve, see IIF #1051.
 """
-function addFactor!(dfg::AbstractDFG,
-                    Xi::Vector{<:DFGVariable},
-                    usrfnc::R;
-                    multihypo::Vector{Float64}=Float64[],
-                    nullhypo::Float64=0.0,
-                    solvable::Int=1,
-                    tags::Vector{Symbol}=Symbol[],
-                    timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
-                    graphinit::Bool=getSolverParams(dfg).graphinit,
-                    threadmodel=SingleThreaded,
-                    suppressChecks::Bool=false,
-                    inflation::Real=getSolverParams(dfg).inflation  ) where
-                      {R <: FunctorInferenceType}
+function DFG.addFactor!(dfg::AbstractDFG,
+                        Xi::Vector{<:DFGVariable},
+                        usrfnc::AbstractFactor;
+                        multihypo::Vector{Float64}=Float64[],
+                        nullhypo::Float64=0.0,
+                        solvable::Int=1,
+                        tags::Vector{Symbol}=Symbol[],
+                        timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
+                        graphinit::Bool=getSolverParams(dfg).graphinit,
+                        threadmodel=SingleThreaded,
+                        suppressChecks::Bool=false,
+                        inflation::Real=getSolverParams(dfg).inflation,
+                        namestring::Symbol = assembleFactorName(dfg, Xi)  )
   #
   # depcrecation
 
   varOrderLabels = Symbol[v.label for v=Xi]
-  namestring = assembleFactorName(dfg, Xi)
   solverData = getDefaultFactorData(dfg, 
                                     Xi, 
                                     deepcopy(usrfnc), 
@@ -1186,16 +1195,17 @@ end
 
 function DFG.addFactor!(dfg::AbstractDFG,
                         xisyms::Vector{Symbol},
-                        usrfnc::FunctorInferenceType;
-                        multihypo::Vector{<:Real}=Float64[],
-                        nullhypo::Float64=0.0,
-                        solvable::Int=1,
-                        timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
-                        tags::Vector{Symbol}=Symbol[],
-                        graphinit::Bool=getSolverParams(dfg).graphinit,
-                        threadmodel=SingleThreaded,
-                        inflation::Real=getSolverParams(dfg).inflation,
-                        suppressChecks::Bool=false  )
+                        usrfnc::AbstractFactor;
+                        suppressChecks::Bool=false,
+                        kw...  )
+                        # multihypo::Vector{<:Real}=Float64[],
+                        # nullhypo::Float64=0.0,
+                        # solvable::Int=1,
+                        # timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
+                        # tags::Vector{Symbol}=Symbol[],
+                        # graphinit::Bool=getSolverParams(dfg).graphinit,
+                        # threadmodel=SingleThreaded,
+                        # inflation::Real=getSolverParams(dfg).inflation,
   #
   # depcrecation
 
@@ -1206,7 +1216,7 @@ function DFG.addFactor!(dfg::AbstractDFG,
 
   variables = getVariable.(dfg, xisyms)
   # verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, variables, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, tags=tags, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp, inflation=inflation )
+  addFactor!(dfg, variables, usrfnc; suppressChecks=suppressChecks, kw... ) # multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, tags=tags, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp, inflation=inflation )
 end
 
 

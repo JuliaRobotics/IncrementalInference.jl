@@ -70,7 +70,7 @@ function doFMCIteration(fgl::AbstractDFG,
     # potprod = nothing
     densPts, inferdim = predictbelief(fgl, vsym, :, needFreshMeasurements=needFreshMeasurements, N=N, dbg=dbg, logger=logger)
 
-    if 0 < size(densPts,1)
+    if 0 < length(densPts)
       # TODO --  can we remove this duplicate getVert?
       # updvert = DFG.getVariable(fgl, vsym)  
       setValKDE!(vert, densPts, true, inferdim)
@@ -154,10 +154,11 @@ Notes
 DevNotes
 - FIXME total rewrite with AMP #41 and RoME #244 in mind
 """
-function upGibbsCliqueDensity(dfg::AbstractDFG, cliq::TreeClique, 
+function upGibbsCliqueDensity(dfg::AbstractDFG, 
+                              cliq::TreeClique, 
                               solveKey::Symbol,
                               inmsgs,
-                              N::Int=100,
+                              N::Int=getSolverParams(dfg).N,
                               dbg::Bool=false,
                               iters::Int=3,
                               logger=ConsoleLogger()  ) # where {T, T2}

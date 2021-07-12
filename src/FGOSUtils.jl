@@ -87,6 +87,17 @@ DFG.getDimension(fct::DFGFactor) = _getZDim(fct)
 
 
 """
+    $SIGNATURES
+
+Return the manifold on which this ManifoldKernelDensity is defined.
+
+DevNotes
+- TODO currently ignores the .partial aspect (captured in parameter `L`)
+"""
+getManifold(mkd::ManifoldKernelDensity{M,B,L}) where {M,B,L} = mkd.manifold
+
+
+"""
     $TYPEDSIGNATURES
 
 Return the number of dimensions this factor vertex `fc` influences.
@@ -140,32 +151,13 @@ function manikde!(pts::AbstractVector{P},
   return AMP.manikde!(M, pts)
 end
 
-# manikde!( pts::AbstractVector{<:Real}, 
-#           vartype::Type{<:ContinuousScalar}) = manikde!(reshape(pts,1,:), vartype)
-#
-
-# TEMPORARY legacy wrapper
-# function manikde!(ptsArr::Vector{Vector{Float64}}, 
-#                   bw::Vector{Float64}, 
-#                   varType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}} )
-#   #
-#   arr = Matrix{Float64}(undef, length(ptsArr[1]), length(ptsArr))
-#   @cast arr[i,j] = ptsArr[j][i]
-#   manikde!( arr, bw, varType )  
-# end
 
 """
     $SIGNATURES
 
-Return N=100 measurement samples for a factor in `<:AbstractDFG`.
+Return params.N measurement samples for a factor in `<:AbstractDFG`.
 """
-function getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int=100)
-  # fnc = getFactorFunction(dfg, fsym)
-  ## getSample(fnc, N)
-  # Xi = (v->getVariable(dfg, v)).(getVariableOrder(dfg, fsym))
-  # sampleFactor(fnc, N)
-  sampleFactor(dfg, fsym, N)
-end
+getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int=getSolverParams(dfg).N) = sampleFactor(dfg, fsym, N)
 
 
 """
@@ -261,11 +253,18 @@ function calcPPE( var::DFGVariable,
   manis = convert(Tuple, maniDef) # LEGACY, TODO REMOVE
   ops = buildHybridManifoldCallbacks(manis)
   Pme = calcMean(P)  # getKDEMean(P) #, addop=ops[1], diffop=ops[2]
-  Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
 
+  # returns coordinates at identify
+  Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
+  # calculate point
+ 
+  ## TODO make PPE only use getCoordinates for now (IIF v0.25)
+  Pme_ = getCoordinates(typeof(varType),Pme)
+  # Pma_ = getCoordinates(M,Pme)
+  
   # suggested, max, mean, current time
   # TODO, poor constructor argument assumptions on `ppeType`
-  ppeType(ppeKey, Pme, Pma, Pme, timestamp)
+  ppeType(ppeKey, Pme_, Pma, Pme_, timestamp)
 end
 
 

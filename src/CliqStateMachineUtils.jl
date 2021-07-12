@@ -359,7 +359,7 @@ function approxCliqMarginalUp!( csmc::CliqStateMachineContainer,
   cliq = csmc.cliq
 
   with_logger(logger) do
-    @info "=== start Clique $(getLabel(cliq)) ======================"
+    @info "======== Clique $(getLabel(cliq)) ========"
   end
 
   if multiproc
