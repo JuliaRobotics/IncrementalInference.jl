@@ -5,6 +5,8 @@ using Test
 
 # temporarily moved to start (for debugging)
 
+include("testPartialNH.jl")
+
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
 include("testSpecialEuclidean2Mani.jl")
@@ -18,7 +20,6 @@ include("basicGraphsOperations.jl")
 include("testMixturePrior.jl")
 include("testPartialFactors.jl")
 include("testPartialPrior.jl")
-include("testPartialNH.jl")
 include("testSaveLoadDFG.jl")
 include("testJunctionTreeConstruction.jl")
 include("testBayesTreeiSAM2Example.jl")
