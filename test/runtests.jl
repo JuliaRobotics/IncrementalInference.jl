@@ -5,6 +5,8 @@ using Test
 
 # temporarily moved to start (for debugging)
 
+include("testPartialNH.jl")
+
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
 include("testSpecialEuclidean2Mani.jl")

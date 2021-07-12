@@ -509,17 +509,19 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
       # ongoing part of RoME.jl #244
       addEntropyOnManifold!(mani, addEntrNH, 1:getDimension(mani), spreadDist)
   else
-    i = 0
-    for dimnum in fnc.partial
-      i += 1
-      for m in (1:length(addEntr))[ahmask]
+    pvec = [fnc.partial...]
+    # active hypo that receives the regular measurement information
+    # FIXME but how to add partial factor info only on affected dimensions fro general manifold points?
+    for m in (1:length(addEntr))[ahmask]
+      # addEntr is no longer in coordinates, these are now general manifold points!!
+      for (i,dimnum) in enumerate(fnc.partial)
         addEntr[m][dimnum] = ccwl.measurement[1][m][i]
       end
-      # @show size(addEntr), dimnum, nhmask
-      addEntrNHp = view(view(addEntr, (1:length(ahmask))[ahmask]), dimnum)
-      # ongoing part of RoME.jl #244
-      addEntropyOnManifold!(mani, addEntrNHp, dimnum:dimnum, spreadDist)
     end
+    # null hypo mask that needs to be perturbed by "noise"
+    addEntrNHp = view(addEntr, nhmask)
+    # ongoing part of RoME.jl #244
+    addEntropyOnManifold!(mani, addEntrNHp, 1:getDimension(mani), spreadDist, pvec)
   end
   return addEntr
 end
