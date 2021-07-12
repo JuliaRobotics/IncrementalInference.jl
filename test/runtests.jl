@@ -3,6 +3,8 @@ using Test
 # using Compat
 # using IncrementalInference
 
+# temporarily moved to start (for debugging)
+
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
 include("testSpecialEuclidean2Mani.jl")
@@ -52,6 +54,8 @@ include("testSolveSetPPE.jl")
 include("testSolveKey.jl")
 include("testEuclidDistance.jl")
 include("priorusetest.jl")
+include("testpartialconstraint.jl")
+include("testnullhypothesis.jl") 
 include("testVariousNSolveSize.jl")
 include("testExplicitMultihypo.jl")
 include("TestCSMMultihypo.jl")
@@ -78,10 +82,6 @@ end
 
 include("testMultiprocess.jl")
 include("testDeadReckoningTether.jl")
-
-# temporarily moved to end
-include("testpartialconstraint.jl")
-include("testnullhypothesis.jl") 
 
 
 
