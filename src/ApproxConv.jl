@@ -158,7 +158,7 @@ function generateNullhypoEntropy( val::AbstractMatrix{<:Real},
   MvNormal( mu, cVar )
 end
 
-# # FIXME SWITCH TO ON-MANIFOLD VERSION (see next, #TODO remove this one if manifold version is correct)
+# # NOTE SWITCHED TO ON-MANIFOLD VERSION, but this used to give deviation
 # function calcVariableCovarianceBasic(M::AbstractManifold, ptsArr::Vector{Vector{Float64}})
 #   # cannot calculate the stdev from uninitialized state
 #   # FIXME assume point type is only Vector{Float} at this time
@@ -169,6 +169,8 @@ end
 #   return msst_
 # end
 
+# Returns the covariance (square), not deviation
+# OLD version used to give deviation instead
 function calcVariableCovarianceBasic(M::AbstractManifold, ptsArr::Vector{P}) where P
   #TODO double check the maths,. it looks like its working at least for groups
   μ = mean(M, ptsArr)
@@ -199,7 +201,7 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
                                                 kappa::Float64=3.0  )
   #
   if sfidx in certainidx
-    msst_ = calcVariableCovarianceBasic(getManifold(ccwl.vartypes[sfidx]), ccwl.params[sfidx])
+    msst_ = sqrt(calcVariableCovarianceBasic(getManifold(ccwl.vartypes[sfidx]), ccwl.params[sfidx]))
     return kappa*msst_
   end
   # @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
@@ -494,7 +496,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   end
   # @show nn, size(addEntr), size(nhmask), size(solveForPts)
   addEntrNH = view(addEntr, nhmask)
-  spreadDist = spreadNH*calcVariableCovarianceBasic(mani, addEntr)
+  spreadDist = spreadNH*sqrt(calcVariableCovarianceBasic(mani, addEntr))
   # partials are treated differently
   if !ccwl.partial
       # TODO for now require measurements to be coordinates too
