@@ -25,6 +25,36 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+# """
+#     $SIGNATURES
+#
+# Return the directly achievable dimensionality of solve for each variable in a clique.
+#
+# Related
+#
+# getFactorSolvableDim
+# """
+# function getCliqVarPossibleDim(dfg::G,
+#                                     cliq::TreeClique,
+#                                     saturate::Bool=true,
+#                                     fraction::Bool=true  )::Dict{Symbol, Float64}
+#   #
+#   # variables and factors associated with this clique
+#   vars = getCliqAllVarIds(cliq)
+#   # fcts = getCliqAllFactIds(cliq)
+#   # rows = length(fcts)
+#   cols = length(vars)
+#
+#   # for output result
+#   dict = Dict{Symbol,Float64}()
+#
+#   for j in 1:cols
+#     dict[vars[j]] += getVariablePossibleDim(dfg, vars[j])
+#   end
+#
+# end
+
+
 # getManifold(::InstanceType{LinearRelative{N}}) where {N} = Euclidean(N)
 # getManifolds(::T) where {T <: LinearRelative} = convert(Tuple, getManifold(T))
 # getManifolds(::Type{<:T}) where {T <: LinearRelative} = convert(Tuple, getManifold(T))
