@@ -375,58 +375,6 @@ end
 """
     $SIGNATURES
 
-Return a vector of clique index `::Int` for descending order solvable dimensions of each clique.
-
-Notes
-- Uses the number of inferable/solvable dimension information in descending order.
-- Uses function fetchCliqSolvableDims/getCliqVariableMoreInitDims to retrieved cached values of new solvable/inferable dimensions.
-
-Related
-
-fetchCliqSolvableDims, getCliqVariableMoreInitDims, getSubFgPriorityInitOrder
-"""
-function getCliqSiblingsPriorityInitOrder(tree::AbstractBayesTree,
-                                          prnt::TreeClique,
-                                          dwninitmsgs::LikelihoodMessage,
-                                          logger=ConsoleLogger() )::Vector{Int}
-  #
-  sibs = getChildren(tree, prnt)
-  len = length(sibs)
-  tdims = Vector{Int}(undef, len)
-  sidx = Vector{Int}(undef, len)
-  for idx in 1:len
-    cliqd = getCliqueData(sibs[idx])
-    with_logger(logger) do
-      @info "$(now()), getCliqSiblingsPriorityInitOrder, sidx=$sidx of $len, $(cliqd.frontalIDs[1]), dwninitmsgs.childSolvDims=$(dwninitmsgs.childSolvDims)"
-    end
-    flush(logger.stream)
-    sidx[idx] = sibs[idx].id
-    
-        # NEW accumulate the solvableDims for each sibling (#910)
-        # FIXME rather determine this using static tree structure and values from dwnmsg (#910)
-        @show sidx, dwninitmsgs.childSolvDims
-        # @show haskey(dwninitmsgs.childSolvDims,sidx) ? dwninitmsgs.childSolvDims[sidx] : 0
-
-    # FIXME comment out as part of #910
-    sidims = fetchCliqSolvableDims(sibs[idx])
-    accmSolDims = collect(values(sidims))
-    @show tdims[idx] = sum(accmSolDims)
-    with_logger(logger) do
-      @info "$(now()), prnt=getCliqSiblingsPriorityInitOrder, sidx=$sidx of $len, tdims[idx]=$(tdims[idx])"
-    end
-    flush(logger.stream)
-  end
-  p = sortperm(tdims, rev=true)
-  with_logger(logger) do
-    @info "getCliqSiblingsPriorityInitOrder, done p=$p"
-  end
-  return sidx[p]
-end
-
-
-"""
-    $SIGNATURES
-
 Return a vector of variable labels `::Symbol` for descending order solvable dimensions of each clique.
 
 Notes
