@@ -31,8 +31,8 @@ Related
 
 getVariableInferredDim, getVariableInferredDimFraction
 """
-getVariableDim(vard::VariableNodeData)::Int = getVariableType(vard) |> getDimension
-getVariableDim(var::DFGVariable)::Int = getVariableDim(getSolverData(var))
+getVariableDim(vard::VariableNodeData) = getVariableType(vard) |> getDimension
+getVariableDim(var::DFGVariable) = getVariableDim(getSolverData(var))
 
 """
     $SIGNATURES
@@ -253,35 +253,6 @@ function getCliqVariableInferDims(dfg::AbstractDFG,
   return retd
 end
 
-# """
-#     $SIGNATURES
-#
-# Return the directly achievable dimensionality of solve for each variable in a clique.
-#
-# Related
-#
-# getFactorSolvableDim
-# """
-# function getCliqVarPossibleDim(dfg::G,
-#                                     cliq::TreeClique,
-#                                     saturate::Bool=true,
-#                                     fraction::Bool=true  )::Dict{Symbol, Float64}
-#   #
-#   # variables and factors associated with this clique
-#   vars = getCliqAllVarIds(cliq)
-#   # fcts = getCliqAllFactIds(cliq)
-#   # rows = length(fcts)
-#   cols = length(vars)
-#
-#   # for output result
-#   dict = Dict{Symbol,Float64}()
-#
-#   for j in 1:cols
-#     dict[vars[j]] += getVariablePossibleDim(dfg, vars[j])
-#   end
-#
-# end
-
 
 """
     $SIGNATURES
@@ -370,58 +341,6 @@ function isCliqFullDim( fg::AbstractDFG,
   return abs(sum(collect(values(red))) - length(red)) < 1e10
 end
 
-
-
-"""
-    $SIGNATURES
-
-Return a vector of clique index `::Int` for descending order solvable dimensions of each clique.
-
-Notes
-- Uses the number of inferable/solvable dimension information in descending order.
-- Uses function fetchCliqSolvableDims/getCliqVariableMoreInitDims to retrieved cached values of new solvable/inferable dimensions.
-
-Related
-
-fetchCliqSolvableDims, getCliqVariableMoreInitDims, getSubFgPriorityInitOrder
-"""
-function getCliqSiblingsPriorityInitOrder(tree::AbstractBayesTree,
-                                          prnt::TreeClique,
-                                          dwninitmsgs::LikelihoodMessage,
-                                          logger=ConsoleLogger() )::Vector{Int}
-  #
-  sibs = getChildren(tree, prnt)
-  len = length(sibs)
-  tdims = Vector{Int}(undef, len)
-  sidx = Vector{Int}(undef, len)
-  for idx in 1:len
-    cliqd = getCliqueData(sibs[idx])
-    with_logger(logger) do
-      @info "$(now()), getCliqSiblingsPriorityInitOrder, sidx=$sidx of $len, $(cliqd.frontalIDs[1]), dwninitmsgs.childSolvDims=$(dwninitmsgs.childSolvDims)"
-    end
-    flush(logger.stream)
-    sidx[idx] = sibs[idx].id
-    
-        # NEW accumulate the solvableDims for each sibling (#910)
-        # FIXME rather determine this using static tree structure and values from dwnmsg (#910)
-        @show sidx, dwninitmsgs.childSolvDims
-        # @show haskey(dwninitmsgs.childSolvDims,sidx) ? dwninitmsgs.childSolvDims[sidx] : 0
-
-    # FIXME comment out as part of #910
-    sidims = fetchCliqSolvableDims(sibs[idx])
-    accmSolDims = collect(values(sidims))
-    @show tdims[idx] = sum(accmSolDims)
-    with_logger(logger) do
-      @info "$(now()), prnt=getCliqSiblingsPriorityInitOrder, sidx=$sidx of $len, tdims[idx]=$(tdims[idx])"
-    end
-    flush(logger.stream)
-  end
-  p = sortperm(tdims, rev=true)
-  with_logger(logger) do
-    @info "getCliqSiblingsPriorityInitOrder, done p=$p"
-  end
-  return sidx[p]
-end
 
 
 """

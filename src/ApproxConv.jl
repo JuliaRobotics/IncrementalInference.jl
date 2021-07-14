@@ -610,19 +610,22 @@ residual = calcFactorResidual(fg, :x1x2f1, [1.0], [0.0], [0.0])
 calcFactorResidual(dfg::AbstractDFG, fctsym::Symbol, args...) = CalcFactor(IIF._getCCW(dfg, fctsym))(args...)
 
 
-function approxConv(dfg::AbstractDFG,
-                    fc::DFGFactor,
-                    target::Symbol,
-                    measurement::Tuple=(Vector{Vector{Float64}}(),);
-                    solveKey::Symbol=:default,
-                    N::Int=length(measurement[1]), 
-                    skipSolve::Bool=false )
+function approxConvBelief(dfg::AbstractDFG,
+                          fc::DFGFactor,
+                          target::Symbol,
+                          measurement::Tuple=(Vector{Vector{Float64}}(),);
+                          solveKey::Symbol=:default,
+                          N::Int=length(measurement[1]), 
+                          skipSolve::Bool=false )
   #
   v1 = getVariable(dfg, target)
   N = N == 0 ? getNumPts(v1, solveKey=solveKey) : N
-  return evalFactor(dfg, fc, v1.label, measurement, solveKey=solveKey, N=N, skipSolve=skipSolve)
+  pts = evalFactor(dfg, fc, v1.label, measurement, solveKey=solveKey, N=N, skipSolve=skipSolve)
+  return manikde!(getManifold(getVariable(dfg, target)), pts)
 end
 
+
+approxConv(w...;kw...) = approxConvBelief(w...;kw...) |> getPoints
 
 """
     $SIGNATURES
@@ -650,17 +653,17 @@ Related
 
 [`approxDeconv`](@ref), `LightDFG.findShortestPathDijkstra`, [`evalFactor`](@ref)
 """
-function approxConv(dfg::AbstractDFG, 
-                    from::Symbol, 
-                    target::Symbol,
-                    measurement::Tuple=(Vector{Vector{Float64}}(),);
-                    solveKey::Symbol=:default,
-                    N::Int = length(measurement[1]),
-                    tfg::AbstractDFG = initfg(),
-                    setPPEmethod::Union{Nothing, Type{<:AbstractPointParametricEst}}=nothing,
-                    setPPE::Bool= setPPEmethod !== nothing,
-                    path::AbstractVector{Symbol}=Symbol[],
-                    skipSolve::Bool=false  )
+function approxConvBelief(dfg::AbstractDFG, 
+                          from::Symbol, 
+                          target::Symbol,
+                          measurement::Tuple=(Vector{Vector{Float64}}(),);
+                          solveKey::Symbol=:default,
+                          N::Int = length(measurement[1]),
+                          tfg::AbstractDFG = initfg(),
+                          setPPEmethod::Union{Nothing, Type{<:AbstractPointParametricEst}}=nothing,
+                          setPPE::Bool= setPPEmethod !== nothing,
+                          path::AbstractVector{Symbol}=Symbol[],
+                          skipSolve::Bool=false  )
   #
   # @assert isVariable(dfg, target) "approxConv(dfg, from, target,...) where `target`=$target must be a variable in `dfg`"
   
@@ -700,8 +703,11 @@ function approxConv(dfg::AbstractDFG,
     # get the factor
     fct0 = getFactor(dfg,from)
     # get the Matrix{<:Real} of projected points
-    pts1 = approxConv(dfg, fct0, path[2], measurement, solveKey=solveKey, N=N, skipSolve=skipSolve)
-    length(path) == 2 ? (return pts1) : pts1
+    pts1Bel = approxConvBelief(dfg, fct0, path[2], measurement, solveKey=solveKey, N=N, skipSolve=skipSolve)
+    if length(path) == 2
+      return pts1Bel
+    end
+    getPoints(pts1Bel)
   end
   # didn't return early so shift focus to using `tfg` more intensely
   initManual!(tfg, varLbls[1], pts)
@@ -715,16 +721,15 @@ function approxConv(dfg::AbstractDFG,
       # this is a factor path[idx]
       fct = getFactor(dfg, path[idx])
       addFactor!(tfg, fct)
-      pts = approxConv(tfg, fct, path[idx+1], solveKey=solveKey, N=N, skipSolve=skipSolve)
-      initManual!(tfg, path[idx+1], pts)
+      ptsBel = approxConvBelief(tfg, fct, path[idx+1], solveKey=solveKey, N=N, skipSolve=skipSolve)
+      initManual!(tfg, path[idx+1], ptsBel)
       !setPPE ? nothing : setPPE!(tfg, path[idx+1], solveKey, ppemethod)
     end
   end
 
   # return target variable values
-  return getBelief(tfg, target) |> getPoints
+  return getBelief(tfg, target)
 end
-
 
 
 ## ====================================================================================
@@ -835,29 +840,15 @@ function findRelatedFromPotential(dfg::AbstractDFG,
                                   solveKey::Symbol=:default,
                                   dbg::Bool=false  )
   #
-
-  # # assuming it is properly initialized TODO
-  pts = evalFactor(dfg, fct, target, solveKey=solveKey, N=N, dbg=dbg);
-  # pts = approxConv(dfg, fct, target, measurement, N=N, solveKey=solveKey)
-  
-  # # determine if evaluation is "dimension-deficient"
+  # need way to convey partial information
+  # determine if evaluation is "dimension-deficient"
   # solvable dimension
   inferdim = getFactorSolvableDim(dfg, fct, target, solveKey)
-  # zdim = getFactorDim(fct)
-  # vdim = getVariableDim(DFG.getVariable(dfg, target))
+  
+  # # # assuming it is properly initialized TODO
+  proposal = approxConvBelief(dfg, fct, target, measurement, solveKey=solveKey, N=N)
 
-  # TODO -- better to upsample before the projection
-  # Ndim = length(pts[1]) # not used, should maybe be: 
-  # Ndim = manifold_dimension(M)
-  Npoints = length(pts) # size(pts,2)
-  # Assume we only have large particle population sizes, thanks to addNode!
-  M = getManifold(getVariableType(dfg, target))
-  proposal = AMP.manikde!(M, pts)
-
-  # FIXME consolidate with approxConv method instead
-  if Npoints != N # this is where we control the overall particle set size
-      proposal = AMP.resample(proposal,N)
-  end
+  # return the proposal belief and inferdim, NOTE likely to be changed
   return (proposal, inferdim)
 end
 
@@ -870,13 +861,12 @@ function findRelatedFromPotential(dfg::AbstractDFG,
                                   solveKey::Symbol=:default,
                                   dbg::Bool=false  )
   #
-
-  # density passed through directly from PartialPriorPassThrough.Z
-  proposal = getFactorType(fct).Z.densityFnc
-
   # determine if evaluation is "dimension-deficient"
   # solvable dimension
   inferdim = getFactorSolvableDim(dfg, fct, target, solveKey)
+
+  # density passed through directly from PartialPriorPassThrough.Z
+  proposal = getFactorType(fct).Z.densityFnc
 
   return (proposal, inferdim)
 end
