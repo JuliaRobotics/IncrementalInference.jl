@@ -22,19 +22,19 @@ function predictbelief( dfg::AbstractDFG,
   #
 
   # get proposal beliefs
-  destvertlabel = destvert.label
-  inferdim = proposalbeliefs!(dfg, destvertlabel, factors, dens, solveKey=solveKey, N=N, dbg=dbg)
+  destlbl = getLabel(destvert)
+  inferdim = proposalbeliefs!(dfg, destlbl, factors, dens, solveKey=solveKey, N=N, dbg=dbg)
 
   # take the product
   # TODO, make sure oldpts has right number of points!
-  oldBel = getBelief(dfg, destvertlabel, solveKey)
+  oldBel = getBelief(dfg, destlbl, solveKey)
   oldpts = if Npts(oldBel) == N
     getPoints(oldBel)
   else
     sample(oldBel, N)[1]
   end
   
-  varType = getVariableType(dfg, destvertlabel)
+  varType = getVariableType(dfg, destlbl)
   pGM = AMP.productbelief(oldpts, getManifold(varType), dens, N, dbg=dbg, logger=logger, asPartial=false )
 
   return pGM, sum(inferdim)

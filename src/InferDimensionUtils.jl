@@ -31,8 +31,8 @@ Related
 
 getVariableInferredDim, getVariableInferredDimFraction
 """
-getVariableDim(vard::VariableNodeData)::Int = getVariableType(vard) |> getDimension
-getVariableDim(var::DFGVariable)::Int = getVariableDim(getSolverData(var))
+getVariableDim(vard::VariableNodeData) = getVariableType(vard) |> getDimension
+getVariableDim(var::DFGVariable) = getVariableDim(getSolverData(var))
 
 """
     $SIGNATURES

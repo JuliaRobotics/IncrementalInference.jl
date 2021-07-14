@@ -27,13 +27,13 @@ function initfg(::Type{T};solverParams=SolverParams(),
   return T(solverParams=solverParams)
 end
 
-function initfg(::Type{T},solverParams::SolverParams;
+function initfg(::Type{T},solverParams::S;
                       sessionname="NA",
                       robotname="",
                       username="",
-                      cloudgraph=nothing) where T <: AbstractDFG
+                      cloudgraph=nothing) where {T <: AbstractDFG, S <: SolverParams}
   #
-  return T{SolverParams}(solverParams=solverParams)
+  return T{S}(solverParams=solverParams)
 end
 
 
@@ -68,7 +68,7 @@ function getNumPts(v::DFGVariable; solveKey::Symbol=:default)::Int
   return length(getVal(getSolverData(v, solveKey)))
 end
 
-function getBW(vnd::VariableNodeData)
+function AMP.getBW(vnd::VariableNodeData)
   return vnd.bw
 end
 
@@ -108,7 +108,7 @@ function setVal!(vd::VariableNodeData, val::AbstractVector{P}, bw::Vector{Float6
   nothing
 end
 function setVal!(v::DFGVariable, val::AbstractVector{P}, bw::Vector{Float64}; solveKey::Symbol=:default) where P
-  setVal!(getSolverData(v, solveKey=solveKey), val, bw)
+  setVal!(getSolverData(v, solveKey), val, bw)
   nothing
 end
 function setVal!(dfg::AbstractDFG, sym::Symbol, val::AbstractVector{P}; solveKey::Symbol=:default) where P
@@ -182,18 +182,18 @@ end
 function setValKDE!(v::DFGVariable,
                     p::ManifoldKernelDensity,
                     setinit::Bool=true,
-                    inferdim::Union{Float32, Float64, Int32, Int64}=0;
+                    inferdim::Real=0;
                     solveKey::Symbol=:default  )
   #
   # @error("TESTING setValKDE! ", solveKey, string(listSolveKeys(v)))
-  setValKDE!(getSolverData(v,solveKey),p,setinit,Float64(inferdim))
+  setValKDE!(getSolverData(v,solveKey),p,setinit, Float64(inferdim))
   nothing
 end
 function setValKDE!(dfg::AbstractDFG,
                     sym::Symbol,
                     p::ManifoldKernelDensity,
                     setinit::Bool=true,
-                    inferdim::Union{Float32, Float64, Int32, Int64}=0;
+                    inferdim::Real=0;
                     solveKey::Symbol=:default  )
   #
   setValKDE!(getVariable(dfg, sym), p, setinit, inferdim, solveKey=solveKey)

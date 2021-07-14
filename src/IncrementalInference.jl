@@ -60,6 +60,7 @@ import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import KernelDensityEstimate: getPoints
 import ApproxManifoldProducts: kde!, manikde!
+import ApproxManifoldProducts: getBW
 import ApproxManifoldProducts: mmd
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare, compareAllSpecial
@@ -306,6 +307,7 @@ export *,
 
   # Bayes (Junction) Tree
   evalFactor,
+  approxConvBelief,
   approxConv,
   approxConvBinary,
 

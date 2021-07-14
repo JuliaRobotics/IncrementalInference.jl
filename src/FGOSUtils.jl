@@ -77,8 +77,10 @@ _getCCW(dfg::AbstractDFG, lbl::Symbol) = getFactor(dfg, lbl) |> _getCCW
 
 DFG.getFactorType(ccw::CommonConvWrapper) = ccw.usrfnc!
 
+_getZDim(ccw::CommonConvWrapper) = ccw.zDim
+# TODO is MsgPrior piggy backing zdim on inferdim???
+_getZDim(ccw::CommonConvWrapper{<:MsgPrior}) = ccw.usrfnc!.inferdim
 
-_getZDim(ccw::CommonConvWrapper) = isa(ccw.usrfnc!, MsgPrior) ? ccw.usrfnc!.inferdim : Int(ccw.zDim)
 _getZDim(fcd::GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
 _getZDim(fct::DFGFactor) = _getCCW(fct) |> _getZDim
 
@@ -94,7 +96,8 @@ Return the manifold on which this ManifoldKernelDensity is defined.
 DevNotes
 - TODO currently ignores the .partial aspect (captured in parameter `L`)
 """
-getManifold(mkd::ManifoldKernelDensity{M,B,L}) where {M,B,L} = mkd.manifold
+getManifold(mkd::ManifoldKernelDensity{M,B,Nothing}, asPartial::Bool=false) where {M,B} = mkd.manifold
+getManifold(mkd::ManifoldKernelDensity{M,B,L}, asPartial::Bool=false) where {M,B,L <: AbstractVector} = asPartial ? mkd.manifold : getManifoldPartial(mkd.manifold, mkd._partial)
 
 
 """
