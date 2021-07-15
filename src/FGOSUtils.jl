@@ -144,14 +144,16 @@ function manikde!(pts::AbstractVector{P},
                   variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}  ) where P
   #
   M = getManifold(variableType)
-  return AMP.manikde!(M, pts, bws)
+  infoPerCoord=ones(AMP.getNumberCoords(M, pts[1]))
+  return AMP.manikde!(M, pts, bw=bws, infoPerCoord=infoPerCoord)
 end
 
 function manikde!(pts::AbstractVector{P}, 
                   vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}) where P
   #
   M = getManifold(vartype)
-  return AMP.manikde!(M, pts)
+  @show infoPerCoord=ones(AMP.getNumberCoords(M, pts[1]))
+  return AMP.manikde!(M, pts, infoPerCoord=infoPerCoord)
 end
 
 

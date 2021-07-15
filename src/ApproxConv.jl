@@ -890,8 +890,8 @@ function proposalbeliefs!(dfg::AbstractDFG,
   inferddimproposal = Vector{Float64}(undef, length(factors))
   # get a proposal belief from each factor connected to destlbl
   for (count,fct) in enumerate(factors)
-    data = getSolverData(fct)
-    ccwl = _getCCW(data)
+    # data = getSolverData(fct)
+    ccwl = _getCCW(fct)
     # need way to convey partial information
     # determine if evaluation is "dimension-deficient" solvable dimension
     inferd = getFactorSolvableDim(dfg, fct, destlbl, solveKey)
