@@ -25,6 +25,8 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+@deprecate testFactorResidualBinary(fct, T1,T2, param1, param2, meas::Tuple) testFactorResidualBinary(fct, meas, (T1,param1), (T2,param2))
+
 # """
 #     $SIGNATURES
 #
