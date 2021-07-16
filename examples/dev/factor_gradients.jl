@@ -46,7 +46,7 @@ function _calcGradientFactorBinary( fct::Union{<:AbstractRelativeMinimize,<:Abst
     # jacobian block in reverse indices
     ▽f = () -> ((i->Δf_h(i)).(1:length(coords_a)))
     # jacobian stored in user provided matrix
-    ▽f_ij! = (J) -> (J_ = ▽f(); (@cast J[i,j] = J_[j][i]))
+    ▽f_ij! = (J::AbstractMatrix{<:Real}) -> (J_ = ▽f(); (@cast J[i,j] = J_[j][i]))
 
     # function is ready but calculation must still be done
   end
