@@ -95,7 +95,8 @@ function updateSubFgFromDownMsgs!(sfg::G,
   # update specific variables in sfg from msgs
   for (key,beldim) in dwnmsgs.belief
     if key in seps
-      setValKDE!(sfg, key, manikde!(beldim.val, beldim.bw[:,1], getManifold(beldim.variableType)), false, beldim.inferdim)
+      newBel = manikde!(getManifold(beldim.variableType), beldim.val, bw=beldim.bw[:,1] )
+      setValKDE!(sfg, key, newBel, false, beldim.inferdim)
     end
   end
 
@@ -105,7 +106,7 @@ end
 
 
 function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
-  kdePr = manikde!(getManifold(belief_.variableType), belief_.val, belief_.bw[:,1])
+  kdePr = manikde!(getManifold(belief_.variableType), belief_.val, bw=belief_.bw[:,1])
   MsgPrior(kdePr, belief_.inferdim)
 end
 
