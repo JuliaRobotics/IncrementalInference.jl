@@ -832,49 +832,39 @@ The remaining dimensions will keep pre-existing variable values.
 Notes
 - fulldim is true when "rank-deficient" -- TODO swap to false (or even float)
 """
-function findRelatedFromPotential(dfg::AbstractDFG,
-                                  fct::DFGFactor,
-                                  target::Symbol,
-                                  measurement::Tuple=(Vector{Vector{Float64}}(),);
-                                  N::Int=length(measurement[1]),
-                                  solveKey::Symbol=:default,
-                                  dbg::Bool=false  )
+function calcProposalBelief(dfg::AbstractDFG,
+                            fct::DFGFactor,
+                            target::Symbol,
+                            measurement::Tuple=(Vector{Vector{Float64}}(),);
+                            N::Int=length(measurement[1]),
+                            solveKey::Symbol=:default,
+                            dbg::Bool=false  )
   #
-  # need way to convey partial information
-  # determine if evaluation is "dimension-deficient"
-  # solvable dimension
-  inferdim = getFactorSolvableDim(dfg, fct, target, solveKey)
-  
-  # # # assuming it is properly initialized TODO
+  # assuming it is properly initialized TODO
   proposal = approxConvBelief(dfg, fct, target, measurement, solveKey=solveKey, N=N)
 
   # return the proposal belief and inferdim, NOTE likely to be changed
-  return (proposal, inferdim)
+  return proposal
 end
 
 
-function findRelatedFromPotential(dfg::AbstractDFG,
-                                  fct::DFGFactor{<:CommonConvWrapper{<:PartialPriorPassThrough}},
-                                  target::Symbol,
-                                  measurement::Tuple=(zeros(0,0),);
-                                  N::Int=length(measurement[1]),
-                                  solveKey::Symbol=:default,
-                                  dbg::Bool=false  )
+function calcProposalBelief(dfg::AbstractDFG,
+                            fct::DFGFactor{<:CommonConvWrapper{<:PartialPriorPassThrough}},
+                            target::Symbol,
+                            measurement::Tuple=(zeros(0,0),);
+                            N::Int=length(measurement[1]),
+                            solveKey::Symbol=:default,
+                            dbg::Bool=false  )
   #
-  # determine if evaluation is "dimension-deficient"
-  # solvable dimension
-  inferdim = getFactorSolvableDim(dfg, fct, target, solveKey)
 
   # density passed through directly from PartialPriorPassThrough.Z
   proposal = getFactorType(fct).Z.densityFnc
 
-  return (proposal, inferdim)
+  # return the proposal belief and inferdim, NOTE likely to be changed
+  return proposal
 end
 
-# function _expandNamedTupleType()
-  
-# end
-
+@deprecate findRelatedFromPotential(w...;kw...) (calcProposalBelief(w...;kw...),)
 
 """
     $SIGNATURES
@@ -886,26 +876,27 @@ Notes
 - TODO: also return if proposals were "dimension-deficient" (aka ~rank-deficient).
 """
 function proposalbeliefs!(dfg::AbstractDFG,
-                          destvertlabel::Symbol,
+                          destlbl::Symbol,
                           factors::AbstractVector{<:DFGFactor},
                           dens::Vector{<:ManifoldKernelDensity},
                           # partials::Dict{Any, Vector{ManifoldKernelDensity}}, # TODO change this structure
                           measurement::Tuple=(Vector{Vector{Float64}}(),);
                           solveKey::Symbol=:default,
-                          N::Int=maximum([length(getPoints(getBelief(dfg, destvertlabel, solveKey))); getSolverParams(dfg).N]),
+                          N::Int=maximum([length(getPoints(getBelief(dfg, destlbl, solveKey))); getSolverParams(dfg).N]),
                           dbg::Bool=false  )
   #
-  
-
-  # group partial dimension factors by selected dimensions -- i.e. [(1,)], [(1,2),(1,2)], [(2,);(2;)]
-
 
   # populate the full and partial dim containers
   inferddimproposal = Vector{Float64}(undef, length(factors))
+  # get a proposal belief from each factor connected to destlbl
   for (count,fct) in enumerate(factors)
-    data = getSolverData(fct)
-    ccwl = _getCCW(data)
-    propBel_, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, measurement, N=N, dbg=dbg, solveKey=solveKey)
+    # data = getSolverData(fct)
+    ccwl = _getCCW(fct)
+    # need way to convey partial information
+    # determine if evaluation is "dimension-deficient" solvable dimension
+    inferd = getFactorSolvableDim(dfg, fct, destlbl, solveKey)
+    # convolve or passthrough to get a new proposal
+    propBel_ = calcProposalBelief(dfg, fct, destlbl, measurement, N=N, dbg=dbg, solveKey=solveKey)
     # partial density
     propBel = if isPartial(ccwl)
       pardims = _getDimensionsPartial(ccwl)
@@ -919,6 +910,8 @@ function proposalbeliefs!(dfg::AbstractDFG,
   end
   inferddimproposal
 end
+# group partial dimension factors by selected dimensions -- i.e. [(1,)], [(1,2),(1,2)], [(2,);(2;)]
+
 
 
 

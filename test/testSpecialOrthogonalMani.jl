@@ -4,7 +4,11 @@ using Manifolds
 using StaticArrays
 using Test
 
+##
+
 @testset "Test SpecialOrthogonal(2) prior" begin
+
+##
 
 Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{2}) = (:Circular,)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{2}})  = (:Circular,)
@@ -29,6 +33,8 @@ v0 = addVariable!(fg, :x0, SpecialOrthogonal2)
 mp = ManifoldPrior(SpecialOrthogonal(2), SA[1.0 0.0; 0.0 1.0], MvNormal([0.01]))
 p = addFactor!(fg, [:x0], mp)
 
+##
+
 doautoinit!(fg, :x0)
 
 vnd = getVariableSolverData(fg, :x0)
@@ -44,9 +50,11 @@ f = addFactor!(fg, [:x0, :x1], mf)
 doautoinit!(fg, :x1)
 
 ##
-smtasks = Task[]
-solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
+# smtasks = Task[]
+solveTree!(fg) #; smtasks, verbose=true, recordcliqs=ls(fg))
 # hists = fetchCliqHistoryAll!(smtasks);
+
+##
 
 end
 
@@ -96,8 +104,8 @@ vnd = getVariableSolverData(fg, :x1)
 @test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
 @test all(is_point.(Ref(M), vnd.val))
 
-smtasks = Task[]
-solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
+# smtasks = Task[]
+solveTree!(fg) # ; smtasks, verbose=true, recordcliqs=ls(fg))
 
 # test them again after solve
 vnd = getVariableSolverData(fg, :x0)

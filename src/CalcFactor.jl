@@ -72,21 +72,30 @@ Evaluate the residual function for a single sample.
 
 Notes
 - Binary factors only at this stage, and `multihypo` does not have to be considered in this test
+- Assumes calculation is for a single particle, so `meas::Tuple{Z,other}` is only a single particles value.
 
 DevNotes
 - TODO generalize for n-ary factors
+
+Example
+```julia
+residual = testFactorResidualBinary(Pose2Pose2(...), (z_i,), (RoME.Pose2, x1), (RoME.Pose2, x2))
+```
 
 Related
 
 [`approxConv`](@ref), [`CalcResidual`](@ref)
 """
-function testFactorResidualBinary(fct, 
-                                  T1,
-                                  T2,
-                                  param1,
-                                  param2, 
-                                  meas::Tuple = ())
+function testFactorResidualBinary(fct::AbstractRelative, 
+                                  meas::Tuple,
+                                  T_param_args... )
   #
+
+  # TODO generalize beyond binary
+  T1 = T_param_args[1][1]
+  param1 = T_param_args[1][2]
+  T2 = T_param_args[2][1]
+  param2 = T_param_args[2][2]
 
   fg_ = initfg()
   X0 = addVariable!(fg_, :x0, T1)
@@ -112,6 +121,8 @@ function testFactorResidualBinary(fct,
 
   return res
 end
+
+
 
 
 #
