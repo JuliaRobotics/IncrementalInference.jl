@@ -73,6 +73,8 @@ struct ManifoldFactor{M <: AbstractManifold, T <: SamplableBelief} <: AbstractMa
     Z::T
 end
 
+DFG.getManifold(f::ManifoldFactor) = f.M
+
 # function getSample(cf::ManifoldFactor, N::Int=1)
 function getSample(cf::CalcFactor{<:ManifoldFactor}, N::Int=1)
     #TODO @assert dim == cf.factor.Z's dimension
@@ -103,6 +105,8 @@ struct ManifoldPrior{M <: AbstractManifold, T <: SamplableBelief, P} <: Abstract
     p::P #NOTE This is a fixed point from where the measurement `Z` is made in coordinates on tangent TpM
     Z::T
 end
+
+DFG.getManifold(f::ManifoldPrior) = f.M
 
 #TODO
 # function ManifoldPrior(M::AbstractGroupManifold, Z::SamplableBelief)
