@@ -63,6 +63,13 @@ vnd = getVariableSolverData(fg, :x1)
 @test all(isapprox.(mean(vnd.val), ProductRepr([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071]), atol=0.1).parts)
 @test all(is_point.(Ref(M), vnd.val))
 
+v1 = addVariable!(fg, :x2, SpecialEuclidean2)
+mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([1,2,pi/4], [0.01,0.01,0.01]))
+f = addFactor!(fg, [:x1, :x2], mf)
+
+#test new error from solvetree
+@test_broken solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg)) isa Tuple
+
 end
 
 
