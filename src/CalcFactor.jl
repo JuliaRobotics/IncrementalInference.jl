@@ -114,7 +114,7 @@ function testFactorResidualBinary(fct::AbstractRelative,
 
   # residual vector
   zdim = IIF._getZDim(ccw)
-  res = zeros(zdim)
+  res = zeros(zdim) # TODO, this may be incorrect for different manifolds
 
   # calc the residual
   @time res = cfo(meas..., param1, param2)
