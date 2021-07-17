@@ -69,8 +69,7 @@ end
 ## ======================================================================================
 ##
 ## ======================================================================================
-struct ManiPose2Point2{M <: AbstractManifold, T <: SamplableBelief} <: IIF.AbstractManifoldMinimize
-    M::M
+struct ManiPose2Point2{T <: SamplableBelief} <: IIF.AbstractManifoldMinimize
     Z::T
 end
 
@@ -78,6 +77,8 @@ function IIF.getSample(cf::CalcFactor{<:ManiPose2Point2}, N::Int=1)
     ret = [rand(cf.factor.Z) for _ in 1:N]
     (ret, )
 end
+
+DFG.getManifold(::ManiPose2Point2) = TranslationGroup(2)
 
 # define the conditional probability constraint
 function (cfo::CalcFactor{<:ManiPose2Point2})(measX, p, q)
@@ -109,7 +110,7 @@ p = addFactor!(fg, [:x0], mp)
 
 ##
 v1 = addVariable!(fg, :x1, Point2)
-mf = ManiPose2Point2(TranslationGroup(2), MvNormal([1,2], [0.01,0.01]))
+mf = ManiPose2Point2(MvNormal([1,2], [0.01,0.01]))
 f = addFactor!(fg, [:x0, :x1], mf)
 
 
