@@ -63,14 +63,20 @@ vnd = getVariableSolverData(fg, :x1)
 @test all(isapprox.(mean(vnd.val), ProductRepr([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071]), atol=0.1).parts)
 @test all(is_point.(Ref(M), vnd.val))
 
+v1 = addVariable!(fg, :x2, SpecialEuclidean2)
+mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([1,2,pi/4], [0.01,0.01,0.01]))
+f = addFactor!(fg, [:x1, :x2], mf)
+
+#test new error from solvetree
+@test_broken solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg)) isa Tuple
+
 end
 
 
 ## ======================================================================================
 ##
 ## ======================================================================================
-struct ManiPose2Point2{M <: AbstractManifold, T <: SamplableBelief} <: IIF.AbstractManifoldMinimize
-    M::M
+struct ManiPose2Point2{T <: SamplableBelief} <: IIF.AbstractManifoldMinimize
     Z::T
 end
 
@@ -78,6 +84,8 @@ function IIF.getSample(cf::CalcFactor{<:ManiPose2Point2}, N::Int=1)
     ret = [rand(cf.factor.Z) for _ in 1:N]
     (ret, )
 end
+
+DFG.getManifold(::ManiPose2Point2) = TranslationGroup(2)
 
 # define the conditional probability constraint
 function (cfo::CalcFactor{<:ManiPose2Point2})(measX, p, q)
@@ -109,7 +117,7 @@ p = addFactor!(fg, [:x0], mp)
 
 ##
 v1 = addVariable!(fg, :x1, Point2)
-mf = ManiPose2Point2(TranslationGroup(2), MvNormal([1,2], [0.01,0.01]))
+mf = ManiPose2Point2(MvNormal([1,2], [0.01,0.01]))
 f = addFactor!(fg, [:x0, :x1], mf)
 
 
