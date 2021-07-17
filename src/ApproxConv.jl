@@ -593,6 +593,51 @@ end
 """
     $SIGNATURES
 
+Perform factor evaluation to resolve the "solve for" variable of a factor.  
+This temporary function can be run without passing a factor graph object, but will internally allocate a new temporary new one.
+Alternatively, the factor graph used for calculations can be passed in via the keyword `tfg`, hence the function name bang.
+
+Notes
+- `TypeParams_args::Vector{Tuple{InferenceVariable, P}}
+- idea is please find best e.g. `b`, given `f(z,a,b,c)` either by roots or minimize (depends on definition of `f`)
+- `sfidx::Int` is the solve for index, assuming `getVariableOrder(fct)`.
+
+Example
+```julia
+B = _evalFactorTemporary!(EuclidDistance, ([10;],), 2, [(ContinuousScalar,[0]); (ContinuousScalar,[9.5;])] )
+# should return `B = 10`
+```
+
+Related
+
+[`evalFactor`](@ref), [`calcFactorResidual`](@ref), [`testFactorResidualBinary`](@ref)
+"""
+function _evalFactorTemporary!( fct::AbstractFactor,
+                                sfidx::Int,  # solve for index, assuming variable order for fct
+                                measurement::Tuple,
+                                TypeParams_args...;
+                                tfg::AbstractDFG=initfg(),
+                                solveKey::Symbol=:default,
+                                buildgraphkw... )
+  #
+
+  # build up a temporary graph in dfg
+  _, _dfgfct = IIF._buildGraphByFactorAndTypes!(fct, TypeParams_args... ; dfg=tfg, solveKey=solveKey, buildgraphkw...)
+  
+  # get label convention for which variable to solve for 
+  solvefor = getVariableOrder(_dfgfct)[sfidx]
+
+  # do the factor evaluation
+  sfPts = evalFactor(tfg, _dfgfct, solvefor, measurement, needFreshMeasurements=false, solveKey=solveKey, inflateCycles=1 )
+
+  return sfPts 
+end
+
+
+
+"""
+    $SIGNATURES
+
 Helper function for evaluating factor residual functions, by adding necessary `CalcFactor` wrapper.
   
 Notes

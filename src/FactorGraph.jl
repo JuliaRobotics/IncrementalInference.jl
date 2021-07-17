@@ -994,10 +994,11 @@ end
 function initManual!( dfg::AbstractDFG, 
                       sym::Symbol, 
                       pts::AbstractVector{P}, 
-                      solveKey::Symbol=:default ) where {P}
+                      solveKey::Symbol=:default;
+                      bw=nothing ) where {P}
   #
   var = getVariable(dfg, sym)
-  pp = manikde!(pts, getManifold(var))
+  pp = manikde!(getManifold(var), pts, bw=bw)
   initManual!(var,pp, solveKey)
 end
 

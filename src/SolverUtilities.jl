@@ -114,6 +114,42 @@ function updateFGBT!( fg::AbstractDFG,
 end
 
 
+"""
+    $SIGNATURES
+
+Build a graph given one factor and an ordered vector of `(variables types,nothing).  In addition, init values can be passed instead of nothing.
+
+Notes
+- Often used to quickly generate temporary graphs for a variety of local calculations.
+- does not yet support split `_` characters in auto-find `lastVar` from `varPattern`. 
+- Will always add a factor, but will skip adding variable labels that already exist in `dfg`.
+"""
+function _buildGraphByFactorAndTypes!(fct::AbstractFactor, 
+                                      TypeParams_vec...;
+                                      dfg::AbstractDFG = initfg(),
+                                      solveKey::Symbol=:default,
+                                      destPattern::Regex = r"x\d+",
+                                      destPrefix::Symbol = match(r"[a-zA-Z_]+", destPattern.pattern).match |> Symbol,
+                                      _allVars::AbstractVector{Symbol} = sortDFG(ls(dfg, destPattern)),
+                                      currLabel::Symbol = 0 < length(_allVars) ? _allVars[end] : Symbol(destPrefix, 0),
+                                      currNumber::Integer = reverse(match(r"\d+", reverse(string(currLabel))).match) |> x->parse(Int,x),
+                                      graphinit::Bool = false  )
+  #
+  
+  # TODO generalize beyond binary
+  len = length(TypeParams_vec)
+  vars = [Symbol(destPrefix, s_) for s_ in (currNumber .+ (1:len))]
+  for (s_, T_pt_s) in enumerate(TypeParams_vec)
+    # add the necessary variables
+    exists(dfg, vars[s_]) ? nothing : addVariable!(dfg, vars[s_], T_pt_s[1])
+    # set the numerical values if available
+    T_pt_s[2] isa Nothing ? nothing : initManual!(dfg, vars[s_], [T_pt_s[2],], solveKey, bw=ones(getDimension(T_pt_s[1])))
+  end
+  # add the factor on vars
+  _dfgfct = addFactor!(dfg, vars, fct, graphinit=graphinit)
+
+  return dfg, _dfgfct
+end
 
 
 """
@@ -184,6 +220,7 @@ function _checkVariableByReference( fg::AbstractDFG,
     overridePPE
   else
     # calculate and add the reference value
+    # TODO refactor consolidation to use `_buildGraphByFactorAndTypes!`
     tfg = initfg()
     addVariable!(tfg, :x0, srcType )
     addFactor!(tfg, [:x0], prior )
