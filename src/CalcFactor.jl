@@ -84,7 +84,7 @@ residual = testFactorResidualBinary(Pose2Pose2(...), (z_i,), (RoME.Pose2, x1), (
 
 Related
 
-[`approxConv`](@ref), [`CalcResidual`](@ref)
+[`approxConv`](@ref), [`CalcResidual`](@ref), [`_evalFactorTemporary!`](@ref)
 """
 function testFactorResidualBinary(fct::AbstractRelative, 
                                   meas::Tuple,

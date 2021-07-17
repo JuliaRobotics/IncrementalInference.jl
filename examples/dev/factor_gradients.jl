@@ -15,10 +15,10 @@ testFactorResidualBinary(pp, ([1;0],), (ContinuousEuclid{2}, [0;0]), (Continuous
 
 
 # T_pt_args[:] = [(T1::Type{<:InferenceVariable}, point1); ...]
-function _calcGradientFactorBinary( fct::Union{<:AbstractRelativeMinimize,<:AbstractRelativeRoots}, 
+function _prepFactorJacobianLambdas(fct::Union{<:AbstractRelativeMinimize,<:AbstractRelativeRoots}, 
                                     meas::Tuple,
                                     T_pt_args...;
-                                    h::Real=1e-8 ) # numerical diff perturbation size
+                                    h::Real=1e-8  ) # numerical diff perturbation size
   #
   # gradients relative to coords requires 
   resid_ = testFactorResidualBinary(fct, meas, T_pt_args...)
@@ -26,8 +26,11 @@ function _calcGradientFactorBinary( fct::Union{<:AbstractRelativeMinimize,<:Abst
   # build a residual calculation specifically considering graph factor selections `s`, e.g. for binary `s ∈ {1,2}``.
   δ_s = (s,T_pt) -> testFactorResidualBinary(fct, meas, (T_pt_args[1:(s-1)])..., T_pt, (T_pt_args[(s+1):end])...)
   # TODO generalize beyond binary
+  λ_fncs = []    # by factor's variable order
+  λ_sizes = []   # by factor's variable order
 
   # each variable T, go down to coords, add eps to a coord, back to point and look at the change in residual (assumed in coords for AbstractRelative[Minimize/Roots])
+  # TODO change `a_` to `s_` as variable selection by factor order
   for (a_, Tpt_) in enumerate(T_pt_args)
     # assume binary factor to start, these are variables A and B
     Ta = Tpt_[1]
@@ -37,6 +40,7 @@ function _calcGradientFactorBinary( fct::Union{<:AbstractRelativeMinimize,<:Abst
       
     # replace with retract operations only
     coords_a = AMP.makeCoordsFromPoint(Ma, pt_a)
+    push!(λ_sizes, length(coords_a))
     # perturb coords
     pr_coord_ = (i) -> (ca_ = deepcopy(coords_a); ca_[i] += h; ca_)  
     pt_a_i = (i) -> AMP.makePointFromCoords(Ma,pr_coord_(i),u_a)
@@ -47,13 +51,17 @@ function _calcGradientFactorBinary( fct::Union{<:AbstractRelativeMinimize,<:Abst
     ▽f = () -> ((i->Δf_h(i)).(1:length(coords_a)))
     # jacobian stored in user provided matrix
     ▽f_ij! = (J::AbstractMatrix{<:Real}) -> (J_ = ▽f(); (@cast J[i,j] = J_[j][i]))
-
-    # function is ready but calculation must still be done
+    # function is ready but calculation for actual jacobian values must still be done
+    push!(λ_fncs, ▽f_ij!)
   end
   
-
-
+  # build Tuple{Tuple{<:Function,size}...}
+  
 end
+
+#
+
+
 
 
 
