@@ -5,36 +5,55 @@
 using IncrementalInference
 using Test
 
+##
 
 @testset "Test for variations in N while solving" begin
 
+##
+
 fg = generateCanonicalFG_CaesarRing1D(graphinit=true)
 
+pts_ = approxConv(fg, :x0x1f1, :x1, N=101)
+@test length(pts_) == 101
+# if length(pts_) != 101
+#   @warn "approxConv not adhering to N=101 != $(length(pts_)), see issue #105"
+# end
 
-pts = approxConv(fg, :x0x1f1, :x1, N=101)
-if size(pts,2) != 101
-  @warn "approxConv not adhering to N=101 != $(size(pts,2)), see issue #105"
-end
+##
 
-# 150 is non-standard
+# Change to N=150 AFTER constructing the graph, so solver must update the belief sample values during inference
 getSolverParams(fg).N = 150
 # getSolverParams(fg).multiproc = false
 # getSolverParams(fg).async = false
-tree, smt, hist = solveTree!(fg)
+smtasks = Task[]
+tree, smt, hist = solveTree!(fg; smtasks, recordcliqs=ls(fg));
 
-@test getKDE(fg, :x1) |> getPoints |> size == (1,150)
+##
+
+pts_ = getBelief(fg, :x1) |> getPoints 
+@test length(pts_) == 150
+@test length(pts_[1]) == 1
+
+##
 
 # test with change for second solve
 getSolverParams(fg).N = 200
 tree, smt, hist = solveTree!(fg)
 
-@test getKDE(fg, :x1) |> getPoints |> size == (1,200)
+pts_ = getBelief(fg, :x1) |> getPoints
+@test length(pts_) == 200
+@test length(pts_[1]) == 1
 
-
+println("test making N smaller than current")
 getSolverParams(fg).N = 99
 tree, smt, hist = solveTree!(fg)
 
-@test getKDE(fg, :x1) |> getPoints |> size == (1,99)
+pts_ = getBelief(fg, :x1) |> getPoints
+@warn "removing older solve N size test, likely to be reviewed and updated to new workflow in the future"
+@test length(pts_) == 99
+@test length(pts_[1]) == 1
+
+##
 
 end
 

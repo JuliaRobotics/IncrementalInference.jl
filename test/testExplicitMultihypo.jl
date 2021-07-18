@@ -2,11 +2,12 @@
 # Test multihypo computation assembly
 
 using Test
-
 using IncrementalInference
 
 
 @testset "test IncrementalInference.assembleHypothesesElements! with only nullhypothesis..." begin
+
+##
 
 # n2_1 == (certainidx, allelements, activehypo, mhidx)
 n2_1_gt1 = 1:2
@@ -34,7 +35,6 @@ n2_1 = IncrementalInference.assembleHypothesesElements!(nothing, 20, 1, 2, ones(
 
 
 
-
 # n2_1 == (certainidx, allelements, activehypo, mhidx)
 n2_1_gt1 = 1:2
 n2_1_gt2_ = (3,3,0)
@@ -59,12 +59,14 @@ n2_1 = IncrementalInference.assembleHypothesesElements!(nothing, 20, 2, 2, ones(
 @test sum( [1:n2_1_gt4_;][n2_1[4] .== 1] .== n2_1[2][2] ) == length(n2_1[2][2])
 @test length(n2_1[4]) == n2_1_gt4_
 
-
+##
 
 end
 
 
 @testset "test IncrementalInference.assembleHypothesesElements! without multihypothesis..." begin
+
+##
 
 # certainidx = 1 ## ??
 # sfidx=1, mhidx=0:  ah = [1;]
@@ -108,11 +110,15 @@ s2_2 = IncrementalInference.assembleHypothesesElements!(nothing, 20, 2, 2 )
 @test sum([s2_2_gt3[3][2];] .- [s2_2[3][3][2];]) == 0
 @test sum(s2_2_gt4 .- s2_2[4])  == 0
 
+##
+
 end
 
 
 
 @testset "assembleHypothesesElements! with bi-modality (certain variable)" begin
+
+##
 
 # certainidx = 1
 # sfidx=1, mhidx=1:  ah = []
@@ -144,11 +150,14 @@ s3_1 = IncrementalInference.assembleHypothesesElements!(Categorical([0.0;0.5;0.5
 @test sum( [1:40;][s3_1[4] .== 3] .== s3_1[2][3] ) == length(s3_1[2][3])
 @test length(s3_1[4]) == s3_1_gt4
 
+##
 
 end
 
 
 @testset "assembleHypothesesElements! with bi-modality (fractional variable 1/2)" begin
+
+##
 
 # certainidx = 1
 # sfidx=2, mhidx=1:  ah = [1;2]
@@ -184,10 +193,13 @@ s3_2 = IncrementalInference.assembleHypothesesElements!(Categorical([0.0;0.5;0.5
 @test sum( [1:40;][s3_2[4] .== 3] .== s3_2[2][4] ) == length(s3_2[2][4])
 @test length(s3_2[4]) == s3_2_gt4
 
+##
 
 end
 
 @testset "assembleHypothesesElements! with bi-modality (fractional variable 2/2)" begin
+
+##
 
 # certainidx = 1
 # sfidx=3, mhidx=1:  ah = [1;3]
@@ -223,6 +235,7 @@ s3_3 = IncrementalInference.assembleHypothesesElements!(Categorical([0.0;0.5;0.5
 @test sum( [1:40;][s3_3[4] .== 3] .== s3_3[2][4] ) == length(s3_3[2][4])
 @test length(s3_3[4]) == s3_3_gt4
 
+##
 
 end
 
@@ -267,6 +280,7 @@ end
 
 @testset "assembleHypothesesElements! with tri-modality (certain variable)" begin
 
+##
 
 N = 50
 s4_1_gt1 = [1]
@@ -301,12 +315,15 @@ s4_1 = IncrementalInference.assembleHypothesesElements!(Categorical([0.0;0.33;0.
 @test sum( [1:N;][s4_1[4] .== 4] .== s4_1[2][4] ) == length(s4_1[2][4])
 @test length(s4_1[4]) == s4_1_gt4
 
+##
+
+
 end
 
 
 @testset "assembleHypothesesElements! with tri-modality (fractional variable 1/3)" begin
-## solve for fractional variable in trinary case
 
+## solve for fractional variable in trinary case
 
 N = 70
 s4_2_gt1 = [1]
@@ -345,11 +362,15 @@ s4_2 = IncrementalInference.assembleHypothesesElements!(Categorical([0.0;0.33;0.
 @test sum( [1:N;][s4_2[4] .== 4] .== s4_2[2][5] ) == length(s4_2[2][5])
 @test length(s4_2[4]) == s4_2_gt4
 
+##
+
 end
 
 
 
 @testset "assembleHypothesesElements! with tri-modality (fractional variable 2/3)" begin
+
+##
 
 N = 70
 s4_3_gt1 = [1]
@@ -388,10 +409,13 @@ s4_3 = IncrementalInference.assembleHypothesesElements!(Categorical([0.0;0.33;0.
 @test sum( [1:N;][s4_3[4] .== 4] .== s4_3[2][5] ) == length(s4_3[2][5])
 @test length(s4_3[4]) == s4_3_gt4
 
+##
+
 end
 
-
 @testset "assembleHypothesesElements! with tri-modality (fractional variable 3/3)" begin
+
+##
 
 N = 70
 s4_4_gt1 = [1]
@@ -430,7 +454,8 @@ s4_4 = IncrementalInference.assembleHypothesesElements!(Categorical([0.0;0.33;0.
 @test sum( [1:N;][s4_4[4] .== 4] .== s4_4[2][5] ) == length(s4_4[2][5])
 @test length(s4_4[4]) == s4_4_gt4
 
-
 @warn "only partially testing tri-modality"
+
+##
 
 end

@@ -18,19 +18,22 @@ end
 #     MsgPrior{T}(z, infd)
 # end
 
-getSample(cf::CalcFactor{<:MsgPrior}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
-
+function getSample(cf::CalcFactor{<:MsgPrior}, N::Int=1)
+  ret = Vector{Vector{Float64}}(undef, N)
+  for i in 1:N
+    ret[i] = rand(cf.factor.Z,1)[:]
+  end
+  (ret, )
+end
 
 # this is a developmental type, will be standardized after conclusion of #1010
 # TODO resolve type instability
 const MsgRelativeType = Vector{NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol},DFG.AbstractRelative}}}
 
-const MsgPriorType = Dict{Symbol, MsgPrior{BallTreeDensity}}
+const MsgPriorType = Dict{Symbol, MsgPrior{<:ManifoldKernelDensity}}
 
 
-function (cfo::CalcFactor{<:MsgPrior})(z, x1)
-  return  z .- x1
-end
+(cfo::CalcFactor{<:MsgPrior})(z, x1) = z .- x1
 
 
 

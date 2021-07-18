@@ -63,6 +63,13 @@ function getParametricMeasurement(Z::MvNormal)
   return meas, iΣ
 end
 
+# the point `p` on the manifold is the mean
+function getParametricMeasurement(s::ManifoldPrior)
+  meas = s.p
+  iΣ = invcov(s.Z)
+  return meas, iΣ
+end
+ 
 function getParametricMeasurement(s::FunctorInferenceType)
   if hasfield(typeof(s), :Zij)
     Z = s.Zij
@@ -111,7 +118,9 @@ function solveBinaryFactorParameteric(dfg::AbstractDFG,
   meas = getFactorType(fct)
   mea, = getParametricMeasurement(meas)
   # mea = getFactorMean(fct)
-  measT = (reshape(mea,:,1),)
+  mea_ = Vector{Vector{Float64}}()
+  push!(mea_, mea)
+  measT = (mea_,)
 
   # upgrade part of #639
   varSyms = getVariableOrder(fct)
@@ -120,12 +129,14 @@ function solveBinaryFactorParameteric(dfg::AbstractDFG,
   # calculate the projection
   varmask = (1:2)[varSyms .== trgsym][1]
 
-  fmd = FactorMetadata(Xi, getLabel.(Xi), Vector{Matrix{Float64}}(), :null, nothing)
-  pts = approxConvBinary( reshape(currval,:,1), meas, outdims, fmd, measT, varidx=varmask )
+  fmd = FactorMetadata(Xi, getLabel.(Xi), Vector{Vector{Vector{Float64}}}(), :null, nothing)
+  currval_ = Vector{Vector{Float64}}()
+  push!(currval_, currval)
+  pts_ = approxConvBinary( currval_, meas, outdims, fmd, measT, varidx=varmask )
 
   # return the result
-  @assert length(pts) == outdims
-  return pts[:]
+  @assert length(pts_[1]) == outdims
+  return pts_[1]
 end
 
 
@@ -141,7 +152,7 @@ Internal parametric extension to [`CalcFactor`](@ref) used for buffering measure
 struct CalcFactorMahalanobis{CF<:CalcFactor, S, N}
   calcfactor!::CF
   varOrder::Vector{Symbol}
-  meas::NTuple{N, Vector{Float64}}
+  meas::NTuple{N, <:AbstractVector{Float64}}
   iΣ::NTuple{N, Matrix{Float64}}
   specialAlg::S
 end
@@ -176,11 +187,25 @@ function CalcFactorMahalanobis(fct::DFGFactor)
 end
 
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
-function (cfp::CalcFactorMahalanobis)(variables...)
+function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W}})(variables...) where {T<:AbstractFactor, U, V, W}
   # call the user function (be careful to call the new CalcFactor version only!!!)
   res = cfp.calcfactor!(cfp.meas[1], variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
   return res' * cfp.iΣ[1] * res
+end
+
+function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W}})(variables...) where {T<:Union{ManifoldFactor, ManifoldPrior} , U, V, W}
+  # call the user function (be careful to call the new CalcFactor version only!!!)
+  M = cfp.calcfactor!.factor.M
+  X = cfp.calcfactor!(cfp.meas[1], variables...)
+  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+  # return mahalanobus_distance2(M, X, cfp.iΣ[1])
+  
+  #TODO do something about basis?
+  # Xc = get_coordinates(M, variables[1], X, DefaultOrthogonalBasis())
+  # Xc = get_coordinates(M, variables[1], X, DefaultOrthonormalBasis())
+  Xc = vee(M, variables[1], X)
+  return X, Xc' * cfp.iΣ[1] * Xc
 end
 
 function calcFactorMahalanobisDict(fg)
@@ -189,6 +214,27 @@ function calcFactorMahalanobisDict(fg)
     calcFactors[fct.label] = CalcFactorMahalanobis(fct)
   end
   return calcFactors
+end
+
+# new experimental Manifold ProductRepr version
+function _totalCost(M, cfvec::Vector{<:CalcFactorMahalanobis}, labeldict, points)
+  #
+  obj = 0
+
+  for cfp in cfvec
+
+      varOrder = getindex.(Ref(labeldict), cfp.varOrder)
+
+      factor_point_params = [points[M, i] for i in varOrder]
+
+      # call the user function
+      _,retval = cfp(factor_point_params...)
+
+      # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+      obj += 1/2*retval
+  end
+
+  return obj
 end
 
 function _totalCost(cfdict::Dict{Symbol, CalcFactorMahalanobis},
@@ -273,7 +319,7 @@ function solveGraphParametric(fg::AbstractDFG;
   flatvar = FlatVariables(fg, varIds)
 
   for vId in varIds
-    flatvar[vId] = getVariableSolverData(fg, vId, solvekey).val[:,1]
+    flatvar[vId] = getVariableSolverData(fg, vId, solvekey).val[1][:]
   end
 
   initValues = flatvar.X
@@ -336,7 +382,7 @@ function solveConditionalsParametric(fg::AbstractDFG,
   flatvar = FlatVariables(fg, varIds)
 
   for vId in varIds
-    flatvar[vId] = getVariableSolverData(fg, vId, solvekey).val[:,1]
+    flatvar[vId] = getVariableSolverData(fg, vId, solvekey).val[1][:]
   end
   initValues = flatvar.X
 
@@ -393,7 +439,7 @@ end
 function MixedCircular(fg::AbstractDFG, varIds::Vector{Symbol})
   circMask = Bool[]
   for k = varIds
-    append!(circMask, getVariableType(fg, k) |> AMP.getManifolds .== :Circular)
+    append!(circMask, convert(Tuple, getManifold(getVariableType(fg, k))) .== :Circular)
   end
   MixedCircular(circMask)
 end
@@ -410,6 +456,37 @@ end
 # project_tangent!(m, g, x): project g on the tangent space to m at x
 Optim.project_tangent!(S::MixedCircular,g,x) = g
 
+## ================================================================================================
+## Manifolds.jl Consolidation
+## TODO: Still to be completed and tested.
+## ================================================================================================
+# struct ManifoldsVector <: Optim.Manifold
+#   manis::Vector{Manifold}
+# end
+
+# Base.getindex(mv::ManifoldsVector, inds...) = getindex(mv.mani, inds...)
+# Base.setindex!(mv, X, inds...) =  setindex!(mv.mani, X, inds...)
+
+# function ManifoldsVector(fg::AbstractDFG, varIds::Vector{Symbol})
+#   manis = Bool[]
+#   for k = varIds
+#     push!(manis, getVariableType(fg, k) |> getManifold)
+#   end
+#   ManifoldsVector(manis)
+# end
+
+# function Optim.retract!(manis::ManifoldsVector, x)
+#   for (i,M) = enumerate(manis)
+#     x[i] = project(M, x[i])
+#   end
+#   return x 
+# end
+# function Optim.project_tangent!(manis::ManifoldsVector, G, x)
+#   for (i, M) = enumerate(manis)
+#     G[i] = project(M, x[i], G)
+#   end
+#   return G
+# end
 
 ## ================================================================================================
 ## UNDER DEVELOPMENT Parametric solveTree utils
@@ -530,15 +607,17 @@ function initParametricFrom!(fg::AbstractDFG, fromkey::Symbol = :default; parkey
   else
     for var in getVariables(fg)
         fromvnd = getSolverData(var, fromkey)
+        ptr_ = fromvnd.val
+        @cast ptr[i,j] := ptr_[j][i]
         if fromvnd.dims == 1
-          nf = fit(Normal, fromvnd.val)
-          getSolverData(var, parkey).val[1,1] = nf.μ
+          nf = fit(Normal, ptr)
+          getSolverData(var, parkey).val[1][1] = nf.μ
           getSolverData(var, parkey).bw[1,1] = nf.σ
           # m = var.estimateDict[:default].mean
         else
           #FIXME circular will not work correctly with MvNormal
-          nf = fit(MvNormal, fromvnd.val)
-          getSolverData(var, parkey).val[1:fromvnd.dims] .= mean(nf)[1:fromvnd.dims]
+          nf = fit(MvNormal, ptr)
+          getSolverData(var, parkey).val[1][1:fromvnd.dims] .= mean(nf)[1:fromvnd.dims]
           getSolverData(var, parkey).bw = cov(nf)
         end
     end

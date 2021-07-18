@@ -2,7 +2,7 @@
 
 using Test
 using IncrementalInference
-
+using TensorCast
 
 ##
 
@@ -18,7 +18,7 @@ fg = generateCanonicalFG_lineStep(2)
 
 pred, meas = approxDeconv(fg, :x0f1)
 
-@test mmd(pred, meas) < 1e-8
+@test mmd(Euclidean(1),pred, meas) < 1e-8
 
 ##
 
@@ -28,7 +28,7 @@ doautoinit!.(fg, [:x0; :x2])
 
 pred, meas = approxDeconv(fg, :x0x2f1)
 
-@test mmd(pred, meas) < 1e-5
+@test mmd(Euclidean(1), pred, meas) < 1e-3
 
 ##
 
@@ -58,7 +58,9 @@ solveTree!(fg);
 @test isapprox(getPPE(fg, :hypoA).suggested[1], 5, atol=1)
 @test isapprox(getPPE(fg, :hypoB).suggested[1], 10,atol=1)
 
-X0 = getBelief(fg, :x0) |> getPoints
+X0_ = getBelief(fg, :x0)
+X0 = AMP._pointsToMatrixCoords(X0_.manifold, getPoints(X0_))
+# TensorCast.@cast X0[i,j] := X0_[j][i]
 
 N = size(X0,2)
 @test 0.2*N < sum( -7.5 .< X0 .< -2.5 )
@@ -118,9 +120,12 @@ fg = initfg()
 addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
 addFactor!(fg, [:x0], Prior(Normal()))
+doautoinit!(fg,:x0)
 addFactor!(fg, [:x0;:x1], EuclidDistance(Normal(10,1)))
 
 ##
+
+# initAll!(fg)
 
 pts = approxConv(fg, :x0x1f1, :x1)
 
@@ -132,7 +137,9 @@ solveTree!(fg);
 
 @test abs(getPPE(fg, :x0).suggested[1]) < 1.0
 
-X1 = getBelief(fg, :x1) |> getPoints
+X1_ = getBelief(fg, :x1) |> getPoints
+TensorCast.@cast X1[i,j] := X1_[j][i]
+
 N = size(X1,2)
 @test sum(-5 .< X1 .< 5) < 0.1*N
 @test sum(X1 .< -15) < 0.1*N
@@ -144,7 +151,7 @@ N = size(X1,2)
 
 pred, meas = approxDeconv(fg, :x0x1f1)
 
-@test mmd(pred, meas) < 1e-2
+@test mmd(Euclidean(1), pred, meas) < 1e-1
 
 
 ##

@@ -4,6 +4,7 @@
 
 using IncrementalInference
 using Test
+using TensorCast
 
 ##
 
@@ -40,8 +41,12 @@ saveDFG("/tmp/test_fg_bss", fg)
 
 
 # check numerics -- replaced by CalcFactor{<:Mixture}, 
-smpls = approxConv(fg, :x0f1, :x0)
+smpls_ = approxConv(fg, :x0f1, :x0)
 # smpls, = getSample(Prior0, N) # ,lb=
+
+# lazy
+@cast smpls[i,j] := smpls_[j][i]
+
 
 # should be a balance of particles
 # @test sum(lb .== 1) - sum(lb .== 2) |> abs < 0.3*N
@@ -50,7 +55,10 @@ smpls = approxConv(fg, :x0f1, :x0)
 # solve
 solveTree!(fg);
 
-marginalPts = getBelief(fg, :x0) |> getPoints
+marginalPts_ = getBelief(fg, :x0) |> getPoints
+
+# lazy
+@cast marginalPts[i,j] := marginalPts_[j][i]
 
 # check solver solution consistent too
 @test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.3*N
@@ -72,8 +80,10 @@ N = getSolverParams(fg_).N
 
 solveTree!(fg_);
 
+marginalPts_ = getBelief(fg_, :x0) |> getPoints
 
-marginalPts = getBelief(fg_, :x0) |> getPoints
+# lazy
+@cast marginalPts[i,j] := marginalPts_[j][i]
 
 # check solver solution consistent too
 @test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.3*N

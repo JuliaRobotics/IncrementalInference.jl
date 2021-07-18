@@ -2,12 +2,14 @@
 
 using IncrementalInference
 using Test
-
+using TensorCast
 import IncrementalInference: getSample
 
-
+##
 
 @testset "Basic ContinuousScalar example to ensure multithreaded convolutions work..." begin
+
+##
 
 @show Threads.nthreads()
 
@@ -28,10 +30,12 @@ addVariable!(fg, :x1, ContinuousScalar, N=N)
 addFactor!(fg, [:x0, :x1], LinearRelative(Normal(10.0,1)) , threadmodel=MultiThreaded)
 
 
-pts = approxConv(fg, :x0x1f1, :x1, N=N)
+pts_ = approxConv(fg, :x0x1f1, :x1, N=N)
+@cast pts[i,j] := pts_[j][i]
 
 @test 0.95*N <= sum(abs.(pts .- 10.0) .< 5.0)
 
+##
 
 end
 

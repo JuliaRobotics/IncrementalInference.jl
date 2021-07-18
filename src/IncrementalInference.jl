@@ -14,7 +14,7 @@ using Reexport
 
 using Manifolds
 
-export ℝ, AbsstractManifold, Euclidean, Circle
+export ℝ, AbstractManifold, Euclidean, Circle
 
 import NLsolve
 import NLSolversBase
@@ -36,7 +36,8 @@ using
   FunctionalStateMachine,
   JSON2,
   Combinatorics,
-  UUIDs
+  UUIDs,
+  TensorCast
 
 using StaticArrays
 
@@ -59,13 +60,12 @@ import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import KernelDensityEstimate: getPoints
 import ApproxManifoldProducts: kde!, manikde!
+import ApproxManifoldProducts: getBW
 import ApproxManifoldProducts: mmd
-import ApproxManifoldProducts: getManifolds
-# import ApproxManifoldProducts: getManifold # might be used again later
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!
-import DistributedFactorGraphs: getDimension, getManifold
+import DistributedFactorGraphs: getDimension, getManifold, getPointType, getPointIdentity
 import DistributedFactorGraphs: getPPE, getPPEDict
 
 # will be deprecated in IIF
@@ -234,13 +234,11 @@ export *,
   getVariableSolvableDim,
   getFactorSolvableDim,
   getFactorInferFraction,
-  getCliqSiblingsPriorityInitOrder,
   isCliqFullDim,
   getVariable,
   getCliqueData,
   setCliqueData!,
   getManifold,  # new Manifolds.jl based operations
-  # getManifolds, # will be deprecated
   getVal,
   getBW,
   setVal!,
@@ -308,6 +306,7 @@ export *,
 
   # Bayes (Junction) Tree
   evalFactor,
+  approxConvBelief,
   approxConv,
   approxConvBinary,
 
@@ -386,6 +385,8 @@ export *,
   findFactorsBetweenFrom,
   addDownVariableFactors!,
   getDimension,
+  getPointType, 
+  getPointIdentity,
   setVariableRefence!,
   reshapeVec2Mat,
   accumulateFactorChain
@@ -410,13 +411,17 @@ getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 
 
 include("AliasScalarSampling.jl")
-include("Flux/entities.jl")
+include("entities/OptionalDensities.jl")
 include("BeliefTypes.jl")
 include("CalcFactor.jl")
+
+
+include("Factors/GenericFunctions.jl")
 
 # Refactoring in progress
 include("Factors/MsgLikelihoods.jl")
 
+include("entities/GraphConstraintTypes.jl")
 include("CliqueTypes.jl")
 
 include("JunctionTreeTypes.jl")
@@ -436,9 +441,9 @@ include("JunctionTree.jl")
 include("TreeMessageAccessors.jl")
 include("TreeMessageUtils.jl")
 include("TreeBasedInitialization.jl")
+include("HeatmapSampler.jl")
 
 # special variables and factors, see RoME.jl for more examples
-include("GraphConstraintTypes.jl")
 include("Factors/Mixture.jl")
 include("Factors/DefaultPrior.jl")
 include("Factors/LinearRelative.jl")
@@ -446,6 +451,7 @@ include("Factors/EuclidDistance.jl")
 include("Factors/Circular.jl")
 include("Variables/Circular.jl")
 include("Factors/PartialPrior.jl")
+include("Factors/PartialPriorPassThrough.jl")
 include("DefaultNodeTypes.jl") # older file
 
 # solving graphs
@@ -481,13 +487,15 @@ include("Deprecated.jl")
 
 
 
-exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
+exportimg(pl) = error("Please do `using Gadfly` to allow image export.")
 function __init__()
   @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" include("RequireInteractiveUtils.jl")
 
   @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" include("EmbeddedPlottingUtils.jl")
 
   @require DifferentialEquations="0c46a032-eb83-5123-abaf-570d42b7fbaa" include("ODE/DERelative.jl")
+
+  @require Interpolations="a98d9a8b-a2ab-59e6-89dd-64a1c18fca59" include("HeatmapSampler.jl")
 
   # combining neural networks natively into the non-Gaussian  factor graph object
   @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin

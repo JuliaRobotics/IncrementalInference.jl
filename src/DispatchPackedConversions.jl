@@ -52,10 +52,12 @@ function convert(
   # reconstitute from stored data
   # FIXME, add threadmodel=threadmodel
   # FIXME https://github.com/JuliaRobotics/DistributedFactorGraphs.jl/issues/590#issuecomment-776838053
+  # FIXME dont know what manifolds to use in ccw
   ccw = prepgenericconvolution(DFG.DFGVariable[], usrfnc, multihypo=mhcat, nullhypo=nh, inflation=packed.inflation)
   ccw.certainhypo = packed.certainhypo
 
-  ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(packed.eliminated, packed.potentialused, packed.edgeIDs, ccw,
+  # CommonConvWrapper{typeof(usrfnc)}
+  ret = FunctionNodeData{typeof(ccw)}(packed.eliminated, packed.potentialused, packed.edgeIDs, ccw,
                                                             packed.multihypo, packed.certainhypo, packed.nullhypo, 
                                                             packed.solveInProgress, packed.inflation )
   #
@@ -106,11 +108,11 @@ veeCategorical(val::Categorical) = val.p
 veeCategorical(val::Union{Nothing, Vector{Float64}}) = val
 
 
-function convert( ::Type{Tuple{BallTreeDensity,Float64}},
+function convert( ::Type{Tuple{ManifoldKernelDensity,Float64}},
                   p::TreeBelief )
   # @show size(p.val), size(p.bw), p.manifolds
   # (AMP.manikde!(p.val, p.bw[:,1], p.manifolds), p.inferdim)
-  (convert(BallTreeDensity, p), p.inferdim)
+  (convert(ManifoldKernelDensity, p), p.inferdim)
 end
 
 

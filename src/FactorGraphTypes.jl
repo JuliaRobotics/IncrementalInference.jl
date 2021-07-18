@@ -176,7 +176,7 @@ DevNotes
 - TODO make static params {XDIM, ZDIM, P}
 - TODO make immutable
 """
-mutable struct ConvPerThread{R,F<:FactorMetadata}
+mutable struct ConvPerThread{R,F<:FactorMetadata,P}
   thrid_::Int
   # the actual particle being solved at this moment
   particleidx::Int
@@ -189,23 +189,23 @@ mutable struct ConvPerThread{R,F<:FactorMetadata}
   # slight numerical perturbation for degenerate solver cases such as division by zero
   perturb::Vector{Float64}
   # working memory location for optimization routines on target decision variables
-  X::Array{Float64,2}
+  X::Vector{P}
   # working memory to store residual for optimization routines
   res::R # was Vector{Float64}
 end
 
 
-function ConvPerThread( X::Array{Float64,2},
+function ConvPerThread( X::AbstractVector{P},
                         zDim::Int,
                         factormetadata::FactorMetadata;
                         particleidx::Int=1,
                         activehypo= 1:length(params),
-                        p::AbstractVector{<:Integer}=collect(1:size(X,1)),
+                        p::AbstractVector{<:Integer}=collect(1:1),
                         perturb=zeros(zDim),
                         res=zeros(zDim),
-                        thrid_ = 0  )
+                        thrid_ = 0  ) where P
   #
-  return ConvPerThread( thrid_,
+  return ConvPerThread{typeof(res), typeof(factormetadata), Any}( thrid_,
                         particleidx,
                         factormetadata,
                         Int[activehypo;],
@@ -222,7 +222,8 @@ $(TYPEDEF)
 """
 mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
                                   H<:Union{Nothing, Distributions.Categorical},
-                                  C<:Union{Nothing, Vector{Int}} } <: FactorOperationalMemory
+                                  C<:Union{Nothing, Vector{Int}},
+                                  P} <: FactorOperationalMemory
   #
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function
@@ -238,7 +239,9 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
   certainhypo::C
   nullhypo::Float64
   # values specific to one complete convolution operation
-  params::Vector{Array{Float64,2}} # parameters passed to each hypothesis evaluation event on user function
+  # FIXME ? JT - What if all points are not on the same manifold? 
+  #          DF, just make it NamedTuple? -- some detail on pinning CCW down at construction only
+  params::Vector{Vector{P}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
   # FIXME make type stable
   measurement::Tuple # user defined measurement values for each approxConv operation
@@ -249,13 +252,16 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
   inflation::Float64
   # DONT USE THIS YET which dimensions does this factor influence
   partialDims::Vector{Int} # should become SVector{N, Int32}
+  
+  # variable types for points in params
+  vartypes::Vector{DataType}
 end
 
 
 function CommonConvWrapper( fnc::T,
-                            X::Array{Float64,2},
+                            X::AbstractVector{P},
                             zDim::Int,
-                            params::Vector{Array{Float64,2}},
+                            params::AbstractVector{Vector{Q}},
                             factormetadata::FactorMetadata;
                             specialzDim::Bool=false,
                             partial::Bool=false,
@@ -264,14 +270,16 @@ function CommonConvWrapper( fnc::T,
                             activehypo= 1:length(params),
                             nullhypo::Real=0,
                             varidx::Int=1,
-                            measurement::Tuple=(zeros(0,1),),
+                            measurement::Tuple=(Vector{Vector{Float64}}(),),  # FIXME should not be a Matrix
                             particleidx::Int=1,
                             xDim::Int=size(X,1),
                             partialDims::AbstractVector{<:Integer}=collect(1:size(X,1)), # TODO make this SVector, and name partialDims
                             perturb=zeros(zDim),
                             res::AbstractVector{<:Real}=zeros(zDim),
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
-                            inflation::Real=3.0  ) where {T<:FunctorInferenceType,H}
+                            inflation::Real=3.0,
+                            vartypes=typeof.(getVariableType.(factormetadata.fullvariables))
+                            ) where {T<:FunctorInferenceType,P,H,Q}
   #
   return  CommonConvWrapper(fnc,
                             xDim,
@@ -289,8 +297,8 @@ function CommonConvWrapper( fnc::T,
                                               activehypo=activehypo, p=partialDims, 
                                               perturb=perturb, res=res )).(1:Threads.nthreads()),
                             inflation,
-                            partialDims  # SVector(Int32.()...)
-                            )
+                            partialDims,  # SVector(Int32.()...)
+                            vartypes)
 end
 
 

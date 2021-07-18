@@ -1,7 +1,7 @@
 # New factor interface, something perhaps like this
 
 export CalcFactor
-export testFactorResidualBinary
+export calcFactorResidualTemporary
 
 # Also see #467 on API consolidation
 # function (cf::CalcFactor{<:LinearRelative})(res::AbstractVector{<:Real}, z, xi, xj)
@@ -15,10 +15,7 @@ export testFactorResidualBinary
 """
     $TYPEDEF
 
-New generation user factor interface method for computing the residual values of factors.
-
-Notes
-- Under development and still experimental.  Expected to become default method in IIF v0.20.0
+User factor interface method for computing the residual values of factors.
 """
 struct CalcFactor{T <: AbstractFactor, M, P <: Tuple, X <: AbstractVector}
   # the interface compliant user object functor containing the data and logic
@@ -67,6 +64,30 @@ Base.show(io::IO, ::MIME"text/plain", x::CalcFactor) = show(io, x)
 
 
 
+"""
+    $SIGNATURES
+
+Helper function for evaluating factor residual functions, by adding necessary `CalcFactor` wrapper.
+  
+Notes
+- Factor must already be in a factor graph to work
+- Will not yet properly support all multihypo nuances, more a function for testing
+- Useful for debugging a factor. 
+
+Example
+```julia
+fg = generateCanonicalFG_Kaess()
+
+residual = calcFactorResidual(fg, :x1x2f1, [1.0], [0.0], [0.0])
+```
+
+Related
+
+[`calcFactorResidualTemporary`](@ref)
+"""
+calcFactorResidual(dfgfct::DFGFactor, args...; ccw::CommonConvWrapper=IIF._getCCW(dfgfct)) = CalcFactor(ccw)(args...)
+calcFactorResidual(dfg::AbstractDFG, fctsym::Symbol, args...) = calcFactorResidual(getFactor(dfg, fctsym), args...)
+
 
 """
     $SIGNATURES
@@ -75,46 +96,58 @@ Evaluate the residual function for a single sample.
 
 Notes
 - Binary factors only at this stage, and `multihypo` does not have to be considered in this test
+- Assumes calculation is for a single particle, so `meas::Tuple{Z,other}` is only a single particles value.
 
 DevNotes
 - TODO generalize for n-ary factors
 
+Example
+```julia
+residual = testFactorResidualBinary(Pose2Pose2(...), (z_i,), (RoME.Pose2, x1), (RoME.Pose2, x2))
+```
+
 Related
 
-[`approxConv`](@ref), [`CalcResidual`](@ref)
+[`calcFactorResidual`](@ref), [`CalcResidual`](@ref), [`_evalFactorTemporary!`](@ref), [`approxConv`](@ref), [`_buildGraphByFactorAndTypes!`](@ref)
 """
-function testFactorResidualBinary(fct, 
-                                  T1,
-                                  T2,
-                                  param1,
-                                  param2, 
-                                  meas::Tuple = ())
+function calcFactorResidualTemporary( fct::AbstractRelative, 
+                                      measurement::Tuple,
+                                      T_param_args...;
+                                      tfg::AbstractDFG = initfg() )
   #
 
-  fg_ = initfg()
-  X0 = addVariable!(fg_, :x0, T1)
-  X1 = addVariable!(fg_, :x1, T2)
-  addFactor!(fg_, [:x0;:x1], fct, graphinit=false)
-
-  ccw = IIF._getCCW(fg_, :x0x1f1)
+  # build a new temporary graph
+  _, _dfgfct = _buildGraphByFactorAndTypes!(fct, T_param_args..., dfg=tfg)
+  lbls = getVariableOrder(_dfgfct)
+  vars = getVariable.(tfg, lbls)
   
-  ARR = getPoints.(getBelief.(fg_, [:x0;:x1]))
-  fmd = FactorMetadata([X0;X1],[:x0;:x1],ARR,:x1,nothing)
-  cfo = CalcFactor(fct, fmd, 1, 1, meas, ARR)
-
+  
   # get a fresh measurement if needed
-  meas = length(meas) != 0 ? meas : getSample(cfo, 1)
-  cfo = CalcFactor(fct, fmd, 1, 1, meas, ARR)
+  measurement = if length(measurement) != 0
+    measurement
+  else
+    # now use the CommonConvWrapper object in `_dfgfct`
+    ccw = IIF._getCCW(_dfgfct)
+    cfo = CalcFactor(ccw)
+    # arr_vecP = getPoints.(getBelief.(tfg, lbls))
+    # fmd = FactorMetadata(vars, lbls, arr_vecP, lbls[end], nothing)
+    # cfo = CalcFactor(fct, fmd, 1, 1, measurement, arr_vecP)
+    getSample(cfo, 1)
+  end
+
+  # cfo = CalcFactor(fct, fmd, 1, 1, measurement, arr_vecP)
+
+  return calcFactorResidual(_dfgfct, measurement..., ((x->x[2]).(T_param_args))...)
 
   # residual vector
-  zdim = IIF._getZDim(ccw)
-  res = zeros(zdim)
+  # zdim = IIF._getZDim(ccw)
+  # res = zeros(zdim) # TODO, this may be incorrect for different manifolds
 
-  # calc the residual
-  @time res = cfo(meas..., param1, param2)
-
-  return res
+  # calc the residual on all variable parameters that were passed in
+  # return cfo(measurement..., ((x->x[2]).(T_param_args))...)
 end
+
+
 
 
 #

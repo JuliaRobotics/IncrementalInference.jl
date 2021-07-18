@@ -3,7 +3,7 @@
 using IncrementalInference
 using Statistics
 using Test
-
+using TensorCast
 
 
 @testset "Test forest of orphaned graphs" begin
@@ -45,13 +45,25 @@ tree, smt, hist = solveTree!(fg, eliminationOrder=vo)
 
 ## Test the numerical values are correct
 
-@test getKDE(fg, :x0) |> getPoints  |> mean |> abs < 1.0
-@test (getKDE(fg, :x1) |> getPoints  |> mean) - 10 |> abs < 2.0
-@test (getKDE(fg, :x2) |> getPoints  |> mean) - 20 |> abs < 3.0
+pts_ = getBelief(fg, :x0) |> getPoints
+@cast pts[i,j] := pts_[j][i]
+@test  pts  |> mean |> abs < 1.0
+pts_ = getBelief(fg, :x1) |> getPoints
+@cast pts[i,j] := pts_[j][i]
+@test (pts  |> mean) - 10 |> abs < 2.0
+pts_ = getBelief(fg, :x2) |> getPoints
+@cast pts[i,j] := pts_[j][i]
+@test (pts  |> mean) - 20 |> abs < 3.0
 
-@test getKDE(fg, :x10) |> getPoints  |> mean |> abs < 2.0
-@test (getKDE(fg, :x11) |> getPoints  |> mean) + 10 |> abs < 4.0
-@test (getKDE(fg, :x12) |> getPoints  |> mean) + 20 |> abs < 5.0
+pts_ = getBelief(fg, :x10) |> getPoints
+@cast pts[i,j] := pts_[j][i]
+@test  pts  |> mean |> abs < 2.0
+pts_ = getBelief(fg, :x11) |> getPoints
+@cast pts[i,j] := pts_[j][i]
+@test (pts  |> mean) + 10 |> abs < 4.0
+pts_ = getBelief(fg, :x12) |> getPoints
+@cast pts[i,j] := pts_[j][i]
+@test (pts  |> mean) + 20 |> abs < 5.0
 
 
 

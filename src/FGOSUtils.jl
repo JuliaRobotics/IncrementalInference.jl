@@ -77,13 +77,27 @@ _getCCW(dfg::AbstractDFG, lbl::Symbol) = getFactor(dfg, lbl) |> _getCCW
 
 DFG.getFactorType(ccw::CommonConvWrapper) = ccw.usrfnc!
 
+_getZDim(ccw::CommonConvWrapper) = ccw.zDim
+# TODO is MsgPrior piggy backing zdim on inferdim???
+_getZDim(ccw::CommonConvWrapper{<:MsgPrior}) = ccw.usrfnc!.inferdim
 
-_getZDim(ccw::CommonConvWrapper) = isa(ccw.usrfnc!, MsgPrior) ? ccw.usrfnc!.inferdim : Int(ccw.zDim)
 _getZDim(fcd::GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
 _getZDim(fct::DFGFactor) = _getCCW(fct) |> _getZDim
 
 DFG.getDimension(fct::GenericFunctionNodeData) = _getZDim(fct)
 DFG.getDimension(fct::DFGFactor) = _getZDim(fct)
+
+
+"""
+    $SIGNATURES
+
+Return the manifold on which this ManifoldKernelDensity is defined.
+
+DevNotes
+- TODO currently ignores the .partial aspect (captured in parameter `L`)
+"""
+getManifold(mkd::ManifoldKernelDensity{M,B,Nothing}, asPartial::Bool=false) where {M,B} = mkd.manifold
+getManifold(mkd::ManifoldKernelDensity{M,B,L}, asPartial::Bool=false) where {M,B,L <: AbstractVector} = asPartial ? mkd.manifold : getManifoldPartial(mkd.manifold, mkd._partial)
 
 
 """
@@ -124,44 +138,31 @@ _getFMdThread(dfg::AbstractDFG,
 
 
 
-# extend convenience function
-function manikde!(pts::AbstractArray{Float64,2},
-                  bws::Vector{Float64},
-                  variableType::Union{<:InstanceType{InferenceVariable}, <:InstanceType{FunctorInferenceType}}  )
+# extend convenience function (Matrix or Vector{P})
+function manikde!(pts::AbstractVector{P},
+                  bws::Vector{<:Real},
+                  variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}  ) where P
   #
-  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(AMP.getManifolds(variableType))
-  bel = KernelDensityEstimate.kde!(pts, bws, addopT, diffopT)
-  ampmani = convert(MB.AbstractManifold, variableType)
-  return ManifoldKernelDensity(ampmani, bel)
-  # manikde!(pts, bws, getManifolds(variableType))
+  M = getManifold(variableType)
+  infoPerCoord=ones(AMP.getNumberCoords(M, pts[1]))
+  return AMP.manikde!(M, pts, bw=bws, infoPerCoord=infoPerCoord)
 end
 
-function manikde!(pts::AbstractArray{Float64,2}, 
-                  vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}})
-  # = manikde!(pts, getManifolds(vartype))
+function manikde!(pts::AbstractVector{P}, 
+                  vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}) where P
   #
-  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(AMP.getManifolds(vartype))
-  bel = KernelDensityEstimate.kde!(pts, addopT, diffopT)
-  ampmani = convert(MB.AbstractManifold, vartype)
-  return ManifoldKernelDensity(ampmani, bel)
+  M = getManifold(vartype)
+  infoPerCoord=ones(AMP.getNumberCoords(M, pts[1]))
+  return AMP.manikde!(M, pts, infoPerCoord=infoPerCoord)
 end
-
-manikde!(pts::AbstractVector{<:Real}, vartype::Type{<:ContinuousScalar}) = manikde!(reshape(pts,1,:), vartype)
-
 
 
 """
     $SIGNATURES
 
-Return N=100 measurement samples for a factor in `<:AbstractDFG`.
+Return params.N measurement samples for a factor in `<:AbstractDFG`.
 """
-function getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int=100)
-  # fnc = getFactorFunction(dfg, fsym)
-  ## getSample(fnc, N)
-  # Xi = (v->getVariable(dfg, v)).(getVariableOrder(dfg, fsym))
-  # sampleFactor(fnc, N)
-  sampleFactor(dfg, fsym, N)
-end
+getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int=getSolverParams(dfg).N) = sampleFactor(dfg, fsym, N)
 
 
 """
@@ -247,19 +248,28 @@ Related
 """
 function calcPPE( var::DFGVariable,
                   varType::InferenceVariable=getVariableType(var);
-                  method::Type{MeanMaxPPE}=MeanMaxPPE,
+                  ppeType::Type{MeanMaxPPE}=MeanMaxPPE,
                   solveKey::Symbol=:default,
-                  ppeKey::Symbol=solveKey  )
+                  ppeKey::Symbol=solveKey,
+                  timestamp=now()  )
   #
   P = getBelief(var, solveKey)
   maniDef = convert(MB.AbstractManifold, varType)
-  manis = getManifolds(maniDef) # varType # getManifolds(vnd)
+  manis = convert(Tuple, maniDef) # LEGACY, TODO REMOVE
   ops = buildHybridManifoldCallbacks(manis)
   Pme = calcMean(P)  # getKDEMean(P) #, addop=ops[1], diffop=ops[2]
-  Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
 
+  # returns coordinates at identify
+  Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
+  # calculate point
+ 
+  ## TODO make PPE only use getCoordinates for now (IIF v0.25)
+  Pme_ = getCoordinates(typeof(varType),Pme)
+  # Pma_ = getCoordinates(M,Pme)
+  
   # suggested, max, mean, current time
-  MeanMaxPPE(ppeKey, Pme, Pma, Pme, now())
+  # TODO, poor constructor argument assumptions on `ppeType`
+  ppeType(ppeKey, Pme_, Pma, Pme_, timestamp)
 end
 
 
@@ -283,10 +293,10 @@ Related
 function calcPPE( dfg::AbstractDFG,
                   label::Symbol;
                   solveKey::Symbol=:default,
-                  method::Type{<:AbstractPointParametricEst}=MeanMaxPPE )
+                  ppeType::Type{<:AbstractPointParametricEst}=MeanMaxPPE )
   #
   var = getVariable(dfg, label)
-  calcPPE(var, getVariableType(var), method=method, solveKey=solveKey)
+  calcPPE(var, getVariableType(var), ppeType=ppeType, solveKey=solveKey)
 end
 
 const calcVariablePPE = calcPPE
@@ -563,8 +573,8 @@ Related
 """
 function setPPE!( variable::DFGVariable,
                   solveKey::Symbol = :default,
-                  method::Type{T} = MeanMaxPPE,
-                  newPPEVal::T = calcPPE(variable, method=method, solveKey=solveKey) ) where {T <: AbstractPointParametricEst}
+                  ppeType::Type{T} = MeanMaxPPE,
+                  newPPEVal::T = calcPPE(variable, ppeType=ppeType, solveKey=solveKey) ) where {T <: AbstractPointParametricEst}
   #
   # vnd = getSolverData(variable, solveKey)
 
@@ -577,13 +587,13 @@ end
 function setPPE!( subfg::AbstractDFG,
                   label::Symbol,
                   solveKey::Symbol = :default,
-                  method::Type{T} = MeanMaxPPE,
+                  ppeType::Type{T} = MeanMaxPPE,
                   newPPEVal::NothingUnion{T} = nothing )  where {T <: AbstractPointParametricEst}
   #
   variable = getVariable(subfg,label)
   # slight optimization to avoid double variable lookup (should be optimized out during code lowering)
-  newppe = newPPEVal !== nothing ? newPPEVal : calcPPE(variable, solveKey=solveKey, method=method)  
-  setPPE!(variable, solveKey, method, newppe)
+  newppe = newPPEVal !== nothing ? newPPEVal : calcPPE(variable, solveKey=solveKey, ppeType=ppeType)  
+  setPPE!(variable, solveKey, ppeType, newppe)
 end
 
 

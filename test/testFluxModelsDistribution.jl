@@ -2,10 +2,13 @@
 
 using Test
 using BSON, Flux, IncrementalInference
+using TensorCast
 
-
+##
 
 @testset "FluxModelsDistribution serialization" begin
+
+##
 
 # can a model be serialized
 mdls = [Chain(Dense(5,2),Dense(2,3)); Chain(Dense(5,4), Dense(4,3))]
@@ -27,14 +30,14 @@ measu = rand(fxu, 2)
 
 @test measd[1] - measu[1] |> norm < 1e-6
 
+##
 
 end
 
 
-
 @testset "FluxModelsDistribution serialization" begin
 
-
+##
 
 mdls = [Chain(Dense(5,2),Dense(2,3)); Chain(Dense(5,4), Dense(4,3))]
 fxd = FluxModelsDistribution((5,),(3,),mdls,rand(5), false, false)
@@ -65,13 +68,14 @@ solveTree!(fg_);
 # remove the testing file
 Base.rm("/tmp/fg_test_flux.tar.gz")
 
+##
+
 end
-
-
 
 
 @testset "FluxModelsDistribution as Mixture with relative factor" begin
 
+##
 
 mdls = [Chain(Dense(10,50, relu),Dense(50,20),softmax, Dense(20,1, tanh)) for i in 1:50];
 fxd = FluxModelsDistribution((10,),(1,),mdls,rand(10), false, false)
@@ -97,9 +101,13 @@ saveDFG("/tmp/fg_test_flux", fg)
 solveTree!(fg)
 
 # prior should pin x0 pretty well
-@test 80 < sum(-3 .< (getBelief(fg, :x0) |> getPoints) .< 3)
+pts_ = getBelief(fg, :x0) |> getPoints
+@cast pts[i,j] := pts_[j][i]
+@test 80 < sum(-3 .< (pts) .< 3)
 # at least some points should land according to the naive model
-@test 5 < sum(5 .< (getBelief(fg, :x1) |> getPoints) .< 15)
+pts_ = getBelief(fg, :x1) |> getPoints
+@cast pts[i,j] := pts_[j][i]
+@test 5 < sum(5 .< (pts) .< 15)
 
 
 # will predict from existing fg
@@ -125,20 +133,26 @@ solveTree!(fg_);
 
 
 # prior should pin x0 pretty well
-@test 80 < sum(-3 .< (getBelief(fg_, :x0) |> getPoints) .< 3)
+pts_ = getBelief(fg_, :x0) |> getPoints
+@cast pts[i,j] := pts_[j][i]
+@test 80 < sum(-3 .< (pts) .< 3)
 # at least some points should land according to the naive model
-@test 5 < sum(5 .< (getBelief(fg_, :x1) |> getPoints) .< 15)
+pts_ = getBelief(fg_, :x1) |> getPoints
+@cast pts[i,j] := pts_[j][i]
+@test 5 < sum(5 .< (pts) .< 15)
 
 
 # remove the testing file
 Base.rm("/tmp/fg_test_flux.tar.gz")
 
+##
+
 end
 
 
-
-
 @testset "MixtureFluxModels testing" begin
+
+##
 
 # some made up data
 data = randn(10)
@@ -156,7 +170,6 @@ fg = initfg()
 addVariable!(fg, :testmix, Circular)
 addFactor!(fg, [:testmix;], mix)
 
-
 pts = approxConv(fg, :testmixf1, :testmix);
 
 # look at proposal distribution from the only factor on :testmix
@@ -167,12 +180,13 @@ saveDFG("/tmp/fg_mfx", fg)
 # 
 fg_ = loadDFG("/tmp/fg_mfx")
 
-
 Base.rm("/tmp/fg_mfx.tar.gz")
 
 solveTree!(fg_);
 
-@test 10 < getBelief(fg_, :testmix) |> getPoints |> length
+@test 10 < (getBelief(fg_, :testmix) |> getPoints |> length)
+
+##
 
 end
 

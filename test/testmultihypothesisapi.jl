@@ -5,6 +5,7 @@ using Test
 using IncrementalInference, Distributions
 using DistributedFactorGraphs
 using Statistics
+using TensorCast
 # going to introduce two new constraint types
 import Base: convert
 import IncrementalInference: getSample
@@ -14,13 +15,13 @@ import IncrementalInference: getSample
 mutable struct DevelopPrior{T <: SamplableBelief} <: AbstractPrior
   x::T
 end
-getSample(cf::CalcFactor{<:DevelopPrior}, N::Int=1) = (reshape(rand(cf.factor.x, N),1,N), )
+getSample(cf::CalcFactor{<:DevelopPrior}, N::Int=1) = ([rand(cf.factor.x, 1) for _ in 1:N], )
 
 mutable struct DevelopLikelihood{T <: SamplableBelief} <: AbstractRelativeRoots
   x::T
 end
 
-getSample(cf::CalcFactor{<:DevelopLikelihood}, N::Int=1) = (reshape(rand(cf.factor.x, N),1,N), )
+getSample(cf::CalcFactor{<:DevelopLikelihood}, N::Int=1) = ([rand(cf.factor.x, 1) for _ in 1:N], )
 function (cf::CalcFactor{<:DevelopLikelihood})(meas, wXi, wXj)
   #
   return meas - (wXj - wXi)
@@ -44,9 +45,10 @@ pr = DevelopPrior(Normal(10.0,1.0))
 f1 = addFactor!(fg,[:x1],pr)
 
 
-ensureAllInitialized!(fg)
+initAll!(fg)
 
-pts = evalFactor(fg, f1, v1.label, N=N)
+pts_ = evalFactor(fg, f1, v1.label, N=N)
+@cast pts[i,j] := pts_[j][i]
 
 @test sum(abs.(pts .- 1.0) .< 5) < 30
 @test sum(abs.(pts .- 10.0) .< 5) > 30
@@ -56,9 +58,11 @@ v2 = addVariable!(fg, :x2, ContinuousScalar, N=N)
 pp = DevelopLikelihood(Normal(100.0,1.0))
 f2 = addFactor!(fg, [:x1;:x2], pp)
 
-ensureAllInitialized!(fg)
+initAll!(fg)
 
-@test abs(Statistics.mean(getVal(fg, :x2))-110.0) < 10.0
+pts_ = getVal(fg, :x2)
+@cast pts[i,j] := pts_[j][i]
+@test abs(Statistics.mean(pts)-110.0) < 10.0
 
 
 v3 = addVariable!(fg, :x3, ContinuousScalar, N=N)
@@ -73,9 +77,9 @@ f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=[1.0;0.5;0.5])
 @test sum(abs.(IIF._getCCW(f3).hypotheses.p[2:3] .- 0.5)) < 0.1
 
 
-initManual!(fg, :x2, 1*ones(1,100))
-initManual!(fg, :x3, 2*ones(1,100))
-initManual!(fg, :x4, 3*ones(1,100))
+initManual!(fg, :x2, [1*ones(1) for _ in 1:N])
+initManual!(fg, :x3, [2*ones(1) for _ in 1:N])
+initManual!(fg, :x4, [3*ones(1) for _ in 1:N])
 
 ##
 
@@ -87,16 +91,16 @@ end
 
 ##
 
-pts = approxConv(fg, :x2x3x4f1, :x2, N=N)
-
+pts_ = approxConv(fg, :x2x3x4f1, :x2, N=N)
+@cast pts[i,j] := pts_[j][i]
 @test 99 < sum(pts .<= -70.0)
 
-pts = approxConv(fg, :x2x3x4f1, :x3, N=N)
-
+pts_ = approxConv(fg, :x2x3x4f1, :x3, N=N)
+@cast pts[i,j] := pts_[j][i]
 15 < sum(70 .< pts .< 110) < 75
 
-pts = approxConv(fg, :x2x3x4f1, :x4, N=N)
-
+pts_ = approxConv(fg, :x2x3x4f1, :x4, N=N)
+@cast pts[i,j] := pts_[j][i]
 15 < sum(70 .< pts .< 110) < 75
 
 
@@ -149,7 +153,7 @@ unpacked = convert(FunctionNodeData{CommonConvWrapper{DevelopPrior}},dd)
 
 
 fct = getFactor(fg, :x2x3x4f1)
-@show typeof(fct)
+# @show typeof(fct)
 topack = getSolverData(fct) # f3
 dd = convert(PackedFunctionNodeData{PackedDevelopLikelihood},topack)
 unpacked = convert(FunctionNodeData{CommonConvWrapper{DevelopLikelihood}},dd)
@@ -181,12 +185,12 @@ pr = DevelopPrior(Normal(10.0,1.0))
 f1 = addFactor!(fg,[:x1],pr)
 
 
-ensureAllInitialized!(fg)
+initAll!(fg)
 
 # Juno.breakpoint("/home/dehann/.julia/v0.5/IncrementalInference/src/ApproxConv.jl",121)
 
-pts = approxConv(fg, Symbol(f1.label), :x1, N=N)
-
+pts_ = approxConv(fg, Symbol(f1.label), :x1, N=N)
+@cast pts[i,j] := pts_[j][i]
 
 @test sum(abs.(pts .- 1.0) .< 5) < 30
 @test sum(abs.(pts .- 10.0) .< 5) > 30
@@ -197,9 +201,10 @@ v2 = addVariable!(fg, :x2, ContinuousScalar, N=N)
 pp = DevelopLikelihood(Normal(100.0,1.0))
 f2 = addFactor!(fg, [:x1;:x2], pp)
 
-ensureAllInitialized!(fg)
-
-@test abs(Statistics.mean(getVal(fg, :x2))-110.0) < 10.0
+initAll!(fg)
+pts_ = getVal(fg, :x2)
+@cast pts[i,j] := pts_[j][i]
+@test abs(Statistics.mean(pts)-110.0) < 10.0
 
 
 
@@ -220,21 +225,21 @@ f3 = addFactor!(fg, [:x2;:x3;:x4;:x5], ppMH, multihypo=[1.0,0.333,0.333,0.334])
 @test sum(abs.(IIF._getCCW(f3).hypotheses.p[4] .- 0.334)) < 0.001
 
 
-initManual!(fg, :x2 ,1*ones(1,100))
-initManual!(fg, :x3 ,2*ones(1,100))
-initManual!(fg, :x4 ,3*ones(1,100))
-initManual!(fg, :x5 ,4*ones(1,100))
+initManual!(fg, :x2 ,[1*ones(1) for _ in 1:N])
+initManual!(fg, :x3 ,[2*ones(1) for _ in 1:N])
+initManual!(fg, :x4 ,[3*ones(1) for _ in 1:N])
+initManual!(fg, :x5 ,[4*ones(1) for _ in 1:N])
 
 
 # solve for certain idx
-pts = approxConv(fg, :x2x3x4x5f1, :x2, N=N)
-
+pts_ = approxConv(fg, :x2x3x4x5f1, :x2, N=N)
+@cast pts[i,j] := pts_[j][i]
 @test 0.95*N < sum(pts .<= -70.0)
 
 
 # solve for one of uncertain variables
-pts = approxConv(fg, :x2x3x4x5f1, :x3, N=N)
-
+pts_ = approxConv(fg, :x2x3x4x5f1, :x3, N=N)
+@cast pts[i,j] := pts_[j][i]
 @test 0.1*N < sum(80 .< pts .< 100.0) < 0.5*N
 # @test 0.1*N < sum(pts .== 3.0) < 0.5*N
 # @test 0.1*N < sum(pts .== 4.0) < 0.5*N
@@ -244,8 +249,8 @@ pts = approxConv(fg, :x2x3x4x5f1, :x3, N=N)
 
 
 # solve for one of uncertain variables
-pts = approxConv(fg, :x2x3x4x5f1, :x4, N=N)
-
+pts_ = approxConv(fg, :x2x3x4x5f1, :x4, N=N)
+@cast pts[i,j] := pts_[j][i]
 @test 0.1*N < sum(80 .< pts .< 100.0) < 0.5*N
 # @test 0.1*N < sum(pts .== 2.0) < 0.5*N
 # @test 0.1*N < sum(pts .== 4.0) < 0.5*N
@@ -254,8 +259,8 @@ pts = approxConv(fg, :x2x3x4x5f1, :x4, N=N)
 
 
 # solve for one of uncertain variables
-pts = approxConv(fg, :x2x3x4x5f1, :x5, N=N)
-
+pts_ = approxConv(fg, :x2x3x4x5f1, :x5, N=N)
+@cast pts[i,j] := pts_[j][i]
 @test 0.1*N < sum(80 .< pts .< 100.0) < 0.5*N
 # @test 0.1*N < sum(pts .== 2.0) < 0.5*N
 # @test 0.1*N < sum(pts .== 3.0) < 0.5*N

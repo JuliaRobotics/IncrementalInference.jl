@@ -21,6 +21,7 @@ x1 = 10.0
 x2 = 20.0
 x3 = 40.0
 
+##
 
 @testset "2door basic binary multihypothesis tests..." begin
 
@@ -65,16 +66,16 @@ tree, smt, hist = solveTree!(fg)
 # drawGraph(fg)
 # drawTree(tree, show=true)
 
+@test abs(getKDEMean(getBelief(fg, :x0))[1]-x0) < 2.0
+@test abs(getKDEMean(getBelief(fg, :x1))[1]-x1) < 2.0
+@test abs(getKDEMean(getBelief(fg, :x2))[1]-x2) < 2.0
 
-@test abs(getKDEMean(getKDE(fg, :x0))[1]-x0) < 2.0
-@test abs(getKDEMean(getKDE(fg, :x1))[1]-x1) < 2.0
-@test abs(getKDEMean(getKDE(fg, :x2))[1]-x2) < 2.0
+@test abs(getKDEMean(getBelief(fg, :l0))[1]-l0) < 3.0
+@test abs(getKDEMean(getBelief(fg, :l1))[1]-l1) < 3.0
 
-@test abs(getKDEMean(getKDE(fg, :l0))[1]-l0) < 3.0
-@test abs(getKDEMean(getKDE(fg, :l1))[1]-l1) < 3.0
+##
 
 
-0
 end
 
 #
@@ -86,6 +87,8 @@ end
 
 
 @testset "3door basic trinary multihypo test..." begin
+
+##
 
 # Initialize empty factor graph
 fg = initfg()
@@ -129,21 +132,21 @@ addFactor!(fg, [:x2, :x3], LinearRelative(Normal(x3-x2, odom_noise)))
 addFactor!(fg, [:x3; :l0; :l1; :l2], LinearRelative(Normal(0, meas_noise)), multihypo=[1.0; 1.0/3.0; 1.0/3.0; 1.0/3.0])
 
 
-ensureAllInitialized!(fg)
+initAll!(fg)
 
 # drawGraph(fg)
 solveTree!(fg)
 
 
+@test abs(getKDEMean(getBelief(fg, :x0))[1]-x0) < 2.0
+@test abs(getKDEMean(getBelief(fg, :x1))[1]-x1) < 2.0
+@test abs(getKDEMean(getBelief(fg, :x2))[1]-x2) < 2.0
 
-@test abs(getKDEMean(getKDE(fg, :x0))[1]-x0) < 2.0
-@test abs(getKDEMean(getKDE(fg, :x1))[1]-x1) < 2.0
-@test abs(getKDEMean(getKDE(fg, :x2))[1]-x2) < 2.0
+@test abs(getKDEMean(getBelief(fg, :l0))[1]-l0) < 3.0
+@test abs(getKDEMean(getBelief(fg, :l1))[1]-l1) < 3.0
+@test abs(getKDEMean(getBelief(fg, :l2))[1]-l2) < 3.0
 
-@test abs(getKDEMean(getKDE(fg, :l0))[1]-l0) < 3.0
-@test abs(getKDEMean(getKDE(fg, :l1))[1]-l1) < 3.0
-@test abs(getKDEMean(getKDE(fg, :l2))[1]-l2) < 3.0
-
+##
 
 end
 

@@ -4,12 +4,9 @@
 
 using IncrementalInference
 using Test
-
 import IncrementalInference: getSample
 
 ##
-
-
 
 struct MyFactor{T <: SamplableBelief} <: IIF.AbstractRelativeRoots
   Z::T
@@ -17,28 +14,25 @@ struct MyFactor{T <: SamplableBelief} <: IIF.AbstractRelativeRoots
   # specialSampler::Function
 end
 
-
-function getSample(cf::CalcFactor{<:MyFactor}, N::Int=1)
+function getSample( cf::CalcFactor{<:MyFactor}, 
+                    N::Int=1  )
+  #
   @warn "getSample(cf::CalcFactor{<:MyFactor},::Int) does not get hypo sub-selected FMD data"
   @show DFG.getLabel.(cf.metadata.fullvariables)
   # @assert DFG.getLabel.(fmd_[1].fullvariables) |> length < 3 "this factor is only between two variables"
-  return (reshape(rand(cf.factor.Z, N),1,N),)
+  ret = [rand(cf.factor.Z, 1) for _ in 1:N]
+  return (ret,)
 end
-
 
 function (cf::CalcFactor{<:MyFactor})(z, X1, X2)
   @assert DFG.getLabel.(cf.metadata.fullvariables) |> length < 3 "this factor is only between two variables"
-
   # just a linear difference to complete the test
   return X2 - (X1 + z)
 end
 
 ##
 
-
-
 @testset "test FactorMetadata is properly populated" begin
-
 
 ##
 

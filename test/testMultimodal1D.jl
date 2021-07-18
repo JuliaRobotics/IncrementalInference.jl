@@ -3,7 +3,7 @@
 
 using DistributedFactorGraphs
 using IncrementalInference
-
+using TensorCast
 using Test
 
 ##==============================================================================
@@ -83,17 +83,28 @@ tree, smt, hist = solveTree!(fg, eliminationOrder = varor);
 ##
 
 # X should be at one of two modes
-@test 0.7*getSolverParams(fg).N < sum(-20 .< getPoints(getKDE(fg, :x1))[:] .< 0) + sum(0 .< getPoints(getKDE(fg, :x1))[:] .< 20)
+pts_ = getPoints(getBelief(fg, :x1))
+@cast pts[i,j] := pts_[j][i]
+@test 0.7*getSolverParams(fg).N < sum(-20 .< pts[:] .< 0) + sum(0 .< pts[:] .< 20)
 
-@test 0.7*getSolverParams(fg).N < sum(-38 .< getPoints(getKDE(fg, :lp1))[:] .< -28)
+pts_ = getPoints(getBelief(fg, :lp1))
+@cast pts[i,j] := pts_[j][i]
+@test 0.7*getSolverParams(fg).N < sum(-38 .< pts[:] .< -28)
 
-@test 0.7*getSolverParams(fg).N < sum(28 .< getPoints(getKDE(fg, :lp2))[:] .< 38)
+pts_ = getPoints(getBelief(fg, :lp2))
+@cast pts[i,j] := pts_[j][i]
+@test 0.7*getSolverParams(fg).N < sum(28 .< pts[:] .< 38)
 
-@test 0.1*getSolverParams(fg).N < sum(-38 .< getPoints(getKDE(fg, :lm1))[:] .< -25)
-@test 0.1*getSolverParams(fg).N < sum(25 .< getPoints(getKDE(fg, :lm2))[:] .< 38)
+pts_ = getPoints(getBelief(fg, :lm1))
+@cast pts[i,j] := pts_[j][i]
+@test 0.1*getSolverParams(fg).N < sum(-38 .< pts[:] .< -25)
 
-# @test 0.2*getSolverParams(fg).N < sum(-18 .< getPoints(getKDE(fg, :lm1))[:] .< -5) ||
-      # 0.2*getSolverParams(fg).N < sum(5 .< getPoints(getKDE(fg, :lm2))[:] .< 15)
+pts_ = getPoints(getBelief(fg, :lm2))
+@cast pts[i,j] := pts_[j][i]
+@test 0.1*getSolverParams(fg).N < sum(25 .< pts[:] .< 38)
+
+# @test 0.2*getSolverParams(fg).N < sum(-18 .< getPoints(getBelief(fg, :lm1))[:] .< -5) ||
+      # 0.2*getSolverParams(fg).N < sum(5 .< getPoints(getBelief(fg, :lm2))[:] .< 15)
 
 ##
 

@@ -38,7 +38,7 @@ end
 
 # NOTE part of new effort to overhaul the SamplableBelief serialization approach
 # maybe it all becomes a JSON struct sort of thing in the long run.
-StringThemSamplableBeliefs = Union{Normal, MvNormal, Categorical, DiscreteNonParametric, BallTreeDensity, AliasingScalarSampler}
+StringThemSamplableBeliefs = Union{Normal, MvNormal, Categorical, DiscreteNonParametric, BallTreeDensity, ManifoldKernelDensity, AliasingScalarSampler}
 convert(::Type{<:PackedSamplableBelief}, obj::StringThemSamplableBeliefs) = string(obj)
 
 

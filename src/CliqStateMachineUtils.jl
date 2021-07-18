@@ -359,7 +359,7 @@ function approxCliqMarginalUp!( csmc::CliqStateMachineContainer,
   cliq = csmc.cliq
 
   with_logger(logger) do
-    @info "=== start Clique $(getLabel(cliq)) ======================"
+    @info "======== Clique $(getLabel(cliq)) ========"
   end
 
   if multiproc
@@ -490,7 +490,7 @@ function solveCliqDownFrontalProducts!( subfg::AbstractDFG,
 
   # use new localproduct approach
   if opts.multiproc
-    downresult = Dict{Symbol, Tuple{BallTreeDensity, Float64, Vector{Symbol}}}()
+    downresult = Dict{Symbol, Tuple{ManifoldKernelDensity, Float64, Vector{Symbol}}}()
     @sync for i in 1:length(directs)
       @async begin
         downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, directs[i], false, solveKey=solveKey)

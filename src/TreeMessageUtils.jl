@@ -11,7 +11,7 @@ export addLikelihoodsDifferentialCHILD!
 
 
 
-convert(::Type{BallTreeDensity}, src::TreeBelief) = manikde!(src.val, src.bw[:,1], src.variableType)
+convert(::Type{<:ManifoldKernelDensity}, src::TreeBelief) = manikde!(src.val, src.bw[:,1], getManifold(src.variableType))
 
 """
     $(SIGNATURES)
@@ -24,9 +24,9 @@ manikde!, getKDE, getKDEMax, getKDEMean, TreeBelief
 """
 function kde!(em::TreeBelief)
   # return AMP.manikde!(em.val, em.bw, em.manifolds)
-  return convert(BallTreeDensity, em)
+  return convert(ManifoldKernelDensity, em)
 end
-manikde!(em::TreeBelief) = convert(BallTreeDensity, em)
+manikde!(em::TreeBelief) = convert(ManifoldKernelDensity, em)
 
 
 
@@ -95,7 +95,8 @@ function updateSubFgFromDownMsgs!(sfg::G,
   # update specific variables in sfg from msgs
   for (key,beldim) in dwnmsgs.belief
     if key in seps
-      setValKDE!(sfg, key, manikde!(beldim.val,beldim.bw[:,1],getManifolds(beldim.variableType)), false, beldim.inferdim)
+      newBel = manikde!(getManifold(beldim.variableType), beldim.val, bw=beldim.bw[:,1] )
+      setValKDE!(sfg, key, newBel, false, beldim.inferdim)
     end
   end
 
@@ -105,15 +106,15 @@ end
 
 
 function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
-  kdePr = manikde!(belief_.val, belief_.bw[:,1], getManifolds(belief_.variableType))
+  kdePr = manikde!(getManifold(belief_.variableType), belief_.val, bw=belief_.bw[:,1])
   MsgPrior(kdePr, belief_.inferdim)
 end
 
 function generateMsgPrior(belief_::TreeBelief, ::ParametricMessage)
-  msgPrior = if size(belief_.val, 2) == 1 && size(belief_.val, 1) == 1
-    MsgPrior(Normal(belief_.val[1], sqrt(belief_.bw[1])), belief_.inferdim)
-  elseif size(belief_.val, 2) == 1 && 1 != size(belief_.val, 1)
-    mvnorm = createMvNormal(belief_.val[:,1], belief_.bw)
+  msgPrior = if length(belief_.val[1]) == 1 && length(belief_.val) == 1
+    MsgPrior(Normal(belief_.val[1][1], sqrt(belief_.bw[1])), belief_.inferdim)
+  elseif length(belief_.val) == 1 && 1 != length(belief_.val[1])
+    mvnorm = createMvNormal(belief_.val[1], belief_.bw)
     mvnorm !== nothing ? nothing : (return DFGFactor[])
     MsgPrior(mvnorm, belief_.inferdim)
   end
@@ -275,7 +276,7 @@ addLikelihoodsDifferential!(subfg::AbstractDFG, msgs::LikelihoodMessage) = addLi
 # FIXME, must be renamed and standardized
 function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
                                           seps::Vector{Symbol}, 
-                                          tfg::AbstractDFG=initfg();
+                                          tfg::AbstractDFG=initfg(InMemDFGType(solverParams=SolverParams(N=getSolverParams(cliqSubFG).N)));
                                           solveKey::Symbol=:default )
   #
   # return list of differential factors the parent should add as part upward partial joint posterior
@@ -589,7 +590,6 @@ function deleteMsgFactors!( subfg::AbstractDFG,
     deleteFactor!(subfg, fc.label)
   end
 end
-# deleteMsgFactors!(::LightDFG{SolverParams,DFGVariable,DFGFactor}, ::Array{DFGFactor{CommonConvWrapper{MsgPrior{BallTreeDensity}},1},1})
 
 function deleteMsgFactors!( subfg::AbstractDFG, 
                             tags::Vector{Symbol}=[:__LIKELIHOODMESSAGE__])
@@ -793,7 +793,7 @@ function getCliqDownMsgsAfterDownSolve( subdfg::AbstractDFG,
                                         sender=(; id=cliq.id.value,
                                                   step=0))
   #
-  # Dict{Symbol, BallTreeDensity}
+  # Dict{Symbol, MKD}
   # where the return msgs are contained
   container = LikelihoodMessage(sender=sender, status=status) 
 

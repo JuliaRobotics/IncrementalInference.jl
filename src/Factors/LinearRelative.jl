@@ -28,18 +28,20 @@ LinearRelative(nm::Distributions.ContinuousUnivariateDistribution) = LinearRelat
 LinearRelative(nm::MvNormal) = LinearRelative{length(nm.μ), typeof(nm)}(nm)
 LinearRelative(nm::Union{<:BallTreeDensity,<:ManifoldKernelDensity}) = LinearRelative{Ndim(nm), typeof(nm)}(nm)
 
-# getManifold(::InstanceType{LinearRelative{N}}) where {N} = Euclidean(N)
-# getManifolds(::T) where {T <: LinearRelative} = convert(Tuple, getManifold(T))
-# getManifolds(::Type{<:T}) where {T <: LinearRelative} = convert(Tuple, getManifold(T))
-# getManifolds(fctType::Type{LinearRelative}) = getManifolds(getDomain(fctType))
-
-getManifold(::InstanceType{LinearRelative{N}}) where N = ContinuousEuclid{N}
+getManifold(::InstanceType{LinearRelative{N}}) where N = getManifold(ContinuousEuclid{N})
 
 # TODO standardize
 getDimension(::InstanceType{LinearRelative{N}}) where {N} = N
 
-getSample(cf::CalcFactor{<:LinearRelative}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
-
+function getSample(cf::CalcFactor{<:LinearRelative}, N::Int=1)
+  measArr = Vector{Vector{Float64}}(undef, N)
+  _samplemakevec(z::Real) = [z;]
+  _samplemakevec(z::AbstractVector{<:Real}) = z
+  for i in 1:N
+    measArr[i] = _samplemakevec(rand(cf.factor.Z,1)[:])
+  end
+  (measArr, )
+end
 
 
 # new and simplified interface for both nonparametric and parametric

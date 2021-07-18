@@ -18,20 +18,25 @@ end
 MutableLinearRelative(n::Int=1) = MutableLinearRelative{n}()
 MutableLinearRelative(nm::Distributions.ContinuousUnivariateDistribution) = MutableLinearRelative{1, typeof(nm)}(nm)
 MutableLinearRelative(nm::MvNormal) = MutableLinearRelative{length(nm.μ), typeof(nm)}(nm)
-MutableLinearRelative(nm::BallTreeDensity) = MutableLinearRelative{Ndim(nm), typeof(nm)}(nm)
+MutableLinearRelative(nm::ManifoldKernelDensity) = MutableLinearRelative{Ndim(nm), typeof(nm)}(nm)
 
 getDimension(::Type{MutableLinearRelative{N,<:SamplableBelief}}) where {N} = N
 # getManifolds(::Type{MutableLinearRelative{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
 
-IIF.getSample(cf::CalcFactor{<:MutableLinearRelative}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
-function (s::CalcFactor{<:MutableLinearRelative})(meas,
-                                                     X1,
-                                                     X2  )
+
+function IIF.getSample(cf::CalcFactor{<:MutableLinearRelative}, N::Int=1)
+    ret = [rand(cf.factor.Z,1) for _ in 1:N]
+    (ret, )
+end
+
+function (s::CalcFactor{<:MutableLinearRelative})(  meas,
+                                                    X1,
+                                                    X2  )
 #
     return meas .- (X2 .- X1)
 end
 
-
+##
 
 @testset "testing dead reckoning tether" begin
 
@@ -86,14 +91,11 @@ addFactor!(fg, [:x0; :deadreckon_x0], drec, solvable=0)
 vo = getEliminationOrder(fg)
 @test length(vo) == 8
 
-
 tree = buildTreeFromOrdering!(fg,vo)
-
 
 tree2, smt, hists = solveTree!(fg);
 
 @test !isInitialized(fg, :deadreckon_x0)
-
 
 val = accumulateFactorMeans(fg, [:x0deadreckon_x0f1])
 
@@ -103,5 +105,7 @@ val = accumulateFactorMeans(fg, [:x0deadreckon_x0f1])
 rebaseFactorVariable!(fg, :x0deadreckon_x0f1, [:x1; :deadreckon_x0])
 @test issetequal(ls2(fg, :x0), [:x1, :l1])
 @test issetequal(ls2(fg, :x1), [:x0, :deadreckon_x0, :x2])
+
+##
 
 end
