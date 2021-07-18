@@ -18,14 +18,16 @@ Future work:
 """
 function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
-                                elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{MultiThreaded}  ) where {N_,F<:AbstractRelative,S,T}
+                                elements::Union{Vector{Int}, UnitRange{Int}}, 
+                                ::Type{<:MultiThreaded},
+                                _slack=nothing ) where {N_,F<:AbstractRelative,S,T}
   #
   Threads.@threads for n in elements
     # ccwl.thrid_ = Threads.threadid()
     ccwl.cpt[Threads.threadid()].particleidx = n
     
     # ccall(:jl_, Nothing, (Any,), "starting loop, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx)")
-    _solveCCWNumeric!( ccwl )
+    _solveCCWNumeric!( ccwl, _slack=_slack)
   end
   nothing
 end
@@ -33,11 +35,13 @@ end
 
 function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
-                                elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {N_,F<:AbstractRelative,S,T}
+                                elements::Union{Vector{Int}, UnitRange{Int}}, 
+                                ::Type{<:SingleThreaded},
+                                _slack=nothing ) where {N_,F<:AbstractRelative,S,T}
   #
   for n in elements
     ccwl.cpt[Threads.threadid()].particleidx = n
-    _solveCCWNumeric!( ccwl )
+    _solveCCWNumeric!( ccwl, _slack=_slack)
   end
   nothing
 end
@@ -45,9 +49,10 @@ end
 
 function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
-                                elements::Union{Vector{Int}, UnitRange{Int}} )  where {N_,F<:AbstractRelative,S,T}
+                                elements::Union{Vector{Int}, UnitRange{Int}},
+                                _slack=nothing )  where {N_,F<:AbstractRelative,S,T}
   #
-  approxConvOnElements!(ccwl, elements, ccwl.threadmodel)
+  approxConvOnElements!(ccwl, elements, ccwl.threadmodel, _slack)
 end
 
 
@@ -158,32 +163,6 @@ function generateNullhypoEntropy( val::AbstractMatrix{<:Real},
   MvNormal( mu, cVar )
 end
 
-# # NOTE SWITCHED TO ON-MANIFOLD VERSION, but this used to give deviation
-# function calcVariableCovarianceBasic(M::AbstractManifold, ptsArr::Vector{Vector{Float64}})
-#   # cannot calculate the stdev from uninitialized state
-#   # FIXME assume point type is only Vector{Float} at this time
-#   @cast arr[i,j] := ptsArr[j][i]
-#   msst = Statistics.std(arr, dims=2)
-#   # FIXME use adaptive scale, see #802
-#   msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
-#   return msst_
-# end
-
-# Returns the covariance (square), not deviation
-# OLD version used to give deviation instead
-function calcVariableCovarianceBasic(M::AbstractManifold, ptsArr::Vector{P}) where P
-  #TODO double check the maths,. it looks like its working at least for groups
-  μ = mean(M, ptsArr)
-  Xcs = vee.(Ref(M), Ref(μ), log.(Ref(M), Ref(μ), ptsArr))
-  Σ = mean(Xcs .* transpose.(Xcs))
-  @debug "calcVariableCovarianceBasic" μ
-  @debug "calcVariableCovarianceBasic" Σ
-  # TODO don't know what to do here so keeping as before, #FIXME it will break
-  # a change between this and previous is that a full covariance matrix is returned
-  msst = Σ
-  msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
-  return msst_
-end
 
 """
     $SIGNATURES
@@ -297,7 +276,8 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
                                   mani::ManifoldsBase.AbstractManifold; # maniAddOps::Tuple;
                                   spreadNH::Real=5.0,
                                   inflateCycles::Int=3,
-                                  skipSolve::Bool=false ) where {N_,F<:AbstractRelative,S,T}
+                                  skipSolve::Bool=false,
+                                  _slack=nothing ) where {N_,F<:AbstractRelative,S,T}
   #
   count = 0
 
@@ -322,7 +302,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       for iflc in 1:inflateCycles
         addEntropyOnManifold!(mani, addEntr, 1:getDimension(mani), spreadDist, cpt_.p)
         # no calculate new proposal belief on kernels `allelements[count]`
-        skipSolve ? @warn("skipping numerical solve operation") : approxConvOnElements!(ccwl, allelements[count])
+        skipSolve ? @warn("skipping numerical solve operation") : approxConvOnElements!(ccwl, allelements[count], _slack)
       end
     elseif hypoidx != sfidx && hypoidx != 0
       # snap together case
@@ -402,7 +382,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 spreadNH::Real=3.0,
                                 inflateCycles::Int=3,
                                 dbg::Bool=false,
-                                skipSolve::Bool=false  ) where {T <: AbstractFactor}
+                                skipSolve::Bool=false,
+                                _slack=nothing  ) where {T <: AbstractFactor}
   #
 
   # Prep computation variables
@@ -431,7 +412,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # FIXME consider repeat solve as workaround for inflation off-zero 
   computeAcrossHypothesis!( ccwl, allelements, activehypo, certainidx, 
                             sfidx, maxlen, mani, spreadNH=spreadNH, 
-                            inflateCycles=inflateCycles, skipSolve=skipSolve )
+                            inflateCycles=inflateCycles, skipSolve=skipSolve,
+                            _slack=_slack )
   #
   return ccwl.params[ccwl.varidx]
 end
@@ -450,7 +432,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 dbg::Bool=false,
                                 spreadNH::Real=3.0,
                                 inflateCycles::Int=3,
-                                skipSolve::Bool=false ) where {T <: AbstractFactor}
+                                skipSolve::Bool=false,
+                                _slack=nothing ) where {T <: AbstractFactor}
   #
   # setup the partial or complete decision variable dimensions for this ccwl object
   # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
@@ -496,7 +479,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   end
   # @show nn, size(addEntr), size(nhmask), size(solveForPts)
   addEntrNH = view(addEntr, nhmask)
-  spreadDist = spreadNH*sqrt(calcVariableCovarianceBasic(mani, addEntr))
+  spreadDist = spreadNH*calcVariableCovarianceBasic(mani, addEntr))
   # partials are treated differently
   if !ccwl.partial
       # TODO for now require measurements to be coordinates too
@@ -570,7 +553,8 @@ function evalFactor(dfg::AbstractDFG,
                     N::Int=length(measurement[1]),
                     inflateCycles::Int=getSolverParams(dfg).inflateCycles,
                     dbg::Bool=false,
-                    skipSolve::Bool=false  )
+                    skipSolve::Bool=false,
+                    _slack=nothing  )
   #
 
   ccw = _getCCW(fct)
@@ -586,7 +570,8 @@ function evalFactor(dfg::AbstractDFG,
 
   return evalPotentialSpecific( Xi, ccw, solvefor, measurement, needFreshMeasurements=needFreshMeasurements,
                                 solveKey=solveKey, N=N, dbg=dbg, spreadNH=getSolverParams(dfg).spreadNH, 
-                                inflateCycles=inflateCycles, skipSolve=skipSolve )
+                                inflateCycles=inflateCycles, skipSolve=skipSolve,
+                                _slack=_slack  )
   #
 end
 
@@ -618,41 +603,23 @@ function _evalFactorTemporary!( fct::AbstractFactor,
                                 TypeParams_args...;
                                 tfg::AbstractDFG=initfg(),
                                 solveKey::Symbol=:default,
+                                newFactor::Bool=true,
+                                _slack=nothing,
                                 buildgraphkw... )
   #
 
   # build up a temporary graph in dfg
-  _, _dfgfct = IIF._buildGraphByFactorAndTypes!(fct, TypeParams_args... ; dfg=tfg, solveKey=solveKey, buildgraphkw...)
+  _, _dfgfct = IIF._buildGraphByFactorAndTypes!(fct, TypeParams_args...; dfg=tfg, solveKey=solveKey, newFactor=newFactor, buildgraphkw...)
   
   # get label convention for which variable to solve for 
   solvefor = getVariableOrder(_dfgfct)[sfidx]
 
   # do the factor evaluation
-  sfPts = evalFactor(tfg, _dfgfct, solvefor, measurement, needFreshMeasurements=false, solveKey=solveKey, inflateCycles=1 )
+  sfPts = evalFactor(tfg, _dfgfct, solvefor, measurement, needFreshMeasurements=false, solveKey=solveKey, inflateCycles=1, _slack=_slack )
 
   return sfPts 
 end
 
-
-
-"""
-    $SIGNATURES
-
-Helper function for evaluating factor residual functions, by adding necessary `CalcFactor` wrapper.
-  
-Notes
-- Factor must already be in a factor graph to work
-- Will not yet properly support all multihypo nuances, more a function for testing
-- Useful for debugging a factor. 
-
-Example
-```julia
-fg = generateCanonicalFG_Kaess()
-
-residual = calcFactorResidual(fg, :x1x2f1, [1.0], [0.0], [0.0])
-```
-"""
-calcFactorResidual(dfg::AbstractDFG, fctsym::Symbol, args...) = CalcFactor(IIF._getCCW(dfg, fctsym))(args...)
 
 
 function approxConvBelief(dfg::AbstractDFG,
@@ -793,7 +760,8 @@ function approxConvBinary(arr::Vector{Vector{Float64}},
                           measurement::Tuple=(Vector{Vector{Float64}}(),);
                           varidx::Int=2,
                           N::Int=length(arr),
-                          vnds=DFGVariable[] )
+                          vnds=DFGVariable[],
+                          _slack=nothing )
   #
   # N = N == 0 ? size(arr,2) : N
   pts = [zeros(outdims) for _ in 1:N];
@@ -817,7 +785,7 @@ function approxConvBinary(arr::Vector{Vector{Float64}},
 
   for n in 1:N
     ccw.cpt[Threads.threadid()].particleidx = n
-    _solveCCWNumeric!( ccw )
+    _solveCCWNumeric!( ccw, _slack=_slack )
   end
   return pts
 end

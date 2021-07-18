@@ -5,6 +5,8 @@ using Test
 
 # temporarily moved to start (for debugging)
 
+@error "MUST RESTORE testpartialconstraint.jl"
+# include("testpartialconstraint.jl")
 include("testPartialNH.jl")
 
 include("testSphereMani.jl")
@@ -57,7 +59,6 @@ include("testSolveSetPPE.jl")
 include("testSolveKey.jl")
 include("testEuclidDistance.jl")
 include("priorusetest.jl")
-include("testpartialconstraint.jl")
 include("testnullhypothesis.jl") 
 include("testVariousNSolveSize.jl")
 include("testExplicitMultihypo.jl")

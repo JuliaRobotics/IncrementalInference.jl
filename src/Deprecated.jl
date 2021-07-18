@@ -25,7 +25,19 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
-@deprecate testFactorResidualBinary(fct, T1,T2, param1, param2, meas::Tuple) testFactorResidualBinary(fct, meas, (T1,param1), (T2,param2))
+# MOVED TO AMP v0.4.6
+# # NOTE SWITCHED TO ON-MANIFOLD VERSION, but this used to give deviation
+# calcVariableCovarianceBasic(M::AbstractManifold, ptsArr::Vector{Vector{Float64}})
+#   # cannot calculate the stdev from uninitialized state
+#   # FIXME assume point type is only Vector{Float} at this time
+#   @cast arr[i,j] := ptsArr[j][i]
+#   msst = Statistics.std(arr, dims=2)
+#   # FIXME use adaptive scale, see #802
+#   msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
+#   return msst_
+# end
+
+@deprecate testFactorResidualBinary(fct, T1::InstanceType{InferenceVariable}, T2::InstanceType{InferenceVariable}, param1, param2, meas::Tuple) calcFactorResidualTemporary(fct, meas, (T1,param1), (T2,param2))
 
 # """
 #     $SIGNATURES

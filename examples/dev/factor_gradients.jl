@@ -15,16 +15,18 @@ testFactorResidualBinary(pp, ([1;0],), (ContinuousEuclid{2}, [0;0]), (Continuous
 
 
 # T_pt_args[:] = [(T1::Type{<:InferenceVariable}, point1); ...]
-function _prepFactorJacobianLambdas(fct::Union{<:AbstractRelativeMinimize,<:AbstractRelativeRoots}, 
-                                    meas::Tuple,
+function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:AbstractRelativeRoots}, 
+                                    measurement::Tuple,
                                     T_pt_args...;
                                     h::Real=1e-8  ) # numerical diff perturbation size
   #
+  
   # gradients relative to coords requires 
-  resid_ = testFactorResidualBinary(fct, meas, T_pt_args...)
+  slack_resid = testFactorResidualBinary(fct, measurement, T_pt_args...)
+  coord_s = IIF._evalFactorTemporary!(fct, measurement, T_pt_args..., _slack=slack_resid )
   
   # build a residual calculation specifically considering graph factor selections `s`, e.g. for binary `s ∈ {1,2}``.
-  δ_s = (s,T_pt) -> testFactorResidualBinary(fct, meas, (T_pt_args[1:(s-1)])..., T_pt, (T_pt_args[(s+1):end])...)
+  δ_s = (s,T_pt) -> testFactorResidualBinary(fct, measurement, (T_pt_args[1:(s-1)])..., T_pt, (T_pt_args[(s+1):end])...)
   # TODO generalize beyond binary
   λ_fncs = []    # by factor's variable order
   λ_sizes = []   # by factor's variable order

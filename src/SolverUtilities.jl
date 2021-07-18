@@ -79,8 +79,6 @@ function sampleFactor(dfg::AbstractDFG,
 end
 
 
-
-
 """
     $(SIGNATURES)
 
@@ -128,6 +126,7 @@ function _buildGraphByFactorAndTypes!(fct::AbstractFactor,
                                       TypeParams_vec...;
                                       dfg::AbstractDFG = initfg(),
                                       solveKey::Symbol=:default,
+                                      newFactor::Bool=true,
                                       destPattern::Regex = r"x\d+",
                                       destPrefix::Symbol = match(r"[a-zA-Z_]+", destPattern.pattern).match |> Symbol,
                                       _allVars::AbstractVector{Symbol} = sortDFG(ls(dfg, destPattern)),
@@ -145,8 +144,8 @@ function _buildGraphByFactorAndTypes!(fct::AbstractFactor,
     # set the numerical values if available
     T_pt_s[2] isa Nothing ? nothing : initManual!(dfg, vars[s_], [T_pt_s[2],], solveKey, bw=ones(getDimension(T_pt_s[1])))
   end
-  # add the factor on vars
-  _dfgfct = addFactor!(dfg, vars, fct, graphinit=graphinit)
+  # if newFactor then add the factor on vars, else assume only one existing factor between vars
+  _dfgfct = newFactor ? addFactor!(dfg, vars, fct, graphinit=graphinit) : getFactor(dfg, intersect((ls.(dfg, vars))...)[1] )
 
   return dfg, _dfgfct
 end
