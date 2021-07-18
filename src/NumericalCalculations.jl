@@ -164,7 +164,8 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
                                       cpt_::ConvPerThread = ccwl.cpt[Threads.threadid()],
                                       target::AbstractArray = view(ccwl.params[ccwl.varidx][smpid], cpt_.p),
                                       measurement_ = ccwl.measurement,
-                                      fmd_::FactorMetadata = cpt_.factormetadata  )
+                                      fmd_::FactorMetadata = cpt_.factormetadata;
+                                      _slack=nothing  )
   #
 
   # build a view to the decision variable memory
@@ -189,8 +190,11 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   fill!(cpt_.res, 0.0) # Roots->xDim | Minimize->zDim
 
   # build static lambda
-  # unrollHypo! =  ()->cf( (_viewdim1or2.(measurement_, smpid))..., (view.(varParams, smpid))... ) # :
-  unrollHypo! =  ()->cf( (_getindextuple(measurement_, smpid))..., (getindex.(varParams, smpid))... ) # :
+  unrollHypo! = if _slack === nothing
+    () -> cf( (_getindextuple(measurement_, smpid))..., (getindex.(varParams, smpid))... )
+  else
+    () -> cf( (_getindextuple(measurement_, smpid))..., (getindex.(varParams, smpid))... ) - _slack
+  end
 
   return unrollHypo!, target
 end
@@ -219,7 +223,8 @@ DevNotes
 function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
                                         CommonConvWrapper{Mixture{N_,F,S,T}}};
                             perturb::Real=1e-10,
-                            testshuffle::Bool=false  ) where {N_,F<:AbstractRelative,S,T}
+                            testshuffle::Bool=false,
+                            _slack=nothing  ) where {N_,F<:AbstractRelative,S,T}
   #
     # FIXME, move this check higher and out of smpid loop
   _checkErrorCCWNumerics(ccwl, testshuffle)
@@ -234,7 +239,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
 
   # build the pre-objective function for this sample's hypothesis selection
-  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, cpt_)
+  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, cpt_, _slack=_slack )
   
   # broadcast updates original view memory location
   ## using CalcFactor legacy path inside (::CalcFactor)
@@ -268,7 +273,8 @@ end
 function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
                                         CommonConvWrapper{Mixture{N_,F,S,T}}};
                             perturb::Real=1e-10,
-                            testshuffle::Bool=false  ) where {N_,F<:AbstractManifoldMinimize,S,T}
+                            testshuffle::Bool=false,
+                            _slack=nothing  ) where {N_,F<:AbstractManifoldMinimize,S,T}
   #
     # FIXME, move this check higher and out of smpid loop
   _checkErrorCCWNumerics(ccwl, testshuffle)
@@ -283,7 +289,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
 
   # build the pre-objective function for this sample's hypothesis selection
-  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, cpt_, view(ccwl.params[ccwl.varidx], smpid))
+  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, cpt_, view(ccwl.params[ccwl.varidx], smpid), _slack=_slack)
   
   # broadcast updates original view memory location
   ## using CalcFactor legacy path inside (::CalcFactor)
