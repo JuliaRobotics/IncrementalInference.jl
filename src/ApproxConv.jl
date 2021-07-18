@@ -479,7 +479,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   end
   # @show nn, size(addEntr), size(nhmask), size(solveForPts)
   addEntrNH = view(addEntr, nhmask)
-  spreadDist = spreadNH*calcVariableCovarianceBasic(mani, addEntr))
+  spreadDist = spreadNH*sqrt(calcVariableCovarianceBasic(mani, addEntr))
   # partials are treated differently
   if !ccwl.partial
       # TODO for now require measurements to be coordinates too
