@@ -617,7 +617,7 @@ function _evalFactorTemporary!( fct::AbstractFactor,
   # do the factor evaluation
   sfPts = evalFactor(tfg, _dfgfct, solvefor, measurement, needFreshMeasurements=false, solveKey=solveKey, inflateCycles=1, _slack=_slack )
 
-  return sfPts 
+  return sfPts
 end
 
 

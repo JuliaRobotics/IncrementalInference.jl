@@ -22,7 +22,7 @@ function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:Abst
   #
   
   # gradients relative to coords requires 
-  slack_resid = testFactorResidualBinary(fct, measurement, T_pt_args...)
+  slack_resid = calcFactorResidualTemporary(fct, measurement, T_pt_args...)
   coord_s = IIF._evalFactorTemporary!(fct, measurement, T_pt_args..., _slack=slack_resid )
   
   # build a residual calculation specifically considering graph factor selections `s`, e.g. for binary `s ∈ {1,2}``.

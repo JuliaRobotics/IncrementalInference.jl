@@ -193,7 +193,10 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   unrollHypo! = if _slack === nothing
     () -> cf( (_getindextuple(measurement_, smpid))..., (getindex.(varParams, smpid))... )
   else
-    () -> cf( (_getindextuple(measurement_, smpid))..., (getindex.(varParams, smpid))... ) - _slack
+    # slack is used to shift the residual away from the natural "zero" tension position of a factor, 
+    # this is useful when calculating factor gradients at a variety of param locations resulting in "non-zero slack" of the residual.
+    # see `IIF.calcFactorResidualTemporary`
+    () -> cf( (_getindextuple(measurement_, smpid))..., (getindex.(varParams, smpid))... ) .- _slack
   end
 
   return unrollHypo!, target

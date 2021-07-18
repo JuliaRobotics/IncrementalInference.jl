@@ -83,7 +83,7 @@ residual = calcFactorResidual(fg, :x1x2f1, [1.0], [0.0], [0.0])
 
 Related
 
-[`calcFactorResidualTemporary`](@ref)
+[`calcFactorResidualTemporary`](@ref), [`_evalFactorTemporary!`](@ref), [`evalFactor`](@ref), [`approxConv`](@ref)
 """
 calcFactorResidual(dfgfct::DFGFactor, args...; ccw::CommonConvWrapper=IIF._getCCW(dfgfct)) = CalcFactor(ccw)(args...)
 calcFactorResidual(dfg::AbstractDFG, fctsym::Symbol, args...) = calcFactorResidual(getFactor(dfg, fctsym), args...)
@@ -103,7 +103,7 @@ DevNotes
 
 Example
 ```julia
-residual = testFactorResidualBinary(Pose2Pose2(...), (z_i,), (RoME.Pose2, x1), (RoME.Pose2, x2))
+residual = calcFactorResidualTemporary(Pose2Pose2(...), (z_i,), (RoME.Pose2, x1), (RoME.Pose2, x2))
 ```
 
 Related
