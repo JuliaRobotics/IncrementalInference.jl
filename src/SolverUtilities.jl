@@ -145,6 +145,7 @@ function _buildGraphByFactorAndTypes!(fct::AbstractFactor,
     T_pt_s[2] isa Nothing ? nothing : initManual!(dfg,  vars[s_], [T_pt_s[2],], solveKey, bw=ones(getDimension(T_pt_s[1])))
   end
   # if newFactor then add the factor on vars, else assume only one existing factor between vars
+  # @info "WHAT" newFactor string(vars) string(ls.(dfg, vars)) string(intersect((ls.(dfg, vars))...))
   _dfgfct = newFactor ? addFactor!(dfg, vars, fct, graphinit=graphinit) : getFactor(dfg, intersect((ls.(dfg, vars))...)[1] )
   
   return dfg, _dfgfct

@@ -385,7 +385,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 skipSolve::Bool=false,
                                 _slack=nothing  ) where {T <: AbstractFactor}
   #
-  @info "EVALSPEC" string(measurement) inflateCycles
+  # @info "EVALSPEC" string(measurement) inflateCycles
   # Prep computation variables
   # NOTE #1025, should FMD be built here...
   sfidx, maxlen, mani = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N, needFreshMeasurements=needFreshMeasurements, solveKey=solveKey)
@@ -410,7 +410,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # perform the numeric solutions on the indicated elements
   # error("ccwl.xDim=$(ccwl.xDim)")
   # FIXME consider repeat solve as workaround for inflation off-zero 
-  @info "EVALSPEC END" ccwl.varidx string(ccwl.params) string(allelements)
+  # @info "EVALSPEC END" ccwl.varidx string(ccwl.params) string(allelements)
   computeAcrossHypothesis!( ccwl, allelements, activehypo, certainidx, 
                             sfidx, maxlen, mani, spreadNH=spreadNH, 
                             inflateCycles=inflateCycles, skipSolve=skipSolve,
@@ -619,7 +619,7 @@ function _evalFactorTemporary!( fct::AbstractFactor,
   measurement = ([meas_single[1],],)
   sfPts = evalFactor(tfg, _dfgfct, solvefor, measurement, needFreshMeasurements=false, solveKey=solveKey, inflateCycles=1, _slack=_slack )
 
-  @info "EVALTEMP" length(sfPts) string(sfPts) meas_single measurement solvefor
+  # @info "EVALTEMP" length(sfPts) string(sfPts) meas_single measurement solvefor
 
   return sfPts
 end

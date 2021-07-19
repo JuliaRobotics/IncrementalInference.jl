@@ -65,13 +65,13 @@ end
 @testset "test residual slack prerequisite for numerical factor gradients, Euclidean(2)" begin
 ##
 
-pp = LinearRelative(MvNormal([10;0],[1 0; 0 1]))
+fct = LinearRelative(MvNormal([10;0],[1 0; 0 1]))
 measurement = ([10.0;0.0],)
 T_pt_args = [(ContinuousEuclid{2},[0;0.0]); (ContinuousEuclid{2},[9.5;0])]
 
 ## test the building of factor graph to be correct
 
-_fg,_ = IIF._buildGraphByFactorAndTypes!(pp, T_pt_args...);
+_fg,_ = IIF._buildGraphByFactorAndTypes!(fct, T_pt_args...);
 
 @test length(getVal(_fg[:x1])) == 1
 @test length(getVal(_fg[:x1])[1]) == 2
@@ -92,30 +92,39 @@ slack_resid = calcFactorResidualTemporary(fct, measurement, T_pt_args..., tfg=_f
 @test length(getVal(_fg[:x2])) == 1
 @test length(getVal(_fg[:x2])[1]) == 2
 
+## Manually provide a common temp graph and force no factor and same variables via keywords
+
+tfg,_ = IIF._buildGraphByFactorAndTypes!(fct, T_pt_args...);
+coord_1 = IIF._evalFactorTemporary!(fct, 1, measurement, T_pt_args..., _slack=slack_resid, tfg=tfg, newFactor=false, currNumber=0 )
+
 ##
 
-tfg,_ = IIF._buildGraphByFactorAndTypes!(pp, T_pt_args...);
-
-coord_1 = IIF._evalFactorTemporary!(fct, 1, measurement, T_pt_args..., _slack=slack_resid, tfg=tfg, newFactor=false )
-
-##
 @test length(coord_1) == 1
-@test isapprox( coord_1[1], [0.0], atol=1e-6)
+@test length(coord_1[1]) == 2
+
+@test isapprox( coord_1[1], [0;0.0], atol=1e-6)
 
 coord_2 = IIF._evalFactorTemporary!(fct, 2, measurement, T_pt_args..., _slack=slack_resid )
 @test length(coord_2) == 1
-@test isapprox( coord_2[1], [9.5], atol=1e-6)
+@test length(coord_2[1]) == 2
 
-##
+@test isapprox( coord_2[1], [9.5; 0], atol=1e-6)
+
+## Repeat the same test but allow _evalFactorTemporary to self construct internal temporary graph
 
 coord_1 = IIF._evalFactorTemporary!(fct, 1, measurement, T_pt_args... )
+
+##
 @test length(coord_1) == 1
-@test isapprox( coord_1[1], [-0.5], atol=1e-6)
+@test length(coord_1[1]) == 2
+
+@test isapprox( coord_1[1], [-0.5;0], atol=1e-6)
 
 coord_2 = IIF._evalFactorTemporary!(fct, 2, measurement, T_pt_args... )
 @test length(coord_2) == 1
-@test isapprox( coord_2[1], [10.0], atol=1e-6)
+@test length(coord_2[1]) == 2
 
+@test isapprox( coord_2[1], [10.0;0], atol=1e-6)
 
 ##
 end

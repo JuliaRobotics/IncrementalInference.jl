@@ -253,6 +253,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
 
   # do the parameter search over defined decision variables using Minimization
+  # @info "FACTOR TYPE AT SOLVE" getFactorType(ccwl) string(cpt_.res) smpid string(cpt_.p)
   retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid][cpt_.p], islen1 )
   
   # Check for NaNs
