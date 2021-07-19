@@ -32,6 +32,9 @@ J__, λ_fncs, λ_sizes = IIF._prepFactorGradientLambdas(pp, measurement, varType
 
 J__
 
+@test norm( J__ - [0 0 1 0; 0 0 0 1; 1 0 0 0; 0 1 0 0] ) < 1e-4
+
+
 ##
 
 gradFct = FactorGradientsCached!(pp, measurement, varTypes, pts);
