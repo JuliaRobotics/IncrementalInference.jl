@@ -14,13 +14,13 @@ Take graph on one function ``f`` between two variables and based on measurement 
 
 The gradient (a matrix operating on coordinates) is defined as ``(▽f - I)`` according to
 ````math
-0 = (\bigtriangledown f - I) dC
+0 = (▽ f - I) dC
 ````
 
 where the augmented vector of coordinates is ``dC = [dX_1, dX_2]'``.  The idea is that ``dC`` should be 
-in the null space of ``(▽f - I)`` as per normal partial derivative decomposition;
+in the null space of ``(▽f - I)`` as per normal partial derivative (vector) decomposition;
 ````math
-dX_1 = \frac{\partial \, f}{\partial X_2'} \, dX_2 + ...
+dX_1 = {∂f}/{∂X_2'} dX_2 + ...
 ````
 
 modeled in coordinates.
