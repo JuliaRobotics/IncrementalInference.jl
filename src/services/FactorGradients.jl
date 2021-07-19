@@ -126,6 +126,9 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
 
   # update the residual _slack in preparation for new gradient calculation
   fct = getFactorType(fgc.dfgfct)
+  measurement = tuple(meas_pts[1:lenm]...)
+  pts = meas_pts[(1+lenm):end]
+  varTypes = getVariableType.(getVariable.(fgc._tfg, getVariableOrder(fgc.dfgfct)))
   new_slack = calcFactorResidualTemporary(fct, measurement, varTypes, pts, tfg=fgc._tfg)
   # TODO make sure slack_residual is properly wired up with all the lambda functions as expected
   _setPointsMani!(fgc.slack_residual, new_slack)
