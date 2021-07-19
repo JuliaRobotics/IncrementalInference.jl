@@ -13,6 +13,8 @@ include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
 include("testSpecialEuclidean2Mani.jl")
 
+include("testFactorGradients.jl")
+
 include("testCliqSolveDbgUtils.jl")
 include("TestModuleFunctions.jl")
 include("testApproxConv.jl")
