@@ -601,7 +601,8 @@ Related
 function _evalFactorTemporary!( fct::AbstractFactor,
                                 sfidx::Int,  # solve for index, assuming variable order for fct
                                 meas_single::Tuple,
-                                TypeParams_args...;
+                                varTypes::Tuple,
+                                pts::Tuple;
                                 tfg::AbstractDFG=initfg(),
                                 solveKey::Symbol=:default,
                                 newFactor::Bool=true,
@@ -610,7 +611,7 @@ function _evalFactorTemporary!( fct::AbstractFactor,
   #
 
   # build up a temporary graph in dfg
-  _, _dfgfct = IIF._buildGraphByFactorAndTypes!(fct, TypeParams_args...; dfg=tfg, solveKey=solveKey, newFactor=newFactor, buildgraphkw...)
+  _, _dfgfct = IIF._buildGraphByFactorAndTypes!(fct, varTypes, pts; dfg=tfg, solveKey=solveKey, newFactor=newFactor, buildgraphkw...)
   
   # get label convention for which variable to solve for 
   solvefor = getVariableOrder(_dfgfct)[sfidx]
@@ -623,7 +624,6 @@ function _evalFactorTemporary!( fct::AbstractFactor,
 
   return sfPts
 end
-
 
 
 function approxConvBelief(dfg::AbstractDFG,

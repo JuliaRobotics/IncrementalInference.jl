@@ -112,12 +112,13 @@ Related
 """
 function calcFactorResidualTemporary( fct::AbstractRelative, 
                                       measurement::Tuple,
-                                      T_param_args...;
+                                      varTypes::Tuple,
+                                      pts::Tuple;
                                       tfg::AbstractDFG = initfg() )
   #
 
   # build a new temporary graph
-  _, _dfgfct = _buildGraphByFactorAndTypes!(fct, T_param_args..., dfg=tfg)
+  _, _dfgfct = _buildGraphByFactorAndTypes!(fct, varTypes, pts, dfg=tfg)
   
   # get a fresh measurement if needed
   measurement = if length(measurement) != 0
@@ -130,9 +131,8 @@ function calcFactorResidualTemporary( fct::AbstractRelative,
   end
 
   # assume a single sample point is being run
-  return calcFactorResidual(_dfgfct, measurement..., ((x->x[2]).(T_param_args))...)
+  return calcFactorResidual(_dfgfct, measurement..., pts...)
 end
-
 
 
 
