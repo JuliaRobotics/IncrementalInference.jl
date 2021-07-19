@@ -3,48 +3,50 @@
 
 using IncrementalInference
 using TensorCast
+using Manifolds
+using Test
 
 
 ##
 
 
 # T_pt_args[:] = [(T1::Type{<:InferenceVariable}, point1); ...]
+# FORCED TO START AT EITHER :x1
 function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:AbstractRelativeRoots}, 
                                     measurement::Tuple,
-                                    T_pt_args...;
-                                    h::Real=1e-8  ) # numerical diff perturbation size
+                                    varTypes::Tuple,
+                                    pts::Tuple;
+                                    tfg::AbstractDFG = initfg(),
+                                    # gradients relative to coords requires 
+                                    slack_resid = calcFactorResidualTemporary(fct, measurement, varTypes, pts, tfg=tfg),
+                                    # numerical diff perturbation size
+                                    h::Real=1e-4  ) 
   #
   # get manifolds for all variables
-  M = (x->getManifold(x[1])).(T_pt_args)
+  M = getManifold.(varTypes)
   # use the temporary factor graph throughout
-  # FORCED TO START AT EITHER :x0 or :x1
-  tfg = initfg()
 
-  # gradients relative to coords requires 
-  slack_resid = calcFactorResidualTemporary(fct, measurement, T_pt_args..., tfg=tfg)
-  # coord_s = IIF._evalFactorTemporary!(fct, sfidx, measurement, T_pt_args..., tfg=tfg, newFactor=false, _slack=slack_resid )
-
-  # perturb the coords of one variable on the factor, and return a new vector of TypePoint tuples
-  # TODO, replace with retract operations instead
-  coord_ =        (s) -> AMP.makeCoordsFromPoint(M[s], T_pt_args[s][2])
+  # TODO, replace with retract operations instead -- i.e. closer to Manifolds.jl tangent representations
+  coord_ =        (s) -> AMP.makeCoordsFromPoint(M[s], pts[s])                         # vee(M,..., log(M,...) ) 
+  # perturb the coords of one variable on the factor
   coord_h =       (s,i, crd=coord_(s)) -> (crd[i] += h; crd)
   # reassemble TypePoint vector with perturbation at (s,i)
-  T_pth_s_i =     (s,i) -> (T_pt_args[s][1], AMP.makePointFromCoords(M[s], coord_h(s,i), T_pt_args[s][2]) )
-  arr_T_pth_s_i = (s,i) -> ((T_pt_args[1:(s-1)])..., T_pth_s_i(s,i), (T_pt_args[(s+1):end])...)
-  # build a residual calculation specifically considering graph factor selections `s`, e.g. for binary `s ∈ {1,2}``.
-  f_dsi_h =       (d,s,i) -> IIF._evalFactorTemporary!(fct, d, measurement, arr_T_pth_s_i(s,i)..., tfg=tfg, newFactor=false, currNumber=0, _slack=slack_resid )
+  T_pth_s_i =     (s,i) -> AMP.makePointFromCoords(M[s], coord_h(s,i), pts[s])         # exp(M,..., hat(M,...) )
+  tup_pt_s_i_h =  (s,i) -> tuple(pts[1:(s-1)]..., T_pth_s_i(s,i), pts[(s+1):end]...)
+  # build a residual calculation specifically considering graph factor selections `s`, e.g. for binary `s ∈ {1,2}`.
+  f_dsi_h =       (d,s,i) -> IIF._evalFactorTemporary!(fct, d, measurement, varTypes, tup_pt_s_i_h(s,i); tfg=tfg, newFactor=false, currNumber=0, _slack=slack_resid )
   # standard calculus derivative definition (in coordinate space)
-  Δf_dsi =        (d,s,i, crd=coord_(d)) -> (@info "HERE" string(crd) string(f_dsi_h(d,s,i)) ; (f_dsi_h(d,s,i) - crd)./h)
+  Δf_dsi =        (d,s,i, crd=coord_(d)) -> (f_dsi_h(d,s,i)[1] - crd)./h
   # jacobian block per s, for each i
-  ▽f_ds =         (d,s, crd=coord_(d)) -> (@show crd; ((i)->Δf_dsi(d,s,i,crd)).(1:length(crd)))
+  ▽f_ds =         (d,s, crd=coord_(d)) -> ((i)->Δf_dsi(d,s,i,crd)).(1:length(crd))
   # jacobian stored in user provided matrix
   ▽f_ds_J! =      (J::AbstractMatrix{<:Real}, d, s) -> (J_ = ▽f_ds(d,s); (@cast J[_d,_s] = J_[_s][_d]))
 
   # TODO generalize beyond binary
-  λ_fncs = () # Vector{Vector{Function}}()    # by factor's variable order
+  λ_fncs = ()                                  # by factor's variable order
   
   # number of blocks
-  nblks = length(T_pt_args)
+  nblks = length(varTypes)
   # length of all coordinate dimensions together
   λ_sizes = length.(coord_.(1:nblks))          # by factor's variable order
   len = sum(λ_sizes)
@@ -55,11 +57,11 @@ function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:Abst
   Σd = 0 
   # each variable T, go down to coords, add eps to a coord, back to point and look at the change in residual (assumed in coords for AbstractRelative[Minimize/Roots])
   # TODO change `a_` to `s_` as variable selection by factor order
-  for (d_, Tpt_d) in enumerate(T_pt_args)
+  for (d_, T_d) in enumerate(varTypes)
     λ_row = ()
     len_d =λ_sizes[d_]
     Σs = 0
-    for (s_, Tpt_s) in enumerate(T_pt_args)
+    for (s_, T_s) in enumerate(varTypes)
       len_s = λ_sizes[s_]
       # create a view into the full jacobian matrix at (d,s)
       _J_ds = view(J_f, (1+Σd):(Σd+len_d), (1+Σs):(Σs+len_s))
@@ -72,8 +74,155 @@ function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:Abst
   end
   
   # full gradients jacobian matrix, nested-tuple of lambdas to update, and sizes of blocks
-  return J_f, λ_fncs, λ_sizes
+  return J_f, λ_fncs, λ_sizes, slack_resid
 end
+
+
+
+##
+
+pp = LinearRelative(MvNormal([10;0],[1 0; 0 1]))
+measurement = ([10.0;0.0],)
+varTypes = (ContinuousEuclid{2}, ContinuousEuclid{2})
+pts = ([0;0.0], [9.5;0])
+
+##
+
+J__, λ_fncs, λ_sizes = _prepFactorGradientLambdas(pp, measurement, varTypes, pts; h=1e-4);
+
+##
+
+λ_fncs[1][1]()
+λ_fncs[1][2]()
+λ_fncs[2][1]()
+λ_fncs[2][2]()
+
+
+##
+
+J__
+
+
+##
+
+mutable struct FactorGradientsCached!{F <: AbstractRelative,S,M<:Tuple,P,G,L}
+  dfgfct::DFGFactor{<:CommonConvWrapper{F}}
+  # cached jacobian matrix of gradients
+  cached_gradients::Matrix{Float64}
+  # likely <:AbstractVector, while CalcFactor residuals are vectors in Rn but could change to Tangent vectors
+  slack_residual::S
+  measurement::M
+  currentPoints::P
+  # factor evaluations are performed in-situ to a AbstractDFG object
+  _tfg::G
+  # nested-tuple of gradient lambda functions
+  _λ_fncs::L
+  _coord_sizes::Vector{Int}
+end
+
+##
+
+function FactorGradientsCached!(fct::Union{<:AbstractRelativeMinimize, <:AbstractRelativeRoots},
+                                meas_single::Tuple, 
+                                varTypes::Tuple,
+                                pts::Tuple; 
+                                h::Real=1e-4  )
+  #
+  # working memory location for computations
+  tfg = initfg()
+  
+  # permanent location for points and later reference
+  # generate the necessary lambdas
+  J__, λ_fncs, λ_sizes, slack_resid = _prepFactorGradientLambdas(fct, meas_single, varTypes, pts; tfg=tfg, h=1e-4);
+
+  # get the one factor in tfg
+  fctsyms = lsf(tfg)
+  @assert length(fctsyms) == 1 "Expecting only a single factor"
+
+  @show getFactor(tfg, fctsyms[1])
+
+  # generate an object containing all the machinery necessary more rapid factor gradients, see DevNotes for future improvements
+  FactorGradientsCached!( getFactor(tfg, fctsyms[1]),
+                          J__,
+                          slack_resid,
+                          meas_single,
+                          pts,
+                          tfg,
+                          λ_fncs,
+                          λ_sizes )
+end
+
+_setPointsMani!(dest::AbstractArray, src::AbstractArray) = (dest .= src)
+
+function _setPointsMani!(dest::ProductRepr, src::ProductRepr)
+  for (k,prt) in enumerate(dest.parts)
+    _setPointsMani!(prt, src.parts[k])
+  end
+end
+
+
+# Gradient matrix has individual blocks
+getCoordSizes(fgc::FactorGradientsCached!) = fgc._coord_sizes
+
+
+function (fgc::FactorGradientsCached!)(meas_pts...)
+  # separate the measurements (forst) from the variable points (rest)
+  lenm = length(fgc.measurement)
+  @assert (length(fgc.currentPoints)+lenm) == length(meas_pts) "Unexpected number of arguments, got $(length(meas_pts)) but expected $(length(fgc.currentPoints)+lenm) instead.  Retry call with args (meas..., pts...)"
+
+  # update in-place the new measurement value in preparation for new gradient calculation
+  for (m, tup_m) in enumerate(fgc.measurement)
+    _setPointsMani!(tup_m, meas_pts[m])
+  end
+
+  # update the residual _slack in preparation for new gradient calculation
+  fct = getFactorType(fgc.dfgfct)
+  new_slack = calcFactorResidualTemporary(fct, measurement, varTypes, pts, tfg=fgc._tfg)
+  # TODO make sure slack_residual is properly wired up with all the lambda functions as expected
+  _setPointsMani!(fgc.slack_residual, new_slack)
+
+  # set new points in preparation for new gradient calculation
+  for (s,pt) in enumerate(meas_pts[(lenm+1):end])
+    # update the local memory in fgc to take the values of incoming `pts`
+    _setPointsMani!(fgc.currentPoints[s], pt)
+  end
+
+  # update the gradients at new values contained in fgc
+  st = 0
+  for (s,λ_tup) in enumerate(fgc._λ_fncs), (k,λ) in enumerate(λ_tup)
+    # updating of the cached gradients assume that diagonal is zero for eigen value=1 -- i.e. (dA/dA - I)=0
+    if s == k
+      # coord length/size of this particular block
+      szi = fgc._coord_sizes[s]
+      _blk = view( fgc.cached_gradients, (st+1):(st+szi), (st+1):(st+szi) )
+      fill!(_blk, 0.0)
+      # move on to next diagonal block
+      st += szi
+      continue
+    end
+    # recalculate the off diagonals
+    λ()
+  end
+  
+  # return newly calculated gradients
+  return fgc.cached_gradients
+end
+
+
+##
+
+
+gradFct = FactorGradientsCached!(pp, measurement, varTypes, pts);
+
+
+##
+
+J = gradFct(measurement..., pts...)
+
+
+##
+
+@test norm( J - [0 0 1 0; 0 0 0 1; 1 0 0 0; 0 1 0 0] ) < 1e-4
 
 
 ##
@@ -115,31 +264,6 @@ end
 #   # return the nested-tuple-lambdas and gradients matrix location
 #   return nestedtuple, J_f, totuple
 # end
-
-
-
-##
-
-pp = LinearRelative(MvNormal([10;0],[1 0; 0 1]))
-measurement = ([10.0;0.0],)
-T_pt_vec = [(ContinuousEuclid{2},[0;0.0]); (ContinuousEuclid{2},[9.5;0])]
-
-##
-
-J__, λ_fncs, λ_sizes = _prepFactorGradientLambdas(pp, measurement, T_pt_vec...);
-
-##
-
-# nt, J_f, tt = _makeTupleGradientLambdas(λ_fncs, λ_sizes);
-
-##
-
-
-
-##
-
-
-
 
 
 #
