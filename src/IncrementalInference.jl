@@ -479,6 +479,11 @@ include("CanonicalGraphExamples.jl")
 
 include("AdditionalUtils.jl")
 include("SolverAPI.jl")
+
+# gradient tools
+include("entities/FactorGradients.jl")
+include("services/FactorGradients.jl")
+
 # Symbolic tree analysis files.
 include("AnalysisTools.jl")
 
