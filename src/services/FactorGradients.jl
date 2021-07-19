@@ -88,8 +88,6 @@ function FactorGradientsCached!(fct::Union{<:AbstractRelativeMinimize, <:Abstrac
   fctsyms = lsf(tfg)
   @assert length(fctsyms) == 1 "Expecting only a single factor"
 
-  @show getFactor(tfg, fctsyms[1])
-
   # generate an object containing all the machinery necessary more rapid factor gradients, see DevNotes for future improvements
   FactorGradientsCached!( getFactor(tfg, fctsyms[1]),
                           J__,
@@ -127,9 +125,9 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
   # update the residual _slack in preparation for new gradient calculation
   fct = getFactorType(fgc.dfgfct)
   measurement = tuple(meas_pts[1:lenm]...)
-  pts = meas_pts[(1+lenm):end]
-  varTypes = getVariableType.(getVariable.(fgc._tfg, getVariableOrder(fgc.dfgfct)))
-  new_slack = calcFactorResidualTemporary(fct, measurement, varTypes, pts, tfg=fgc._tfg)
+  pts = tuple(meas_pts[(1+lenm):end]...)
+  varTypes = tuple(getVariableType.(getVariable.(fgc._tfg, getVariableOrder(fgc.dfgfct)))...)
+  new_slack = calcFactorResidualTemporary(fct, measurement, varTypes, pts; tfg=fgc._tfg)
   # TODO make sure slack_residual is properly wired up with all the lambda functions as expected
   _setPointsMani!(fgc.slack_residual, new_slack)
 

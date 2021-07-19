@@ -20,7 +20,7 @@ Most basic continuous scalar variable in a `::DFG.AbstractDFG` object.
 DevNotes
 - TODO Consolidate with ContinuousEuclid{1}
 """
-@defVariable ContinuousScalar Euclidean(1) [0.0;]
+@defVariable ContinuousScalar TranslationGroup(1) [0.0;]
 
 # Base.convert(::Type{<:ManifoldsBase.AbstractManifold}, ::InstanceType{ContinuousScalar})    = Manifolds.Euclidean(1)
 
@@ -35,17 +35,18 @@ Continuous Euclidean variable of dimension `N`.
 struct ContinuousEuclid{N} <: InferenceVariable end
 
 ContinuousEuclid(x::Int) = ContinuousEuclid{x}()
-DFG.getPointType(::Type{ContinuousEuclid{N}}) where N = Vector{Float64}
-DFG.getPointIdentity(::Type{ContinuousEuclid{N}}) where N = zeros(N)
 
 # not sure if these overloads are necessary since DFG 775?
-DFG.getManifold(::Type{<:ContinuousEuclid{N}}) where N = Euclidean(N)
-DFG.getDimension(val::Type{<:ContinuousEuclid{N}}) where N = manifold_dimension(getManifold(val))
-DFG.getManifold(::ContinuousEuclid{N}) where N = Euclidean(N)                               
-DFG.getDimension(val::ContinuousEuclid{N}) where N = manifold_dimension(getManifold(val))
+DFG.getManifold(::InstanceType{ContinuousEuclid{N}}) where N = TranslationGroup(N)
+# DFG.getManifold(::ContinuousEuclid{N}) where N = TranslationGroup(N)                               
+DFG.getDimension(val::InstanceType{ContinuousEuclid{N}}) where N = manifold_dimension(getManifold(val))
+# DFG.getDimension(val::ContinuousEuclid{N}) where N = manifold_dimension(getManifold(val))
+
+DFG.getPointType(::Type{ContinuousEuclid{N}}) where N = Vector{Float64}
+DFG.getPointIdentity(M_::Type{ContinuousEuclid{N}}) where N = identity(getManifold(M_), zeros(N)) 
 
 
-Base.convert(::Type{<:ManifoldsBase.AbstractManifold}, ::InstanceType{ContinuousEuclid{N}}) where N = Manifolds.Euclidean(N)
+Base.convert(::Type{<:ManifoldsBase.AbstractManifold}, ::InstanceType{ContinuousEuclid{N}}) where N = TranslationGroup(N)
 
 
 ## Circular
