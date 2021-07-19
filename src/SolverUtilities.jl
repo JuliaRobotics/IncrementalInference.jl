@@ -140,13 +140,13 @@ function _buildGraphByFactorAndTypes!(fct::AbstractFactor,
   vars = [Symbol(destPrefix, s_) for s_ in (currNumber .+ (1:len))]
   for (s_, T_pt_s) in enumerate(TypeParams_vec)
     # add the necessary variables
-    exists(dfg, vars[s_]) ? nothing : addVariable!(dfg, vars[s_], T_pt_s[1])
+    exists(dfg, vars[s_]) ? nothing : addVariable!(dfg, vars[s_],  T_pt_s[1])
     # set the numerical values if available
-    T_pt_s[2] isa Nothing ? nothing : initManual!(dfg, vars[s_], [T_pt_s[2],], solveKey, bw=ones(getDimension(T_pt_s[1])))
+    T_pt_s[2] isa Nothing ? nothing : initManual!(dfg,  vars[s_], [T_pt_s[2],], solveKey, bw=ones(getDimension(T_pt_s[1])))
   end
   # if newFactor then add the factor on vars, else assume only one existing factor between vars
   _dfgfct = newFactor ? addFactor!(dfg, vars, fct, graphinit=graphinit) : getFactor(dfg, intersect((ls.(dfg, vars))...)[1] )
-
+  
   return dfg, _dfgfct
 end
 
