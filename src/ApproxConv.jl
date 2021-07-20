@@ -385,7 +385,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 skipSolve::Bool=false,
                                 _slack=nothing  ) where {T <: AbstractFactor}
   #
-
+  # @info "EVALSPEC" string(measurement) inflateCycles
   # Prep computation variables
   # NOTE #1025, should FMD be built here...
   sfidx, maxlen, mani = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N, needFreshMeasurements=needFreshMeasurements, solveKey=solveKey)
@@ -410,6 +410,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # perform the numeric solutions on the indicated elements
   # error("ccwl.xDim=$(ccwl.xDim)")
   # FIXME consider repeat solve as workaround for inflation off-zero 
+  # @info "EVALSPEC END" ccwl.varidx string(ccwl.params) string(allelements)
   computeAcrossHypothesis!( ccwl, allelements, activehypo, certainidx, 
                             sfidx, maxlen, mani, spreadNH=spreadNH, 
                             inflateCycles=inflateCycles, skipSolve=skipSolve,
@@ -599,8 +600,9 @@ Related
 """
 function _evalFactorTemporary!( fct::AbstractFactor,
                                 sfidx::Int,  # solve for index, assuming variable order for fct
-                                measurement::Tuple,
-                                TypeParams_args...;
+                                meas_single::Tuple,
+                                varTypes::Tuple,
+                                pts::Tuple;
                                 tfg::AbstractDFG=initfg(),
                                 solveKey::Symbol=:default,
                                 newFactor::Bool=true,
@@ -609,17 +611,19 @@ function _evalFactorTemporary!( fct::AbstractFactor,
   #
 
   # build up a temporary graph in dfg
-  _, _dfgfct = IIF._buildGraphByFactorAndTypes!(fct, TypeParams_args...; dfg=tfg, solveKey=solveKey, newFactor=newFactor, buildgraphkw...)
+  _, _dfgfct = IIF._buildGraphByFactorAndTypes!(fct, varTypes, pts; dfg=tfg, solveKey=solveKey, newFactor=newFactor, buildgraphkw...)
   
   # get label convention for which variable to solve for 
   solvefor = getVariableOrder(_dfgfct)[sfidx]
 
   # do the factor evaluation
+  measurement = ([meas_single[1],],)
   sfPts = evalFactor(tfg, _dfgfct, solvefor, measurement, needFreshMeasurements=false, solveKey=solveKey, inflateCycles=1, _slack=_slack )
 
-  return sfPts 
-end
+  # @info "EVALTEMP" length(sfPts) string(sfPts) meas_single measurement solvefor
 
+  return sfPts
+end
 
 
 function approxConvBelief(dfg::AbstractDFG,

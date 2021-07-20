@@ -123,7 +123,8 @@ Notes
 - Will always add a factor, but will skip adding variable labels that already exist in `dfg`.
 """
 function _buildGraphByFactorAndTypes!(fct::AbstractFactor, 
-                                      TypeParams_vec...;
+                                      varTypes::Tuple,
+                                      pts::Tuple=();
                                       dfg::AbstractDFG = initfg(),
                                       solveKey::Symbol=:default,
                                       newFactor::Bool=true,
@@ -136,17 +137,17 @@ function _buildGraphByFactorAndTypes!(fct::AbstractFactor,
   #
   
   # TODO generalize beyond binary
-  len = length(TypeParams_vec)
+  len = length(varTypes)
   vars = [Symbol(destPrefix, s_) for s_ in (currNumber .+ (1:len))]
-  for (s_, T_pt_s) in enumerate(TypeParams_vec)
+  for (s_, vTyp) in enumerate(varTypes)
     # add the necessary variables
-    exists(dfg, vars[s_]) ? nothing : addVariable!(dfg, vars[s_], T_pt_s[1])
+    exists(dfg, vars[s_]) ? nothing : addVariable!(dfg, vars[s_],  vTyp)
     # set the numerical values if available
-    T_pt_s[2] isa Nothing ? nothing : initManual!(dfg, vars[s_], [T_pt_s[2],], solveKey, bw=ones(getDimension(T_pt_s[1])))
+    ((0 < length(pts)) && (pts[s_] isa Nothing)) ? nothing : initManual!(dfg,  vars[s_], [pts[s_],], solveKey, bw=ones(getDimension(vTyp)))
   end
   # if newFactor then add the factor on vars, else assume only one existing factor between vars
   _dfgfct = newFactor ? addFactor!(dfg, vars, fct, graphinit=graphinit) : getFactor(dfg, intersect((ls.(dfg, vars))...)[1] )
-
+  
   return dfg, _dfgfct
 end
 

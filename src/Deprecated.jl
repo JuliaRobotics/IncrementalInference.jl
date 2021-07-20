@@ -25,6 +25,12 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+# @deprecate calcFactorResidualTemporary( fct::AbstractRelative, measurement::Tuple, T_param_args...; kw...) calcFactorResidualTemporary(fct, measurement, tuple(((x->x[1]).(T_param_args))...), tuple(((x->x[2]).(T_param_args))...); kw...)
+
+# @deprecate _buildGraphByFactorAndTypes!(fct::AbstractFactor, TypeParams_vec...; kw...) _buildGraphByFactorAndTypes!(fct, (x->x[1]).(TypeParams_vec), (x->x[2]).(TypeParams_vec) ; kw...)
+
+# @deprecate _evalFactorTemporary!( fct::AbstractFactor, sfidx::Int, meas_single::Tuple, TypeParams_args...; kw...) _evalFactorTemporary!( fct,sfidx,meas_single, (x->x[1]).(TypeParams_args), (x->x[2]).(TypeParams_args); kw...)
+
 # MOVED TO AMP v0.4.6
 # # NOTE SWITCHED TO ON-MANIFOLD VERSION, but this used to give deviation
 # calcVariableCovarianceBasic(M::AbstractManifold, ptsArr::Vector{Vector{Float64}})
