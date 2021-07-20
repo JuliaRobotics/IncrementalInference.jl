@@ -23,9 +23,9 @@ ccw = IIF._getCCW(fg, :x0x1f1)
 
 @test IIF._getZDim(ccw) == 3
 
-res = calcFactorResidualTemporary(lr3, ([0;0;0.5],), 
-                                  (ContinuousEuclid{3},zeros(3)), 
-                                  (ContinuousEuclid{3},[0;0;1.0]) )
+res = calcFactorResidualTemporary(lr3, ([0;0;0.5],),
+                                  (ContinuousEuclid{3},ContinuousEuclid{3}),
+                                  (zeros(3), [0;0;1.0]) )
 #
 
 @test (sum(abs.(res)) - 0.5) < 1e-10

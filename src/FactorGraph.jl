@@ -998,7 +998,8 @@ function initManual!( dfg::AbstractDFG,
                       bw=nothing ) where {P}
   #
   var = getVariable(dfg, sym)
-  pp = manikde!(getManifold(var), pts, bw=bw)
+  M = getManifold(var)
+  pp = manikde!(M, pts, bw=bw)
   initManual!(var,pp, solveKey)
 end
 
