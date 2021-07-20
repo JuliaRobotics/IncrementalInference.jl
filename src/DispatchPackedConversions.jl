@@ -1,14 +1,4 @@
 
-struct PackedManifoldKernelDensity <: PackedSamplableBelief
-  json::String
-end
-
-Base.convert(::Type{<:SamplableBelief}, ::Type{<:PackedManifoldKernelDensity}) = ManifoldKernelDensity
-Base.convert(::Type{<:PackedSamplableBelief}, ::Type{<:ManifoldKernelDensity}) = PackedManifoldKernelDensity
-Base.convert(::Type{<:PackedSamplableBelief}, mkd::ManifoldKernelDensity) = convert(String, mkd)
-Base.convert(::Type{<:SamplableBelief}, mkd::PackedManifoldKernelDensity) = convert(ManifoldKernelDensity, mkd.json)
-
-
 
 function packmultihypo(fnc::CommonConvWrapper{T}) where {T<:AbstractFactor}
   @warn "packmultihypo is deprecated in favor of Vector only operations"

@@ -427,6 +427,7 @@ include("CliqueTypes.jl")
 include("JunctionTreeTypes.jl")
 include("FactorGraph.jl")
 include("SerializingDistributions.jl")
+include("SerializationMKD.jl")
 include("DispatchPackedConversions.jl")
 
 include("Variables/DefaultVariables.jl")

@@ -93,6 +93,26 @@ unpckd = unpackVariableNodeData(dfg, pd)
 end
 
 
+@testset "test serialization of ManifoldKernelDensity" begin
+##
+
+# create a basic manifoldkerneldensity
+mkd = manikde!(TranslationGroup(2), [randn(2) for _ in 1:100])
+
+# convert up and down
+st = convert(PackedSamplableBelief, mkd)
+upk = convert(SamplableBelief, st)
+
+# and check the basics
+@test isapprox( getPoints(mkd)[1], getPoints(upk)[1])
+@test isapprox( getPoints(mkd)[end], getPoints(upk)[end])
+
+@test mkd.manifold == upk.manifold
+@test mkd._partial == upk._partial
+@test mkd.infoPerCoord == upk.infoPerCoord
+
+##
+end
 
 
 
