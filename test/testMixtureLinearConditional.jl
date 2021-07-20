@@ -93,6 +93,8 @@ fg_ = initfg();
 addVariable!(fg_, :x0, ContinuousScalar)
 addVariable!(fg_, :x1, ContinuousScalar)
 
+##
+
 f0_ = DFG.unpackFactor(fg_, pf0)
 f1_ = DFG.unpackFactor(fg_, pf1)
 
@@ -104,8 +106,12 @@ f1_ = DFG.unpackFactor(fg_, pf1)
 
 @test IIF._getCCW(f1).usrfnc!.components.naive == IIF._getCCW(f1).usrfnc!.components.naive
 
-A = ManifoldBelief(Euclid, IIF._getCCW(f1).usrfnc!.components.fancy )
-B = ManifoldBelief(Euclid, IIF._getCCW(f1_).usrfnc!.components.fancy )
+# already ManifoldKernelDensity
+A = IIF._getCCW(f1).usrfnc!.components.fancy
+B = IIF._getCCW(f1_).usrfnc!.components.fancy
+
+# A = ManifoldBelief(Euclid, IIF._getCCW(f1).usrfnc!.components.fancy )
+# B = ManifoldBelief(Euclid, IIF._getCCW(f1_).usrfnc!.components.fancy )
 
 @test mmd(A,B) < 1e-6
 
