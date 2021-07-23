@@ -15,11 +15,28 @@ mutable struct DevelopPartial{P <: Tuple} <: AbstractPrior
 end
 getSample(cf::CalcFactor{<:DevelopPartial}, N::Int=1) = ([rand(cf.factor.x, 1)[:] for _ in 1:N], )
 
-
+##
 mutable struct DevelopDim2 <: AbstractPrior
   x::Distribution
 end
 getSample(cf::CalcFactor{<:DevelopDim2}, N::Int=1) = ([rand(cf.factor.x, 1)[:] for _ in 1:N], )
+
+
+mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
+  x::Distribution
+  partial::Tuple
+  DevelopPartialPairwise(x::Distribution) = new(x, (2,))
+end
+getSample(cf::CalcFactor{<:DevelopPartialPairwise}, N::Int=1) = ([rand(cf.factor.x, 1)[:] for _ in 1:N], )
+
+function (dp::CalcFactor{<:DevelopPartialPairwise})(meas,
+                                                    x1,
+                                                    x2  )
+  #
+  # v0.21+
+  @info "DEVPART" "$meas" "$x1" "$x2"
+  return meas[1] - (x2[2]-x1[2])
+end
 
 
 ##
@@ -31,7 +48,7 @@ fg = initfg()
 
 v1 = addVariable!(fg,:x1,ContinuousEuclid{2}(),N=N)
 
-pr = DevelopDim2(MvNormal([0.0;0.0], diagm([0.01;0.01]))) # *Matrix{Float64}(LinearAlgebra.I,2,2)))
+pr = DevelopDim2(MvNormal([0.0;0.0], diagm([0.01;0.01])))
 f1  = addFactor!(fg,[:x1],pr)
 
 dp = DevelopPartial(Normal(2.0, 1.0),(1,))
@@ -62,7 +79,7 @@ memcheck_ = getVal(v1)
 
 X1pts_ = getVal(v1)
 @cast X1pts[i,j] := X1pts_[j][i]
-pts_ = approxConv(fg, f2.label, :x1, N=N)
+pts_ = approxConv(fg, getLabel(f2), :x1, N=N)
 @cast pts[i,j] := pts_[j][i]
 
 @test size(pts, 1) == 2
@@ -93,28 +110,9 @@ end
 # plotKDE(getBelief(fg, :x1),levels=3)
 
 
-##
-
-# @enter predictbelief(fg, :x1, :)
 
 
 ##
-
-mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
-  x::Distribution
-  partial::Tuple
-  DevelopPartialPairwise(x::Distribution) = new(x, (2,))
-end
-getSample(cf::CalcFactor{<:DevelopPartialPairwise}, N::Int=1) = ([rand(cf.factor.x, 1)[:] for _ in 1:N], )
-
-function (dp::CalcFactor{<:DevelopPartialPairwise})(meas,
-                                                    x1,
-                                                    x2  )
-  #
-  # v0.21+
-  return meas[1] - (x2[2]-x1[2])
-end
-
 
 
 v2 = addVariable!(fg,:x2,ContinuousEuclid{2},N=N)
