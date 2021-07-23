@@ -12,13 +12,8 @@ struct Prior{T <: SamplableBelief} <: AbstractPrior
 end
 Prior(::UniformScaling) = Prior(Normal())
 
-function getSample(cf::CalcFactor{<:Prior}, N::Int=1)
-  meas = Vector{Vector{Float64}}(undef, N)
-  for i in 1:N
-    meas[i] = rand(cf.factor.Z,1)[:]
-  end
-  (meas,)
-end
+getSample(cf::CalcFactor{<:Prior}, N::Int=1) = (randToPoints(cf.factor.Z,N),)
+
 
 # basic default
 (s::CalcFactor{<:Prior})(z, x1) = z .- x1

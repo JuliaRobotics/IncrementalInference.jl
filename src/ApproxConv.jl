@@ -487,6 +487,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
       # @show typeof(ccwl.measurement[1])
       for m in (1:length(addEntr))[ahmask]
         # FIXME, selection for all measurement::Tuple elements
+        # @info "check broadcast" ccwl.usrfnc! addEntr[m] ccwl.measurement[1][m]
         _setPointsMani!(addEntr[m], ccwl.measurement[1][m])
       end
       # ongoing part of RoME.jl #244
