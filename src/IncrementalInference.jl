@@ -53,7 +53,7 @@ include("ccolamd.jl")
 using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
 using .Ccolamd
 
-
+# likely overloads or not exported by the upstream packages
 import Base: convert, ==
 import Distributions: sample
 import Random: rand, rand!
@@ -62,6 +62,7 @@ import KernelDensityEstimate: getPoints
 import ApproxManifoldProducts: kde!, manikde!
 import ApproxManifoldProducts: getBW
 import ApproxManifoldProducts: mmd
+import ApproxManifoldProducts: isPartial
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!

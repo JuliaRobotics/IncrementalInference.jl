@@ -9,7 +9,13 @@ function fastnorm(u)
   @fastmath @inbounds return sqrt(s)
 end
 
+_setPointsMani!(dest::AbstractArray, src::AbstractArray) = (dest .= src)
 
+function _setPointsMani!(dest::ProductRepr, src::ProductRepr)
+  for (k,prt) in enumerate(dest.parts)
+    _setPointsMani!(prt, src.parts[k])
+  end
+end
 
 
 """
