@@ -22,11 +22,7 @@ CircularCircular(::UniformScaling) = CircularCircular(Normal())
 
 
 function getSample(cf::CalcFactor{<:CircularCircular}, N::Int=1)
-  ret = Vector{Vector{Float64}}(undef, N)
-  for i in 1:N
-    ret[i] = rand(cf.factor.Z,1)[:]
-  end
-  (ret, )
+  (randToPoints(cf.factor.Z, N), )
 end
 
 function (cf::CalcFactor{<:CircularCircular})(meas,
@@ -65,11 +61,7 @@ PriorCircular(::UniformScaling) = PriorCircular(Normal())
 
 
 function getSample(cf::CalcFactor{<:PriorCircular}, N::Int=1)
-  ret = Vector{Vector{Float64}}(undef, N)
-  for i in 1:N
-    ret[i] = rand(cf.factor.Z,1)[:]
-  end
-  return (ret, )
+  return (randToPoints(cf.factor.Z,N),)
 end
 
 

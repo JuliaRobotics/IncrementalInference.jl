@@ -4,7 +4,11 @@ using Manifolds
 using StaticArrays
 using Test
 
+##
+
 @testset "Test SpecialEuclidean(2)" begin
+
+##
 
 Base.convert(::Type{<:Tuple}, M::SpecialEuclidean{2}) = (:Euclid, :Euclid, :Circular)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialEuclidean{2}})  = (:Euclid, :Euclid, :Circular)
@@ -67,9 +71,14 @@ v1 = addVariable!(fg, :x2, SpecialEuclidean2)
 mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([1,2,pi/4], [0.01,0.01,0.01]))
 f = addFactor!(fg, [:x1, :x2], mf)
 
-#test new error from solvetree
-@test_broken solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg)) isa Tuple
+##
 
+#test new error from solvetree
+# smtasks = Task[]
+@test solveTree!(fg; verbose=true) isa Tuple
+
+
+##
 end
 
 

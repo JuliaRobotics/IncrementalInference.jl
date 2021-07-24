@@ -9,7 +9,39 @@ function fastnorm(u)
   @fastmath @inbounds return sqrt(s)
 end
 
+"""
+    $SIGNATURES
 
+Helper function for IIF.getSample, to generate a vector of points regardless of the Manifold and probability density function used.
+
+Related
+
+[`getSample`](@ref)
+"""
+randToPoints(distr::SamplableBelief, N::Int=1) = [rand(distr,1)[:] for i in 1:N]
+randToPoints(distr::ManifoldKernelDensity, N::Int=1) = rand(distr,N)
+
+_setPointsMani!(dest::AbstractVector, src::AbstractVector) = (dest .= src)
+_setPointsMani!(dest::AbstractMatrix, src::AbstractMatrix) = (dest .= src)
+function _setPointsMani!(dest::AbstractVector, src::AbstractMatrix)
+  @assert size(src,2) == 1 "Workaround _setPointsMani! currently only allows size(::Matrix, 2) == 1"
+  _setPointsMani!(dest, src[:])
+end
+function _setPointsMani!(dest::AbstractMatrix, src::AbstractVector)
+  @assert size(dest,2) == 1 "Workaround _setPointsMani! currently only allows size(::Matrix, 2) == 1"
+  _setPointsMani!(view(dest,:,1), src)
+end
+
+function _setPointsMani!(dest::AbstractVector, src::AbstractVector{<:AbstractVector})
+  @assert length(src) == 1 "Workaround _setPointsMani! currently only allows Vector{Vector{P}}(...) |> length == 1"
+  _setPointsMani!(dest, src[1])
+end
+
+function _setPointsMani!(dest::ProductRepr, src::ProductRepr)
+  for (k,prt) in enumerate(dest.parts)
+    _setPointsMani!(prt, src.parts[k])
+  end
+end
 
 
 """

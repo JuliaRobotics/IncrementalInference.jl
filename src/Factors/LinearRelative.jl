@@ -33,14 +33,11 @@ getManifold(::InstanceType{LinearRelative{N}}) where N = getManifold(ContinuousE
 # TODO standardize
 getDimension(::InstanceType{LinearRelative{N}}) where {N} = N
 
+
 function getSample(cf::CalcFactor{<:LinearRelative}, N::Int=1)
-  measArr = Vector{Vector{Float64}}(undef, N)
-  _samplemakevec(z::Real) = [z;]
-  _samplemakevec(z::AbstractVector{<:Real}) = z
-  for i in 1:N
-    measArr[i] = _samplemakevec(rand(cf.factor.Z,1)[:])
-  end
-  (measArr, )
+  # _samplemakevec(z::Real) = [z;]
+  # _samplemakevec(z::AbstractVector{<:Real}) = z
+  (randToPoints(cf.factor.Z, N), )
 end
 
 

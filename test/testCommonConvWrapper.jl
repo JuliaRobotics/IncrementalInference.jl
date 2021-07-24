@@ -170,7 +170,7 @@ fg = initfg()
 v1=addVariable!(fg, :x1, ContinuousScalar, N=N)
 v2=addVariable!(fg, :x2, ContinuousScalar, N=N)
 bws = getBW(d1)[:,1]
-f1 = addFactor!(fg, [v1], Prior(manikde!(p1, bws, Euclidean(1))) )
+f1 = addFactor!(fg, [v1], Prior(manikde!(p1, bws, TranslationGroup(1))) )
 
 odo = Pose1Pose1Test(Normal(100.0,1.0))
 f2 = addFactor!(fg, [v1;v2], odo)
