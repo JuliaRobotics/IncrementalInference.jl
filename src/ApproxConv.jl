@@ -486,9 +486,9 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
       # TODO for now require measurements to be coordinates too
       # @show typeof(ccwl.measurement[1])
       for m in (1:length(addEntr))[ahmask]
-        # @show m, addEntr[m], ccwl.measurement[1][m]
         # FIXME, selection for all measurement::Tuple elements
-        addEntr[m] = ccwl.measurement[1][m]
+        # @info "check broadcast" ccwl.usrfnc! addEntr[m] ccwl.measurement[1][m]
+        _setPointsMani!(addEntr[m], ccwl.measurement[1][m])
       end
       # ongoing part of RoME.jl #244
       addEntropyOnManifold!(mani, addEntrNH, 1:getDimension(mani), spreadDist)

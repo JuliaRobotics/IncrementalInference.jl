@@ -19,12 +19,17 @@ end
 # end
 
 function getSample(cf::CalcFactor{<:MsgPrior}, N::Int=1)
-  ret = Vector{Vector{Float64}}(undef, N)
-  for i in 1:N
-    ret[i] = rand(cf.factor.Z,1)[:]
-  end
+  ret = [rand(cf.factor.Z,1) for _ in 1:N]
   (ret, )
 end
+
+# MKD already returns a vector of points
+function getSample(cf::CalcFactor{<:MsgPrior{<:ManifoldKernelDensity}}, N::Int=1)
+  ret = rand(cf.factor.Z,N)
+  (ret, )
+end
+
+getManifold(mp::MsgPrior{<:ManifoldKernelDensity}) = mp.Z.manifold
 
 # this is a developmental type, will be standardized after conclusion of #1010
 # TODO resolve type instability

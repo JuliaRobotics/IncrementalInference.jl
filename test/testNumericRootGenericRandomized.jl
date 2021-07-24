@@ -11,7 +11,7 @@ mutable struct LineResidual <: AbstractRelativeRoots
   c::Float64
 end
 
-getSample(cf::CalcFactor{<:LineResidual}, N::Int=1) = (reshape(rand(Normal(),N),1,N),)
+getSample(cf::CalcFactor{<:LineResidual}, N::Int=1) = (randToPoints(Normal(),N),)
 
 # y = mx + c
 # res = y      -      m*x  -  c
