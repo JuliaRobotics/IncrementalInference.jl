@@ -15,7 +15,7 @@ mutable struct DevelopPartial{P <: Tuple} <: AbstractPrior
 end
 getSample(cf::CalcFactor{<:DevelopPartial}, N::Int=1) = ([rand(cf.factor.x, 1)[:] for _ in 1:N], )
 
-##
+#
 mutable struct DevelopDim2 <: AbstractPrior
   x::Distribution
 end
@@ -34,7 +34,7 @@ function (dp::CalcFactor{<:DevelopPartialPairwise})(meas,
                                                     x2  )
   #
   # v0.21+
-  @info "DEVPART" "$meas" "$x1" "$x2"
+  # @info "DEVPART" "$meas" "$x1" "$x2"
   return meas[1] - (x2[2]-x1[2])
 end
 
@@ -93,6 +93,17 @@ pts_ = approxConv(fg, getLabel(f2), :x1, N=N)
 end
 
 ##
+
+@testset "check that partials are received through convolutions" begin
+##
+
+# check that a partial belief is obtained
+X1_ = approxConvBelief(fg, :x1f2, :x1)
+
+@test_broken isPartial(X1_)
+
+##
+end
 
 @testset "test solving of factor graph" begin
 
@@ -259,11 +270,21 @@ pts_ = getVal(fg, :x1)
 @test norm(Statistics.mean(pts,dims=2)[2] .- [0.0]) < 0.5
 
 pts_ = getVal(fg, :x2)
+
+ppe = getPPE(fg, :x2).mean
+
+X2 = getBelief(fg, :x2)
+
+# check mean is close
+@test isapprox(mean(X2), [-20;10], atol=3)
+
+# check covariance is close too
+@test 0 < AMP.calcCovarianceBasic(getManifold(X2), getPoints(X2))
+
 @cast pts[i,j] := pts_[j][i]
-@test norm(Statistics.mean(pts,dims=2)[1] .- [-20.0]) < 3.0
-@test norm(Statistics.mean(pts,dims=2)[2] .- [10.0]) < 3.0
 @test (Statistics.std(pts,dims=2)[1]-1.0) < 3.0
 @test (Statistics.std(pts,dims=2)[2]-1.0) < 3.0
+
 
 ##
 
