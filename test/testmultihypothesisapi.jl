@@ -47,7 +47,7 @@ f1 = addFactor!(fg,[:x1],pr)
 
 initAll!(fg)
 
-pts_ = evalFactor(fg, f1, v1.label, N=N)
+pts_, _ = evalFactor(fg, f1, v1.label, N=N)
 @cast pts[i,j] := pts_[j][i]
 
 @test sum(abs.(pts .- 1.0) .< 5) < 30

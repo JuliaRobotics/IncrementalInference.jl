@@ -416,7 +416,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                             inflateCycles=inflateCycles, skipSolve=skipSolve,
                             _slack=_slack )
   #
-  return ccwl.params[ccwl.varidx]
+  return ccwl.params[ccwl.varidx], nothing
 end
 
 
@@ -507,7 +507,13 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
     # ongoing part of RoME.jl #244
     addEntropyOnManifold!(mani, addEntrNHp, 1:getDimension(mani), spreadDist, pvec)
   end
-  return addEntr
+
+  # check partial is easy as this is a prior
+  # if isPartial()
+
+  # end
+
+  return addEntr, nothing
 end
 
 
@@ -618,7 +624,7 @@ function _evalFactorTemporary!( fct::AbstractFactor,
 
   # do the factor evaluation
   measurement = ([meas_single[1],],)
-  sfPts = evalFactor(tfg, _dfgfct, solvefor, measurement, needFreshMeasurements=false, solveKey=solveKey, inflateCycles=1, _slack=_slack )
+  sfPts, _ = evalFactor(tfg, _dfgfct, solvefor, measurement, needFreshMeasurements=false, solveKey=solveKey, inflateCycles=1, _slack=_slack )
 
   # @info "EVALTEMP" length(sfPts) string(sfPts) meas_single measurement solvefor
 
@@ -636,8 +642,11 @@ function approxConvBelief(dfg::AbstractDFG,
   #
   v1 = getVariable(dfg, target)
   N = N == 0 ? getNumPts(v1, solveKey=solveKey) : N
-  pts = evalFactor(dfg, fc, v1.label, measurement, solveKey=solveKey, N=N, skipSolve=skipSolve)
-  return manikde!(getManifold(getVariable(dfg, target)), pts)
+  # points and infoPerCoord
+  pts, ipc = evalFactor(dfg, fc, v1.label, measurement, solveKey=solveKey, N=N, skipSolve=skipSolve)
+  
+  # is the convolution infoPerCoord full or partial
+  return manikde!(getManifold(getVariable(dfg, target)), pts, partial=nothing)
 end
 
 

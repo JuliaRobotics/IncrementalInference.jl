@@ -15,11 +15,28 @@ mutable struct DevelopPartial{P <: Tuple} <: AbstractPrior
 end
 getSample(cf::CalcFactor{<:DevelopPartial}, N::Int=1) = ([rand(cf.factor.x, 1)[:] for _ in 1:N], )
 
-
+#
 mutable struct DevelopDim2 <: AbstractPrior
   x::Distribution
 end
 getSample(cf::CalcFactor{<:DevelopDim2}, N::Int=1) = ([rand(cf.factor.x, 1)[:] for _ in 1:N], )
+
+
+mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
+  x::Distribution
+  partial::Tuple
+  DevelopPartialPairwise(x::Distribution) = new(x, (2,))
+end
+getSample(cf::CalcFactor{<:DevelopPartialPairwise}, N::Int=1) = ([rand(cf.factor.x, 1)[:] for _ in 1:N], )
+
+function (dp::CalcFactor{<:DevelopPartialPairwise})(meas,
+                                                    x1,
+                                                    x2  )
+  #
+  # v0.21+
+  # @info "DEVPART" "$meas" "$x1" "$x2"
+  return meas[1] - (x2[2]-x1[2])
+end
 
 
 ##
@@ -31,7 +48,7 @@ fg = initfg()
 
 v1 = addVariable!(fg,:x1,ContinuousEuclid{2}(),N=N)
 
-pr = DevelopDim2(MvNormal([0.0;0.0], diagm([0.01;0.01]))) # *Matrix{Float64}(LinearAlgebra.I,2,2)))
+pr = DevelopDim2(MvNormal([0.0;0.0], diagm([0.01;0.01])))
 f1  = addFactor!(fg,[:x1],pr)
 
 dp = DevelopPartial(Normal(2.0, 1.0),(1,))
@@ -44,7 +61,7 @@ doautoinit!(fg, :x1)
 @testset "test evaluation of full constraint prior" begin
 
 
-pts_ = evalFactor(fg, f1, v1.label, N=N)
+pts_, _ = evalFactor(fg, f1, v1.label, N=N)
 @cast pts[i,j] := pts_[j][i]
 @test size(pts,1) == 2
 @test size(pts,2) == N
@@ -62,7 +79,7 @@ memcheck_ = getVal(v1)
 
 X1pts_ = getVal(v1)
 @cast X1pts[i,j] := X1pts_[j][i]
-pts_ = approxConv(fg, f2.label, :x1, N=N)
+pts_ = approxConv(fg, getLabel(f2), :x1, N=N)
 @cast pts[i,j] := pts_[j][i]
 
 @test size(pts, 1) == 2
@@ -76,6 +93,17 @@ pts_ = approxConv(fg, f2.label, :x1, N=N)
 end
 
 ##
+
+@testset "check that partials are received through convolutions" begin
+##
+
+# check that a partial belief is obtained
+X1_ = approxConvBelief(fg, :x1f2, :x1)
+
+@test_broken isPartial(X1_)
+
+##
+end
 
 @testset "test solving of factor graph" begin
 
@@ -93,28 +121,9 @@ end
 # plotKDE(getBelief(fg, :x1),levels=3)
 
 
-##
-
-# @enter predictbelief(fg, :x1, :)
 
 
 ##
-
-mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
-  x::Distribution
-  partial::Tuple
-  DevelopPartialPairwise(x::Distribution) = new(x, (2,))
-end
-getSample(cf::CalcFactor{<:DevelopPartialPairwise}, N::Int=1) = ([rand(cf.factor.x, 1)[:] for _ in 1:N], )
-
-function (dp::CalcFactor{<:DevelopPartialPairwise})(meas,
-                                                    x1,
-                                                    x2  )
-  #
-  # v0.21+
-  return meas[1] - (x2[2]-x1[2])
-end
-
 
 
 v2 = addVariable!(fg,:x2,ContinuousEuclid{2},N=N)
@@ -261,11 +270,21 @@ pts_ = getVal(fg, :x1)
 @test norm(Statistics.mean(pts,dims=2)[2] .- [0.0]) < 0.5
 
 pts_ = getVal(fg, :x2)
+
+ppe = getPPE(fg, :x2).mean
+
+X2 = getBelief(fg, :x2)
+
+# check mean is close
+@test_broken isapprox(mean(X2), [-20;10], atol=0.1)
+
+# check covariance is close too
+@test 0 < AMP.calcCovarianceBasic(getManifold(X2), getPoints(X2))
+
 @cast pts[i,j] := pts_[j][i]
-@test norm(Statistics.mean(pts,dims=2)[1] .- [-20.0]) < 3.0
-@test norm(Statistics.mean(pts,dims=2)[2] .- [10.0]) < 3.0
 @test (Statistics.std(pts,dims=2)[1]-1.0) < 3.0
 @test (Statistics.std(pts,dims=2)[2]-1.0) < 3.0
+
 
 ##
 
