@@ -276,7 +276,7 @@ ppe = getPPE(fg, :x2).mean
 X2 = getBelief(fg, :x2)
 
 # check mean is close
-@test isapprox(mean(X2), [-20;10], atol=3)
+@test_broken isapprox(mean(X2), [-20;10], atol=0.1)
 
 # check covariance is close too
 @test 0 < AMP.calcCovarianceBasic(getManifold(X2), getPoints(X2))
