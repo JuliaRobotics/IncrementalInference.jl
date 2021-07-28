@@ -61,7 +61,7 @@ doautoinit!(fg, :x1)
 @testset "test evaluation of full constraint prior" begin
 
 
-pts_ = evalFactor(fg, f1, v1.label, N=N)
+pts_, _ = evalFactor(fg, f1, v1.label, N=N)
 @cast pts[i,j] := pts_[j][i]
 @test size(pts,1) == 2
 @test size(pts,2) == N
