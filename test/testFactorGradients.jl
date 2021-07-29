@@ -37,7 +37,7 @@ J__
 
 ##
 
-gradFct = FactorGradientsCached!(pp, measurement, varTypes, pts);
+gradFct = FactorGradientsCached!(pp, varTypes, measurement, pts);
 
 ##
 

@@ -72,8 +72,8 @@ end
 
 
 function FactorGradientsCached!(fct::Union{<:AbstractRelativeMinimize, <:AbstractRelativeRoots},
-                                meas_single::Tuple, 
                                 varTypes::Tuple,
+                                meas_single::Tuple, 
                                 pts::Tuple; 
                                 h::Real=1e-4  )
   #
@@ -86,7 +86,7 @@ function FactorGradientsCached!(fct::Union{<:AbstractRelativeMinimize, <:Abstrac
 
   # get the one factor in tfg
   fctsyms = lsf(tfg)
-  @assert length(fctsyms) == 1 "Expecting only a single factor"
+  @assert length(fctsyms) == 1 "Expecting only a single factor in tfg"
 
   # generate an object containing all the machinery necessary more rapid factor gradients, see DevNotes for future improvements
   FactorGradientsCached!( getFactor(tfg, fctsyms[1]),

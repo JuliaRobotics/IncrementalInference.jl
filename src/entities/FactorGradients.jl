@@ -44,7 +44,7 @@ varTypes = (ContinuousEuclid{2}, ContinuousEuclid{2})
 pts = ([0;0.0], [9.5;0])
 
 # build and evaluate the functor object
-grad = FactorGradientsCached!(pp, measurement, varTypes, pts);
+grad = FactorGradientsCached!(pp, varTypes, measurement, pts);
 J = grad(measurement..., pts...)
 
 # cached value stored

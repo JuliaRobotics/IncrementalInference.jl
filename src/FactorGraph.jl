@@ -554,6 +554,7 @@ function prepareparamsarray!( ARR::AbstractVector{<:AbstractVector{P}},
   end
 
   # get solvefor manifolds
+  # FIXME deprecate use of (:null,)
   mani = length(Xi)==0 || sfidx==0 ? (:null,) : getManifold(Xi[sfidx])
 
   # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
@@ -632,18 +633,23 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   #
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
-  # FIXME maybe a product manifold and not any
+  # FIXME stop using Any, see #1321
   ARR = Vector{Vector{Any}}()
   maxlen, sfidx, mani = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
 
   # standard factor metadata
   sflbl = 0==length(Xi) ? :null : getLabel(Xi[end])
   fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, sflbl, nothing)
-  # guess measurement points type
-  MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
-  cf = CalcFactor( usrfnc, fmd, 0, 1, (Vector{MeasType}(),), ARR)
+  
+  # create a temporary CalcFactor object for extracting the first sample
+  # TODO, deprecate this:  guess measurement points type
+  # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
+  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, ARR) # (Vector{MeasType}(),)
+  
+  # get a measurement sample
+  meas_single = sampleFactor(_cf, 1)
 
-  zdim = calcZDim(cf)
+  zdim = calcZDim(_cf)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   
@@ -654,6 +660,17 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   else
     Int[]
   end
+
+  varTypes = typeof.(getVariableType.(Xi))
+  gradients = nothing
+  # prepare new cached gradient lambdas (attempt)
+  # try
+  #   measurement = tuple(((x->x[1]).(meas_single))...)
+  #   pts = tuple(((x->x[1]).(ARR))...)
+  #   gradients = FactorGradientsCached!(usrfnc, varTypes, measurement, pts);
+  # catch e
+  #   @warn "Unable to create measurements and gradients for $usrfnc during prep of CCW, falling back on no-partial information assumption."
+  # end
 
   ccw = CommonConvWrapper(
           usrfnc,
@@ -669,7 +686,8 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
           threadmodel=threadmodel,
           inflation=inflation,
           partialDims=partialDims,
-          vartypes = typeof.(getVariableType.(Xi))
+          vartypes = varTypes,
+          gradients=gradients
         )
   #
   return ccw

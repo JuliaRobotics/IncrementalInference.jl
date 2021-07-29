@@ -223,7 +223,8 @@ $(TYPEDEF)
 mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
                                   H<:Union{Nothing, Distributions.Categorical},
                                   C<:Union{Nothing, Vector{Int}},
-                                  P} <: FactorOperationalMemory
+                                  P,
+                                  G} <: FactorOperationalMemory
   #
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function
@@ -239,7 +240,7 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
   certainhypo::C
   nullhypo::Float64
   # values specific to one complete convolution operation
-  # FIXME ? JT - What if all points are not on the same manifold? 
+  # FIXME ? JT - What if all points are not on the same manifold?  See #1321
   #          DF, just make it NamedTuple? -- some detail on pinning CCW down at construction only
   params::Vector{Vector{P}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
@@ -251,10 +252,11 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
   # inflationSpread
   inflation::Float64
   # DONT USE THIS YET which dimensions does this factor influence
-  partialDims::Vector{Int} # should become SVector{N, Int32}
-  
+  partialDims::Vector{Int} # should become SVector{N, Int}
   # variable types for points in params
   vartypes::Vector{DataType}
+  # experimental feature to embed gradient calcs with ccw
+  _gradients::G
 end
 
 
@@ -278,8 +280,8 @@ function CommonConvWrapper( fnc::T,
                             res::AbstractVector{<:Real}=zeros(zDim),
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
                             inflation::Real=3.0,
-                            vartypes=typeof.(getVariableType.(factormetadata.fullvariables))
-                            ) where {T<:FunctorInferenceType,P,H,Q}
+                            vartypes=typeof.(getVariableType.(factormetadata.fullvariables)),
+                            gradients=nothing) where {T<:FunctorInferenceType,P,H,Q}
   #
   return  CommonConvWrapper(fnc,
                             xDim,
@@ -298,7 +300,8 @@ function CommonConvWrapper( fnc::T,
                                               perturb=perturb, res=res )).(1:Threads.nthreads()),
                             inflation,
                             partialDims,  # SVector(Int32.()...)
-                            vartypes)
+                            vartypes,
+                            gradients)
 end
 
 
