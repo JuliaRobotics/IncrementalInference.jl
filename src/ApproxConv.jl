@@ -79,7 +79,8 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
-  #FIXME
+
+  #FIXME, see #1321
   vecPtsArr = Vector{Vector{Any}}()
 
   #TODO some better consolidate is needed
@@ -137,6 +138,9 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
     fill!(cpt_.res, 0.0)
   end
 
+  # calculate new gradients perhaps
+  # J = ccwl.gradients(measurement..., pts...)
+
   return sfidx, maxlen, mani
 end
 
@@ -180,7 +184,7 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
                                                 kappa::Float64=3.0  )
   #
   if sfidx in certainidx
-    msst_ = sqrt(calcVariableCovarianceBasic(getManifold(ccwl.vartypes[sfidx]), ccwl.params[sfidx]))
+    msst_ = sqrt(calcCovarianceBasic(getManifold(ccwl.vartypes[sfidx]), ccwl.params[sfidx]))
     return kappa*msst_
   end
   # @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
@@ -480,7 +484,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   end
   # @show nn, size(addEntr), size(nhmask), size(solveForPts)
   addEntrNH = view(addEntr, nhmask)
-  spreadDist = spreadNH*sqrt(calcVariableCovarianceBasic(mani, addEntr))
+  spreadDist = spreadNH*sqrt(calcCovarianceBasic(mani, addEntr))
   # partials are treated differently
   if !ccwl.partial
       # TODO for now require measurements to be coordinates too
