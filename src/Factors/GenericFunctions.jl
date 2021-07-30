@@ -8,21 +8,24 @@ Generic function that can be used in binary factors to calculate distance betwee
 """
 function distancePoint2Point(M::AbstractGroupManifold, m, p, q)
     q̂ = compose(M, p, m)
-    return log(M, q, q̂)
+    # return log(M, q, q̂)
+    return vee(M, q, log(M, q, q̂))
     # return distance(M, q, q̂)
 end
 
 #::MeasurementOnTangent
 function distanceTangent2Point(M::AbstractGroupManifold, X, p, q)
     q̂ = compose(M, p, exp(M, identity(M, p), X)) #for groups
-    return log(M, q, q̂)
+    # return log(M, q, q̂)
+    return vee(M, q, log(M, q, q̂))
     # return distance(M, q, q̂)
 end
 
 # ::MeasurementOnTangent
 function distanceTangent2Point(M::AbstractManifold, X, p, q)
     q̂ = exp(M, p, X) 
-    return log(M, q, q̂)
+    # return log(M, q, q̂)
+    return vee(M, q, log(M, q, q̂))
     # return distance(M, q, q̂)
 end
 
@@ -143,13 +146,14 @@ end
 function (cf::CalcFactor{<:ManifoldPrior})(m, p)
     M = cf.factor.M
     # M = cf.M
-    return log(M, p, m)
+    # return log(M, p, m)
+    return vee(M,p,log(M, p, m))
     # return distancePrior(M, m, p)
 end
 
 # dist²_Σ = ⟨X, Σ⁻¹*X'⟩
 function mahalanobus_distance2(M, p, q, inv_Σ)
-    X = log(M, p, q)
+    Xc = log(M, p, q)
     return mahalanobus_distance2(Xc, inv_Σ)
 end
 
