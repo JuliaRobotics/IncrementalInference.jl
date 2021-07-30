@@ -71,10 +71,8 @@ function approxDeconv(fcto::DFGFactor,
   # only doing the current active hypo
   @assert activehypo[2][1] == 1 "deconv was expecting hypothesis nr == (1, 1:d)"
   
-  lent = length(makeTarget(1))
-  islen1 = length(makeTarget(1)) == 1
+  islen1 = zDim == 1
   
-
   for idx in 1:N
     # towards each particle in their own thread (not 100% ready yet, factors should be separate memory)
     thrid = Threads.threadid()
@@ -95,7 +93,13 @@ function approxDeconv(fcto::DFGFactor,
     hypoObj = (tgt) -> (targeti_.=tgt; onehypo!() )
 
     # find solution via SubArray view pointing to original memory location
-    targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[1][idx], islen1)
+    if fcttype isa AbstractManifoldMinimize
+      sfidx = ccw.varidx
+      targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[1][idx], ccw.vartypes[sfidx](), islen1)
+    else
+      targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[1][idx], islen1)
+    end
+
   end
 
   # return (deconv-prediction-result, independent-measurement)
