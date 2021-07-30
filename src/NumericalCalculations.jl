@@ -96,8 +96,11 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   fM = getManifold(fcttype)
   function cost(Xc)
     p = exp(M, ϵ, hat(M, ϵ, Xc))  
-    X = objResX(p)
-    return norm(fM, p, X)^2 #TODO verify 
+    # X = objResX(p)
+    # return norm(fM, p, X)^2 #TODO the manifold of p and X are not always the same
+    #options getPointIdentity or leave it to factor 
+    residual = objResX(p)
+    return sum(residual.^2)
   end
 
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead() 
@@ -162,7 +165,7 @@ DevNotes
 function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
                                       smpid::Int,
                                       cpt_::ConvPerThread = ccwl.cpt[Threads.threadid()],
-                                      target::AbstractArray = view(ccwl.params[ccwl.varidx][smpid], cpt_.p),
+                                      target = view(ccwl.params[ccwl.varidx][smpid], cpt_.p),
                                       measurement_ = ccwl.measurement,
                                       fmd_::FactorMetadata = cpt_.factormetadata;
                                       _slack=nothing  )
