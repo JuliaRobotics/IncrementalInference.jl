@@ -97,7 +97,7 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   function cost(Xc)
     p = exp(M, ϵ, hat(M, ϵ, Xc))  
     X = objResX(p)
-    return norm(fM, p, X)^2 #TODO verify 
+    return norm(fM, p, X)^2 #TODO the manifold of p and X are not always the same
   end
 
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead() 
