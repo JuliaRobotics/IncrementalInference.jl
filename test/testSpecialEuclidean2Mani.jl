@@ -82,6 +82,8 @@ f = addFactor!(fg, [:x1, :x2], mf)
 end
 
 @testset "Test Pose2 like hex as SpecialEuclidean2" begin
+##
+
 M = getManifold(SpecialEuclidean2)
 fg = initfg()
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
@@ -116,9 +118,12 @@ vnd = getVariableSolverData(fg, :x1)
 vnd = getVariableSolverData(fg, :x6)
 @test isapprox(M, mean(M, vnd.val), ProductRepr([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.2)
 
+##
+
 smtasks = Task[]
 solveTree!(fg; smtasks)
 
+##
 end
 
 ## ======================================================================================
