@@ -110,13 +110,13 @@ mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([10.0,0,0], [0.1,0.1,0.01]))
 addFactor!(fg, [:x6; :l1], mf)
 
 vnd = getVariableSolverData(fg, :x0)
-@test isapprox(M, mean(M, vnd.val), ProductRepr([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.1)
+@test isapprox(M, mean(M, vnd.val), ProductRepr([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.2)
 
 vnd = getVariableSolverData(fg, :x1)
-@test isapprox(M, mean(M, vnd.val), ProductRepr([0.0,10.0], [-0.5 0.866; -0.866 -0.5]), atol=0.2)
+@test isapprox(M, mean(M, vnd.val), ProductRepr([0.0,10.0], [-0.5 0.866; -0.866 -0.5]), atol=0.4)
 
 vnd = getVariableSolverData(fg, :x6)
-@test isapprox(M, mean(M, vnd.val), ProductRepr([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.2)
+@test isapprox(M, mean(M, vnd.val), ProductRepr([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.5)
 
 ##
 
