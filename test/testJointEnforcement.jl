@@ -100,6 +100,7 @@ jointmsg = IIF._generateMsgJointRelativesPriors(cfg2, :default, cliq2)
 
 ##
 
+getSolverParams(fg).useMsgLikelihoods = true
 tree, _, = solveTree!(fg, eliminationOrder=vo);
 
 
@@ -199,6 +200,7 @@ jointmsg = IIF._generateMsgJointRelativesPriors(cfg2, :default, cliq2)
 
 ## similar during solving
 
+getSolverParams(fg).useMsgLikelihoods = true
 tree, _, = solveTree!(fg, eliminationOrder=vo);
 
 
