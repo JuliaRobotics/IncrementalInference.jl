@@ -665,7 +665,9 @@ function prepCliqueMsgUp( subfg::AbstractDFG,
   #   end
   # end
 
-  msg.jointmsg = IIF._generateMsgJointRelativesPriors( subfg, solveKey, cliq )
+  if getSolverParams(subfg).useMsgLikelihoods
+    msg.jointmsg = IIF._generateMsgJointRelativesPriors( subfg, solveKey, cliq )
+  end
   # FIXME calculate the new DIFFERENTIAL factors
   # retval = addLikelihoodsDifferentialCHILD!(subfg, getCliqSeparatorVarIds(cliq))
   # msg.jointmsg.relatives = retval
