@@ -84,6 +84,7 @@ end
 ##
 
 fg = generateCanonicalFG_CaesarRing1D()
+getSolverParams(fg).useMsgLikelihoods = true
 
 # # TEMPORARY MUST COMMENT ON TRAVIS
 # getSolverParams(fg).drawtree = true
@@ -116,6 +117,7 @@ end
 ##
 
 fg = initfg()
+getSolverParams(fg).useMsgLikelihoods = true
 
 addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
