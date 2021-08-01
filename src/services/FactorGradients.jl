@@ -239,7 +239,7 @@ function calcPerturbationFromVariable(fgc::FactorGradientsCached!,
   ipc_pert .= round.(ipc_pert, digits=dig)
 
   # slice the result
-  ipcBlk = Vector{Vector{Float64}}()
+  ipcBlk = []
   for (i, sz) in enumerate(blkszs)
     curr_b = sum(blkszs[1:(i-1)]) + 1
     curr_e = sum(blkszs[1:i])
