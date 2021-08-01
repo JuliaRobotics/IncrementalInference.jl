@@ -227,6 +227,7 @@ function calcPerturbationFromVariable(fgc::FactorGradientsCached!,
   
   # clamp gradients below numerical solver resolution
   mask = checkGradientsToleranceMask(fgc, tol=tol)
+  J = fgc.cached_gradients
   _J = zeros(size(J)...)
   _J[mask] .= J[mask]
 
