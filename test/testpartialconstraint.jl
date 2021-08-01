@@ -72,10 +72,11 @@ end
 
 ##
 
+@testset "test evaluation of partial constraint prior" begin
+##
+
 memcheck_ = getVal(v1)
 @cast memcheck[i,j] := memcheck_[j][i]
-
-@testset "test evaluation of partial constraint prior" begin
 
 X1pts_ = getVal(v1)
 @cast X1pts[i,j] := X1pts_[j][i]
@@ -90,9 +91,9 @@ pts_ = approxConv(fg, getLabel(f2), :x1, N=N)
 @test norm(X1pts[2,:] - pts[2,:]) < 1e-10
 @test norm(X1pts - memcheck) < 1e-10
 
+##
 end
 
-##
 
 @testset "check that partials are received through convolutions" begin
 ##
@@ -100,7 +101,7 @@ end
 # check that a partial belief is obtained
 X1_ = approxConvBelief(fg, :x1f2, :x1)
 
-@test_broken isPartial(X1_)
+@test isPartial(X1_)
 
 ##
 end
@@ -276,7 +277,7 @@ ppe = getPPE(fg, :x2).mean
 X2 = getBelief(fg, :x2)
 
 # check mean is close
-@test_broken isapprox(mean(X2), [-20;10], atol=0.1)
+@test_broken isapprox(mean(X2), [-20;10], atol=0.01)
 
 # check covariance is close too
 @test 0 < AMP.calcCovarianceBasic(getManifold(X2), getPoints(X2))

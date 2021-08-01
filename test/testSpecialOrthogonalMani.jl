@@ -93,7 +93,7 @@ vnd = getVariableSolverData(fg, :x0)
 @test all(is_point.(Ref(M), vnd.val))
 
 points = sampleFactor(fg, :x0f1, 100)[1]
-IIF.calcVariableCovarianceBasic(SpecialOrthogonal(3), points)
+IIF.calcCovarianceBasic(SpecialOrthogonal(3), points)
 
 ##
 v1 = addVariable!(fg, :x1, SO3)

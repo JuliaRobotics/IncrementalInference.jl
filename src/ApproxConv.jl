@@ -1,7 +1,5 @@
 
 export calcFactorResidual
-export findRelatedFromPotential
-
 
 
 """
@@ -79,7 +77,8 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
-  #FIXME
+
+  #FIXME, see #1321
   vecPtsArr = Vector{Vector{Any}}()
 
   #TODO some better consolidate is needed
@@ -119,11 +118,12 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
     # sampleFactor!(ccwl, maxlen, fmd, vnds)
   end
 
-  if ccwl.specialzDim
-    ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
-  else
-    ccwl.zDim = calcZDim(CalcFactor(ccwl))
-  end
+
+  ccwl.zDim = calcZDim(CalcFactor(ccwl))
+  # if ccwl.specialzDim
+  #   ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
+  # else
+  # end
   ccwl.varidx = sfidx
 
   # set each CPT
@@ -137,6 +137,9 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
     fill!(cpt_.res, 0.0)
   end
 
+  # calculate new gradients perhaps
+  # J = ccwl.gradients(measurement..., pts...)
+
   return sfidx, maxlen, mani
 end
 
@@ -149,18 +152,6 @@ function prepareCommonConvWrapper!( ccwl::Union{CommonConvWrapper{F},
                                     kw...  ) where {N_,F<:AbstractRelative,S,T}
   #
   prepareCommonConvWrapper!(F, ccwl, Xi, solvefor, N; kw...)
-end
-
-function generateNullhypoEntropy( val::AbstractMatrix{<:Real},
-                                  maxlen::Int,
-                                  spreadfactor::Real=10  )
-  #
-  # covD = sqrt.(vec(Statistics.var(val,dims=2))) .+ 1e-3
-  # cVar = diagm((spreadfactor*covD).^2)
-  len = size(val, 1)
-  cVar = diagm((spreadfactor*ones(len)).^2)
-  mu = zeros( len )
-  MvNormal( mu, cVar )
 end
 
 
@@ -180,7 +171,7 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
                                                 kappa::Float64=3.0  )
   #
   if sfidx in certainidx
-    msst_ = sqrt(calcVariableCovarianceBasic(getManifold(ccwl.vartypes[sfidx]), ccwl.params[sfidx]))
+    msst_ = sqrt(calcCovarianceBasic(getManifold(ccwl.vartypes[sfidx]), ccwl.params[sfidx]))
     return kappa*msst_
   end
   # @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
@@ -416,7 +407,10 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                             inflateCycles=inflateCycles, skipSolve=skipSolve,
                             _slack=_slack )
   #
-  return ccwl.params[ccwl.varidx], nothing
+  # do info per coord
+  ipc = ones(getDimension(Xi[sfidx]))
+  # return the found points, and info per coord
+  return ccwl.params[ccwl.varidx], ipc
 end
 
 
@@ -445,8 +439,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   sfidx = findfirst(getLabel.(Xi) .== solvefor)
   # sfidx = 1 #  WHY HARDCODED TO 1??
   solveForPts = getVal(Xi[sfidx], solveKey=solveKey)
-  nn = maximum([N; length(measurement[1]); length(solveForPts); length(ccwl.params[sfidx])])
-  # vnds = Xi # (x->getSolverData(x)).(Xi)
+  nn = maximum([N; calcZDim(ccwl); length(solveForPts); length(ccwl.params[sfidx])])  # length(measurement[1])
+
   # FIXME better standardize in-place operations (considering solveKey)
   if needFreshMeasurements
     cf = CalcFactor( ccwl )
@@ -454,7 +448,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
     ccwl.measurement = newMeas
   end
 
-  # Check which variables have been initialized
+  # Check which variables have been initialized, TODO not sure why forcing to Bool vs BitVector
   isinit::Vector{Bool} = Xi .|> isInitialized .|> Bool
   _, _, _, mhidx = assembleHypothesesElements!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, ccwl.nullhypo )
   # get solvefor manifolds, FIXME ON FIRE, upgrade to new Manifolds.jl
@@ -478,11 +472,12 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
     end
     ret
   end
-  # @show nn, size(addEntr), size(nhmask), size(solveForPts)
+
+  # view on elements marked for nullhypo
   addEntrNH = view(addEntr, nhmask)
-  spreadDist = spreadNH*sqrt(calcVariableCovarianceBasic(mani, addEntr))
+  spreadDist = spreadNH*sqrt(calcCovarianceBasic(mani, addEntr))
   # partials are treated differently
-  if !ccwl.partial
+  ipc = if !isPartial(ccwl) #ccwl.partial
       # TODO for now require measurements to be coordinates too
       # @show typeof(ccwl.measurement[1])
       for m in (1:length(addEntr))[ahmask]
@@ -492,10 +487,12 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
       end
       # ongoing part of RoME.jl #244
       addEntropyOnManifold!(mani, addEntrNH, 1:getDimension(mani), spreadDist)
+      # do info per coords
+      ones(getDimension(Xi[sfidx]))
   else
+    # FIXME but how to add partial factor info only on affected dimensions fro general manifold points?
     pvec = [fnc.partial...]
     # active hypo that receives the regular measurement information
-    # FIXME but how to add partial factor info only on affected dimensions fro general manifold points?
     for m in (1:length(addEntr))[ahmask]
       # addEntr is no longer in coordinates, these are now general manifold points!!
       for (i,dimnum) in enumerate(fnc.partial)
@@ -506,14 +503,14 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
     addEntrNHp = view(addEntr, nhmask)
     # ongoing part of RoME.jl #244
     addEntropyOnManifold!(mani, addEntrNHp, 1:getDimension(mani), spreadDist, pvec)
+    # do info per coords
+    ipc_ = zeros(getDimension(Xi[sfidx]))
+    ipc_[pvec] .= 1.0
+    ipc_
   end
 
   # check partial is easy as this is a prior
-  # if isPartial()
-
-  # end
-
-  return addEntr, nothing
+  return addEntr, ipc
 end
 
 
@@ -645,12 +642,22 @@ function approxConvBelief(dfg::AbstractDFG,
   # points and infoPerCoord
   pts, ipc = evalFactor(dfg, fc, v1.label, measurement, solveKey=solveKey, N=N, skipSolve=skipSolve)
   
+  len = length(ipc)
+  mask = 1e-14 .< abs.(ipc)
+  partl = collect(1:len)[ mask ]
+
   # is the convolution infoPerCoord full or partial
-  return manikde!(getManifold(getVariable(dfg, target)), pts, partial=nothing)
+  if sum(mask) == len
+    # not partial
+    return manikde!(getManifold(getVariable(dfg, target)), pts, partial=nothing)
+  else
+    # is partial
+    return manikde!(getManifold(getVariable(dfg, target)), pts, partial=partl)
+  end
 end
 
 
-approxConv(w...;kw...) = approxConvBelief(w...;kw...) |> getPoints
+approxConv(w...;kw...) = getPoints( approxConvBelief(w...;kw...), false)
 
 """
     $SIGNATURES
@@ -889,8 +896,6 @@ function calcProposalBelief(dfg::AbstractDFG,
   # return the proposal belief and inferdim, NOTE likely to be changed
   return proposal
 end
-
-@deprecate findRelatedFromPotential(w...;kw...) (calcProposalBelief(w...;kw...),)
 
 """
     $SIGNATURES

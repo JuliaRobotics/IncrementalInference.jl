@@ -17,7 +17,7 @@ export calcFactorResidualTemporary
 
 User factor interface method for computing the residual values of factors.
 """
-struct CalcFactor{T <: AbstractFactor, M, P <: Tuple, X <: AbstractVector}
+struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing}, X <: AbstractVector}
   # the interface compliant user object functor containing the data and logic
   factor::T
   # the metadata to be passed to the user residual function
@@ -121,7 +121,7 @@ function calcFactorResidualTemporary( fct::AbstractRelative,
   _, _dfgfct = _buildGraphByFactorAndTypes!(fct, varTypes, pts, dfg=tfg)
   
   # get a fresh measurement if needed
-  measurement = if length(measurement) != 0
+  _measurement = if length(measurement) != 0
     measurement
   else
     # now use the CommonConvWrapper object in `_dfgfct`
@@ -131,7 +131,7 @@ function calcFactorResidualTemporary( fct::AbstractRelative,
   end
 
   # assume a single sample point is being run
-  return calcFactorResidual(_dfgfct, measurement..., pts...)
+  return calcFactorResidual(_dfgfct, _measurement..., pts...)
 end
 
 
