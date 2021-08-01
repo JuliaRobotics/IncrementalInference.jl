@@ -239,15 +239,15 @@ function calcPerturbationFromVariable(fgc::FactorGradientsCached!,
   ipc_pert .= round.(ipc_pert, digits=dig)
 
   # slice the result
-  ipcBlk = ()
+  ipcBlk = Vector{Vector{Float64}}()
   for (i, sz) in enumerate(blkszs)
     curr_b = sum(blkszs[1:(i-1)]) + 1
     curr_e = sum(blkszs[1:i])
     blk_ = view(ipc_pert, curr_b:curr_e)
-    ipcBlk = tuple(ipcBlk..., blk_)
+    push!(ipcBlk, blk_)
   end
 
-  return ipcBlk
+  return tuple(ipcBlk...)
 end
 
 
