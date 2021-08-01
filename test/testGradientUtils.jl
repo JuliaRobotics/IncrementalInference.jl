@@ -8,18 +8,19 @@ using Test
 ## test utility to build a temporary graph
 
 fct = EuclidDistance(Normal(10,1))
-T_pt_vec = [(ContinuousScalar,ContinuousScalar); ([0;],[9.5;])]
+varTypes = (ContinuousScalar,ContinuousScalar); 
+varPts = ([0;],[9.5;])
 
 ##
 
-dfg, _dfgfct = IIF._buildGraphByFactorAndTypes!(fct, T_pt_vec...)
+dfg, _dfgfct = IIF._buildGraphByFactorAndTypes!(fct, varTypes, varPts)
 
 @test length(intersect(ls(dfg), [:x1; :x2])) == 2
 @test lsf(dfg) == [:x1x2f1;]
 
 ## test  the evaluation of factor without
 
-B = IIF._evalFactorTemporary!(EuclidDistance(Normal(10,1)), 2, ([10;],), T_pt_vec... );
+B = IIF._evalFactorTemporary!(EuclidDistance(Normal(10,1)), 2, ([10;],), varTypes, varPts );
 
 @test_broken B isa Vector{Vector{Float64}}
 @test isapprox( B[1], [10.0;], atol=1e-6)

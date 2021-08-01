@@ -71,6 +71,8 @@ mutable struct FactorGradientsCached!{F <: AbstractRelative,S,M<:Tuple,P,G,L}
   # nested-tuple of gradient lambda functions
   _λ_fncs::L
   _coord_sizes::Vector{Int}
+  # gradient delta
+  _h::Float64
 end
 
 

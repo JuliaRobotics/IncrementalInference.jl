@@ -1,6 +1,7 @@
 # utilities for calculating the gradient over factors
 
 export getCoordSizes
+export checkGradientsToleranceMask, calcPerturbationFromVariable
 
 
 # T_pt_args[:] = [(T1::Type{<:InferenceVariable}, point1); ...]
@@ -96,7 +97,8 @@ function FactorGradientsCached!(fct::Union{<:AbstractRelativeMinimize, <:Abstrac
                           pts,
                           tfg,
                           λ_fncs,
-                          λ_sizes )
+                          λ_sizes,
+                          h )
 end
 
 
@@ -149,3 +151,103 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
   # return newly calculated gradients
   return fgc.cached_gradients
 end
+
+"""
+    $SIGNATURES
+
+Return a mask of same size as gradients matrix `J`, indicating which elements are above the expected sensitivity threshold `tol`.
+
+Notes
+- Threshold accuracy depends on two parts,
+  - Numerical gradient perturbation size `fgc._h`,
+  - Accuracy tolerance to which the factor residual is computed (not controlled here)
+"""
+function checkGradientsToleranceMask( fgc::FactorGradientsCached!, 
+                                      J::AbstractArray=fgc.cached_gradients;
+                                      tol::Real=0.02*fgc._h )
+  #
+  # ignore anything 10 times smaller than numerical gradient delta used
+  # NOTE this ignores the factor residual solve accuracy
+  return tol*fgc._h .< abs.(J)
+end
+
+"""
+    $SIGNATURES
+
+Return a tuple of infoPerCoord vectors that result from input `fromVar::Int`'s `infoPerCoord`.
+For example, a binary `LinearRelative` factor has a one to one influence from the input to the one other variable.
+
+Notes
+
+- Assumes the gradients in `fgc` are up to date -- if not, first run `fgc(measurement..., pts...)`.
+- `tol` does not recalculate the gradients to a new tolerance, instead uses the cached value in `fgc` to predict accuracy.
+
+Example
+
+```julia
+# setup
+fct = LinearRelative(MvNormal([10;0],[1 0; 0 1]))
+measurement = ([10.0;0.0],)
+varTypes = (ContinuousEuclid{2}, ContinuousEuclid{2})
+pts = ([0;0.0], [9.5;0])
+
+# create the gradients functor object
+fgc = FactorGradientsCached!(fct, varTypes, measurement, pts);
+# must first update the cached gradients
+fgc(measurement..., pts...)
+
+# check the perturbation influence through gradients on factor
+ret = calcPerturbationFromVariable(fgc, 1, [1;1])
+
+@assert isapprox(ret[2], [1;1])
+```
+
+DevNotes
+- FIXME Support n-ary source factors by extending `fromVar` to more than just one. 
+
+Related
+
+[`FactorGradientsCached!`](@ref), [`checkGradientsToleranceMask`](@ref)
+"""
+function calcPerturbationFromVariable(fgc::FactorGradientsCached!, 
+                                      fromVar::Int, 
+                                      infoPerCoord::AbstractVector;
+                                      tol::Real=0.02*fgc._h )
+  #
+  blkszs = getCoordSizes(fgc)
+  @assert blkszs[fromVar] == length(infoPerCoord) "Expecting incoming length(infoPerCoord) to equal the block size for variable $fromVar, as per factor used to construct the FactorGradientsCached!: $(getFactorType(fgc.dfgfct))"
+  # assume projection through pp-factor from first to second variable 
+  # ipc values from first variable belief, and zero for second
+  ipcAll = zeros(sum(blkszs))
+
+  # nextVar = minimum([fromVar+1; length(blkszs)])
+  curr_b = sum(blkszs[1:(fromVar-1)]) + 1
+  curr_e = sum(blkszs[1:fromVar])
+  ipcAll[curr_b:curr_e] .= infoPerCoord
+  
+  # clamp gradients below numerical solver resolution
+  mask = checkGradientsToleranceMask(fgc, tol=tol)
+  _J = zeros(size(J)...)
+  _J[mask] .= J[mask]
+
+  # calculate the gradient influence on other variables
+  ipc_pert = _J * ipcAll
+
+  # round up over numerical solution tolerance
+  dig = floor(Int, log10(1/tol))
+  ipc_pert .= round.(ipc_pert, digits=dig)
+
+  # slice the result
+  ipcBlk = ()
+  for (i, sz) in enumerate(blkszs)
+    curr_b = sum(blkszs[1:(i-1)]) + 1
+    curr_e = sum(blkszs[1:i])
+    blk_ = view(ipc_pert, curr_b:curr_e)
+    ipcBlk = tuple(ipcBlk..., blk_)
+  end
+
+  return ipcBlk
+end
+
+
+#
