@@ -614,10 +614,7 @@ function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
   return length(smpls[1])
 end
 
-# FIXME THIS IS NEW REPLACEMENT FUNCTION
-# function calcZDim(cf::CalcFactor{T}) where T <: AbstractFactor
-#   return manifold_dimension(getManifold(cf.factor))
-# end
+calcZDim(ccw::CommonConvWrapper) = calcZDim(CalcFactor(ccw))
 
 calcZDim(cf::CalcFactor{<:GenericMarginal}) = 0
 

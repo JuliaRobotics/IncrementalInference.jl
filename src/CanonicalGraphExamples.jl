@@ -78,7 +78,7 @@ Generate generalized helix parameterized by a curve along "t-axis" (i.e. z-axis,
 
 Notes
 - Returns vectors for (`t`, `x,y`, and `yaw` angle).
-- Offset to start at origin and facing direction along +y-axis.
+- Offset to t_start at origin and facing direction along +y-axis.
 - Use callbacks `xr_t(t)` and `yr_t(t)` to skew the helix with any desired curve, examples include
   - `xr_t = (t) -> (1/3)t` to generate helix pattern along x-axis,
   - or make spiral along t using xr_t, yr_t to generate a rose pattern on xy,
@@ -89,24 +89,25 @@ Notes
 
 Related
 
-[`generateCanonicalFG_Helix2D!`](@ref)
+[`RoME.generateCanonicalFG_Helix2D!`](@ref)
 """
-function calcHelix_T(start::Real=0,
-                      stop::Real=1,
+function calcHelix_T( t_start::Real=0,
+                      t_stop::Real=1,
                       pointsperturn=20;
-                      T::AbstractVector{<:Real}=(start:(stop*pointsperturn))./pointsperturn,
+                      direction::Int=-1,
+                      T::AbstractVector{<:Real}=(t_start:(t_stop*pointsperturn))./pointsperturn,
                       radius::Real = 0.5,
                       spine_t=(t)->0 + im*0,
                       xr_t::Function=(t)->real(spine_t(t)),
                       yr_t::Function=(t)->imag(spine_t(t)),
-                      θ_0 = pi  )
+                      h::Real=1e-8  )
   #
   # calc the position
-  f(t, x=xr_t(t), y=yr_t(t)) = radius*( cis(θ_0 - 2pi*t) + 1 + x + im*y)
+  f(t, x=xr_t(t), y=yr_t(t)) = radius*( cis(pi + direction*2pi*t) + 1 + x + im*y)
   vals = f.(T)
 
   # calc the gradient
-  g(t, h=1e-8) = (f(t+h)-f(t))/h
+  g(t) = (f(t+h)-f(t))/h
   grad = g.(T)
 
   return T, hcat(real.(vals), imag.(vals)), angle.(grad)
