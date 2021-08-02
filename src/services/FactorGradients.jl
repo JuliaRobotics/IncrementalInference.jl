@@ -11,8 +11,9 @@ function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:Abst
                                     varTypes::Tuple,
                                     pts::Tuple;
                                     tfg::AbstractDFG = initfg(),
+                                    _blockRecursion::Bool=true,
                                     # gradients relative to coords requires 
-                                    slack_resid = calcFactorResidualTemporary(fct, measurement, varTypes, pts, tfg=tfg),
+                                    slack_resid = calcFactorResidualTemporary(fct, measurement, varTypes, pts, tfg=tfg, _blockRecursion=_blockRecursion),
                                     # numerical diff perturbation size
                                     h::Real=1e-4  ) 
   #
@@ -76,14 +77,15 @@ function FactorGradientsCached!(fct::Union{<:AbstractRelativeMinimize, <:Abstrac
                                 varTypes::Tuple,
                                 meas_single::Tuple, 
                                 pts::Tuple; 
-                                h::Real=1e-4  )
+                                h::Real=1e-4,
+                                _blockRecursion::Bool=true  )
   #
   # working memory location for computations
   tfg = initfg()
   
   # permanent location for points and later reference
   # generate the necessary lambdas
-  J__, λ_fncs, λ_sizes, slack_resid = _prepFactorGradientLambdas(fct, meas_single, varTypes, pts; tfg=tfg, h=1e-4);
+  J__, λ_fncs, λ_sizes, slack_resid = _prepFactorGradientLambdas(fct, meas_single, varTypes, pts; tfg=tfg, _blockRecursion=_blockRecursion, h=1e-4);
 
   # get the one factor in tfg
   fctsyms = lsf(tfg)
@@ -106,6 +108,12 @@ end
 getCoordSizes(fgc::FactorGradientsCached!) = fgc._coord_sizes
 
 
+_setFGCSlack!(fgc::FactorGradientsCached!{F}, slack) where F = _setPointsMani!(fgc.slack_residual, slack)
+
+function _setFGCSlack!(fgc::FactorGradientsCached!{F,S}, slack::Number) where {F,S<:Number}
+  fgc.slack_residual = slack
+end
+
 function (fgc::FactorGradientsCached!)(meas_pts...)
   # separate the measurements (forst) from the variable points (rest)
   lenm = length(fgc.measurement)
@@ -123,7 +131,8 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
   varTypes = tuple(getVariableType.(getVariable.(fgc._tfg, getVariableOrder(fgc.dfgfct)))...)
   new_slack = calcFactorResidualTemporary(fct, measurement, varTypes, pts; tfg=fgc._tfg)
   # TODO make sure slack_residual is properly wired up with all the lambda functions as expected
-  _setPointsMani!(fgc.slack_residual, new_slack)
+  _setFGCSlack!(fgc, new_slack)
+  # _setPointsMani!(fgc.slack_residual, new_slack)
 
   # set new points in preparation for new gradient calculation
   for (s,pt) in enumerate(meas_pts[(lenm+1):end])
@@ -174,8 +183,8 @@ end
 """
     $SIGNATURES
 
-Return a tuple of infoPerCoord vectors that result from input `fromVar::Int`'s `infoPerCoord`.
-For example, a binary `LinearRelative` factor has a one to one influence from the input to the one other variable.
+Return a tuple of infoPerCoord vectors that result from input variables as vector of `::Pair`, i.e. `fromVar::Int => infoPerCoord`.
+For example, a binary `LinearRelative` factor has a one-to-one influence from the input to the one other variable.
 
 Notes
 
@@ -197,7 +206,7 @@ fgc = FactorGradientsCached!(fct, varTypes, measurement, pts);
 fgc(measurement..., pts...)
 
 # check the perturbation influence through gradients on factor
-ret = calcPerturbationFromVariable(fgc, 1, [1;1])
+ret = calcPerturbationFromVariable(fgc, [1=>[1;1]])
 
 @assert isapprox(ret[2], [1;1])
 ```
@@ -210,20 +219,23 @@ Related
 [`FactorGradientsCached!`](@ref), [`checkGradientsToleranceMask`](@ref)
 """
 function calcPerturbationFromVariable(fgc::FactorGradientsCached!, 
-                                      fromVar::Int, 
-                                      infoPerCoord::AbstractVector;
+                                      from_var_ipc::AbstractVector{<:Pair};
                                       tol::Real=0.02*fgc._h )
   #
   blkszs = getCoordSizes(fgc)
-  @assert blkszs[fromVar] == length(infoPerCoord) "Expecting incoming length(infoPerCoord) to equal the block size for variable $fromVar, as per factor used to construct the FactorGradientsCached!: $(getFactorType(fgc.dfgfct))"
   # assume projection through pp-factor from first to second variable 
   # ipc values from first variable belief, and zero for second
   ipcAll = zeros(sum(blkszs))
-
-  # nextVar = minimum([fromVar+1; length(blkszs)])
-  curr_b = sum(blkszs[1:(fromVar-1)]) + 1
-  curr_e = sum(blkszs[1:fromVar])
-  ipcAll[curr_b:curr_e] .= infoPerCoord
+  
+  # set any incoming infoPerCoord values
+  for (fromVar, infoPC) in from_var_ipc
+    # check on sizes with print warning
+    (blkszs[fromVar] == length(infoPC)) ? nothing : @warn("Expecting incoming length(infoPerCoord) to equal the block size for variable $fromVar, as per factor used to construct the FactorGradientsCached!: $(getFactorType(fgc.dfgfct))")
+    # get range of interest
+    curr_b = sum(blkszs[1:(fromVar-1)]) + 1
+    curr_e = sum(blkszs[1:fromVar])
+    ipcAll[curr_b:curr_e] .= infoPC
+  end
   
   # clamp gradients below numerical solver resolution
   mask = checkGradientsToleranceMask(fgc, tol=tol)
@@ -249,6 +261,7 @@ function calcPerturbationFromVariable(fgc::FactorGradientsCached!,
 
   return tuple(ipcBlk...)
 end
+
 
 
 #

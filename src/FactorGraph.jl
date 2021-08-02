@@ -605,7 +605,7 @@ function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
       M = getManifold(cf.factor)
       return manifold_dimension(M)
     catch
-      @warn "no method getManifold(::$T), calcZDim will attempt legacy length(sample) method instead"
+      @warn "no method getManifold(::$(string(T))), calcZDim will attempt legacy length(sample) method instead"
     end
   end
   
@@ -626,22 +626,23 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
                                 multihypo::Union{Nothing, Distributions.Categorical}=nothing,
                                 nullhypo::Real=0.0,
                                 threadmodel=MultiThreaded,
-                                inflation::Real=0.0  ) where {T <: FunctorInferenceType}
+                                inflation::Real=0.0,
+                                _blockRecursion::Bool=false  ) where {T <: AbstractFactor}
   #
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
   # FIXME stop using Any, see #1321
-  varParams = Vector{Vector{Any}}()
-  maxlen, sfidx, mani = prepareparamsarray!(varParams, Xi, nothing, 0) # Nothing for init.
+  varParamsAll = Vector{Vector{Any}}()
+  maxlen, sfidx, mani = prepareparamsarray!(varParamsAll, Xi, nothing, 0) # Nothing for init.
 
   # standard factor metadata
   sflbl = 0==length(Xi) ? :null : getLabel(Xi[end])
-  fmd = FactorMetadata(Xi, getLabel.(Xi), varParams, sflbl, nothing)
+  fmd = FactorMetadata(Xi, getLabel.(Xi), varParamsAll, sflbl, nothing)
   
   # create a temporary CalcFactor object for extracting the first sample
   # TODO, deprecate this:  guess measurement points type
   # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
-  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, varParams) # (Vector{MeasType}(),)
+  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, varParamsAll) # (Vector{MeasType}(),)
   
   # get a measurement sample
   meas_single = sampleFactor(_cf, 1)
@@ -662,19 +663,25 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   varTypes::Vector{DataType} = typeof.(getVariableType.(Xi))
   gradients = nothing
   # prepare new cached gradient lambdas (attempt)
-  # try
-  #   measurement = tuple(((x->x[1]).(meas_single))...)
-  #   pts = tuple(((x->x[1]).(varParams))...)
-  #   gradients = FactorGradientsCached!(usrfnc, varTypes, measurement, pts);
-  # catch e
-  #   @warn "Unable to create measurements and gradients for $usrfnc during prep of CCW, falling back on no-partial information assumption."
-  # end
+  try
+    if (!_blockRecursion) && usrfnc isa AbstractRelative
+      # take first value from each measurement-tuple-element
+      measurement_ = map(x->x[1], meas_single)
+      # take the first value from each variable param
+      pts_ = map(x->x[1], varParamsAll)
+      # FIXME, only using first meas and params values at this time...
+      # NOTE, must block recurions here, since FGC uses this function to calculate numerical gradients on a temp fg.
+      gradients = FactorGradientsCached!(usrfnc, tuple(varTypes...), measurement_, tuple(pts_...), _blockRecursion=true);
+    end
+  catch e
+    @warn "Unable to create measurements and gradients for $usrfnc during prep of CCW, falling back on no-partial information assumption."
+  end
 
   ccw = CommonConvWrapper(
           usrfnc,
           PointType[],
           zdim,
-          varParams,
+          varParamsAll,
           fmd,
           specialzDim = hasfield(T, :zDim),
           partial = ispartl,
@@ -707,7 +714,8 @@ function getDefaultFactorData(dfg::AbstractDFG,
                               potentialused::Bool = false,
                               edgeIDs = Int[],
                               solveInProgress = 0,
-                              inflation::Real=getSolverParams(dfg).inflation ) where T <: FunctorInferenceType
+                              inflation::Real=getSolverParams(dfg).inflation,
+                              _blockRecursion::Bool=false ) where T <: FunctorInferenceType
   #
 
   # prepare multihypo particulars
@@ -715,7 +723,7 @@ function getDefaultFactorData(dfg::AbstractDFG,
   mhcat, nh = parseusermultihypo(multihypo, nullhypo)
 
   # allocate temporary state for convolutional operations (not stored)
-  ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel, inflation=inflation)
+  ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel, inflation=inflation, _blockRecursion=_blockRecursion)
 
   # and the factor data itself
   return FunctionNodeData{typeof(ccw)}(eliminated, potentialused, edgeIDs, ccw, multihypo, ccw.certainhypo, nullhypo, solveInProgress, inflation)
@@ -1188,7 +1196,8 @@ function DFG.addFactor!(dfg::AbstractDFG,
                         threadmodel=SingleThreaded,
                         suppressChecks::Bool=false,
                         inflation::Real=getSolverParams(dfg).inflation,
-                        namestring::Symbol = assembleFactorName(dfg, Xi)  )
+                        namestring::Symbol = assembleFactorName(dfg, Xi),
+                        _blockRecursion::Bool=false  )
   #
   # depcrecation
 
@@ -1199,7 +1208,8 @@ function DFG.addFactor!(dfg::AbstractDFG,
                                     multihypo=multihypo, 
                                     nullhypo=nullhypo, 
                                     threadmodel=threadmodel,
-                                    inflation=inflation)
+                                    inflation=inflation,
+                                    _blockRecursion=_blockRecursion)
   newFactor = DFGFactor(Symbol(namestring),
                         varOrderLabels,
                         solverData;

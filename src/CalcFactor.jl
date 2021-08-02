@@ -114,11 +114,12 @@ function calcFactorResidualTemporary( fct::AbstractRelative,
                                       measurement::Tuple,
                                       varTypes::Tuple,
                                       pts::Tuple;
-                                      tfg::AbstractDFG = initfg() )
+                                      tfg::AbstractDFG = initfg(),
+                                      _blockRecursion::Bool=false )
   #
 
   # build a new temporary graph
-  _, _dfgfct = _buildGraphByFactorAndTypes!(fct, varTypes, pts, dfg=tfg)
+  _, _dfgfct = _buildGraphByFactorAndTypes!(fct, varTypes, pts, dfg=tfg, _blockRecursion=_blockRecursion)
   
   # get a fresh measurement if needed
   _measurement = if length(measurement) != 0
