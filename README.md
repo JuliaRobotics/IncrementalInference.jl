@@ -8,7 +8,6 @@ Stable v0.23 | Stable v0.24 | Dev | Coverage | Documentation
 
 
 
-
 [doi-img]: https://zenodo.org/badge/55802838.svg
 [doi-url]: https://zenodo.org/badge/latestdoi/55802838
 
@@ -35,30 +34,26 @@ Stable v0.23 | Stable v0.24 | Dev | Coverage | Documentation
 
 Optimization routines for incremental non-parametric and parametric solutions based on factor graphs and the Bayes (Junction) tree implemented in the [Julia language](http://www.julialang.org/) (and [JuliaPro](http://www.juliacomputing.com)).
 
-<p align="center">
-<a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/JuliaRobotics/IncrementalInference.jl/master/doc/images/mmfgbt.gif" alt="IMAGE ALT TEXT HERE" width="480" height="320" /></a>
-</p>
-
-This package furthermore forms a cardinal piece of the [Caesar.jl](https://github.com/JuliaRobotics/Caesar.jl) robotics toolkit, including 3D visualization and database interaction, which can serve as a base station for a robotic platform. A standalone [Robot Motion Estimate](https://github.com/JuliaRobotics/RoME.jl) package is also available.
-
 
 Introduction
-------------
+============
 
-This package implements [Multi-modal iSAM [1]](http://frc.ri.cmu.edu/~kaess/pub/Fourie16iros.pdf), a descendant of the iSAM2 [3] algorithm. The main algorithm is focused towards hybrid non-parametric and parametric inference over large factor graphs. Inference is performed via the Bayes tree (similar to Junction tree) where non-parametric and parametric solutions are based on belief propagation -- also known as the sum-product algorithm.  Immediate benefits such as branch recycling is carried over as well.  Also see [related research work here [2]](https://darchive.mblwhoilibrary.org/bitstream/handle/1912/9305/Fourie_thesis.pdf?sequence=1).
+This package implements Multi-Modal iSAM (MM-iSAM) algorithm ([see references](http://www.juliarobotics.org/Caesar.jl/latest/refs/literature/)) which is focused towards hybrid non-parametric and parametric inference/state-estimation over large factor graphs.  Inference is performed via the Bayes (junction) tree where non-parametric and parametric solutions are based on marginal-joint belief propagation (an approximate sum-product algorithm).  Many benefits such as clique recycling is available.  See the common Caesar.jl documenation for more details.  Note, that IncrementalInference.jl **does not** have to be used with Caesar.jl, and aims to only implement the inference operations against mathematical abstractions such as Manifolds.jl. 
+
+This package forms a cardinal piece of the [Caesar.jl](https://github.com/JuliaRobotics/Caesar.jl) robotics toolkit, including 3D visualization and database interaction, which can serve as a base station for a robotic platform. A standalone [Robot Motion Estimate](https://github.com/JuliaRobotics/RoME.jl) package extends the available variables, factors, and utilities for use in robotic navigation.
 
 Installation
 ------------
+
+Install the package from inside Julia
+```julia
+(v1.6) pkg> add IncrementalInference
+```
 
 Pre-install the following packages system wide packages[, and easily draw factor graph and Bayes tree]:
 ```bash
 sudo apt-get install hdf5-tools
 sudo apt-get install graphviz xdot # optional
-```
-
-Install the package from inside Julia
-```julia
-(v1.5) pkg> add IncrementalInference
 ```
 
 Examples
@@ -71,24 +66,18 @@ Contributors
 
 We are grateful for many, many contributions within the Julia package ecosystem -- see the [`Project.toml`](https://github.com/JuliaRobotics/Caesar.jl/blob/master/Project.toml) files for a far reaching list of upstream packages and contributions.
 
-Consider citing our work:
-
-```
-@misc{caesarjl,
-  author = "Contributors and Dependencies",
-  title =  "Caesar.jl",
-  year =   2020,
-  url =    "https://github.com/JuliaRobotics/Caesar.jl"
-}
-```
+Consider citing our work using the common reference at [Caesar.jl Citation with IncrementalInference.jl DOI](https://github.com/JuliaRobotics/Caesar.jl#contributors)
 
 Get Involved, and Code of Conduct
 =================================
 
 This project adheres to the [JuliaRobotics code of conduct](https://github.com/JuliaRobotics/administration/blob/master/code_of_conduct.md), and we invite contributions or comments from the community.  Use the slack channel, Julia Discourse, or Github issues to get in touch.
 
-
 References
 ==========
 
 See [references of interest here](http://www.juliarobotics.org/Caesar.jl/latest/refs/literature/)
+
+<p align="center">
+<a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/JuliaRobotics/IncrementalInference.jl/master/doc/images/mmfgbt.gif" alt="IMAGE ALT TEXT HERE" width="480" height="320" /></a>
+</p>
