@@ -42,6 +42,8 @@ This package implements Multi-Modal iSAM (MM-iSAM) algorithm ([see references](h
 
 This package forms a cardinal piece of the [Caesar.jl](https://github.com/JuliaRobotics/Caesar.jl) robotics toolkit, including 3D visualization and database interaction, which can serve as a base station for a robotic platform. A standalone [Robot Motion Estimate](https://github.com/JuliaRobotics/RoME.jl) package extends the available variables, factors, and utilities for use in robotic navigation.
 
+Please contact info@navability.io for further support on this package, [NavAbility](https://www.navability.io). 
+
 Installation
 ------------
 
@@ -61,6 +63,10 @@ Examples
 
 This library is built as a back-end solver which is closer to the mathetical operations can be easily modified and extended for a variety of uses. Specific emphasis is placed on allowing outside user defined variables and factor definitions to be used. The current major use case is through [RoME.jl](http://github.com/JuliaRobotics/RoME.jl) and [Caesar.jl](http:///www.github.com/JuliaRobotics/Caesar.jl) which introduces various sensor measurement and motion manifold functions for use in Robot Motion Estimate (a.k.a SLAM).  See these and related packages for documentation and examples.
 
+<p align="center">
+<a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/JuliaRobotics/IncrementalInference.jl/master/doc/images/mmfgbt.gif" alt="IMAGE ALT TEXT HERE" width="480" height="320" /></a>
+</p>
+
 Contributors
 ============
 
@@ -77,7 +83,3 @@ References
 ==========
 
 See [references of interest here](http://www.juliarobotics.org/Caesar.jl/latest/refs/literature/)
-
-<p align="center">
-<a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/JuliaRobotics/IncrementalInference.jl/master/doc/images/mmfgbt.gif" alt="IMAGE ALT TEXT HERE" width="480" height="320" /></a>
-</p>
