@@ -6,6 +6,9 @@ using TensorCast
 using Manifolds
 using Test
 
+# overloading with new dispatch
+import IncrementalInference: getSample, getManifold
+
 ##
 
 @testset "test manual call to gradient lambda utilities" begin
@@ -63,8 +66,6 @@ ret = calcPerturbationFromVariable(gradFct, 1, [1;1])
 ##
 end
 
-
-@testset "test a partial, binary relative factor perturbation (a new user factor)" begin
 ##
 
 struct TestPartialRelative2D{B <: SamplableBelief} <: IIF.AbstractRelativeMinimize
@@ -74,9 +75,7 @@ end
 # standard helper with partial set
 TestPartialRelative2D(z::SamplableBelief) = TestPartialRelative2D(z, (2,))
 
-# overloading with new dispatch
-import IncrementalInference: getSample, getManifold
-
+# imported earlier for overload
 getManifold(fnc::TestPartialRelative2D) = TranslationGroup(2)
 getSample(cf::CalcFactor{<:TestPartialRelative2D},N=1) = ([rand(cf.factor.Z) for _ in 1:N], )
 
@@ -84,6 +83,10 @@ getSample(cf::CalcFactor{<:TestPartialRelative2D},N=1) = ([rand(cf.factor.Z) for
 (cf::CalcFactor{<:TestPartialRelative2D})(z, x1, x2) = x2[2:2] - (x1[2:2] + z[1:1])
 
 ##
+
+@testset "test a partial, binary relative factor perturbation (a new user factor)" begin
+##
+
 
 tpr = TestPartialRelative2D(Normal(10,1))
 
