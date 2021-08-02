@@ -33,25 +33,23 @@ function (dp::CalcFactor{<:DevelopPartialPairwise})(meas,
                                                     x1,
                                                     x2  )
   #
-  # v0.21+
-  # @info "DEVPART" "$meas" "$x1" "$x2"
   return meas[1] - (x2[2]-x1[2])
 end
 
 
-##
+## prep
 
-
-N=100 # 50
-fg = initfg()
-
-
-v1 = addVariable!(fg,:x1,ContinuousEuclid{2}(),N=N)
+N=100
 
 pr = DevelopDim2(MvNormal([0.0;0.0], diagm([0.01;0.01])))
-f1  = addFactor!(fg,[:x1],pr)
-
 dp = DevelopPartial(Normal(2.0, 1.0),(1,))
+
+## build graph
+
+fg = initfg()
+
+v1 = addVariable!(fg,:x1,ContinuousEuclid{2}(),N=N)
+f1  = addFactor!(fg,[:x1],pr)
 f2  = addFactor!(fg,[:x1],dp, graphinit=false)
 
 doautoinit!(fg, :x1)
@@ -106,8 +104,16 @@ X1_ = approxConvBelief(fg, :x1f2, :x1)
 ##
 end
 
-@testset "test solving of factor graph" begin
 
+@testset "test partial info per coord through relative convolution (conditional)" begin
+
+@test_broken false
+
+end
+
+
+@testset "test solving of factor graph" begin
+##
 
 getSolverParams(fg).N = N
 tree, smt, hist = solveTree!(fg)
@@ -117,12 +123,19 @@ pts_ = getVal(fg, :x1)
 @test norm(Statistics.mean(pts,dims=2)[1] .- [0.0]) < 0.4
 @test norm(Statistics.mean(pts,dims=2)[2] .- [0.0]) < 0.4
 
-
+##
 end
 # plotKDE(getBelief(fg, :x1),levels=3)
 
 
 
+## partial relative gradient and graph
+
+dpp = DevelopPartialPairwise(Normal(10.0, 1.0))
+
+# measurement = ([10.0;], )
+# pts = ([0;0.0], [0;10.0])
+# gradients = FactorGradientsCached!(dpp, (ContinuousEuclid{2}, ContinuousEuclid{2}), measurement, pts);
 
 ##
 
@@ -130,7 +143,6 @@ end
 v2 = addVariable!(fg,:x2,ContinuousEuclid{2},N=N)
 
 
-dpp = DevelopPartialPairwise(Normal(10.0, 1.0))
 f3  = addFactor!(fg,[:x1;:x2],dpp)
 
 
@@ -254,8 +266,8 @@ val2_ = getVal(v1)
 val_, = predictbelief(fg, v2, [f3;f4], N=N)
 @cast val[i,j] := val_[j][i]
 # plotKDE(kde!(val),levels=3)
-@test norm(Statistics.mean(val,dims=2)[1] .- [-20.0]) < 3.0
-@test norm(Statistics.mean(val,dims=2)[2] .- [10.0]) < 3.0
+@test_broken norm(Statistics.mean(val,dims=2)[1] .- [-20.0]) < 0.01
+@test_broken norm(Statistics.mean(val,dims=2)[2] .- [10.0]) < 0.01
 @test (Statistics.std(val,dims=2)[1] .- 1.0) < 3.0
 @test (Statistics.std(val,dims=2)[2] .- 1.0) < 3.0
 

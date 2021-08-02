@@ -631,17 +631,17 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
   # FIXME stop using Any, see #1321
-  ARR = Vector{Vector{Any}}()
-  maxlen, sfidx, mani = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
+  varParams = Vector{Vector{Any}}()
+  maxlen, sfidx, mani = prepareparamsarray!(varParams, Xi, nothing, 0) # Nothing for init.
 
   # standard factor metadata
   sflbl = 0==length(Xi) ? :null : getLabel(Xi[end])
-  fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, sflbl, nothing)
+  fmd = FactorMetadata(Xi, getLabel.(Xi), varParams, sflbl, nothing)
   
   # create a temporary CalcFactor object for extracting the first sample
   # TODO, deprecate this:  guess measurement points type
   # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
-  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, ARR) # (Vector{MeasType}(),)
+  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, varParams) # (Vector{MeasType}(),)
   
   # get a measurement sample
   meas_single = sampleFactor(_cf, 1)
@@ -658,12 +658,13 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
     Int[]
   end
 
-  varTypes = typeof.(getVariableType.(Xi))
+  # as per struct CommonConvWrapper
+  varTypes::Vector{DataType} = typeof.(getVariableType.(Xi))
   gradients = nothing
   # prepare new cached gradient lambdas (attempt)
   # try
   #   measurement = tuple(((x->x[1]).(meas_single))...)
-  #   pts = tuple(((x->x[1]).(ARR))...)
+  #   pts = tuple(((x->x[1]).(varParams))...)
   #   gradients = FactorGradientsCached!(usrfnc, varTypes, measurement, pts);
   # catch e
   #   @warn "Unable to create measurements and gradients for $usrfnc during prep of CCW, falling back on no-partial information assumption."
@@ -673,7 +674,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
           usrfnc,
           PointType[],
           zdim,
-          ARR,
+          varParams,
           fmd,
           specialzDim = hasfield(T, :zDim),
           partial = ispartl,

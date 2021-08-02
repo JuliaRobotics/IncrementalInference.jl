@@ -376,7 +376,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 skipSolve::Bool=false,
                                 _slack=nothing  ) where {T <: AbstractFactor}
   #
-  # @info "EVALSPEC" string(measurement) inflateCycles
+  
   # Prep computation variables
   # NOTE #1025, should FMD be built here...
   sfidx, maxlen, mani = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N, needFreshMeasurements=needFreshMeasurements, solveKey=solveKey)
@@ -408,7 +408,13 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                             _slack=_slack )
   #
   # do info per coord
-  ipc = ones(getDimension(Xi[sfidx]))
+  ipc = if ccwl._gradients === nothing 
+    ones(getDimension(Xi[sfidx]))
+  else
+    # calcPerturbationFromVariable(ccwl._gradients, 2, ipc_)
+    ones(getDimension(Xi[sfidx]))
+  end
+
   # return the found points, and info per coord
   return ccwl.params[ccwl.varidx], ipc
 end
