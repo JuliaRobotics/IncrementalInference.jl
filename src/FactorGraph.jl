@@ -658,7 +658,8 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
     Int[]
   end
 
-  varTypes = tuple( typeof.(getVariableType.(Xi))... )
+  # as per struct CommonConvWrapper
+  varTypes::Vector{DataType} = typeof.(getVariableType.(Xi))
   gradients = nothing
   # prepare new cached gradient lambdas (attempt)
   # try

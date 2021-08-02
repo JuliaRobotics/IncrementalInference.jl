@@ -300,7 +300,7 @@ function CommonConvWrapper( fnc::T,
                                               perturb=perturb, res=res )).(1:Threads.nthreads()),
                             inflation,
                             partialDims,  # SVector(Int32.()...)
-                            [vartypes...],
+                            DataType[vartypes...],
                             gradients)
 end
 
