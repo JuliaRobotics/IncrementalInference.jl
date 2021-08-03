@@ -63,14 +63,17 @@ end
 After deserializing a factor using decodePackedType, use this to
 completely rebuild the factor's CCW and user data.
 """
-function rebuildFactorMetadata!(dfg::AbstractDFG{SolverParams}, factor::DFGFactor)
+function rebuildFactorMetadata!(dfg::AbstractDFG{SolverParams}, 
+                                factor::DFGFactor,
+                                neighbors = map(vId->getVariable(dfg, vId), getNeighbors(dfg, factor)) )
+  #
   # Set up the neighbor data
-  neighbors = map(vId->getVariable(dfg, vId), getNeighbors(dfg, factor))
-  neighborUserData = map(v->getVariableType(v), neighbors)
 
   # Rebuilding the CCW
   fsd = getSolverData(factor)
-  ccw_new = getDefaultFactorData( dfg, neighbors, getFactorType(factor), 
+  fnd_new = getDefaultFactorData( dfg, 
+                                  neighbors, 
+                                  getFactorType(factor), 
                                   multihypo=fsd.multihypo,
                                   nullhypo=fsd.nullhypo,
                                   # special inflation override 
@@ -79,7 +82,29 @@ function rebuildFactorMetadata!(dfg::AbstractDFG{SolverParams}, factor::DFGFacto
                                   potentialused=fsd.potentialused,
                                   edgeIDs=fsd.edgeIDs,
                                   solveInProgress=fsd.solveInProgress)
-  setSolverData!(factor, ccw_new)
+  #
+  
+  factor_ = if typeof(fnd_new) != typeof(getSolverData(factor))
+    # must change the type of factor solver data FND{CCW{...}}
+    # create a new factor
+    factor__ = DFGFactor(getLabel(factor),
+                        getTimestamp(factor),
+                        factor.nstime,
+                        getTags(factor),
+                        fnd_new,
+                        getSolvable(factor),
+                        Tuple(getVariableOrder(factor)))
+    #
+
+    # replace old factor in dfg with a new one
+    deleteFactor!(dfg, factor)
+    addFactor!(dfg, factor__)
+
+    factor__
+  else
+    setSolverData!(factor, fnd_new)
+    factor
+  end
 
   #... Copying neighbor data into the factor?
   # JT TODO it looks like this is already updated in getDefaultFactorData -> prepgenericconvolution
@@ -88,7 +113,7 @@ function rebuildFactorMetadata!(dfg::AbstractDFG{SolverParams}, factor::DFGFacto
   #   ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(neighborUserData)
   # end
 
-  return factor
+  return factor_
 end
 
 

@@ -19,6 +19,7 @@ The list below highlights major breaking changes, and please note that significa
 - Deprecating use of `ensureAllInitialized!`, use `initAll!` instead.
 - New helper function `randToPoints(::SamplableBelief, N=1)::Vector{P}` to help with `getSample` for cases with new `ManifoldKernelDensity` beliefs for manifolds containing points of type `P`.
 - Upstream `calcHelix_T` canonical generator utility from RoME.jl.
+- Deserialization of factors with DFG needs new API and change of solverData and CCW type in factor.
 
 # Major changes in v0.24
 
