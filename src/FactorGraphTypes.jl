@@ -242,7 +242,7 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
   # values specific to one complete convolution operation
   # FIXME ? JT - What if all points are not on the same manifold?  See #1321
   #          DF, just make it NamedTuple? -- some detail on pinning CCW down at construction only
-  params::Vector{Vector{P}} # parameters passed to each hypothesis evaluation event on user function
+  params::Vector{<:AbstractVector{P}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
   # FIXME make type stable
   measurement::Tuple # user defined measurement values for each approxConv operation
@@ -263,7 +263,7 @@ end
 function CommonConvWrapper( fnc::T,
                             X::AbstractVector{P},
                             zDim::Int,
-                            params::AbstractVector{Vector{Q}},
+                            params::AbstractVector{<:AbstractVector{Q}},
                             factormetadata::FactorMetadata;
                             specialzDim::Bool=false,
                             partial::Bool=false,
