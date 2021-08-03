@@ -68,6 +68,7 @@ import DistributedFactorGraphs: compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!
 import DistributedFactorGraphs: getDimension, getManifold, getPointType, getPointIdentity
 import DistributedFactorGraphs: getPPE, getPPEDict
+import DistributedFactorGraphs: getFactorOperationalMemoryType
 
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable
@@ -404,12 +405,11 @@ const BeliefArray{T} = Union{Array{T,2}, Adjoint{T, Array{T,2}} }
 
 # regular
 include("entities/SolverParams.jl")
-include("entities/FactorOperationalMemory.jl")
 
 # JT TODO move to somewhere more fitting? (DF, perhaps not remember its IIF.SolverParams)
 const InMemDFGType = DFG.LightDFG{SolverParams}
 
-import DistributedFactorGraphs: getFactorOperationalMemoryType
+include("entities/FactorOperationalMemory.jl")
 
 getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 getFactorOperationalMemoryType(dfg::NoSolverParams) = CommonConvWrapper
@@ -417,7 +417,7 @@ getFactorOperationalMemoryType(dfg::NoSolverParams) = CommonConvWrapper
 include("AliasScalarSampling.jl")
 include("entities/OptionalDensities.jl")
 include("BeliefTypes.jl")
-include("CalcFactor.jl")
+include("services/CalcFactor.jl")
 
 
 include("Factors/GenericFunctions.jl")
