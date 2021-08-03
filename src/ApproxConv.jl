@@ -409,8 +409,9 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   ipc = if ccwl._gradients === nothing 
     ones(getDimension(Xi[sfidx]))
   else
-    # calcPerturbationFromVariable(ccwl._gradients, 2, ipc_)
-    ones(getDimension(Xi[sfidx]))
+    ipc_ = ones(getDimension(Xi[sfidx]))
+    # calcPerturbationFromVariable(ccwl._gradients, 2, ipc_) # TODO, WIP
+    ipc_                                                     # TODO, WIP
   end
 
   # return the found points, and info per coord
