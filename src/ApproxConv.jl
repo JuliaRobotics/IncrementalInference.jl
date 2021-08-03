@@ -597,7 +597,7 @@ Notes
 
 Example
 ```julia
-B = _evalFactorTemporary!(EuclidDistance, ([10;],), 2, [(ContinuousScalar,[0]); (ContinuousScalar,[9.5;])] )
+B = _evalFactorTemporary!(EuclidDistance, (ContinuousScalar, ContinuousScalar), 2, ([10;],), ([0.],[9.5]) )
 # should return `B = 10`
 ```
 
@@ -606,9 +606,9 @@ Related
 [`evalFactor`](@ref), [`calcFactorResidual`](@ref), [`testFactorResidualBinary`](@ref)
 """
 function _evalFactorTemporary!( fct::AbstractFactor,
+                                varTypes::Tuple,
                                 sfidx::Int,  # solve for index, assuming variable order for fct
                                 meas_single::Tuple,
-                                varTypes::Tuple,
                                 pts::Tuple;
                                 tfg::AbstractDFG=initfg(),
                                 solveKey::Symbol=:default,
