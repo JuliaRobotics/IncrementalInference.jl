@@ -395,13 +395,15 @@ export *,
 
 
 
-
 export  buildCliqSubgraph_StateMachine
 
 
 const NothingUnion{T} = Union{Nothing, T}
+const BeliefArray{T} = Union{Array{T,2}, Adjoint{T, Array{T,2}} }
+
 
 # regular
+include("entities/SolverParams.jl")
 include("FactorGraphTypes.jl")
 
 # JT TODO move to somewhere more fitting? (DF, perhaps not remember its IIF.SolverParams)
