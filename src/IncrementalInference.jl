@@ -421,13 +421,14 @@ include("entities/FactorGradients.jl")
 include("AliasScalarSampling.jl")
 include("HeatmapSampler.jl")
 
-include("BeliefTypes.jl")
+include("entities/BeliefTypes.jl")
 
-
+# factors needed for belief propagation on the tree
 include("Factors/MsgPrior.jl")
-include("CliqueTypes.jl")
 
-include("JunctionTreeTypes.jl")
+include("entities/CliqueTypes.jl")
+include("entities/JunctionTreeTypes.jl")
+
 include("FactorGraph.jl")
 include("SerializingDistributions.jl")
 include("SerializationMKD.jl")
