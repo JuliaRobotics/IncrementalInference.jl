@@ -680,10 +680,10 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   gradients = nothing
   # prepare new cached gradient lambdas (attempt)
   try
-    # this try block definitely fails on deserialization, due to empty DFGVariable[] vector here:
     # https://github.com/JuliaRobotics/IncrementalInference.jl/blob/db7ff84225cc848c325e57b5fb9d0d85cb6c79b8/src/DispatchPackedConversions.jl#L46
     # also https://github.com/JuliaRobotics/DistributedFactorGraphs.jl/issues/590#issuecomment-891450762
-    if (!_blockRecursion) && usrfnc isa AbstractRelative
+    # FIXME, suppressing nested gradient propagation on GenericMarginals for the time being, see #1010
+    if (!_blockRecursion) && usrfnc isa AbstractRelative && !(usrfnc isa GenericMarginal)
       # take first value from each measurement-tuple-element
       measurement_ = map(x->x[1], meas_single)
       # compensate if no info available during deserialization

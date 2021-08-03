@@ -59,7 +59,7 @@ end
 #   return msst_
 # end
 
-@deprecate testFactorResidualBinary(fct, T1::InstanceType{InferenceVariable}, T2::InstanceType{InferenceVariable}, param1, param2, meas::Tuple) calcFactorResidualTemporary(fct, meas, (T1,param1), (T2,param2))
+@deprecate testFactorResidualBinary(fct, T1::InstanceType{InferenceVariable}, T2::InstanceType{InferenceVariable}, param1, param2, meas::Tuple) calcFactorResidualTemporary(fct, (T1,T2), meas, (param1,param2))
 
 # """
 #     $SIGNATURES
