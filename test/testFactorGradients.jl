@@ -38,9 +38,15 @@ J__
 @test norm( J__ - [0 0 1 0; 0 0 0 1; 1 0 0 0; 0 1 0 0] ) < 1e-4
 
 
-##
+## build new functor container
 
 gradFct = FactorGradientsCached!(pp, varTypes, measurement, pts);
+
+## test grad calc for current values
+
+J_c = gradFct()
+
+@test norm( J_c - [0 0 1 0; 0 0 0 1; 1 0 0 0; 0 1 0 0] ) < 1e-4
 
 ##
 
