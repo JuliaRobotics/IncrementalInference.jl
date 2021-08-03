@@ -2,10 +2,11 @@
 using Test
 using IncrementalInference
 # going to introduce two new constraint mutable structs
-import IncrementalInference: getSample
 using Statistics
 using TensorCast
+using Manifolds
 
+import IncrementalInference: getManifold, getSample
 
 ##
 
@@ -27,6 +28,8 @@ mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
   partial::Tuple
   DevelopPartialPairwise(x::Distribution) = new(x, (2,))
 end
+getManifold(::IIF.InstanceType{DevelopPartialPairwise}) = TranslationGroup(1)
+
 getSample(cf::CalcFactor{<:DevelopPartialPairwise}, N::Int=1) = ([rand(cf.factor.x, 1)[:] for _ in 1:N], )
 
 function (dp::CalcFactor{<:DevelopPartialPairwise})(meas,
@@ -93,7 +96,7 @@ pts_ = approxConv(fg, getLabel(f2), :x1, N=N)
 end
 
 
-@testset "check that partials are received through convolutions" begin
+@testset "check that partials are received through convolutions of prior" begin
 ##
 
 # check that a partial belief is obtained
@@ -102,13 +105,6 @@ X1_ = approxConvBelief(fg, :x1f2, :x1)
 @test isPartial(X1_)
 
 ##
-end
-
-
-@testset "test partial info per coord through relative convolution (conditional)" begin
-
-@test_broken false
-
 end
 
 
@@ -128,30 +124,52 @@ end
 # plotKDE(getBelief(fg, :x1),levels=3)
 
 
-
 ## partial relative gradient and graph
-
-dpp = DevelopPartialPairwise(Normal(10.0, 1.0))
-
-# measurement = ([10.0;], )
-# pts = ([0;0.0], [0;10.0])
-# gradients = FactorGradientsCached!(dpp, (ContinuousEuclid{2}, ContinuousEuclid{2}), measurement, pts);
-
-##
-
 
 v2 = addVariable!(fg,:x2,ContinuousEuclid{2},N=N)
 
-
+dpp = DevelopPartialPairwise(Normal(10.0, 1.0))
 f3  = addFactor!(fg,[:x1;:x2],dpp)
-
 
 dp2 = DevelopPartial( Normal(-20.0, 1.0), (1,) )
 f4  = addFactor!(fg,[:x2;], dp2, graphinit=false)
+
 doautoinit!(fg, :x2)
 
-# drawGraph(fg, show=true)
+##
 
+@testset "test partial info per coord through relative convolution (conditional)" begin
+##
+
+one_meas = ([10.0;], )
+pts = ([0;0.0], [0;10.0])
+gradients = FactorGradientsCached!(dpp, (ContinuousEuclid{2}, ContinuousEuclid{2}), one_meas, pts);
+
+##
+
+# check that the gradients can be calculated
+J = gradients(one_meas..., pts...)
+
+@test size(J) == (4,4)
+@test norm(J - [0 0 0 0; 0 0 0 1; 0 0 0 0; 0 1 0 0] ) < 1e-4
+
+## check perturbation logic
+
+prtb = calcPerturbationFromVariable(gradients, [1=>[1;1]])
+
+# self variation is taken as 0 at this time
+@test isapprox( prtb[1], [0;0] )
+# variable 1 influences 2 only through partial dimension 2 (as per DevelopPartialPairwise)
+@test isapprox( prtb[2], [0;1] )
+
+##  test evaluation through the convolution operation withing a factor graph
+
+# add relative IPC calculation inside evalFactor
+bel = approxConvBelief(fg, getLabel(f3), :x2)
+@test_broken isPartial(bel)
+
+##
+end
 
 ##
 

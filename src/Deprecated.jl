@@ -25,6 +25,8 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+@deprecate calcPerturbationFromVariable( fgc::FactorGradientsCached!, fromVar::Int, infoPerCoord::AbstractVector;tol::Real=0.02*fgc._h ) calcPerturbationFromVariable(fgc, [fromVar => infoPerCoord;], tol=tol )
+
 @deprecate findRelatedFromPotential(w...;kw...) (calcProposalBelief(w...;kw...),)
 
 # function generateNullhypoEntropy( val::AbstractMatrix{<:Real},

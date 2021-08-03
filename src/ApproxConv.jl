@@ -399,9 +399,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   mani = getManifold(getVariableType(Xi[sfidx]))
 
   # perform the numeric solutions on the indicated elements
-  # error("ccwl.xDim=$(ccwl.xDim)")
   # FIXME consider repeat solve as workaround for inflation off-zero 
-  # @info "EVALSPEC END" ccwl.varidx string(ccwl.params) string(allelements)
   computeAcrossHypothesis!( ccwl, allelements, activehypo, certainidx, 
                             sfidx, maxlen, mani, spreadNH=spreadNH, 
                             inflateCycles=inflateCycles, skipSolve=skipSolve,

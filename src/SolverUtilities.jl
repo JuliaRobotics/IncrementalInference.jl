@@ -165,12 +165,13 @@ function _buildGraphByFactorAndTypes!(fct::AbstractFactor,
                                       _allVars::AbstractVector{Symbol} = sortDFG(ls(dfg, destPattern)),
                                       currLabel::Symbol = 0 < length(_allVars) ? _allVars[end] : Symbol(destPrefix, 0),
                                       currNumber::Integer = reverse(match(r"\d+", reverse(string(currLabel))).match) |> x->parse(Int,x),
-                                      graphinit::Bool = false  )
+                                      graphinit::Bool = false,
+                                      _blockRecursion::Bool=false  )
   #
   
   # TODO generalize beyond binary
   len = length(varTypes)
-  vars = [Symbol(destPrefix, s_) for s_ in (currNumber .+ (1:len))]
+  vars = Symbol[Symbol(destPrefix, s_) for s_ in (currNumber .+ (1:len))]
   for (s_, vTyp) in enumerate(varTypes)
     # add the necessary variables
     exists(dfg, vars[s_]) ? nothing : addVariable!(dfg, vars[s_],  vTyp)
@@ -178,7 +179,7 @@ function _buildGraphByFactorAndTypes!(fct::AbstractFactor,
     ((0 < length(pts)) && (pts[s_] isa Nothing)) ? nothing : initManual!(dfg,  vars[s_], [pts[s_],], solveKey, bw=ones(getDimension(vTyp)))
   end
   # if newFactor then add the factor on vars, else assume only one existing factor between vars
-  _dfgfct = newFactor ? addFactor!(dfg, vars, fct, graphinit=graphinit) : getFactor(dfg, intersect((ls.(dfg, vars))...)[1] )
+  _dfgfct = newFactor ? addFactor!(dfg, vars, fct, graphinit=graphinit, _blockRecursion=_blockRecursion) : getFactor(dfg, intersect((ls.(dfg, vars))...)[1] )
   
   return dfg, _dfgfct
 end
