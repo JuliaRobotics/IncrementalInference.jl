@@ -409,20 +409,22 @@ include("entities/SolverParams.jl")
 # JT TODO move to somewhere more fitting? (DF, perhaps not remember its IIF.SolverParams)
 const InMemDFGType = DFG.LightDFG{SolverParams}
 
+
 include("entities/FactorOperationalMemory.jl")
 
-getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
-getFactorOperationalMemoryType(dfg::NoSolverParams) = CommonConvWrapper
 
-include("AliasScalarSampling.jl")
 include("entities/GraphConstraintTypes.jl")
 include("entities/OptionalDensities.jl")
+include("entities/FactorGradients.jl")
+
+# Special belief types for sampling as a distribution
+include("AliasScalarSampling.jl")
+include("HeatmapSampler.jl")
+
 include("BeliefTypes.jl")
 
 
-include("Factors/GenericFunctions.jl")
-include("Factors/MsgLikelihoods.jl")
-
+include("Factors/MsgPrior.jl")
 include("CliqueTypes.jl")
 
 include("JunctionTreeTypes.jl")
@@ -430,8 +432,6 @@ include("FactorGraph.jl")
 include("SerializingDistributions.jl")
 include("SerializationMKD.jl")
 include("DispatchPackedConversions.jl")
-
-include("Variables/DefaultVariables.jl")
 
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
@@ -443,21 +443,31 @@ include("JunctionTree.jl")
 include("TreeMessageAccessors.jl")
 include("TreeMessageUtils.jl")
 include("TreeBasedInitialization.jl")
-include("HeatmapSampler.jl")
 
-# special variables and factors, see RoME.jl for more examples
+
+
+# included variables of IIF, easy to extend in user's context
+include("Variables/DefaultVariables.jl")
+include("Variables/Circular.jl")
+
+# included factors, see RoME.jl for more examples
+include("Factors/GenericFunctions.jl")
+include("Factors/MsgLikelihoods.jl")
 include("Factors/Mixture.jl")
 include("Factors/DefaultPrior.jl")
 include("Factors/LinearRelative.jl")
 include("Factors/EuclidDistance.jl")
 include("Factors/Circular.jl")
-include("Variables/Circular.jl")
 include("Factors/PartialPrior.jl")
 include("Factors/PartialPriorPassThrough.jl")
 include("DefaultNodeTypes.jl") # older file
 
+
 # Refactoring in progress
 include("services/CalcFactor.jl")
+# gradient tools
+include("services/FactorGradients.jl")
+include("services/CliqueTypes.jl")
 
 
 # solving graphs
@@ -486,10 +496,6 @@ include("CanonicalGraphExamples.jl")
 include("AdditionalUtils.jl")
 include("SolverAPI.jl")
 
-# gradient tools
-include("entities/FactorGradients.jl")
-include("services/FactorGradients.jl")
-
 # Symbolic tree analysis files.
 include("AnalysisTools.jl")
 
@@ -501,11 +507,8 @@ include("Deprecated.jl")
 exportimg(pl) = error("Please do `using Gadfly` to allow image export.")
 function __init__()
   @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" include("RequireInteractiveUtils.jl")
-
   @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" include("EmbeddedPlottingUtils.jl")
-
   @require DifferentialEquations="0c46a032-eb83-5123-abaf-570d42b7fbaa" include("ODE/DERelative.jl")
-
   @require Interpolations="a98d9a8b-a2ab-59e6-89dd-64a1c18fca59" include("HeatmapSampler.jl")
 
   # combining neural networks natively into the non-Gaussian  factor graph object

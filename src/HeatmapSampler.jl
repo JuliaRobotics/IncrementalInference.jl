@@ -4,7 +4,7 @@
 
 # using Interpolations 
 
-# only export once the convenience constructors are available along with conditional Interpolations dependency
+# only export on Requires.jl
 export HeatmapDensityRegular
 
 ##
