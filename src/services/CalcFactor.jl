@@ -110,4 +110,74 @@ end
 
 
 
+
+function ConvPerThread( X::AbstractVector{P},
+                        zDim::Int,
+                        factormetadata::FactorMetadata;
+                        particleidx::Int=1,
+                        activehypo= 1:length(params),
+                        p::AbstractVector{<:Integer}=collect(1:1),
+                        perturb=zeros(zDim),
+                        res=zeros(zDim),
+                        thrid_ = 0  ) where P
+  #
+  return ConvPerThread{typeof(res), typeof(factormetadata), Any}( thrid_,
+                        particleidx,
+                        factormetadata,
+                        Int[activehypo;],
+                        Int[p...;],
+                        perturb,
+                        X,
+                        res )
+end
+
+
+
+function CommonConvWrapper( fnc::T,
+                            X::AbstractVector{P},
+                            zDim::Int,
+                            params::AbstractVector{<:AbstractVector{Q}},
+                            factormetadata::FactorMetadata;
+                            specialzDim::Bool=false,
+                            partial::Bool=false,
+                            hypotheses::H=nothing,
+                            certainhypo=nothing,
+                            activehypo= 1:length(params),
+                            nullhypo::Real=0,
+                            varidx::Int=1,
+                            measurement::Tuple=(Vector{Vector{Float64}}(),),  # FIXME should not be a Matrix
+                            particleidx::Int=1,
+                            xDim::Int=size(X,1),
+                            partialDims::AbstractVector{<:Integer}=collect(1:size(X,1)), # TODO make this SVector, and name partialDims
+                            perturb=zeros(zDim),
+                            res::AbstractVector{<:Real}=zeros(zDim),
+                            threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
+                            inflation::Real=3.0,
+                            vartypes=typeof.(getVariableType.(factormetadata.fullvariables)),
+                            gradients=nothing) where {T<:FunctorInferenceType,P,H,Q}
+  #
+  return  CommonConvWrapper(fnc,
+                            xDim,
+                            zDim,
+                            specialzDim,
+                            partial,
+                            hypotheses,
+                            certainhypo,
+                            Float64(nullhypo),
+                            params,
+                            varidx,
+                            measurement,
+                            threadmodel,
+                            (i->ConvPerThread(X, zDim,factormetadata, particleidx=particleidx,
+                                              activehypo=activehypo, p=partialDims, 
+                                              perturb=perturb, res=res )).(1:Threads.nthreads()),
+                            inflation,
+                            partialDims,  # SVector(Int32.()...)
+                            DataType[vartypes...],
+                            gradients)
+end
+
+
+
+
 #
