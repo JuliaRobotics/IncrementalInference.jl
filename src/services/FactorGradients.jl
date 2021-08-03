@@ -13,7 +13,7 @@ function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:Abst
                                     tfg::AbstractDFG = initfg(),
                                     _blockRecursion::Bool=true,
                                     # gradients relative to coords requires 
-                                    slack_resid = calcFactorResidualTemporary(fct, measurement, varTypes, pts, tfg=tfg, _blockRecursion=_blockRecursion),
+                                    slack_resid = calcFactorResidualTemporary(fct, varTypes, measurement, pts, tfg=tfg, _blockRecursion=_blockRecursion),
                                     # numerical diff perturbation size
                                     h::Real=1e-4  ) 
   #
@@ -129,7 +129,7 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
   measurement = tuple(meas_pts[1:lenm]...)
   pts = tuple(meas_pts[(1+lenm):end]...)
   varTypes = tuple(getVariableType.(getVariable.(fgc._tfg, getVariableOrder(fgc.dfgfct)))...)
-  new_slack = calcFactorResidualTemporary(fct, measurement, varTypes, pts; tfg=fgc._tfg)
+  new_slack = calcFactorResidualTemporary(fct, varTypes, measurement, pts; tfg=fgc._tfg)
   # TODO make sure slack_residual is properly wired up with all the lambda functions as expected
   _setFGCSlack!(fgc, new_slack)
   # _setPointsMani!(fgc.slack_residual, new_slack)

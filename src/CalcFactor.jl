@@ -111,8 +111,8 @@ Related
 [`calcFactorResidual`](@ref), [`CalcResidual`](@ref), [`_evalFactorTemporary!`](@ref), [`approxConv`](@ref), [`_buildGraphByFactorAndTypes!`](@ref)
 """
 function calcFactorResidualTemporary( fct::AbstractRelative, 
-                                      measurement::Tuple,
                                       varTypes::Tuple,
+                                      measurement::Tuple,
                                       pts::Tuple;
                                       tfg::AbstractDFG = initfg(),
                                       _blockRecursion::Bool=false )

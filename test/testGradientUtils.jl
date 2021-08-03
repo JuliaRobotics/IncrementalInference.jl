@@ -39,7 +39,7 @@ pts = ([0;],[9.5;])
 
 ##
 
-slack_resid = calcFactorResidualTemporary(fct, measurement, varTypes, pts)
+slack_resid = calcFactorResidualTemporary(fct, varTypes, measurement, pts)
 
 ##
 
@@ -89,7 +89,7 @@ _fg,_ = IIF._buildGraphByFactorAndTypes!(fct, varTypes, pts);
 
 _fg = initfg()
 
-slack_resid = calcFactorResidualTemporary(fct, measurement, varTypes, pts, tfg=_fg)
+slack_resid = calcFactorResidualTemporary(fct, varTypes, measurement, pts, tfg=_fg)
 
 @test length(getVal(_fg[:x1])) == 1
 @test length(getVal(_fg[:x1])[1]) == 2
