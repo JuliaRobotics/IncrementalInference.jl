@@ -96,8 +96,11 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   fM = getManifold(fcttype)
   function cost(Xc)
     p = exp(M, ϵ, hat(M, ϵ, Xc))  
-    X = objResX(p)
-    return norm(fM, p, X)^2 #TODO verify 
+    # X = objResX(p)
+    # return norm(fM, p, X)^2 #TODO the manifold of p and X are not always the same
+    #options getPointIdentity or leave it to factor 
+    residual = objResX(p)
+    return sum(residual.^2)
   end
 
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead() 
@@ -162,7 +165,7 @@ DevNotes
 function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
                                       smpid::Int,
                                       cpt_::ConvPerThread = ccwl.cpt[Threads.threadid()],
-                                      target::AbstractArray = view(ccwl.params[ccwl.varidx][smpid], cpt_.p),
+                                      target = view(ccwl.params[ccwl.varidx][smpid], cpt_.p),
                                       measurement_ = ccwl.measurement,
                                       fmd_::FactorMetadata = cpt_.factormetadata;
                                       _slack=nothing  )
@@ -193,7 +196,11 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   unrollHypo! = if _slack === nothing
     () -> cf( (_getindextuple(measurement_, smpid))..., (getindex.(varParams, smpid))... )
   else
-    () -> cf( (_getindextuple(measurement_, smpid))..., (getindex.(varParams, smpid))... ) - _slack
+    # slack is used to shift the residual away from the natural "zero" tension position of a factor, 
+    # this is useful when calculating factor gradients at a variety of param locations resulting in "non-zero slack" of the residual.
+    # see `IIF.calcFactorResidualTemporary`
+    # NOTE this minus operation assumes _slack is either coordinate or tangent vector element (not a manifold or group element)
+    () -> cf( (_getindextuple(measurement_, smpid))..., (getindex.(varParams, smpid))... ) .- _slack
   end
 
   return unrollHypo!, target
@@ -250,6 +257,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
 
   # do the parameter search over defined decision variables using Minimization
+  # @info "FACTOR TYPE AT SOLVE" getFactorType(ccwl) string(cpt_.res) smpid string(cpt_.p)
   retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid][cpt_.p], islen1 )
   
   # Check for NaNs

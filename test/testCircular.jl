@@ -42,3 +42,13 @@ Base.rm(d*".tar.gz")
 end
 
 
+
+@testset "test canonical helix generator utility" begin
+##
+
+tmp = calcHelix_T(0, 3, 25, radius=5, xr_t=t->(1/3)*t)
+
+##
+end
+
+#

@@ -554,6 +554,7 @@ function prepareparamsarray!( ARR::AbstractVector{<:AbstractVector{P}},
   end
 
   # get solvefor manifolds
+  # FIXME deprecate use of (:null,)
   mani = length(Xi)==0 || sfidx==0 ? (:null,) : getManifold(Xi[sfidx])
 
   # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
@@ -600,7 +601,12 @@ function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
     M = getManifold(T)
     return manifold_dimension(M)
   catch
-    @warn "no method getManifold(::$T), calcZDim will attempt legacy length(sample) method instead"
+    try 
+      M = getManifold(cf.factor)
+      return manifold_dimension(M)
+    catch
+      @warn "no method getManifold(::$(string(T))), calcZDim will attempt legacy length(sample) method instead"
+    end
   end
   
   # NOTE try to make sure we get matrix back (not a vector)
@@ -608,14 +614,26 @@ function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
   return length(smpls[1])
 end
 
-# FIXME THIS IS NEW REPLACEMENT FUNCTION
-# function calcZDim(cf::CalcFactor{T}) where T <: AbstractFactor
-#   return manifold_dimension(getManifold(cf.factor))
-# end
+calcZDim(ccw::CommonConvWrapper) = calcZDim(CalcFactor(ccw))
 
 calcZDim(cf::CalcFactor{<:GenericMarginal}) = 0
 
 calcZDim(cf::CalcFactor{<:ManifoldPrior}) = manifold_dimension(cf.factor.M)
+
+# return a BitVector masking the fractional portion, assuming converted 0's on 100% confident variables 
+_getFractionalVars(varList::Union{<:Tuple, <:AbstractVector}, mh::Nothing) = zeros(length(varList)) .== 1
+_getFractionalVars(varList::Union{<:Tuple, <:AbstractVector}, mh::Categorical) = 0 .< mh.p
+
+function _selectHypoVariables(allVars::Union{<:Tuple, <:AbstractVector}, 
+                              mh::Categorical,
+                              sel::Integer = rand(mh) )
+  #
+  mask = mh.p .≈ 0.0
+  mask[sel] = true
+  (1:length(allVars))[mask]
+end
+
+_selectHypoVariables(allVars::Union{<:Tuple, <:AbstractVector},mh::Nothing,sel::Integer=0 ) = collect(1:length(allVars))
 
 
 function prepgenericconvolution(Xi::Vector{<:DFGVariable},
@@ -623,23 +641,30 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
                                 multihypo::Union{Nothing, Distributions.Categorical}=nothing,
                                 nullhypo::Real=0.0,
                                 threadmodel=MultiThreaded,
-                                inflation::Real=0.0  ) where {T <: FunctorInferenceType}
+                                inflation::Real=0.0,
+                                _blockRecursion::Bool=false  ) where {T <: AbstractFactor}
   #
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
-  # FIXME maybe a product manifold and not any
-  ARR = Vector{Vector{Any}}()
-  maxlen, sfidx, mani = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
+  # FIXME stop using Any, see #1321
+  varParamsAll = Vector{Vector{Any}}()
+  maxlen, sfidx, mani = prepareparamsarray!(varParamsAll, Xi, nothing, 0) # Nothing for init.
 
   # standard factor metadata
   sflbl = 0==length(Xi) ? :null : getLabel(Xi[end])
-  fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, sflbl, nothing)
-  # guess measurement points type
-  MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
-  cf = CalcFactor( usrfnc, fmd, 0, 1, (Vector{MeasType}(),), ARR)
+  fmd = FactorMetadata(Xi, getLabel.(Xi), varParamsAll, sflbl, nothing)
+  
+  # create a temporary CalcFactor object for extracting the first sample
+  # TODO, deprecate this:  guess measurement points type
+  # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
+  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, varParamsAll) # (Vector{MeasType}(),)
+  
+  # get a measurement sample
+  meas_single = sampleFactor(_cf, 1)
 
-  zdim = calcZDim(cf)
-  # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
+  # get the measurement dimension
+  zdim = calcZDim(_cf)
+  # some hypo resolution
   certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   
   # sort out partialDims here
@@ -650,11 +675,36 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
     Int[]
   end
 
+  # as per struct CommonConvWrapper
+  varTypes::Vector{DataType} = typeof.(getVariableType.(Xi))
+  gradients = nothing
+  # prepare new cached gradient lambdas (attempt)
+  try
+    # https://github.com/JuliaRobotics/IncrementalInference.jl/blob/db7ff84225cc848c325e57b5fb9d0d85cb6c79b8/src/DispatchPackedConversions.jl#L46
+    # also https://github.com/JuliaRobotics/DistributedFactorGraphs.jl/issues/590#issuecomment-891450762
+    # FIXME, suppressing nested gradient propagation on GenericMarginals for the time being, see #1010
+    if (!_blockRecursion) && usrfnc isa AbstractRelative && !(usrfnc isa GenericMarginal)
+      # take first value from each measurement-tuple-element
+      measurement_ = map(x->x[1], meas_single)
+      # compensate if no info available during deserialization
+      # take the first value from each variable param
+      pts_ = map(x->x[1], varParamsAll)
+      # FIXME, only using first meas and params values at this time...
+      # NOTE, must block recurions here, since FGC uses this function to calculate numerical gradients on a temp fg.
+      # assume for now fractional-var in multihypo have same varType
+      hypoidxs = _selectHypoVariables(pts_, multihypo)
+      gradients = FactorGradientsCached!(usrfnc, tuple(varTypes[hypoidxs]...), measurement_, tuple(pts_[hypoidxs]...), _blockRecursion=true);
+    end
+  catch e
+    @warn "Unable to create measurements and gradients for $usrfnc during prep of CCW, falling back on no-partial information assumption.  Enable @debug printing to see the error."
+    @debug(e)
+  end
+
   ccw = CommonConvWrapper(
           usrfnc,
           PointType[],
           zdim,
-          ARR,
+          varParamsAll,
           fmd,
           specialzDim = hasfield(T, :zDim),
           partial = ispartl,
@@ -664,7 +714,8 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
           threadmodel=threadmodel,
           inflation=inflation,
           partialDims=partialDims,
-          vartypes = typeof.(getVariableType.(Xi))
+          vartypes = varTypes,
+          gradients=gradients
         )
   #
   return ccw
@@ -686,7 +737,8 @@ function getDefaultFactorData(dfg::AbstractDFG,
                               potentialused::Bool = false,
                               edgeIDs = Int[],
                               solveInProgress = 0,
-                              inflation::Real=getSolverParams(dfg).inflation ) where T <: FunctorInferenceType
+                              inflation::Real=getSolverParams(dfg).inflation,
+                              _blockRecursion::Bool=false ) where T <: FunctorInferenceType
   #
 
   # prepare multihypo particulars
@@ -694,7 +746,7 @@ function getDefaultFactorData(dfg::AbstractDFG,
   mhcat, nh = parseusermultihypo(multihypo, nullhypo)
 
   # allocate temporary state for convolutional operations (not stored)
-  ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel, inflation=inflation)
+  ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel, inflation=inflation, _blockRecursion=_blockRecursion)
 
   # and the factor data itself
   return FunctionNodeData{typeof(ccw)}(eliminated, potentialused, edgeIDs, ccw, multihypo, ccw.certainhypo, nullhypo, solveInProgress, inflation)
@@ -998,7 +1050,8 @@ function initManual!( dfg::AbstractDFG,
                       bw=nothing ) where {P}
   #
   var = getVariable(dfg, sym)
-  pp = manikde!(getManifold(var), pts, bw=bw)
+  M = getManifold(var)
+  pp = manikde!(M, pts, bw=bw)
   initManual!(var,pp, solveKey)
 end
 
@@ -1155,7 +1208,7 @@ Experimental
 - `inflation`, to better disperse kernels before convolution solve, see IIF #1051.
 """
 function DFG.addFactor!(dfg::AbstractDFG,
-                        Xi::Vector{<:DFGVariable},
+                        Xi::AbstractVector{<:DFGVariable},
                         usrfnc::AbstractFactor;
                         multihypo::Vector{Float64}=Float64[],
                         nullhypo::Float64=0.0,
@@ -1166,7 +1219,8 @@ function DFG.addFactor!(dfg::AbstractDFG,
                         threadmodel=SingleThreaded,
                         suppressChecks::Bool=false,
                         inflation::Real=getSolverParams(dfg).inflation,
-                        namestring::Symbol = assembleFactorName(dfg, Xi)  )
+                        namestring::Symbol = assembleFactorName(dfg, Xi),
+                        _blockRecursion::Bool=false  )
   #
   # depcrecation
 
@@ -1177,7 +1231,8 @@ function DFG.addFactor!(dfg::AbstractDFG,
                                     multihypo=multihypo, 
                                     nullhypo=nullhypo, 
                                     threadmodel=threadmodel,
-                                    inflation=inflation)
+                                    inflation=inflation,
+                                    _blockRecursion=_blockRecursion)
   newFactor = DFGFactor(Symbol(namestring),
                         varOrderLabels,
                         solverData;
@@ -1186,7 +1241,7 @@ function DFG.addFactor!(dfg::AbstractDFG,
                         timestamp=timestamp)
   #
 
-  success = DFG.addFactor!(dfg, newFactor)
+  success = addFactor!(dfg, newFactor)
 
   # TODO: change this operation to update a conditioning variable
   graphinit && doautoinit!(dfg, Xi, singles=false)
@@ -1194,8 +1249,15 @@ function DFG.addFactor!(dfg::AbstractDFG,
   return newFactor
 end
 
+function _checkFactorAdd(usrfnc, xisyms)
+  if length(xisyms) == 1 && !(usrfnc isa AbstractPrior) && !(usrfnc isa Mixture)
+    @warn("Listing only one variable $xisyms for non-unary factor type $(typeof(usrfnc))")
+  end
+  nothing
+end
+
 function DFG.addFactor!(dfg::AbstractDFG,
-                        xisyms::Vector{Symbol},
+                        xisyms::AbstractVector{Symbol},
                         usrfnc::AbstractFactor;
                         suppressChecks::Bool=false,
                         kw...  )
@@ -1211,12 +1273,12 @@ function DFG.addFactor!(dfg::AbstractDFG,
   # depcrecation
 
   # basic sanity check for unary vs n-ary
-  if !suppressChecks && length(xisyms) == 1 && !(usrfnc isa AbstractPrior) && !(usrfnc isa Mixture)
-    @warn("Listing only one variable $xisyms for non-unary factor type $(typeof(usrfnc))")
+  if !suppressChecks
+    _checkFactorAdd(usrfnc, xisyms)
   end
 
-  variables = getVariable.(dfg, xisyms)
-  # verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
+  # variables = getVariable.(dfg, xisyms)
+  variables = map(vid -> getVariable(dfg, vid), xisyms)
   addFactor!(dfg, variables, usrfnc; suppressChecks=suppressChecks, kw... ) # multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, tags=tags, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp, inflation=inflation )
 end
 

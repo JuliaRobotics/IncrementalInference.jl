@@ -4,7 +4,11 @@ using Manifolds
 using StaticArrays
 using Test
 
+##
+
 @testset "Test SpecialEuclidean(2)" begin
+
+##
 
 Base.convert(::Type{<:Tuple}, M::SpecialEuclidean{2}) = (:Euclid, :Euclid, :Circular)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialEuclidean{2}})  = (:Euclid, :Euclid, :Circular)
@@ -67,11 +71,60 @@ v1 = addVariable!(fg, :x2, SpecialEuclidean2)
 mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([1,2,pi/4], [0.01,0.01,0.01]))
 f = addFactor!(fg, [:x1, :x2], mf)
 
-#test new error from solvetree
-@test_broken solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg)) isa Tuple
+##
 
+#test new error from solvetree
+# smtasks = Task[]
+@test solveTree!(fg; verbose=true) isa Tuple
+
+
+##
 end
 
+@testset "Test Pose2 like hex as SpecialEuclidean2" begin
+##
+
+M = getManifold(SpecialEuclidean2)
+fg = initfg()
+v0 = addVariable!(fg, :x0, SpecialEuclidean2)
+
+mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([10.0,10.0]), @MMatrix([-1.0 0.0; 0.0 -1.0])), MvNormal([0.1, 0.1, 0.01]))
+p = addFactor!(fg, [:x0], mp)
+
+##
+
+for i in 0:5
+    psym = Symbol("x$i")
+    nsym = Symbol("x$(i+1)")
+    addVariable!(fg, nsym, SpecialEuclidean2)
+    mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([10.0,0,pi/3], [0.5,0.5,0.05]))
+    f = addFactor!(fg, [psym;nsym], mf)
+end
+
+
+addVariable!(fg, :l1, SpecialEuclidean2, tags=[:LANDMARK;])
+mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([10.0,0,0], [0.1,0.1,0.01]))
+addFactor!(fg, [:x0; :l1], mf)
+
+mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([10.0,0,0], [0.1,0.1,0.01]))
+addFactor!(fg, [:x6; :l1], mf)
+
+vnd = getVariableSolverData(fg, :x0)
+@test isapprox(M, mean(M, vnd.val), ProductRepr([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.2)
+
+vnd = getVariableSolverData(fg, :x1)
+@test isapprox(M, mean(M, vnd.val), ProductRepr([0.0,10.0], [-0.5 0.866; -0.866 -0.5]), atol=0.4)
+
+vnd = getVariableSolverData(fg, :x6)
+@test isapprox(M, mean(M, vnd.val), ProductRepr([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.5)
+
+##
+
+smtasks = Task[]
+solveTree!(fg; smtasks)
+
+##
+end
 
 ## ======================================================================================
 ##

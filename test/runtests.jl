@@ -5,13 +5,15 @@ using Test
 
 # temporarily moved to start (for debugging)
 
-@error "MUST RESTORE testpartialconstraint.jl"
-# include("testpartialconstraint.jl")
+# @error "MUST RESTORE testpartialconstraint.jl"
+include("testFactorGradients.jl")
+include("testpartialconstraint.jl")
 include("testPartialNH.jl")
 
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
 include("testSpecialEuclidean2Mani.jl")
+
 
 include("testCliqSolveDbgUtils.jl")
 include("TestModuleFunctions.jl")

@@ -15,13 +15,13 @@ import IncrementalInference: getSample
 mutable struct DevelopPrior{T <: SamplableBelief} <: AbstractPrior
   x::T
 end
-getSample(cf::CalcFactor{<:DevelopPrior}, N::Int=1) = ([rand(cf.factor.x, 1) for _ in 1:N], )
+getSample(cf::CalcFactor{<:DevelopPrior}, N::Int=1) = (randToPoints(cf.factor.x, N), )
 
 mutable struct DevelopLikelihood{T <: SamplableBelief} <: AbstractRelativeRoots
   x::T
 end
 
-getSample(cf::CalcFactor{<:DevelopLikelihood}, N::Int=1) = ([rand(cf.factor.x, 1) for _ in 1:N], )
+getSample(cf::CalcFactor{<:DevelopLikelihood}, N::Int=1) = (randToPoints(cf.factor.x, N), )
 function (cf::CalcFactor{<:DevelopLikelihood})(meas, wXi, wXj)
   #
   return meas - (wXj - wXi)
@@ -47,7 +47,7 @@ f1 = addFactor!(fg,[:x1],pr)
 
 initAll!(fg)
 
-pts_ = evalFactor(fg, f1, v1.label, N=N)
+pts_, _ = evalFactor(fg, f1, v1.label, N=N)
 @cast pts[i,j] := pts_[j][i]
 
 @test sum(abs.(pts .- 1.0) .< 5) < 30

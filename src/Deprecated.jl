@@ -25,6 +25,28 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+@deprecate calcPerturbationFromVariable( fgc::FactorGradientsCached!, fromVar::Int, infoPerCoord::AbstractVector;tol::Real=0.02*fgc._h ) calcPerturbationFromVariable(fgc, [fromVar => infoPerCoord;], tol=tol )
+
+@deprecate findRelatedFromPotential(w...;kw...) (calcProposalBelief(w...;kw...),)
+
+# function generateNullhypoEntropy( val::AbstractMatrix{<:Real},
+#                                   maxlen::Int,
+#                                   spreadfactor::Real=10  )
+#   #
+#   # covD = sqrt.(vec(Statistics.var(val,dims=2))) .+ 1e-3
+#   # cVar = diagm((spreadfactor*covD).^2)
+#   len = size(val, 1)
+#   cVar = diagm((spreadfactor*ones(len)).^2)
+#   mu = zeros( len )
+#   MvNormal( mu, cVar )
+# end
+
+# @deprecate calcFactorResidualTemporary( fct::AbstractRelative, measurement::Tuple, T_param_args...; kw...) calcFactorResidualTemporary(fct, measurement, tuple(((x->x[1]).(T_param_args))...), tuple(((x->x[2]).(T_param_args))...); kw...)
+
+# @deprecate _buildGraphByFactorAndTypes!(fct::AbstractFactor, TypeParams_vec...; kw...) _buildGraphByFactorAndTypes!(fct, (x->x[1]).(TypeParams_vec), (x->x[2]).(TypeParams_vec) ; kw...)
+
+# @deprecate _evalFactorTemporary!( fct::AbstractFactor, sfidx::Int, meas_single::Tuple, TypeParams_args...; kw...) _evalFactorTemporary!( fct,sfidx,meas_single, (x->x[1]).(TypeParams_args), (x->x[2]).(TypeParams_args); kw...)
+
 # MOVED TO AMP v0.4.6
 # # NOTE SWITCHED TO ON-MANIFOLD VERSION, but this used to give deviation
 # calcVariableCovarianceBasic(M::AbstractManifold, ptsArr::Vector{Vector{Float64}})
@@ -37,7 +59,7 @@ end
 #   return msst_
 # end
 
-@deprecate testFactorResidualBinary(fct, T1::InstanceType{InferenceVariable}, T2::InstanceType{InferenceVariable}, param1, param2, meas::Tuple) calcFactorResidualTemporary(fct, meas, (T1,param1), (T2,param2))
+@deprecate testFactorResidualBinary(fct, T1::InstanceType{InferenceVariable}, T2::InstanceType{InferenceVariable}, param1, param2, meas::Tuple) calcFactorResidualTemporary(fct, (T1,T2), meas, (param1,param2))
 
 # """
 #     $SIGNATURES

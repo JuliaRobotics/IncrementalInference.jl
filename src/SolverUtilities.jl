@@ -9,7 +9,39 @@ function fastnorm(u)
   @fastmath @inbounds return sqrt(s)
 end
 
+"""
+    $SIGNATURES
 
+Helper function for IIF.getSample, to generate a vector of points regardless of the Manifold and probability density function used.
+
+Related
+
+[`getSample`](@ref)
+"""
+randToPoints(distr::SamplableBelief, N::Int=1) = [rand(distr,1)[:] for i in 1:N]
+randToPoints(distr::ManifoldKernelDensity, N::Int=1) = rand(distr,N)
+
+_setPointsMani!(dest::AbstractVector, src::AbstractVector) = (dest .= src)
+_setPointsMani!(dest::AbstractMatrix, src::AbstractMatrix) = (dest .= src)
+function _setPointsMani!(dest::AbstractVector, src::AbstractMatrix)
+  @assert size(src,2) == 1 "Workaround _setPointsMani! currently only allows size(::Matrix, 2) == 1"
+  _setPointsMani!(dest, src[:])
+end
+function _setPointsMani!(dest::AbstractMatrix, src::AbstractVector)
+  @assert size(dest,2) == 1 "Workaround _setPointsMani! currently only allows size(::Matrix, 2) == 1"
+  _setPointsMani!(view(dest,:,1), src)
+end
+
+function _setPointsMani!(dest::AbstractVector, src::AbstractVector{<:AbstractVector})
+  @assert length(src) == 1 "Workaround _setPointsMani! currently only allows Vector{Vector{P}}(...) |> length == 1"
+  _setPointsMani!(dest, src[1])
+end
+
+function _setPointsMani!(dest::ProductRepr, src::ProductRepr)
+  for (k,prt) in enumerate(dest.parts)
+    _setPointsMani!(prt, src.parts[k])
+  end
+end
 
 
 """
@@ -123,7 +155,8 @@ Notes
 - Will always add a factor, but will skip adding variable labels that already exist in `dfg`.
 """
 function _buildGraphByFactorAndTypes!(fct::AbstractFactor, 
-                                      TypeParams_vec...;
+                                      varTypes::Tuple,
+                                      pts::Tuple=();
                                       dfg::AbstractDFG = initfg(),
                                       solveKey::Symbol=:default,
                                       newFactor::Bool=true,
@@ -132,21 +165,22 @@ function _buildGraphByFactorAndTypes!(fct::AbstractFactor,
                                       _allVars::AbstractVector{Symbol} = sortDFG(ls(dfg, destPattern)),
                                       currLabel::Symbol = 0 < length(_allVars) ? _allVars[end] : Symbol(destPrefix, 0),
                                       currNumber::Integer = reverse(match(r"\d+", reverse(string(currLabel))).match) |> x->parse(Int,x),
-                                      graphinit::Bool = false  )
+                                      graphinit::Bool = false,
+                                      _blockRecursion::Bool=false  )
   #
   
   # TODO generalize beyond binary
-  len = length(TypeParams_vec)
-  vars = [Symbol(destPrefix, s_) for s_ in (currNumber .+ (1:len))]
-  for (s_, T_pt_s) in enumerate(TypeParams_vec)
+  len = length(varTypes)
+  vars = Symbol[Symbol(destPrefix, s_) for s_ in (currNumber .+ (1:len))]
+  for (s_, vTyp) in enumerate(varTypes)
     # add the necessary variables
-    exists(dfg, vars[s_]) ? nothing : addVariable!(dfg, vars[s_], T_pt_s[1])
+    exists(dfg, vars[s_]) ? nothing : addVariable!(dfg, vars[s_],  vTyp)
     # set the numerical values if available
-    T_pt_s[2] isa Nothing ? nothing : initManual!(dfg, vars[s_], [T_pt_s[2],], solveKey, bw=ones(getDimension(T_pt_s[1])))
+    ((0 < length(pts)) && (pts[s_] isa Nothing)) ? nothing : initManual!(dfg,  vars[s_], [pts[s_],], solveKey, bw=ones(getDimension(vTyp)))
   end
   # if newFactor then add the factor on vars, else assume only one existing factor between vars
-  _dfgfct = newFactor ? addFactor!(dfg, vars, fct, graphinit=graphinit) : getFactor(dfg, intersect((ls.(dfg, vars))...)[1] )
-
+  _dfgfct = newFactor ? addFactor!(dfg, vars, fct, graphinit=graphinit, _blockRecursion=_blockRecursion) : getFactor(dfg, intersect((ls.(dfg, vars))...)[1] )
+  
   return dfg, _dfgfct
 end
 

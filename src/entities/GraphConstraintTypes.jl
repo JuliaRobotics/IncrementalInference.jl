@@ -11,9 +11,10 @@ mutable struct GenericMarginal <: AbstractRelativeRoots
     GenericMarginal() = new()
     GenericMarginal(a,b,c) = new(a,b,c)
 end
-"""
-$(TYPEDEF)
-"""
+
+
+sampleFactor(::CalcFactor{<:GenericMarginal},N::Int) = (0,)
+
 mutable struct PackedGenericMarginal <: PackedInferenceType
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}

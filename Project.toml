@@ -43,11 +43,11 @@ TimeZones = "f269a46b-ccf7-5d73-abea-4c690281aa53"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [compat]
-ApproxManifoldProducts = "0.4.6"
+ApproxManifoldProducts = "0.4.11"
 BSON = "0.2, 0.3"
 Combinatorics = "1.0"
 DataStructures = "0.16, 0.17, 0.18"
-DistributedFactorGraphs = "0.15"
+DistributedFactorGraphs = "0.15.1"
 Distributions = "0.24, 0.25"
 DocStringExtensions = "0.8"
 FileIO = "1"
