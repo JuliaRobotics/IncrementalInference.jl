@@ -1,6 +1,50 @@
 import Base: convert
 import Base: ==
 
+export CalcFactor
+
+
+"""
+$TYPEDEF
+
+User factor interface method for computing the residual values of factors.
+
+Notes
+- Also see #467 on API consolidation
+
+```juila
+function (cf::CalcFactor{<:LinearRelative})(res::AbstractVector{<:Real}, z, xi, xj)
+  cf.metadata.variablelist
+  cf.metadata.targetvariable
+  cf.metadata.usercache
+  generic on-manifold residual function 
+  
+  return distance(z, distance(xj, xi))
+end
+```
+
+DevNotes
+- See IIF Project to consolidate CCW, CF, FMD, CPT
+
+Related 
+
+[`CommonConvWrapper`](@ref), [`FactorMetadata`](@ref), [`ConvPerThread`](@ref)
+"""
+struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing}, X <: AbstractVector}
+  # the interface compliant user object functor containing the data and logic
+  factor::T
+  # the metadata to be passed to the user residual function
+  metadata::M
+  # what is the sample (particle) id for which the residual is being calculated
+  _sampleIdx::Int
+  # legacy support when concerned with how many measurement tuple elements are used by user 
+  _measCount::Int
+  # legacy suport for measurement sample values of old functor residual functions
+  _legacyMeas::P
+  # legacy support for variable values old functor residual functions
+  _legacyParams::X
+end
+
 
 
 abstract type _AbstractThreadModel end
