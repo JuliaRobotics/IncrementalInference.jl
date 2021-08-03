@@ -103,7 +103,7 @@ DevNotes
 
 Example
 ```julia
-residual = calcFactorResidualTemporary(Pose2Pose2(...), (z_i,), (RoME.Pose2, x1), (RoME.Pose2, x2))
+residual = calcFactorResidualTemporary(Pose2Pose2(...), (RoME.Pose2,RoME.Pose2), (z_i,), (x1, x2))
 ```
 
 Related
