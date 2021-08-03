@@ -144,18 +144,7 @@ end
 ## Parametric solve with Mahalanobis distance - CalcFactor
 ## ================================================================================================
 
-"""
-    $TYPEDEF
 
-Internal parametric extension to [`CalcFactor`](@ref) used for buffering measurement and calculating Mahalanobis distance
-"""
-struct CalcFactorMahalanobis{CF<:CalcFactor, S, N}
-  calcfactor!::CF
-  varOrder::Vector{Symbol}
-  meas::NTuple{N, <:AbstractVector{Float64}}
-  iΣ::NTuple{N, Matrix{Float64}}
-  specialAlg::S
-end
 
 getFactorMechanics(f::AbstractFactor) = f
 getFactorMechanics(f::Mixture) = f.mechanics

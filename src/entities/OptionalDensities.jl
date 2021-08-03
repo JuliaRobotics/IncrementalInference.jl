@@ -1,5 +1,6 @@
 # entities immediately available as private members in IIF, but requires other packages for actual use
 
+# only export once the convenience constructors are available along with conditional Interpolations dependency
 
 struct FluxModelsDistribution{ID,OD,P,D<:AbstractArray}
   # shape of the input data

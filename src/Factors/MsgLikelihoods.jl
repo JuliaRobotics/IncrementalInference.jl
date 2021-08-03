@@ -1,73 +1,5 @@
 
-"""
-$(TYPEDEF)
 
-Message prior on all dimensions of a variable node in the factor graph.
-
-Notes
-- Only temporary existance during CSM operations.
-"""
-struct MsgPrior{T <: SamplableBelief} <: AbstractPrior
-  Z::T
-  inferdim::Float64
-end
-
-# MsgPrior{T}() where {T} = new{T}()
-# MsgPrior{T}(z::T, infd::R) where {T <: SamplableBelief, R <: Real} = new{T}(z, infd)
-# function MsgPrior(z::T, infd::R) where {T <: SamplableBelief, R <: Real}
-#     MsgPrior{T}(z, infd)
-# end
-
-function getSample(cf::CalcFactor{<:MsgPrior}, N::Int=1)
-  ret = [rand(cf.factor.Z,1) for _ in 1:N]
-  (ret, )
-end
-
-# MKD already returns a vector of points
-function getSample(cf::CalcFactor{<:MsgPrior{<:ManifoldKernelDensity}}, N::Int=1)
-  ret = rand(cf.factor.Z,N)
-  (ret, )
-end
-
-getManifold(mp::MsgPrior{<:ManifoldKernelDensity}) = mp.Z.manifold
-
-# this is a developmental type, will be standardized after conclusion of #1010
-# TODO resolve type instability
-const MsgRelativeType = Vector{NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol},DFG.AbstractRelative}}}
-
-const MsgPriorType = Dict{Symbol, MsgPrior{<:ManifoldKernelDensity}}
-
-
-(cfo::CalcFactor{<:MsgPrior})(z, x1) = z .- x1
-
-
-
-struct PackedMsgPrior <: PackedInferenceType
-  Z::String
-  inferdim::Float64
-end
-
-function convert(::Type{PackedMsgPrior}, d::MsgPrior)
-  PackedMsgPrior(convert(PackedSamplableBelief, d.Z), d.inferdim)
-end
-function convert(::Type{<:MsgPrior}, d::PackedMsgPrior)
-  MsgPrior(convert(SamplableBelief, d.Z), d.inferdim)
-end
-
-
-
-
-
-"""
-    $TYPEDEF
-
-Internal development types used during consolidation.  Stores relative and prior information making up a joint likelihood 
-message passed upward on the Bayes tree.
-"""
-mutable struct _MsgJointLikelihood
-  relatives::IIF.MsgRelativeType
-  priors::IIF.MsgPriorType
-end
 
 _MsgJointLikelihood(;relatives::MsgRelativeType=MsgRelativeType(),priors::MsgPriorType=MsgPriorType() ) = _MsgJointLikelihood(relatives, priors)
 
@@ -91,39 +23,6 @@ end
 Base.show(io::IO, ::MIME"text/plain", x::_MsgJointLikelihood) = show(io, x)
 
 
-"""
-  $(TYPEDEF)
-Belief message for message passing on the tree.  This should be considered an incomplete joint probility.
-
-Notes:
-- belief -> Dictionary of [`TreeBelief`](@ref)
-- variableOrder -> Ordered variable id list of the seperators in cliqueLikelihood
-- cliqueLikelihood -> marginal distribution (<: `SamplableBelief`) over clique seperators.
-- Older names include: productFactor, Fnew, MsgPrior, LikelihoodMessage
-
-DevNotes:
-- Used by both nonparametric and parametric.
-- Objective for parametric case: `MvNormal(μ=[:x0;:x2;:l5], Σ=[+ * *; * + *; * * +])`.
-- Part of the consolidation effort, see #459.
-- Better conditioning for joint structure in the works using deconvolution, see #579, #635.
-  - TODO confirm why <: Singleton.
-
-$(TYPEDFIELDS)
-"""
-mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
-  sender::NamedTuple{(:id,:step),Tuple{Int,Int}}
-  status::CliqStatus
-  belief::Dict{Symbol, TreeBelief} # will eventually be deprecated
-  variableOrder::Vector{Symbol}
-  cliqueLikelihood::Union{Nothing,SamplableBelief}  # TODO drop the Union
-  msgType::T
-  hasPriors::Bool
-  # this is different from belief[].inferdim, as the total available infer dims remaining during down msgs -- see #910
-  childSolvDims::Dict{Int, Float64} 
-  # calc differential factors for joint in the child clique
-  jointmsg::_MsgJointLikelihood
-  # diffJoints::Vector{NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol},DFG.AbstractRelative}}}
-end
 
 
 LikelihoodMessage(; sender::NamedTuple{(:id,:step),Tuple{Int,Int}}=(;id=0, step=0),

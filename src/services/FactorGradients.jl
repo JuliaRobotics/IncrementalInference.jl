@@ -161,6 +161,9 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
   return fgc.cached_gradients
 end
 
+# convenience function to update the gradients based on current measurement and point information stored in the fgc object
+(fgc::FactorGradientsCached!)() = fgc(fgc.measurement..., fgc.currentPoints...)
+
 """
     $SIGNATURES
 
@@ -262,6 +265,19 @@ function calcPerturbationFromVariable(fgc::FactorGradientsCached!,
   return tuple(ipcBlk...)
 end
 
+
+function calcPerturbationFromVariable(ccwl::CommonConvWrapper, 
+                                      sfidx::Int,
+                                      smpid::Int=1;
+                                      tol::Real=0.02*ccwl.gradients_cached._h  )
+  #
+  # collapse the hypo associated with smpid
+  # get the variables associated with this hypo
+  # assemble the leave-one-out of varidx=>infoPerCoords -- e.g. sfidx=1, `var_ipcs::Vector{<:Pair}=[2=>ipc2;]`
+  #  NOTE varidx as per the factor args, i.e. after fractional associations (hypos) are collapsed
+  # calcPerturbationFromVariable(ccwl.gradients_cached, var_ipcs; tol=tol)
+  error("UNDER CONSTRUCTION")
+end
 
 
 #

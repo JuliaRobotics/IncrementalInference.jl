@@ -487,80 +487,8 @@ function addVariable!(dfg::AbstractDFG,
   return v
 end
 
-function _resizePointsVector!(vecP::AbstractVector{P}, mkd::ManifoldKernelDensity, N::Int) where P
-  #
-  pN = length(vecP)
-  resize!(vecP, N)
-  for j in pN:N
-    smp = AMP.sample(mkd, 1)[1]
-    # @show j, smp, typeof(smp), typeof(vecP[j])
-    vecP[j] = smp[1]
-  end
-
-  vecP
-end
 
 
-"""
-    $(SIGNATURES)
-
-Prepare the particle arrays `ARR` to be used for approximate convolution.
-This function ensures that ARR has te same dimensions among all the parameters.
-Function returns with ARR[sfidx] pointing at newly allocated deepcopy of the
-existing values in getVal(Xi[.label==solvefor]).
-
-Notes
-- Return values `sfidx` is the element in ARR where `Xi.label==solvefor` and
-- `maxlen` is length of all (possibly resampled) `ARR` contained particles.
-- `Xi` is order sensitive.
-- for initialization, solveFor = Nothing.
-- `P = getPointType(<:InferenceVariable)`
-"""
-function prepareparamsarray!( ARR::AbstractVector{<:AbstractVector{P}},
-                              Xi::Vector{<:DFGVariable},
-                              solvefor::Union{Nothing, Symbol},
-                              N::Int=0;
-                              solveKey::Symbol=:default  ) where P
-  #
-  LEN = Int[]
-  maxlen = N # FIXME see #105
-  count = 0
-  sfidx = 0
-
-  for xi in Xi
-    vecP = getVal(xi, solveKey=solveKey)
-    push!(ARR, vecP)
-    LEN = length.(ARR)
-    maxlen = maximum([N; LEN])
-    count += 1
-    if xi.label == solvefor
-      sfidx = count #xi.index
-    end
-  end
-
-  # resample variables with too few kernels (manifolds points)
-  SAMP = LEN .< maxlen
-  for i in 1:count
-    if SAMP[i]
-      Pr = getBelief(Xi[i], solveKey)
-      _resizePointsVector!(ARR[i], Pr, maxlen)
-    end
-  end
-
-  # TODO --rather define reusable memory for the proposal
-  # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
-  if sfidx > 0 
-    ARR[sfidx] = deepcopy(ARR[sfidx]) 
-  end
-
-  # get solvefor manifolds
-  # FIXME deprecate use of (:null,)
-  mani = length(Xi)==0 || sfidx==0 ? (:null,) : getManifold(Xi[sfidx])
-
-  # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
-  # maxlen = N == 0 ? maxlen : N
-  return maxlen, sfidx, mani
-end
 
 function parseusermultihypo(multihypo::Nothing, nullhypo::Float64)
   verts = Symbol[]
@@ -584,41 +512,7 @@ function parseusermultihypo(multihypo::Vector{Float64}, nullhypo::Float64)
   return mh, nullhypo
 end
 
-# import IncrementalInference: prepgenericconvolution, convert
 
-"""
-    $SIGNATURES
-
-Function to calculate measurement dimension from factor sampling.
-
-Notes
-- Will not work in all situations, but good enough so far.
-  - # TODO standardize via domain or manifold definition...??
-"""
-function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
-  #
-  try
-    M = getManifold(T)
-    return manifold_dimension(M)
-  catch
-    try 
-      M = getManifold(cf.factor)
-      return manifold_dimension(M)
-    catch
-      @warn "no method getManifold(::$(string(T))), calcZDim will attempt legacy length(sample) method instead"
-    end
-  end
-  
-  # NOTE try to make sure we get matrix back (not a vector)
-  smpls = sampleFactor(cf, 2)[1]
-  return length(smpls[1])
-end
-
-calcZDim(ccw::CommonConvWrapper) = calcZDim(CalcFactor(ccw))
-
-calcZDim(cf::CalcFactor{<:GenericMarginal}) = 0
-
-calcZDim(cf::CalcFactor{<:ManifoldPrior}) = manifold_dimension(cf.factor.M)
 
 # return a BitVector masking the fractional portion, assuming converted 0's on 100% confident variables 
 _getFractionalVars(varList::Union{<:Tuple, <:AbstractVector}, mh::Nothing) = zeros(length(varList)) .== 1
