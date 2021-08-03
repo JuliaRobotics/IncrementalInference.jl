@@ -56,106 +56,6 @@ end
 
 
 """
-    $(SIGNATURES)
-
-Prepare a common functor computation object `prepareCommonConvWrapper{T}` containing 
-the user factor functor along with additional variables and information using during 
-approximate convolution computations.
-
-DevNotes
-- TODO consolidate with others, see https://github.com/JuliaRobotics/IncrementalInference.jl/projects/6
-"""
-function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
-                                    ccwl::CommonConvWrapper{F},
-                                    Xi::AbstractVector{<:DFGVariable},
-                                    solvefor::Symbol,
-                                    N::Int;
-                                    needFreshMeasurements::Bool=true,
-                                    solveKey::Symbol=:default  ) where {F <: AbstractFactor}
-  #
-
-  # FIXME, order of fmd ccwl cf are a little weird and should be revised.
-  pttypes = getVariableType.(Xi) .|> getPointType
-  PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
-
-  #FIXME, see #1321
-  vecPtsArr = Vector{Vector{Any}}()
-
-  #TODO some better consolidate is needed
-  ccwl.vartypes = typeof.(getVariableType.(Xi))
-
-  # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
-  maxlen, sfidx, mani = prepareparamsarray!(vecPtsArr, Xi, solvefor, N, solveKey=solveKey)
-
-  # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
-  ccwl.xDim = getDimension(getVariableType(Xi[sfidx]))
-  # ccwl.xDim = length(vecPtsArr[sfidx][1])
-  # TODO should be selecting for the correct multihypothesis mode
-
-    # setup the partial or complete decision variable dimensions for this ccwl object
-    # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
-    # TODO, should this not be part of `prepareCommonConvWrapper` -- only here do we look for .partial
-    _setCCWDecisionDimsConv!(ccwl)
-
-  # SHOULD WE SLICE ARR DOWN BY PARTIAL DIMS HERE (OR LATER)?
-  ccwl.params = vecPtsArr # map( ar->view(ar, ccwl.partialDims, :), vecPtsArr)
-  
-  # get factor metadata -- TODO, populate, also see #784
-  fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)
-
-  # TODO consolidate with ccwl??
-  # FIXME do not divert Mixture for sampling
-  # cf = _buildCalcFactorMixture(ccwl, fmd, 1, ccwl.measurement, ccwl.params) # TODO perhaps 0 is safer
-  cf = CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
-
-  #  get variable node data
-  vnds = Xi
-
-  # option to disable fresh samples
-  if needFreshMeasurements
-    # TODO refactor
-    ccwl.measurement = sampleFactor(cf, maxlen)
-    # sampleFactor!(ccwl, maxlen, fmd, vnds)
-  end
-
-
-  ccwl.zDim = calcZDim(CalcFactor(ccwl))
-  # if ccwl.specialzDim
-  #   ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
-  # else
-  # end
-  ccwl.varidx = sfidx
-
-  # set each CPT
-  for thrid in 1:Threads.nthreads()
-    cpt_ = ccwl.cpt[thrid] 
-    cpt_.X = ccwl.params[sfidx]
-
-    # used in ccw functor for AbstractRelativeMinimize
-    # TODO JT - Confirm it should be updated here. Testing in prepgenericconvolution
-    resize!(cpt_.res, ccwl.zDim) 
-    fill!(cpt_.res, 0.0)
-  end
-
-  # calculate new gradients perhaps
-  # J = ccwl.gradients(measurement..., pts...)
-
-  return sfidx, maxlen, mani
-end
-
-
-function prepareCommonConvWrapper!( ccwl::Union{CommonConvWrapper{F},
-                                                CommonConvWrapper{Mixture{N_,F,S,T}}},
-                                    Xi::AbstractVector{<:DFGVariable},
-                                    solvefor::Symbol,
-                                    N::Int;
-                                    kw...  ) where {N_,F<:AbstractRelative,S,T}
-  #
-  prepareCommonConvWrapper!(F, ccwl, Xi, solvefor, N; kw...)
-end
-
-
-"""
     $SIGNATURES
 
 Control the amount of entropy to add to null-hypothesis in multihypo case.
@@ -331,29 +231,7 @@ end
   #   approxConvOnElements!(ccwl, allelements[count])
 
 
-"""
-    $SIGNATURES
-Internal method to set which dimensions should be used as the decision variables for later numerical optimization.
-"""
-function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
-                                              CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:Union{AbstractManifoldMinimize, AbstractRelativeMinimize, AbstractRelativeRoots, AbstractPrior},S,T}
-  #
-  # return nothing
 
-  p = if ccwl.partial
-    Int32[ccwl.usrfnc!.partial...]
-  else
-    Int32[1:ccwl.xDim...]
-  end
-
-  ccwl.partialDims = (p)
-  # NOTE should only be done in the constructor
-  for thrid in 1:Threads.nthreads()
-    length(ccwl.cpt[thrid].p) != length(p) ? resize!(ccwl.cpt[thrid].p, length(p)) : nothing
-    ccwl.cpt[thrid].p .= p # SVector... , see ccw.partialDims
-  end
-  nothing
-end
 
 """
     $(SIGNATURES)

@@ -415,17 +415,14 @@ getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 getFactorOperationalMemoryType(dfg::NoSolverParams) = CommonConvWrapper
 
 include("AliasScalarSampling.jl")
+include("entities/GraphConstraintTypes.jl")
 include("entities/OptionalDensities.jl")
 include("BeliefTypes.jl")
-include("services/CalcFactor.jl")
 
 
 include("Factors/GenericFunctions.jl")
-
-# Refactoring in progress
 include("Factors/MsgLikelihoods.jl")
 
-include("entities/GraphConstraintTypes.jl")
 include("CliqueTypes.jl")
 
 include("JunctionTreeTypes.jl")
@@ -458,6 +455,10 @@ include("Variables/Circular.jl")
 include("Factors/PartialPrior.jl")
 include("Factors/PartialPriorPassThrough.jl")
 include("DefaultNodeTypes.jl") # older file
+
+# Refactoring in progress
+include("services/CalcFactor.jl")
+
 
 # solving graphs
 include("SolverUtilities.jl")
