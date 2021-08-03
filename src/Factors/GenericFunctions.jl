@@ -71,7 +71,7 @@ export ManifoldFactor
 # For now, `Z` is on the tangent space in coordinates at the point used in the factor.
 # For groups just the lie algebra
 # As transition it will be easier this way, we can reevaluate
-struct ManifoldFactor{M <: AbstractManifold, T <: SamplableBelief} <: AbstractManifoldMinimize#AbstractFactor
+struct ManifoldFactor{M <: AbstractManifold, T <: SamplableBelief} <: AbstractManifoldMinimize #AbstractFactor
     M::M
     Z::T
 end

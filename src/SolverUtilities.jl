@@ -171,7 +171,7 @@ function _buildGraphByFactorAndTypes!(fct::AbstractFactor,
   
   # TODO generalize beyond binary
   len = length(varTypes)
-  vars = [Symbol(destPrefix, s_) for s_ in (currNumber .+ (1:len))]
+  vars = Symbol[Symbol(destPrefix, s_) for s_ in (currNumber .+ (1:len))]
   for (s_, vTyp) in enumerate(varTypes)
     # add the necessary variables
     exists(dfg, vars[s_]) ? nothing : addVariable!(dfg, vars[s_],  vTyp)

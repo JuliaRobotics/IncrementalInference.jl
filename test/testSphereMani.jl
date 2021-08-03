@@ -4,7 +4,10 @@ using Manifolds
 using StaticArrays
 using Test
 
+##
+
 @testset "Test Sphere(2) prior" begin
+##
 
 Base.convert(::Type{<:Tuple}, M::Sphere{2, ℝ}) = (:Euclid, :Euclid)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{Sphere{2, ℝ}})  = (:Euclid, :Euclid)
@@ -39,7 +42,8 @@ f = addFactor!(fg, [:x0, :x1], mf)
 ##
 # Debugging Sphere error
 smtasks = Task[]
-solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
+solveTree!(fg; smtasks) #, verbose=true, recordcliqs=ls(fg))
 # hists = fetchCliqHistoryAll!(smtasks);
 
+##
 end
