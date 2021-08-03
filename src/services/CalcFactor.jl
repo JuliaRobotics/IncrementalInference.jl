@@ -19,11 +19,7 @@ DevNotes
 - TODO only works on `.threadid()==1` at present, see #1094
 - Also see, JuliaRobotics/RoME.jl#465
 """
-function sampleFactor(cf::CalcFactor{<:AbstractFactor}, 
-                      N::Int=1  )
-  #
-  getSample(cf, N)
-end
+sampleFactor(cf::CalcFactor{<:AbstractFactor}, N::Int=1  ) = getSample(cf, N)
 
 
 
@@ -71,9 +67,6 @@ Notes
 - Binary factors only at this stage, and `multihypo` does not have to be considered in this test
 - Assumes calculation is for a single particle, so `meas::Tuple{Z,other}` is only a single particles value.
 
-DevNotes
-- TODO generalize for n-ary factors
-
 Example
 ```julia
 residual = calcFactorResidualTemporary(Pose2Pose2(...), (RoME.Pose2,RoME.Pose2), (z_i,), (x1, x2))
@@ -99,9 +92,8 @@ function calcFactorResidualTemporary( fct::AbstractRelative,
     measurement
   else
     # now use the CommonConvWrapper object in `_dfgfct`
-    ccw = IIF._getCCW(_dfgfct)
-    cfo = CalcFactor(ccw)
-    getSample(cfo, 1)
+    cfo = CalcFactor(_getCCW(_dfgfct))
+    sampleFactor(cfo, 1)
   end
 
   # assume a single sample point is being run
