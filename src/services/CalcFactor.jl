@@ -109,6 +109,9 @@ function calcFactorResidualTemporary( fct::AbstractRelative,
 end
 
 
+## =============================================================================================
+## FactorOperationalMemory helper constructors
+## =============================================================================================
 
 
 function ConvPerThread( X::AbstractVector{P},
