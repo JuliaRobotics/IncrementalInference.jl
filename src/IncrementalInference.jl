@@ -404,7 +404,7 @@ const BeliefArray{T} = Union{Array{T,2}, Adjoint{T, Array{T,2}} }
 
 # regular
 include("entities/SolverParams.jl")
-include("FactorGraphTypes.jl")
+include("entities/FactorOperationalMemory.jl")
 
 # JT TODO move to somewhere more fitting? (DF, perhaps not remember its IIF.SolverParams)
 const InMemDFGType = DFG.LightDFG{SolverParams}
