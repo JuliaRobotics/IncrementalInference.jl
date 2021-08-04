@@ -96,7 +96,8 @@ function HeatmapDensityRegular( data::AbstractMatrix{<:Real},
   # final samplable density object
   bw = getBW(density_)[:,1]
   @cast pts[i,j] := vec_preIS[j][i]
-  density = kde!(collect(pts), bw, weights)
+  bel = kde!(collect(pts), bw, weights)
+  density = ManifoldKernelDensity(TranslationGroup(Ndim(bel)), bel)
 
   # return `<:SamplableBelief` object
   HeatmapDensityRegular(data, domain, hist_callback, level, sigma, float(sigma_scale), bw_factor, density)

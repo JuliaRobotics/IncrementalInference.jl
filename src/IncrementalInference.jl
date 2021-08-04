@@ -345,6 +345,7 @@ export *,
 
   # user functions
   predictbelief,
+  propagateBelief,
   getCliqMat,
   getCliqAssocMat,
   getCliqMsgMat,

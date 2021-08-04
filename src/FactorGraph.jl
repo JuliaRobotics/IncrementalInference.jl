@@ -227,16 +227,36 @@ setVariableInferDim!(vari::DFGVariable, val::Real) = setVariableInferDim!(getSol
 ## ==============================================================================================
 
 
-function setValKDE!(vd::VariableNodeData,
-                    p::ManifoldKernelDensity,
+function setValKDE!(vnd::VariableNodeData,
+                    p::ManifoldKernelDensity{M,B,Nothing},
                     setinit::Bool=true,
-                    inferdim::Union{Float32, Float64, Int32, Int64}=0 )
+                    inferdim::Union{Float32, Float64, Int32, Int64}=0 ) where {M,B}
   #
-  ptsArr = AMP.getPoints(p)
-  # @show typeof(ptsArr)
-  # @cast ptsArr[j][i] := pts[i,j]
+  # L==Nothing means no partials
+  ptsArr = AMP.getPoints(p) # , false) # for not partial
+  # also set the bandwidth
   bws = getBW(p)[:,1]
-  setValKDE!(vd,ptsArr,bws,setinit,inferdim )
+  setValKDE!(vnd,ptsArr,bws,setinit,inferdim )
+  nothing
+end
+
+
+function setValKDE!(vnd::VariableNodeData,
+                    mkd::ManifoldKernelDensity{M,B,L},
+                    setinit::Bool=true,
+                    inferdim::Union{Float32, Float64, Int32, Int64}=0 ) where {M,B,L<:AbstractVector}
+  #
+  oldbel = getBelief(vnd)
+  # Set partial dims as Manifold points
+  ptsArr = AMP.getPoints(mkd, false)
+  oldPts = getVal(vnd)
+  # get partial coord dims
+  pvec = mkd._partial
+
+  # also set the bandwidth
+  bws = getBW(mkd)[:,1]
+  bw_ = getBW
+  setValKDE!(vnd,ptsArr,bws,setinit,inferdim )
   nothing
 end
 
@@ -809,7 +829,7 @@ function doautoinit!( dfg::AbstractDFG,
           @info "do init of $vsym"
         end
         # FIXME ensure a product of only partial densities and returned pts are put to proper dimensions
-        pts,inferdim = predictbelief(dfg, vsym, useinitfct, solveKey=solveKey, logger=logger)
+        bel,inferdim = proposalBelief(dfg, vsym, useinitfct, solveKey=solveKey, logger=logger)
         setValKDE!(xi, pts, true, inferdim, solveKey=solveKey)
         # Update the estimates (longer DFG function used so cloud is also updated)
         setVariablePosteriorEstimates!(dfg, xi.label, solveKey)
@@ -1379,7 +1399,7 @@ end
 
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
-getBelief(vnd::VariableNodeData) = manikde!(getVal(vnd), getBW(vnd)[:,1], getVariableType(vnd) )
+getBelief(vnd::VariableNodeData) = manikde!(getManifold(getVariableType(vnd)), getVal(vnd), bw=getBW(vnd)[:,1] )
 
 getBelief(v::DFGVariable, solvekey::Symbol=:default) = getBelief(getSolverData(v, solvekey))
 getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol=:default) = getBelief(getVariable(dfg, lbl), solvekey)

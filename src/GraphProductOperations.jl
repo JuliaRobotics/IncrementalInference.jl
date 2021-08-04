@@ -9,24 +9,27 @@ Notes
 - Returns tuple of product and whether full dimensional (=true) or partial (=false).
 - `N` determines the number of samples to draw from the marginal.
 - `dens` can contain mixed full and partial dimension `ManifoldKernelDensity` beliefs
+
+Related
+
+[`approxConv`](@ref), [`proposalbeliefs!`](@ref), [`AMP.manifoldProduct`](@ref)
 """
-function predictbelief( dfg::AbstractDFG,
-                        destvert::DFGVariable,
-                        factors::Vector{<:DFGFactor};
-                        solveKey::Symbol=:default,
-                        dens = Vector{ManifoldKernelDensity}(),
-                        N::Int=maximum([length(getPoints(getBelief(destvert, solveKey))); getSolverParams(dfg).N]),
-                        needFreshMeasurements::Bool=true,
-                        dbg::Bool=false,
-                        logger=ConsoleLogger()  )
-  #
+function propagateBelief( dfg::AbstractDFG,
+                          destvar::DFGVariable,
+                          factors::AbstractVector{<:DFGFactor};
+                          solveKey::Symbol=:default,
+                          dens = Vector{ManifoldKernelDensity}(),
+                          N::Int=maximum([length(getPoints(getBelief(destvar, solveKey))); getSolverParams(dfg).N]),
+                          needFreshMeasurements::Bool=true,
+                          dbg::Bool=false,
+                          logger=ConsoleLogger()  )
+    #
 
   # get proposal beliefs
-  destlbl = getLabel(destvert)
+  destlbl = getLabel(destvar)
   inferdim = proposalbeliefs!(dfg, destlbl, factors, dens, solveKey=solveKey, N=N, dbg=dbg)
 
-  # take the product
-  # TODO, make sure oldpts has right number of points!
+  # make sure oldpts has right number of points
   oldBel = getBelief(dfg, destlbl, solveKey)
   oldpts = if Npts(oldBel) == N
     getPoints(oldBel)
@@ -34,10 +37,32 @@ function predictbelief( dfg::AbstractDFG,
     sample(oldBel, N)[1]
   end
   
-  varType = getVariableType(dfg, destlbl)
-  pGM = AMP.productbelief(oldpts, getManifold(varType), dens, N, dbg=dbg, logger=logger, asPartial=false )
+  # few more data requirements
+  varType = getVariableType(destvar)
+  M = getManifold(varType)
 
-  return pGM, sum(inferdim)
+  # take the product
+  mkd = AMP.manifoldProduct(dens, M, Niter=1, oldPoints=oldpts)
+  
+  return mkd, sum(inferdim)
+end
+
+"""
+    $SIGNATURES
+
+This is an old function that will be replace by [`propagateBelief`](@ref).
+"""
+function predictbelief( dfg::AbstractDFG,
+                        destvert::DFGVariable,
+                        factors::Vector{<:DFGFactor};
+                        asPartial::Bool=false,
+                        kw... )
+  #
+  # new
+  mkd, ifd = propagateBelief(dfg,destvert,factors;kw...)
+
+  # legacy interface
+  return getPoints(mkd, asPartial), ifd
 end
 
 predictbelief(dfg::AbstractDFG,
@@ -51,6 +76,7 @@ predictbelief(dfg::AbstractDFG,
               ::Colon;
               kw... ) = predictbelief(dfg, destlbl, getNeighbors(dfg, destlbl); kw... )
 #
+
 
 
 """
