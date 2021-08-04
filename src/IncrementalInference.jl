@@ -413,7 +413,7 @@ const InMemDFGType = DFG.LightDFG{SolverParams}
 include("entities/FactorOperationalMemory.jl")
 
 
-include("entities/GraphConstraintTypes.jl")
+include("Factors/GenericMarginal.jl")
 include("entities/OptionalDensities.jl")
 include("entities/FactorGradients.jl")
 
@@ -477,7 +477,8 @@ include("NumericalCalculations.jl")
 include("DeconvUtils.jl")
 include("ExplicitDiscreteMarginalizations.jl")
 include("InferDimensionUtils.jl")
-include("ApproxConv.jl")
+include("services/EvalFactor.jl")
+include("services/ApproxConv.jl")
 include("GraphProductOperations.jl")
 include("SolveTree.jl")
 include("TetherUtils.jl")
