@@ -144,9 +144,9 @@ DFG.getManifold(::ManiPose2Point2) = TranslationGroup(2)
 function (cfo::CalcFactor{<:ManiPose2Point2})(measX, p, q)
   #
     M = SpecialEuclidean(2)
-    q_SE = ProductRepr(q, identity(SpecialOrthogonal(2), p.parts[2]))
+    q_SE = ProductRepr(q, identity_element(SpecialOrthogonal(2), p.parts[2]))
 
-    X_se2 = log(M, identity(M, p), compose(M, inv(M, p), q_SE))
+    X_se2 = log(M, identity_element(M, p), compose(M, inv(M, p), q_SE))
     X = X_se2.parts[1]
     # NOTE wrong for what we want X̂ = log(M, p, q_SE)
     return measX - X 

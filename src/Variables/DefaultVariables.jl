@@ -43,7 +43,7 @@ DFG.getDimension(val::InstanceType{ContinuousEuclid{N}}) where N = manifold_dime
 # DFG.getDimension(val::ContinuousEuclid{N}) where N = manifold_dimension(getManifold(val))
 
 DFG.getPointType(::Type{ContinuousEuclid{N}}) where N = Vector{Float64}
-DFG.getPointIdentity(M_::Type{ContinuousEuclid{N}}) where N = zeros(N) # identity(getManifold(M_), zeros(N)) 
+DFG.getPointIdentity(M_::Type{ContinuousEuclid{N}}) where N = zeros(N) # identity_element(getManifold(M_), zeros(N)) 
 
 
 Base.convert(::Type{<:ManifoldsBase.AbstractManifold}, ::InstanceType{ContinuousEuclid{N}}) where N = TranslationGroup(N)
