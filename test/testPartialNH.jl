@@ -35,7 +35,8 @@ oldBel = getBelief(fg, destlbl)
 oldpts = getPoints(oldBel)
 
 varType = getVariableType(fg, destlbl)
-pGM = AMP.productbelief(oldpts, getManifold(varType), dens, 100, asPartial=false )
+pGM = getPoints( AMP.manifoldProduct(dens, getManifold(varType), N=100, oldPoints=oldpts), false )
+# pGM = AMP.productbelief(oldpts, getManifold(varType), dens, 100, asPartial=false )
 
 
 ##

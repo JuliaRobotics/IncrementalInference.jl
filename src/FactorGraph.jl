@@ -829,8 +829,8 @@ function doautoinit!( dfg::AbstractDFG,
           @info "do init of $vsym"
         end
         # FIXME ensure a product of only partial densities and returned pts are put to proper dimensions
-        bel,inferdim = proposalBelief(dfg, vsym, useinitfct, solveKey=solveKey, logger=logger)
-        setValKDE!(xi, pts, true, inferdim, solveKey=solveKey)
+        bel,inferdim = propagateBelief(dfg, getVariable(dfg,vsym), getFactor.(dfg,useinitfct), solveKey=solveKey, logger=logger)
+        setValKDE!(xi, getPoints(bel, false), true, inferdim, solveKey=solveKey)
         # Update the estimates (longer DFG function used so cloud is also updated)
         setVariablePosteriorEstimates!(dfg, xi.label, solveKey)
         # Update the data in the event that it's not local

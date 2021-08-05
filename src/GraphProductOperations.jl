@@ -50,7 +50,7 @@ end
 """
     $SIGNATURES
 
-This is an old function that will be replace by [`propagateBelief`](@ref).
+This is an old function name that will be replaced by [`propagateBelief`](@ref).
 """
 function predictbelief( dfg::AbstractDFG,
                         destvert::DFGVariable,
