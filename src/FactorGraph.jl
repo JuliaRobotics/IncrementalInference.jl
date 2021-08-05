@@ -738,9 +738,9 @@ function factorCanInitFromOtherVars(dfg::AbstractDFG,
     mhp = getMultihypoDistribution(fctnode).p
     allmhp,certainidx,uncertnidx = getHypothesesVectors(mhp)
     if isLeastOneHypoAvailable(sfidx, certainidx, uncertnidx, isinit)
-       # special case works
-       @info "allowing init from incomplete set of previously initialized hypotheses, fct=$fct"
-       canuse = true
+      # special case works
+      @info "allowing init from incomplete set of previously initialized hypotheses, fct=$fct"
+      canuse = true
     end
   end
 
@@ -753,29 +753,6 @@ function factorCanInitFromOtherVars(dfg::AbstractDFG,
   return (canuse, fctlist, faillist)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}}
 end
 
-
-# wow, that was quite far off -- needs testing
-# function factorCanInitFromOtherVars(dfg::T,
-#                                     fct::Symbol,
-#                                     loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}} where T <: AbstractDFG
-#   #
-#   # all variables attached to this factor
-#   varsyms = getNeighbors(dfg, fct)
-#
-#   # list of factors to use in init operation
-#   useinitfct = Symbol[]
-#   faillist = Symbol[]
-#   for vsym in varsyms
-#     xi = DFG.getVariable(dfg, vsym)
-#     if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
-#       push!(useinitfct, fct)
-#     end
-#   end
-#
-#   return (length(useinitfct)==length(varsyms)&&length(faillist)==0,
-#           useinitfct,
-#           faillist   )
-# end
 
 """
     $(SIGNATURES)
@@ -830,6 +807,7 @@ function doautoinit!( dfg::AbstractDFG,
         end
         # FIXME ensure a product of only partial densities and returned pts are put to proper dimensions
         bel,inferdim = propagateBelief(dfg, getVariable(dfg,vsym), getFactor.(dfg,useinitfct), solveKey=solveKey, logger=logger)
+        @info "MANIFOLD IS" bel.manifold string(getPoints(bel, false)[1]) 
         setValKDE!(xi, getPoints(bel, false), true, inferdim, solveKey=solveKey)
         # Update the estimates (longer DFG function used so cloud is also updated)
         setVariablePosteriorEstimates!(dfg, xi.label, solveKey)
