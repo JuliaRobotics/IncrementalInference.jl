@@ -59,7 +59,7 @@ vnd = getVariableSolverData(fg, :x1)
 
 ##
 smtasks = Task[]
-solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
+solveTree!(fg; smtasks, verbose=true) #, recordcliqs=ls(fg))
 # hists = fetchCliqHistoryAll!(smtasks);
 
 vnd = getVariableSolverData(fg, :x0)
@@ -92,11 +92,12 @@ p = addFactor!(fg, [:x0], mp, graphinit=false)
 
 ##
 
-# try
 pbel_ = approxConvBelief(fg, :x0f1, :x0)
-# catch 
-#   @test_broken false
-# end
+
+@test isPartial(pbel_)
+
+@test pbel_._partial == [1;2]
+@test length(pbel_.infoPerCoord) == 3
 
 ##
 end
@@ -141,7 +142,7 @@ vnd = getVariableSolverData(fg, :x6)
 ##
 
 smtasks = Task[]
-solveTree!(fg; smtasks)
+solveTree!(fg; smtasks);
 
 ##
 end
