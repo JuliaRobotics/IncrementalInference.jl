@@ -1282,7 +1282,7 @@ function compCliqAssocMatrices!(dfg::G, bt::AbstractBayesTree, cliq::TreeClique)
           end
         end
       else
-        prtslperr("compCliqAssocMatrices! -- potential ID ordering was lost")
+        @error("compCliqAssocMatrices! -- potential ID ordering was lost")
       end
     end
   end

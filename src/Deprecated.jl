@@ -25,6 +25,15 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+
+# function prtslperr(s)
+#   println(s)
+#   sleep(0.1)
+#   error(s)
+# end
+
+@deprecate getKDE(w...;kw...) getBelief(w...;kw...)
+
 @deprecate findRelatedFromPotential(w...;kw...) (calcProposalBelief(w...;kw...),)
 
 # function generateNullhypoEntropy( val::AbstractMatrix{<:Real},
