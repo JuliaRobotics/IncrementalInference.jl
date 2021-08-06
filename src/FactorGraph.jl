@@ -180,23 +180,58 @@ function setValKDE!(v::DFGVariable,
   nothing
 end
 function setValKDE!(v::DFGVariable,
-                    p::ManifoldKernelDensity,
+                    mkd::ManifoldKernelDensity,
                     setinit::Bool=true,
                     inferdim::Real=0;
                     solveKey::Symbol=:default  )
   #
   # @error("TESTING setValKDE! ", solveKey, string(listSolveKeys(v)))
-  setValKDE!(getSolverData(v,solveKey),p,setinit, Float64(inferdim))
+  setValKDE!(getSolverData(v,solveKey),mkd,setinit, Float64(inferdim))
   nothing
 end
 function setValKDE!(dfg::AbstractDFG,
                     sym::Symbol,
-                    p::ManifoldKernelDensity,
+                    mkd::ManifoldKernelDensity,
                     setinit::Bool=true,
                     inferdim::Real=0;
                     solveKey::Symbol=:default  )
   #
-  setValKDE!(getVariable(dfg, sym), p, setinit, inferdim, solveKey=solveKey)
+  setValKDE!(getVariable(dfg, sym), mkd, setinit, inferdim, solveKey=solveKey)
+  nothing
+end
+
+
+
+function setValKDE!(vnd::VariableNodeData,
+                    mkd::ManifoldKernelDensity{M,B,Nothing},
+                    setinit::Bool=true,
+                    inferdim::Union{Float32, Float64, Int32, Int64}=0 ) where {M,B}
+  #
+  # L==Nothing means no partials
+  ptsArr = AMP.getPoints(mkd) # , false) # for not partial
+  # also set the bandwidth
+  bws = getBW(mkd)[:,1]
+  setValKDE!(vnd,ptsArr,bws,setinit,inferdim )
+  nothing
+end
+
+
+function setValKDE!(vnd::VariableNodeData,
+                    mkd::ManifoldKernelDensity{M,B,L},
+                    setinit::Bool=true,
+                    inferdim::Union{Float32, Float64, Int32, Int64}=0 ) where {M,B,L<:AbstractVector}
+  #
+  oldbel = getBelief(vnd)
+  # Set partial dims as Manifold points
+  ptsArr = AMP.getPoints(mkd, false)
+  oldPts = getVal(vnd)
+  # get partial coord dims
+  pvec = mkd._partial
+
+  # also set the bandwidth
+  bws = getBW(mkd)[:,1]
+  bw_ = getBW
+  setValKDE!(vnd,ptsArr,bws,setinit,inferdim )
   nothing
 end
 
@@ -226,39 +261,6 @@ setVariableInferDim!(vari::DFGVariable, val::Real) = setVariableInferDim!(getSol
 ## ==============================================================================================
 ## ==============================================================================================
 
-
-function setValKDE!(vnd::VariableNodeData,
-                    p::ManifoldKernelDensity{M,B,Nothing},
-                    setinit::Bool=true,
-                    inferdim::Union{Float32, Float64, Int32, Int64}=0 ) where {M,B}
-  #
-  # L==Nothing means no partials
-  ptsArr = AMP.getPoints(p) # , false) # for not partial
-  # also set the bandwidth
-  bws = getBW(p)[:,1]
-  setValKDE!(vnd,ptsArr,bws,setinit,inferdim )
-  nothing
-end
-
-
-function setValKDE!(vnd::VariableNodeData,
-                    mkd::ManifoldKernelDensity{M,B,L},
-                    setinit::Bool=true,
-                    inferdim::Union{Float32, Float64, Int32, Int64}=0 ) where {M,B,L<:AbstractVector}
-  #
-  oldbel = getBelief(vnd)
-  # Set partial dims as Manifold points
-  ptsArr = AMP.getPoints(mkd, false)
-  oldPts = getVal(vnd)
-  # get partial coord dims
-  pvec = mkd._partial
-
-  # also set the bandwidth
-  bws = getBW(mkd)[:,1]
-  bw_ = getBW
-  setValKDE!(vnd,ptsArr,bws,setinit,inferdim )
-  nothing
-end
 
 """
     $SIGNATURES
@@ -807,8 +809,8 @@ function doautoinit!( dfg::AbstractDFG,
         end
         # FIXME ensure a product of only partial densities and returned pts are put to proper dimensions
         bel,inferdim = propagateBelief(dfg, getVariable(dfg,vsym), getFactor.(dfg,useinitfct), solveKey=solveKey, logger=logger)
-        @info "MANIFOLD IS" bel.manifold string(getPoints(bel, false)[1]) 
-        setValKDE!(xi, getPoints(bel, false), true, inferdim, solveKey=solveKey)
+        # @info "MANIFOLD IS" bel.manifold string(getPoints(bel, false)[1]) 
+        setValKDE!(xi, bel, true, inferdim, solveKey=solveKey) # getPoints(bel, false)
         # Update the estimates (longer DFG function used so cloud is also updated)
         setVariablePosteriorEstimates!(dfg, xi.label, solveKey)
         # Update the data in the event that it's not local

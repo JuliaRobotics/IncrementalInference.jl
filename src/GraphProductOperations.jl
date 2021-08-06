@@ -23,11 +23,13 @@ function propagateBelief( dfg::AbstractDFG,
                           needFreshMeasurements::Bool=true,
                           dbg::Bool=false,
                           logger=ConsoleLogger()  )
-    #
-
+  #
+  
   # get proposal beliefs
   destlbl = getLabel(destvar)
   inferdim = proposalbeliefs!(dfg, destlbl, factors, dens, solveKey=solveKey, N=N, dbg=dbg)
+  
+  # @show dens[1].manifold
 
   # make sure oldpts has right number of points
   oldBel = getBelief(dfg, destlbl, solveKey)
@@ -40,9 +42,12 @@ function propagateBelief( dfg::AbstractDFG,
   # few more data requirements
   varType = getVariableType(destvar)
   M = getManifold(varType)
-
+  # @info "BUILDING MKD" varType M
+  
   # take the product
   mkd = AMP.manifoldProduct(dens, M, Niter=1, oldPoints=oldpts)
+  
+  # @info "GOT" mkd.manifold
   
   return mkd, sum(inferdim)
 end
