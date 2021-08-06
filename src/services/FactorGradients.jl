@@ -108,7 +108,7 @@ end
 getCoordSizes(fgc::FactorGradientsCached!) = fgc._coord_sizes
 
 
-_setFGCSlack!(fgc::FactorGradientsCached!{F}, slack) where F = _setPointsMani!(fgc.slack_residual, slack)
+_setFGCSlack!(fgc::FactorGradientsCached!{F}, slack) where F = setPointsMani!(fgc.slack_residual, slack)
 
 function _setFGCSlack!(fgc::FactorGradientsCached!{F,S}, slack::Number) where {F,S<:Number}
   fgc.slack_residual = slack
@@ -121,7 +121,7 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
 
   # update in-place the new measurement value in preparation for new gradient calculation
   for (m, tup_m) in enumerate(fgc.measurement)
-    _setPointsMani!(tup_m, meas_pts[m])
+    setPointsMani!(tup_m, meas_pts[m])
   end
 
   # update the residual _slack in preparation for new gradient calculation
@@ -132,12 +132,12 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
   new_slack = calcFactorResidualTemporary(fct, varTypes, measurement, pts; tfg=fgc._tfg)
   # TODO make sure slack_residual is properly wired up with all the lambda functions as expected
   _setFGCSlack!(fgc, new_slack)
-  # _setPointsMani!(fgc.slack_residual, new_slack)
+  # setPointsMani!(fgc.slack_residual, new_slack)
 
   # set new points in preparation for new gradient calculation
   for (s,pt) in enumerate(meas_pts[(lenm+1):end])
     # update the local memory in fgc to take the values of incoming `pts`
-    _setPointsMani!(fgc.currentPoints[s], pt)
+    setPointsMani!(fgc.currentPoints[s], pt)
   end
 
   # update the gradients at new values contained in fgc
