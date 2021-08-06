@@ -420,7 +420,6 @@ include("entities/FactorGradients.jl")
 
 # Special belief types for sampling as a distribution
 include("entities/AliasScalarSampling.jl")
-include("services/HeatmapSampler.jl")
 
 include("entities/BeliefTypes.jl")
 
@@ -514,7 +513,7 @@ function __init__()
   @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" include("RequireInteractiveUtils.jl")
   @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" include("EmbeddedPlottingUtils.jl")
   @require DifferentialEquations="0c46a032-eb83-5123-abaf-570d42b7fbaa" include("ODE/DERelative.jl")
-  @require Interpolations="a98d9a8b-a2ab-59e6-89dd-64a1c18fca59" include("HeatmapSampler.jl")
+  @require Interpolations="a98d9a8b-a2ab-59e6-89dd-64a1c18fca59" include("services/HeatmapSampler.jl")
 
   # combining neural networks natively into the non-Gaussian  factor graph object
   @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
