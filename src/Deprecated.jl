@@ -25,6 +25,15 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+
+# function prtslperr(s)
+#   println(s)
+#   sleep(0.1)
+#   error(s)
+# end
+
+@deprecate getKDE(w...;kw...) getBelief(w...;kw...)
+
 @deprecate findRelatedFromPotential(w...;kw...) (calcProposalBelief(w...;kw...),)
 
 # function generateNullhypoEntropy( val::AbstractMatrix{<:Real},
@@ -132,6 +141,29 @@ end
 ##==============================================================================
 ## Deprecate code below before v0.26
 ##==============================================================================
+
+# wow, that was quite far off -- needs testing
+# function factorCanInitFromOtherVars(dfg::T,
+#                                     fct::Symbol,
+#                                     loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}} where T <: AbstractDFG
+#   #
+#   # all variables attached to this factor
+#   varsyms = getNeighbors(dfg, fct)
+#
+#   # list of factors to use in init operation
+#   useinitfct = Symbol[]
+#   faillist = Symbol[]
+#   for vsym in varsyms
+#     xi = DFG.getVariable(dfg, vsym)
+#     if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
+#       push!(useinitfct, fct)
+#     end
+#   end
+#
+#   return (length(useinitfct)==length(varsyms)&&length(faillist)==0,
+#           useinitfct,
+#           faillist   )
+# end
 
 @deprecate calcPerturbationFromVariable( fgc::FactorGradientsCached!, fromVar::Int, infoPerCoord::AbstractVector;tol::Real=0.02*fgc._h ) calcPerturbationFromVariable(fgc, [fromVar => infoPerCoord;], tol=tol )
 

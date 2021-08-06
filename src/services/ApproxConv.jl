@@ -302,6 +302,7 @@ function proposalbeliefs!(dfg::AbstractDFG,
     inferd = getFactorSolvableDim(dfg, fct, destlbl, solveKey)
     # convolve or passthrough to get a new proposal
     propBel_ = calcProposalBelief(dfg, fct, destlbl, measurement, N=N, dbg=dbg, solveKey=solveKey)
+    # @show propBel_.manifold
     # partial density
     propBel = if isPartial(ccwl)
       pardims = _getDimensionsPartial(ccwl)

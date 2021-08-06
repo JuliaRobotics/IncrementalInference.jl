@@ -82,6 +82,6 @@ function Base.show(io::IO, mime::MIME"text/plain", x::HeatmapDensityRegular{T,H,
   nothing
 end
 
-# Base.show(io::IO, ::MIME"application/prs.juno.inline", x::HeatmapDensityRegular) = x
+Base.show(io::IO, ::MIME"application/prs.juno.inline", x::HeatmapDensityRegular) = show(io,x)
 
 #

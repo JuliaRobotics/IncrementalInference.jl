@@ -59,7 +59,7 @@ J = gradFct(measurement..., pts...)
 
 ## check on transmitted info per coords
 
-ret = calcPerturbationFromVariable(gradFct, 1, [1;1])
+ret = calcPerturbationFromVariable(gradFct, [1=>[1;1]])
 
 # the fromVar itself should be zero
 @test length(ret[1]) == 2
@@ -109,7 +109,7 @@ J = gradients(measurement..., pts...)
 
 ## check on transmitted info per coords
 
-ret = calcPerturbationFromVariable(gradients, 1, [1;1])
+ret = calcPerturbationFromVariable(gradients, [1=>[1;1]])
 
 # the fromVar itself should be zero
 @test length(ret[1]) == 2
@@ -121,7 +121,7 @@ ret = calcPerturbationFromVariable(gradients, 1, [1;1])
 
 ## check the reverse perturbation
 
-ret = calcPerturbationFromVariable(gradients, 2, [1;1])
+ret = calcPerturbationFromVariable(gradients, [2=>[1;1]])
 
 # only the first coordinate dimension is affected
 @test length(ret[1]) == 2
