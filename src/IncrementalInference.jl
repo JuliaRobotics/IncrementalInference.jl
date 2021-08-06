@@ -419,8 +419,8 @@ include("entities/OptionalDensities.jl")
 include("entities/FactorGradients.jl")
 
 # Special belief types for sampling as a distribution
-include("AliasScalarSampling.jl")
-include("HeatmapSampler.jl")
+include("entities/AliasScalarSampling.jl")
+include("services/HeatmapSampler.jl")
 
 include("entities/BeliefTypes.jl")
 
