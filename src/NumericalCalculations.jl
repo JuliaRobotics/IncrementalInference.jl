@@ -85,7 +85,7 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   # the variable is a manifold point, we are working on the tangent plane in optim for now.
   # 
   #TODO this is not general to all manifolds, should work for lie groups.
-  # ϵ = identity(M, u0)
+  # ϵ = identity_element(M, u0)
   ϵ = getPointIdentity(variableType)
   # X0c = get_coordinates(M, u0, log(M, ϵ, u0), DefaultOrthogonalBasis()) 
   X0c = vee(M, u0, log(M, ϵ, u0)) 

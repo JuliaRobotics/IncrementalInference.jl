@@ -22,55 +22,6 @@ randToPoints(distr::SamplableBelief, N::Int=1) = [rand(distr,1)[:] for i in 1:N]
 randToPoints(distr::ManifoldKernelDensity, N::Int=1) = rand(distr,N)
 
 
-_setPointsMani!(dest::AbstractVector, src::AbstractVector) = (dest .= src)
-_setPointsMani!(dest::AbstractMatrix, src::AbstractMatrix) = (dest .= src)
-function _setPointsMani!(dest::AbstractVector, src::AbstractMatrix)
-  @assert size(src,2) == 1 "Workaround _setPointsMani! currently only allows size(::Matrix, 2) == 1"
-  _setPointsMani!(dest, src[:])
-end
-function _setPointsMani!(dest::AbstractMatrix, src::AbstractVector)
-  @assert size(dest,2) == 1 "Workaround _setPointsMani! currently only allows size(::Matrix, 2) == 1"
-  _setPointsMani!(view(dest,:,1), src)
-end
-
-function _setPointsMani!(dest::AbstractVector, src::AbstractVector{<:AbstractVector})
-  @assert length(src) == 1 "Workaround _setPointsMani! currently only allows Vector{Vector{P}}(...) |> length == 1"
-  _setPointsMani!(dest, src[1])
-end
-
-function _setPointsMani!(dest::ProductRepr, src::ProductRepr)
-  for (k,prt) in enumerate(dest.parts)
-    _setPointsMani!(prt, src.parts[k])
-  end
-end
-
-# asPartial=true indicates that src coords are smaller than dest coords, and false implying src has dummy values in placeholder dimensions
-function _setPointsManiPartial!(Mdest::AbstractManifold, 
-                                dest, 
-                                Msrc::AbstractManifold, 
-                                src, 
-                                partial::AbstractVector{<:Integer},
-                                asPartial::Bool=true )
-  #
-
-  e0 = identity(Mdest, dest)
-  dest_ = vee(Mdest, e0, log(Mdest, e0, dest))
-
-  e0s = identity(Msrc, src)
-  src_ = vee(Msrc, e0s, log(Msrc, e0s, src))
-
-  # do the copy in coords 
-  dest_[partial] .= asPartial ? src_ : view(src_, partial)
-
-  # update points base in original
-  dest__ = exp(Mdest, e0, hat(Mdest, e0, dest_))
-  _setPointsMani!(dest, dest__)
-
-  #
-  return dest 
-end
-
-
 
 """
     $TYPEDSIGNATURES
@@ -79,10 +30,11 @@ Calculate the Kernel Embedding MMD 'distance' between sample points (or kernel d
 
 Notes
 - `bw::Vector=[0.001;]` controls the mmd kernel bandwidths.
+- Overloading from ApproxManifoldProducts
 
 Related
 
-`KDE.kld`
+`AMP.kld`
 """
 function mmd( p1::AbstractVector{P1}, 
               p2::AbstractVector{P2}, 

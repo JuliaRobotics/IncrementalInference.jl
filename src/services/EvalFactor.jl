@@ -364,7 +364,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
     for m in (1:length(addEntr))[ahmask]
       # FIXME, selection for all measurement::Tuple elements
       # @info "check broadcast" ccwl.usrfnc! addEntr[m] ccwl.measurement[1][m]
-      _setPointsMani!(addEntr[m], ccwl.measurement[1][m])
+      setPointsMani!(addEntr[m], ccwl.measurement[1][m])
     end
     # ongoing part of RoME.jl #244
     addEntropyOnManifold!(mani, addEntrNH, 1:getDimension(mani), spreadDist)
@@ -380,7 +380,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
         # FIXME, need ability to replace partial points
         partialCoords = ccwl.partialDims
         Msrc, = getManifoldPartial(mani,partialCoords)
-        _setPointsManiPartial!(mani, addEntr[m], Msrc, ccwl.measurement[1][m], partialCoords)
+        setPointsManiPartial!(mani, addEntr[m], Msrc, ccwl.measurement[1][m], partialCoords)
         # addEntr[m][dimnum] = ccwl.measurement[1][m][i]
       # end
     end

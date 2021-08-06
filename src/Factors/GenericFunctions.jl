@@ -15,7 +15,7 @@ end
 
 #::MeasurementOnTangent
 function distanceTangent2Point(M::AbstractGroupManifold, X, p, q)
-    q̂ = compose(M, p, exp(M, identity(M, p), X)) #for groups
+    q̂ = compose(M, p, exp(M, identity_element(M, p), X)) #for groups
     # return log(M, q, q̂)
     return vee(M, q, log(M, q, q̂))
     # return distance(M, q, q̂)
@@ -53,7 +53,7 @@ end
 function default_identity(M::GroupManifold{ℝ, <:AbstractManifold})
     T = Float64
     s = representation_size(M)
-    return identity(M, zeros(SArray{Tuple{s...},T}))
+    return identity_element(M, zeros(SArray{Tuple{s...},T}))
 end
 
 # function default_identity(::SpecialOrthogonal{N}) where N
@@ -113,7 +113,7 @@ DFG.getManifold(f::ManifoldPrior) = f.M
 
 #TODO
 # function ManifoldPrior(M::AbstractGroupManifold, Z::SamplableBelief)
-#     # p = identity(M, #TOOD)
+#     # p = identity_element(M, #TOOD)
 #     # similar to getPointIdentity(M)
 #     return ManifoldPrior(M, Z, p)
 # end
