@@ -36,6 +36,9 @@ v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
 p = addFactor!(fg, [:x0], mp)
 
+
+##
+
 doautoinit!(fg, :x0)
 
 ##
@@ -56,7 +59,7 @@ vnd = getVariableSolverData(fg, :x1)
 
 ##
 smtasks = Task[]
-solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
+solveTree!(fg; smtasks, verbose=true) #, recordcliqs=ls(fg))
 # hists = fetchCliqHistoryAll!(smtasks);
 
 vnd = getVariableSolverData(fg, :x0)
@@ -77,6 +80,24 @@ f = addFactor!(fg, [:x1, :x2], mf)
 # smtasks = Task[]
 @test solveTree!(fg; verbose=true) isa Tuple
 
+
+## test partial prior issue
+
+fg = initfg()
+
+v0 = addVariable!(fg, :x0, SpecialEuclidean2)
+mp = PartialPrior(MvNormal([0.01, 0.01]), (1,2))
+
+p = addFactor!(fg, [:x0], mp, graphinit=false)
+
+##
+
+pbel_ = approxConvBelief(fg, :x0f1, :x0)
+
+@test isPartial(pbel_)
+
+@test pbel_._partial == [1;2]
+@test length(pbel_.infoPerCoord) == 3
 
 ##
 end
@@ -121,7 +142,7 @@ vnd = getVariableSolverData(fg, :x6)
 ##
 
 smtasks = Task[]
-solveTree!(fg; smtasks)
+solveTree!(fg; smtasks);
 
 ##
 end
@@ -191,3 +212,6 @@ vnd = getVariableSolverData(fg, :x1)
 @test all(isapprox.(mean(vnd.val), [1.0,2.0], atol=0.1))
 
 end
+
+
+#

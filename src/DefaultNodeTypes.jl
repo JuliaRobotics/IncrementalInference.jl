@@ -1,8 +1,5 @@
 
-
-
-
-##
+## TBD, will be redone together with fixes for #1010
 
 """
     $SIGNATURES

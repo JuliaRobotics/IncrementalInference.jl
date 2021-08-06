@@ -13,9 +13,11 @@ Example
 struct AliasingScalarSampler
   domain::Vector{Float64}
   weights::StatsBase.ProbabilityWeights
-  AliasingScalarSampler() = new()
-  AliasingScalarSampler(x::Vector{<:Real}, p_x::Vector{<:Real}; SNRfloor::Float64=0.0) = begin
-
+  # inner constructor 
+  function AliasingScalarSampler( x::Vector{<:Real}, 
+                                  p_x::Vector{<:Real}; 
+                                  SNRfloor::Float64=0.0  )
+    #
     # pxf = Float64.(p_x)
     # pxf .-= quantile(pxf, SNRfloor)
     # pxf[pxf .< 0.0] = 0.0
