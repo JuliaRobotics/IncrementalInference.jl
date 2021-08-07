@@ -219,7 +219,7 @@ vnd = getVariableSolverData(fg, :x1)
 end
 
 
-@testset "test propagateBelief w HeatmapSampler and init for PartialPriorPassThrough" begin
+@testset "test propagateBelief w HeatmapSampler and init for PartialPriorPassThrough w Priors" begin
 ##
 
 fg = initfg()
@@ -229,7 +229,7 @@ v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 img_ = rand(10,10).+5.0
 x_,y_ = ([-9:2.0:9;],[-9:2.0:9;])
 
-hmd = HeatmapDensityRegular(img_, (x_,y_), 5.5, 0.1, N=1000)
+hmd = HeatmapDensityRegular(img_, (x_,y_), 5.5, 0.1, N=120)
 pthru = PartialPriorPassThrough(hmd, (1,2))
 
 # test without nullhyp
@@ -240,7 +240,7 @@ f0 = addFactor!(fg, [:x0], pthru, graphinit=false)
 bel, infd = propagateBelief(fg, v0, [f0])
 
 @test isPartial(bel)
-@test length(getPoints(bel)) == 1000
+@test length(getPoints(bel)) == 120
 
 
 ## repeat test with nullhypo
@@ -260,14 +260,14 @@ bel, infd = propagateBelief(fg, v0, [f0])
 
 doautoinit!(fg, :x0)
 
-@test length(getPoints(getBelief(fg, :x0))) == 1000
-@info "PassThrough transfers the full point count to the graph, unless a product is calculated during the propagateBelief step."
+@test length(getPoints(getBelief(fg, :x0))) == getSolverParams(fg).N # 120
+# @info "PassThrough transfers the full point count to the graph, unless a product is calculated during the propagateBelief step."
 
 ##
 
 solveGraph!(fg);
 
-@test 1000 == length(getPoints(fg, :x0))
+@test 120 == length(getPoints(fg, :x0))
 
 @warn "must still check if bandwidths are recalculated on many points (not necessary), or lifted from this case single prior"
 
@@ -286,7 +286,7 @@ prp, infd = propagateBelief(fg, v0, [f0;f1])
 
 ## check that solve corrects the point count on graph variable
 
-@test 1000 == length(getPoints(fg, :x0))
+@test 120 == length(getPoints(fg, :x0))
 
 solveGraph!(fg);
 
@@ -297,6 +297,83 @@ solveGraph!(fg);
 ##
 end
 
+
+
+
+@testset "test point count on propagate, solve, init for PartialPriorPassThrough w Relative" begin
+##
+
+fg = initfg()
+
+v0 = addVariable!(fg, :x0, SpecialEuclidean2)
+
+img_ = rand(10,10).+5.0
+x_,y_ = ([-9:2.0:9;],[-9:2.0:9;])
+
+hmd = HeatmapDensityRegular(img_, (x_,y_), 5.5, 0.1, N=120)
+pthru = PartialPriorPassThrough(hmd, (1,2))
+
+# test without nullhyp
+f0 = addFactor!(fg, [:x0], pthru, graphinit=false)
+
+## test the inference functions
+addVariable!(fg, :x1, SpecialEuclidean2)
+mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+f1 = addFactor!(fg, [:x1], mp, graphinit=false)
+
+doautoinit!(fg, :x1)
+
+## connect with relative and check calculation size on x0
+
+mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([1,2,pi/4], [0.01,0.01,0.01]))
+f2 = addFactor!(fg, [:x0, :x1], mf, graphinit=false)
+
+##
+
+bel, infd = propagateBelief(fg, v0, [f0;f2])
+
+@test !isPartial(bel)
+@test getSolverParams(fg).N == length(getPoints(bel))
+
+## check other functions
+
+solveTree!(fg);
+
+@test getSolverParams(fg).N == length(getPoints(fg, :x0))
+@test getSolverParams(fg).N == length(getPoints(fg, :x1))
+
+
+## and check that initAll! works the same (different init sequences may change code execution path)
+
+fg = initfg()
+v0 = addVariable!(fg, :x0, SpecialEuclidean2)
+img_ = rand(10,10).+5.0
+x_,y_ = ([-9:2.0:9;],[-9:2.0:9;])
+hmd = HeatmapDensityRegular(img_, (x_,y_), 5.5, 0.1, N=120)
+pthru = PartialPriorPassThrough(hmd, (1,2))
+f0 = addFactor!(fg, [:x0], pthru, graphinit=false)
+addVariable!(fg, :x1, SpecialEuclidean2)
+mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+f1 = addFactor!(fg, [:x1], mp, graphinit=false)
+mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([1,2,pi/4], [0.01,0.01,0.01]))
+f2 = addFactor!(fg, [:x0, :x1], mf, graphinit=false)
+
+##
+
+bel, infd = propagateBelief(fg, v0, [f0;f2])
+
+@test !isPartial(bel)
+@test getSolverParams(fg).N == length(getPoints(bel))
+
+##
+
+initAll!(fg)
+
+@test getSolverParams(fg).N == length(getPoints(fg, :x0))
+@test getSolverParams(fg).N == length(getPoints(fg, :x1))
+
+##
+end
 
 
 #
