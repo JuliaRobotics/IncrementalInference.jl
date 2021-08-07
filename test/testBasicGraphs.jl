@@ -353,6 +353,30 @@ end
 
 
 
+@testset "test propagateBelief returning a partial" begin
+##
+
+fg = initfg()
+
+v0 = addVariable!(fg, :x0, ContinuousEuclid{2})
+
+pp = PartialPrior(Normal(), (2,))
+f0 = addFactor!(fg, [:x0;], pp, graphinit=false)
+
+##
+
+bel, infd = propagateBelief(fg, v0, [f0;])
+
+@test isPartial(bel)
+
+
+##
+end
+
+
+
+
+
 
 
 
