@@ -2,7 +2,7 @@
 
 @info "Including Interpolations related functions in IncrementalInference."
 
-# using Interpolations 
+using .Interpolations 
 
 # only export on Requires.jl
 export HeatmapDensityRegular
