@@ -30,7 +30,7 @@ Stable v0.23 | Stable v0.24 | Dev | Coverage | Documentation
 [dfg-docs-url]: https://juliarobotics.org/DistributedFactorGraphs.jl/latest/
 
 [cjl-slack-badge]: https://img.shields.io/badge/Caesarjl-Slack-green.svg?style=popout
-[cjl-slack]: https://caesarjl.slack.com
+[cjl-slack]: https://join.slack.com/t/caesarjl/shared_invite/zt-ucs06bwg-y2tEbddwX1vR18MASnOLsw
 
 Optimization routines for incremental non-parametric and parametric solutions based on factor graphs and the Bayes (Junction) tree implemented in the [Julia language](http://www.julialang.org/) (and [JuliaPro](http://www.juliacomputing.com)).
 
