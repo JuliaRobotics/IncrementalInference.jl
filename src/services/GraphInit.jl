@@ -123,7 +123,7 @@ function doautoinit!( dfg::AbstractDFG,
         end
         # FIXME ensure a product of only partial densities and returned pts are put to proper dimensions
         bel,inferdim = propagateBelief(dfg, getVariable(dfg,vsym), getFactor.(dfg,useinitfct), solveKey=solveKey, logger=logger)
-        # @info "MANIFOLD IS" bel.manifold string(getPoints(bel, false)[1]) 
+        # @info "MANIFOLD IS" bel.manifold isPartial(bel) string(bel._partial) string(getPoints(bel, false)[1]) 
         setValKDE!(xi, bel, true, inferdim, solveKey=solveKey) # getPoints(bel, false)
         # Update the estimates (longer DFG function used so cloud is also updated)
         setVariablePosteriorEstimates!(dfg, xi.label, solveKey)

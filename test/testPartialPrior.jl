@@ -25,11 +25,15 @@ getSample(cfo::CalcFactor{<:PartialDim2}, N::Int=1) = ([rand(cfo.factor.Z, 1)[:]
 
 fg = initfg()
 
-addVariable!(fg, :x0, ContinuousEuclid{2})
+v0 = addVariable!(fg, :x0, ContinuousEuclid{2})
 
 f0 = addFactor!(fg, [:x0], PartialDim2(Normal()))
 
 @test IIF._getDimensionsPartial(f0) == [2]
+
+bel, infd = propagateBelief(fg, v0, [f0;])
+
+@test isPartial(bel)
 
 ##
 

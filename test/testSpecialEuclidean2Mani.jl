@@ -1,8 +1,17 @@
 using DistributedFactorGraphs
 using IncrementalInference
+using Interpolations
 using Manifolds
 using StaticArrays
 using Test
+import IncrementalInference: HeatmapDensityRegular
+
+## define new local variable types for testing
+
+@defVariable Point2 TranslationGroup(2) [0.0, 0.0]
+
+# @defVariable SpecialEuclidean2 SpecialEuclidean(2) ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0]))
+@defVariable SpecialEuclidean2 SpecialEuclidean(2) ProductRepr([0.0,0.0], [1.0 0.0; 0.0 1.0])
 
 ##
 
@@ -13,8 +22,6 @@ using Test
 Base.convert(::Type{<:Tuple}, M::SpecialEuclidean{2}) = (:Euclid, :Euclid, :Circular)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialEuclidean{2}})  = (:Euclid, :Euclid, :Circular)
 
-# @defVariable SpecialEuclidean2 SpecialEuclidean(2) ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0]))
-@defVariable SpecialEuclidean2 SpecialEuclidean(2) ProductRepr([0.0,0.0], [1.0 0.0; 0.0 1.0])
 
 M = getManifold(SpecialEuclidean2)
 @test M == SpecialEuclidean(2)
@@ -179,8 +186,6 @@ end
 Base.convert(::Type{<:Tuple}, M::TranslationGroup{Tuple{2},ℝ}) = (:Euclid, :Euclid)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{TranslationGroup{Tuple{2},ℝ}})  = (:Euclid, :Euclid)
 
-@defVariable Point2 TranslationGroup(2) [0.0, 0.0]
-
 ##
 fg = initfg()
 
@@ -212,6 +217,48 @@ vnd = getVariableSolverData(fg, :x1)
 @test all(isapprox.(mean(vnd.val), [1.0,2.0], atol=0.1))
 
 end
+
+
+@testset "test propagateBelief w HeatmapSampler and init for PartialPriorPassThrough" begin
+##
+
+fg = initfg()
+
+v0 = addVariable!(fg, :x0, SpecialEuclidean2)
+
+img_ = rand(10,10).+5.0
+x_,y_ = ([-9:2.0:9;],[-9:2.0:9;])
+
+hmd = HeatmapDensityRegular(img_, (x_,y_), 5.5, 0.1)
+pthru = PartialPriorPassThrough(hmd, (1,2))
+
+# test without nullhyp
+f0 = addFactor!(fg, [:x0], pthru, graphinit=false)
+
+## test the inference functions
+
+bel, infd = propagateBelief(fg, v0, [f0])
+
+@test isPartial(bel)
+
+
+## repeat test with nullhypo
+
+fg = initfg()
+
+v0 = addVariable!(fg, :x0, SpecialEuclidean2)
+# test with nullhypo
+f0 = addFactor!(fg, [:x0], pthru, graphinit=false, nullhypo=0.2)
+
+## test the inference functions
+
+bel, infd = propagateBelief(fg, v0, [f0])
+
+@test isPartial(bel)
+
+##
+end
+
 
 
 #

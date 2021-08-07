@@ -265,10 +265,23 @@ function calcProposalBelief(dfg::AbstractDFG,
   #
 
   # density passed through directly from PartialPriorPassThrough.Z
-  proposal = getFactorType(fct).Z.densityFnc
+  fctFnc = getFactorType(fct)
+  proposal = fctFnc.Z.densityFnc
+
+  # in case of partial, place the proposal into larger marginal/partial MKD
+  proposal_ = if isPartial(fctFnc)
+    # oldbel = getBelief(dfg, target, solveKey)
+    varType = getVariableType(dfg, target)
+    M = getManifold(varType)
+    u0 = getPointIdentity(varType)
+    # replace(oldbel, proposal)
+    antimarginal(M,u0,proposal,Int[fctFnc.partial...])
+  else
+    proposal
+  end
 
   # return the proposal belief and inferdim, NOTE likely to be changed
-  return proposal
+  return proposal_
 end
 
 """
@@ -302,7 +315,7 @@ function proposalbeliefs!(dfg::AbstractDFG,
     inferd = getFactorSolvableDim(dfg, fct, destlbl, solveKey)
     # convolve or passthrough to get a new proposal
     propBel_ = calcProposalBelief(dfg, fct, destlbl, measurement, N=N, dbg=dbg, solveKey=solveKey)
-    # @show propBel_.manifold
+    # @show propBel_.manifold, isPartial(propBel_)
     # partial density
     propBel = if isPartial(ccwl)
       pardims = _getDimensionsPartial(ccwl)
