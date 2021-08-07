@@ -89,7 +89,7 @@ function doautoinit!( dfg::AbstractDFG,
                       xi::DFGVariable;
                       solveKey::Symbol=:default,
                       singles::Bool=true,
-                      N::Int=maximum([length(getPoints(getBelief(xi, solveKey))); getSolverParams(dfg).N]),
+                      N::Int=getSolverParams(dfg).N, #maximum([length(getPoints(getBelief(xi, solveKey))); getSolverParams(dfg).N]),
                       logger=ConsoleLogger() )
   #
   didinit = false
@@ -122,9 +122,11 @@ function doautoinit!( dfg::AbstractDFG,
           @info "do init of $vsym"
         end
         # FIXME ensure a product of only partial densities and returned pts are put to proper dimensions
-        bel,inferdim = propagateBelief(dfg, getVariable(dfg,vsym), getFactor.(dfg,useinitfct), solveKey=solveKey, logger=logger)
-        # @info "MANIFOLD IS" bel.manifold string(getPoints(bel, false)[1]) 
-        setValKDE!(xi, bel, true, inferdim, solveKey=solveKey) # getPoints(bel, false)
+        bel,inferdim = propagateBelief(dfg, getVariable(dfg,vsym), getFactor.(dfg,useinitfct), solveKey=solveKey, logger=logger, N=N)
+        # while the propagate step might allow large point counts, the graph should stay restricted to N
+        bel_ = Npts(bel) == getSolverParams(dfg).N ? bel : resample(bel, getSolverParams(dfg).N)
+        # @info "MANIFOLD IS" bel.manifold isPartial(bel) string(bel._partial) string(getPoints(bel, false)[1]) 
+        setValKDE!(xi, bel_, true, inferdim, solveKey=solveKey) # getPoints(bel, false)
         # Update the estimates (longer DFG function used so cloud is also updated)
         setVariablePosteriorEstimates!(dfg, xi.label, solveKey)
         # Update the data in the event that it's not local

@@ -221,16 +221,18 @@ function setValKDE!(vnd::VariableNodeData,
                     setinit::Bool=true,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0 ) where {M,B,L<:AbstractVector}
   #
-  oldbel = getBelief(vnd)
-  # Set partial dims as Manifold points
-  ptsArr = AMP.getPoints(mkd, false)
-  oldPts = getVal(vnd)
-  # get partial coord dims
-  pvec = mkd._partial
+  oldBel = getBelief(vnd)
 
-  # also set the bandwidth
-  bws = getBW(mkd)[:,1]
-  bw_ = getBW
+  # New infomation might be partial
+  newBel = replace(oldBel, mkd)
+
+  # Set partial dims as Manifold points
+  ptsArr = AMP.getPoints(newBel, false)
+
+  # also get the bandwidth
+  bws = getBandwidth(newBel, false)
+
+  # update values in graph
   setValKDE!(vnd,ptsArr,bws,setinit,inferdim )
   nothing
 end

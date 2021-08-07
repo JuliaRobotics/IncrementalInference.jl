@@ -395,6 +395,8 @@ export *,
   reshapeVec2Mat,
   accumulateFactorChain
 
+# more optional exports
+export HeatmapDensityRegular
 
 
 export  buildCliqSubgraph_StateMachine

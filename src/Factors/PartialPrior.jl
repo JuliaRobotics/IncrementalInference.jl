@@ -4,19 +4,19 @@
 $(TYPEDEF)
 
 Partial prior belief (absolute data) on any variable, given `<:SamplableBelief` and which dimensions of the intended variable.
+
+Notes
+- If using [`AMP.ManifoldKernelDensity`](@ref), don't double partial.  Only define the partial in this `PartialPrior` container. 
+  - Future TBD, consider using `AMP.getManifoldPartial` for more general abstraction.
 """
 struct PartialPrior{T <: SamplableBelief,P <: Tuple} <: AbstractPrior
   Z::T
   partial::P
 end
 
-function getSample(cf::CalcFactor{<:PartialPrior}, N::Int=1)
-  ret = Vector{Vector{Float64}}(undef, N)
-  for i in 1:N
-    ret[i] = rand(cf.factor.Z,1)[:] 
-  end
-  (ret, )
-end
+getManifold(pp::PartialPrior{<:PackedManifoldKernelDensity}) = pp.Z.manifold
+
+getSample(cf::CalcFactor{<:PartialPrior}, N::Int=1) = (randToPoints(cf.factor.Z,N), )
 
 
 """
