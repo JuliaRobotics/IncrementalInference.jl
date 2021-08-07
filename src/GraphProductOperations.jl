@@ -19,7 +19,7 @@ function propagateBelief( dfg::AbstractDFG,
                           factors::AbstractVector{<:DFGFactor};
                           solveKey::Symbol=:default,
                           dens = Vector{ManifoldKernelDensity}(),
-                          N::Int=maximum([length(getPoints(getBelief(destvar, solveKey))); getSolverParams(dfg).N]),
+                          N::Int=getSolverParams(dfg).N, #maximum([length(getPoints(getBelief(destvar, solveKey))); getSolverParams(dfg).N]),
                           needFreshMeasurements::Bool=true,
                           dbg::Bool=false,
                           logger=ConsoleLogger()  )

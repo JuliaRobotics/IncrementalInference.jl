@@ -229,7 +229,7 @@ v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 img_ = rand(10,10).+5.0
 x_,y_ = ([-9:2.0:9;],[-9:2.0:9;])
 
-hmd = HeatmapDensityRegular(img_, (x_,y_), 5.5, 0.1)
+hmd = HeatmapDensityRegular(img_, (x_,y_), 5.5, 0.1, N=1000)
 pthru = PartialPriorPassThrough(hmd, (1,2))
 
 # test without nullhyp
@@ -240,6 +240,7 @@ f0 = addFactor!(fg, [:x0], pthru, graphinit=false)
 bel, infd = propagateBelief(fg, v0, [f0])
 
 @test isPartial(bel)
+@test length(getPoints(bel)) == 1000
 
 
 ## repeat test with nullhypo
@@ -253,8 +254,45 @@ f0 = addFactor!(fg, [:x0], pthru, graphinit=false, nullhypo=0.2)
 ## test the inference functions
 
 bel, infd = propagateBelief(fg, v0, [f0])
-
 @test isPartial(bel)
+
+## 
+
+doautoinit!(fg, :x0)
+
+@test length(getPoints(getBelief(fg, :x0))) == 1000
+@info "PassThrough transfers the full point count to the graph, unless a product is calculated during the propagateBelief step."
+
+##
+
+solveGraph!(fg);
+
+@test 1000 == length(getPoints(fg, :x0))
+
+@warn "must still check if bandwidths are recalculated on many points (not necessary), or lifted from this case single prior"
+
+##
+
+mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+f1 = addFactor!(fg, [:x0], mp, graphinit=false)
+
+@test length(ls(fg, :x0)) == 2
+
+##
+
+prp, infd = propagateBelief(fg, v0, [f0;f1])
+
+@test length(getPoints(prp)) == getSolverParams(fg).N
+
+## check that solve corrects the point count on graph variable
+
+@test 1000 == length(getPoints(fg, :x0))
+
+solveGraph!(fg);
+
+# this number should drop down to usual, 100 at time of writing
+@test getSolverParams(fg).N == length(getPoints(fg, :x0))
+
 
 ##
 end

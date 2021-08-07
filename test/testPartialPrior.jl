@@ -2,6 +2,7 @@
 
 using Test
 using IncrementalInference
+using Manifolds
 
 ##
 
@@ -20,7 +21,6 @@ getSample(cfo::CalcFactor{<:PartialDim2}, N::Int=1) = ([rand(cfo.factor.Z, 1)[:]
 ##
 
 @testset "Test partial dimensions on prior are correct" begin
-
 ##
 
 fg = initfg()
@@ -48,5 +48,35 @@ predictbelief(fg, :x0, [:x0f1;])
 @test true
 
 ##
+end
 
+
+
+@testset "test propagateBelief returning a partial" begin
+##
+
+fg = initfg()
+
+v0 = addVariable!(fg, :x0, ContinuousEuclid{2})
+
+pts = [randn(1) for _ in 1:1000];
+mkd = manikde!(TranslationGroup(1), pts, bw=[0.1;])
+pp = PartialPrior(mkd, (2,))
+f0 = addFactor!(fg, [:x0;], pp, graphinit=false)
+
+##
+
+bel, infd = propagateBelief(fg, v0, [f0;])
+@test isPartial(bel)
+
+##
+
+doautoinit!(fg, :x0)
+
+# check the number of points in the graph value store
+@show getSolverParams(fg).N
+@test length(getPoints(getBelief(fg, :x0))) == getSolverParams(fg).N
+@info "PassThrough factors currently work different and will pass the full N=1000 count through to the graph."
+
+##
 end
