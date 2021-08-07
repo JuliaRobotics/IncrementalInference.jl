@@ -300,7 +300,7 @@ function proposalbeliefs!(dfg::AbstractDFG,
                           # partials::Dict{Any, Vector{ManifoldKernelDensity}}, # TODO change this structure
                           measurement::Tuple=(Vector{Vector{Float64}}(),);
                           solveKey::Symbol=:default,
-                          N::Int=maximum([length(getPoints(getBelief(dfg, destlbl, solveKey))); getSolverParams(dfg).N]),
+                          N::Int=getSolverParams(dfg).N, #maximum([length(getPoints(getBelief(dfg, destlbl, solveKey))); getSolverParams(dfg).N]),
                           dbg::Bool=false  )
   #
 

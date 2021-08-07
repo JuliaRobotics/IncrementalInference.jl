@@ -89,7 +89,7 @@ function doautoinit!( dfg::AbstractDFG,
                       xi::DFGVariable;
                       solveKey::Symbol=:default,
                       singles::Bool=true,
-                      N::Int=maximum([length(getPoints(getBelief(xi, solveKey))); getSolverParams(dfg).N]),
+                      N::Int=getSolverParams(dfg).N, #maximum([length(getPoints(getBelief(xi, solveKey))); getSolverParams(dfg).N]),
                       logger=ConsoleLogger() )
   #
   didinit = false
@@ -122,7 +122,7 @@ function doautoinit!( dfg::AbstractDFG,
           @info "do init of $vsym"
         end
         # FIXME ensure a product of only partial densities and returned pts are put to proper dimensions
-        bel,inferdim = propagateBelief(dfg, getVariable(dfg,vsym), getFactor.(dfg,useinitfct), solveKey=solveKey, logger=logger)
+        bel,inferdim = propagateBelief(dfg, getVariable(dfg,vsym), getFactor.(dfg,useinitfct), solveKey=solveKey, logger=logger, N=N)
         # @info "MANIFOLD IS" bel.manifold isPartial(bel) string(bel._partial) string(getPoints(bel, false)[1]) 
         setValKDE!(xi, bel, true, inferdim, solveKey=solveKey) # getPoints(bel, false)
         # Update the estimates (longer DFG function used so cloud is also updated)

@@ -45,7 +45,7 @@ function propagateBelief( dfg::AbstractDFG,
   # @info "BUILDING MKD" varType M
   
   # take the product
-  mkd = AMP.manifoldProduct(dens, M, Niter=1, oldPoints=oldpts)
+  mkd = AMP.manifoldProduct(dens, M, Niter=1, oldPoints=oldpts, N=N)
   
   # @info "GOT" mkd.manifold
   
@@ -95,7 +95,7 @@ Return: product belief, full proposals, partial dimension proposals, labels
 function localProduct(dfg::AbstractDFG,
                       sym::Symbol;
                       solveKey::Symbol=:default,
-                      N::Int=maximum([length(getPoints(getBelief(dfg, sym, solveKey))); getSolverParams(dfg).N]),
+                      N::Int=getSolverParams(dfg).N, #maximum([length(getPoints(getBelief(dfg, sym, solveKey))); getSolverParams(dfg).N]),
                       dbg::Bool=false,
                       logger=ConsoleLogger() )
   #
