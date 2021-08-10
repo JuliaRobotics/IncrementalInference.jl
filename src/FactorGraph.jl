@@ -752,7 +752,7 @@ function DFG.addFactor!(dfg::AbstractDFG,
                         suppressChecks::Bool=false,
                         inflation::Real=getSolverParams(dfg).inflation,
                         namestring::Symbol = assembleFactorName(dfg, Xi),
-                        _blockRecursion::Bool=false  )
+                        _blockRecursion::Bool=!getSolverParams(dfg).attemptGradients  )
   #
 
   varOrderLabels = Symbol[v.label for v=Xi]
