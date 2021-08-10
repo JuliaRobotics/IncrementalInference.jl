@@ -23,7 +23,6 @@ The list below highlights major breaking changes, and please note that significa
 - Deprecate use of `getParametricMeasurement` and use `getMeasurementParametric` instead, and add `<:AbstractManifold` to API.
 - Deprecate use of `solveBinaryFactorParameteric`, instead use `solveFactorParameteric`.
 - Deprecating `approxConvBinary`, use `approxConvBelief` instead.
-- Deprecating `accumulateFactorChain`, use `approxConvBelief` instead.
 
 
 # Major changes in v0.24
