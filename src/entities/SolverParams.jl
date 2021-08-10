@@ -44,6 +44,8 @@ mutable struct SolverParams <: DFG.AbstractParams
   gibbsIters::Int
   maxincidence::Int # maximum incidence to a variable in an effort to enhance sparsity
   alwaysFreshMeasurements::Bool
+  # should factor gradients be calculated or attempted (UNDER DEVELOPMENT, 21Q3)
+  attemptGradients::Bool
   devParams::Dict{Symbol,String}
   #
 end
@@ -79,6 +81,7 @@ SolverParams(;dimID::Int=0,
               gibbsIters::Int=3,
               maxincidence::Int=500,
               alwaysFreshMeasurements::Bool=true,
+              attemptGradients::Bool=false,
               devParams::Dict{Symbol,String}=Dict{Symbol,String}()
             ) = begin useMsgLikelihoods==true && @warn "useMsgLikelihoods is under development, use with care, see #1010"
                 SolverParams( dimID,
@@ -112,6 +115,7 @@ SolverParams(;dimID::Int=0,
                               gibbsIters,
                               maxincidence,
                               alwaysFreshMeasurements,
+                              attemptGradients,
                               devParams )
             end
 #

@@ -45,99 +45,51 @@ Defaults to find the parametric measurement at field `Z` followed by `z`.
 Notes
 - Users should overload this method should their factor not default to `.Z<:ParametricType` or `.z<:ParametricType`
 """
-function getParametricMeasurement end
+function getMeasurementParametric end
 
-function getParametricMeasurement(Z)
+function getMeasurementParametric(Z)
   error("$(typeof(Z)) is not supported, please use non-parametric or open an issue if it should be")
 end
 
-function getParametricMeasurement(Z::Normal)
+function getMeasurementParametric(M::AbstractManifold, Z::Normal)
   meas = mean(Z)
   iσ = 1/std(Z)^2
   return [meas], reshape([iσ],1,1)
 end
 
-function getParametricMeasurement(Z::MvNormal)
+function getMeasurementParametric(M::AbstractManifold, Z::MvNormal)
   meas = mean(Z)
   iΣ = invcov(Z)
-  return meas, iΣ
+  p_μ = exp(M, identity_element(M), hat(M, identity_element(M), meas))
+  return p_μ, iΣ
 end
 
+getMeasurementParametric(Z::Normal)   = getMeasurementParametric(TranslationGroup(1), Z)
+getMeasurementParametric(Z::MvNormal) = getMeasurementParametric(TranslationGroup(length(mean(Z))), Z)
+
 # the point `p` on the manifold is the mean
-function getParametricMeasurement(s::ManifoldPrior)
+function getMeasurementParametric(s::ManifoldPrior)
   meas = s.p
   iΣ = invcov(s.Z)
   return meas, iΣ
 end
- 
-function getParametricMeasurement(s::FunctorInferenceType)
+
+function getMeasurementParametric(s::AbstractFactor)
   if hasfield(typeof(s), :Zij)
     Z = s.Zij
-    @info "getParametricMeasurement falls back to using field `.Zij` by default. Extend it for more complex factors." maxlog=1
+    @info "getMeasurementParametric falls back to using field `.Zij` by default. Extend it for more complex factors." maxlog=1
   elseif hasfield(typeof(s), :Z)
     Z = s.Z
-    @info "getParametricMeasurement falls back to using field `.Z` by default. Extend it for more complex factors." maxlog=1
+    @info "getMeasurementParametric falls back to using field `.Z` by default. Extend it for more complex factors." maxlog=1
   elseif hasfield(typeof(s), :z)
     Z = s.z
-    @info "getParametricMeasurement falls back to using field `.z` by default. Extend it for more complex factors." maxlog=1
+    @info "getMeasurementParametric falls back to using field `.z` by default. Extend it for more complex factors." maxlog=1
   else
     error("$(typeof(s)) not supported, please use non-parametric or open an issue if it should be")
   end
-  return getParametricMeasurement(Z)
+  return getMeasurementParametric(Z)
 end
 
-
-## ================================================================================================
-## Parametric binary factor utility function, used by DRT
-## ================================================================================================
-
-"""
-    $SIGNATURES
-
-Helper function to propagate a parametric estimate along a factor chain.
-
-Notes
-- Not used during mmisam inference.
-- Expected uses are for user analysis of factors and estimates.
-- real-time dead reckoning chain prediction.
-
-DevNotes
-- FIXME consolidate with `approxConv`
-
-Related:
-
-[`getParametricMeasurement`](@ref), [`approxConv`](@ref), [`accumulateFactorMeans`](@ref), [`MutablePose2Pose2Gaussian`](@ref)
-"""
-function solveBinaryFactorParameteric(dfg::AbstractDFG,
-                                      fct::DFGFactor,
-                                      currval::Vector{Float64},
-                                      srcsym::Symbol,
-                                      trgsym::Symbol  )::Vector{Float64}
-  #
-  outdims = getVariableDim(getVariable(dfg, trgsym))
-  meas = getFactorType(fct)
-  mea, = getParametricMeasurement(meas)
-  # mea = getFactorMean(fct)
-  mea_ = Vector{Vector{Float64}}()
-  push!(mea_, mea)
-  measT = (mea_,)
-
-  # upgrade part of #639
-  varSyms = getVariableOrder(fct)
-  Xi = getVariable.(dfg, varSyms)  # (v->getVariable(dfg, v)).(varSyms)
-
-  # calculate the projection
-  varmask = (1:2)[varSyms .== trgsym][1]
-
-  fmd = FactorMetadata(Xi, getLabel.(Xi), Vector{Vector{Vector{Float64}}}(), :null, nothing)
-  currval_ = Vector{Vector{Float64}}()
-  push!(currval_, currval)
-  pts_ = approxConvBinary( currval_, meas, outdims, fmd, measT, varidx=varmask )
-
-  # return the result
-  @assert length(pts_[1]) == outdims
-  return pts_[1]
-end
 
 
 ## ================================================================================================
@@ -153,7 +105,7 @@ function CalcFactorMahalanobis(fct::DFGFactor)
   cf = getFactorType(fct)
   varOrder = getVariableOrder(fct)
   
-  _meas, _iΣ = getParametricMeasurement(cf)
+  _meas, _iΣ = getMeasurementParametric(cf)
   meas = typeof(_meas) <: Tuple ? _meas : (_meas,)
   iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
 
@@ -694,9 +646,9 @@ struct MaxMixture
   choice::Base.RefValue{Int}
 end
 
-function getParametricMeasurement(s::Mixture{N,F,S,T}) where {N,F,S,T}
-  meas = map(c->getParametricMeasurement(c)[1], values(s.components))
-  iΣ = map(c->getParametricMeasurement(c)[2], values(s.components))
+function getMeasurementParametric(s::Mixture{N,F,S,T}) where {N,F,S,T}
+  meas = map(c->getMeasurementParametric(c)[1], values(s.components))
+  iΣ = map(c->getMeasurementParametric(c)[2], values(s.components))
   return meas, iΣ
 end
 

@@ -484,7 +484,7 @@ B = _evalFactorTemporary!(EuclidDistance, (ContinuousScalar, ContinuousScalar), 
 
 Related
 
-[`evalFactor`](@ref), [`calcFactorResidual`](@ref), [`testFactorResidualBinary`](@ref)
+[`evalFactor`](@ref), [`calcFactorResidual`](@ref), [`testFactorResidualBinary`](@ref), [`solveFactorParameteric`](@ref), [`approxConvBelief`](@ref)
 """
 function _evalFactorTemporary!( fct::AbstractFactor,
                                 varTypes::Tuple,
@@ -508,7 +508,9 @@ function _evalFactorTemporary!( fct::AbstractFactor,
   measurement = ([meas_single[1],],)
   sfPts, _ = evalFactor(tfg, _dfgfct, solvefor, measurement, needFreshMeasurements=false, solveKey=solveKey, inflateCycles=1, _slack=_slack )
 
-  # @info "EVALTEMP" length(sfPts) string(sfPts) meas_single measurement solvefor
-
   return sfPts
 end
+
+
+
+#

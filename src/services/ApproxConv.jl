@@ -138,96 +138,6 @@ function approxConvBelief(dfg::AbstractDFG,
 end
 
 
-## ====================================================================================
-## TODO better consolidate below with existing functions
-## ====================================================================================
-
-
-
-
-# TODO should this be consolidated with regular approxConv?
-# TODO, perhaps pass Xi::Vector{DFGVariable} instead?
-function approxConvBinary(arr::Vector{Vector{Float64}},
-                          meas::AbstractFactor,
-                          outdims::Int,
-                          fmd::FactorMetadata,
-                          measurement::Tuple=(Vector{Vector{Float64}}(),);
-                          varidx::Int=2,
-                          N::Int=length(arr),
-                          vnds=DFGVariable[],
-                          _slack=nothing )
-  #
-  # N = N == 0 ? size(arr,2) : N
-  pts = [zeros(outdims) for _ in 1:N];
-  ptsArr = Vector{Vector{Vector{Float64}}}()
-  push!(ptsArr,arr)
-  push!(ptsArr,pts)
-
-  fmd.arrRef = ptsArr
-
-  # TODO consolidate with ccwl??
-  # FIXME do not divert Mixture for sampling
-  # cf = _buildCalcFactorMixture(ccwl, fmd, 1, ccwl.measurement, ARR) # TODO perhaps 0 is safer
-  # FIXME 0, 0, ()
-  cf = CalcFactor( meas, fmd, 0, 0, (), ptsArr)
-
-  measurement = length(measurement[1]) == 0 ? sampleFactor(cf, N) : measurement
-  # measurement = size(measurement[1],2) == 0 ? sampleFactor(meas, N, fmd, vnds) : measurement
-
-  zDim = length(measurement[1][1])
-  ccw = CommonConvWrapper(meas, ptsArr[varidx], zDim, ptsArr, fmd, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)
-
-  for n in 1:N
-    ccw.cpt[Threads.threadid()].particleidx = n
-    _solveCCWNumeric!( ccw, _slack=_slack )
-  end
-  return pts
-end
-
-
-
-"""
-    $SIGNATURES
-
-Calculate both measured and predicted relative variable values, starting with `from` at zeros up to `to::Symbol`.
-
-Notes
-- assume single variable separators only.
-"""
-function accumulateFactorChain( dfg::AbstractDFG,
-                                from::Symbol,
-                                to::Symbol,
-                                fsyms::Vector{Symbol}=findFactorsBetweenNaive(dfg, from, to);
-                                initval=zeros(size(getVal(dfg, from))))
-
-  # get associated variables
-  svars = union(ls.(dfg, fsyms)...)
-
-  # use subgraph copys to do calculations
-  tfg_meas = buildSubgraph(dfg, [svars;fsyms])
-  tfg_pred = buildSubgraph(dfg, [svars;fsyms])
-
-  # drive variable values manually to ensure no additional stochastics are introduced.
-  nextvar = from
-  initManual!(tfg_meas, nextvar, initval)
-  initManual!(tfg_pred, nextvar, initval)
-
-  # nextfct = fsyms[1] # for debugging
-  for nextfct in fsyms
-    nextvars = setdiff(ls(tfg_meas,nextfct),[nextvar])
-    @assert length(nextvars) == 1 "accumulateFactorChain requires each factor pair to separated by a single variable"
-    nextvar = nextvars[1]
-    meas, pred = approxDeconv(dfg, nextfct) # solveFactorMeasurements
-    pts_meas = approxConv(tfg_meas, nextfct, nextvar, (meas,ones(Int,100),collect(1:100)))
-    pts_pred = approxConv(tfg_pred, nextfct, nextvar, (pred,ones(Int,100),collect(1:100)))
-    initManual!(tfg_meas, nextvar, pts_meas)
-    initManual!(tfg_pred, nextvar, pts_pred)
-  end
-  return getVal(tfg_meas,nextvar), getVal(tfg_pred,nextvar)
-end
-
-
-
 
 """
     $(SIGNATURES)
@@ -296,8 +206,7 @@ Notes
 function proposalbeliefs!(dfg::AbstractDFG,
                           destlbl::Symbol,
                           factors::AbstractVector{<:DFGFactor},
-                          dens::Vector{<:ManifoldKernelDensity},
-                          # partials::Dict{Any, Vector{ManifoldKernelDensity}}, # TODO change this structure
+                          dens::AbstractVector{<:ManifoldKernelDensity},
                           measurement::Tuple=(Vector{Vector{Float64}}(),);
                           solveKey::Symbol=:default,
                           N::Int=getSolverParams(dfg).N, #maximum([length(getPoints(getBelief(dfg, destlbl, solveKey))); getSolverParams(dfg).N]),
@@ -308,14 +217,12 @@ function proposalbeliefs!(dfg::AbstractDFG,
   inferddimproposal = Vector{Float64}(undef, length(factors))
   # get a proposal belief from each factor connected to destlbl
   for (count,fct) in enumerate(factors)
-    # data = getSolverData(fct)
     ccwl = _getCCW(fct)
     # need way to convey partial information
     # determine if evaluation is "dimension-deficient" solvable dimension
     inferd = getFactorSolvableDim(dfg, fct, destlbl, solveKey)
     # convolve or passthrough to get a new proposal
     propBel_ = calcProposalBelief(dfg, fct, destlbl, measurement, N=N, dbg=dbg, solveKey=solveKey)
-    # @show propBel_.manifold, isPartial(propBel_)
     # partial density
     propBel = if isPartial(ccwl)
       pardims = _getDimensionsPartial(ccwl)
@@ -330,6 +237,65 @@ function proposalbeliefs!(dfg::AbstractDFG,
   inferddimproposal
 end
 # group partial dimension factors by selected dimensions -- i.e. [(1,)], [(1,2),(1,2)], [(2,);(2;)]
+
+
+
+
+"""
+    $SIGNATURES
+
+Helper function to propagate a parametric estimate along a factor chain.
+
+Notes
+- Not used during MM-iSAM inference.
+- Expected uses are for user analysis of factors and estimates.
+- real-time dead reckoning chain prediction.
+- Parametric binary factor utility function, used by DRT
+
+DevNotes
+- TODO ensure type stability, likely returning types `Any` at this time.
+- TODO MeanMaxPPE currently stored as coordinates, complicating fast calculation.
+
+Related:
+
+[`getMeasurementParametric`](@ref), [`approxConv`](@ref), [`MutablePose2Pose2Gaussian`](@ref)
+"""
+function solveFactorParameteric(dfg::AbstractDFG,
+                                fct::DFGFactor,
+                                # currval::P1,
+                                srcsym_vals::AbstractVector{Pair{Symbol, P}},
+                                trgsym::Symbol,
+                                solveKey::Symbol=:default;
+                                evaltmpkw...  ) where P
+  #
+
+  varLbls = getVariableOrder(fct)
+  varTypes = tuple((getVariableType.(dfg, varLbls))...)
+  sfidx = findfirst( varLbls .== trgsym )
+
+  # get the measurement point
+  fctTyp = getFactorType(fct)
+  mea, _ = getMeasurementParametric(fctTyp)
+  measT = (mea,)
+
+  # get variable points
+  function _getParametric(vari::DFGVariable, key=:default)
+    # hasp = haskey(getPPEDict(vari), key)
+    # FIXME use PPE via Manifold points currently in coordinates
+    # hasp ? getPPE(vari, key).suggested : calcMean(getBelief(vari, key))
+    calcMean(getBelief(vari, key))
+  end
+
+  # overwrite specific src values from user
+  prms = _getParametric.(getVariable.(dfg, varLbls), solveKey)
+  for (srcsym, currval) in srcsym_vals
+    prms[findfirst(varLbls .== srcsym)] = currval
+  end
+  pts = tuple(prms...)
+  
+  # do the calculation to find solvefor index using the factor
+  return _evalFactorTemporary!( fctTyp, varTypes, sfidx, measT, pts; solveKey=solveKey, evaltmpkw... )
+end
 
 
 

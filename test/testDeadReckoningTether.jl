@@ -99,7 +99,9 @@ tree2, smt, hists = solveTree!(fg);
 
 val = accumulateFactorMeans(fg, [:x0deadreckon_x0f1])
 
-@test norm(val - calcVariablePPE(fg, :x0).suggested) < 1e-8
+# must fix return type stability
+fval = float(val...)
+@test isapprox(fval, calcVariablePPE(fg, :x0).suggested, atol=1e-8 )
 
 #TODO improve test
 rebaseFactorVariable!(fg, :x0deadreckon_x0f1, [:x1; :deadreckon_x0])

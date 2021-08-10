@@ -182,7 +182,7 @@ Notes
 - This function does not add new variables or factors to `fg`, user must do that themselves after.
   - Useful to use in combination with `setPPE!` on new variable.
 - At time of writing `accumulateFactorMeans` could only incorporate priors or binary relative factors.
-  - internal info, see [`solveBinaryFactorParameteric`](@ref),
+  - internal info, see [`solveFactorParameteric`](@ref),
   - This means at time of writing `factor` must be a binary factor.
 - Tip, if simulations are inducing odometry bias, think of using two factors from caller (e.g. simPerfect and simBias).
 
@@ -273,7 +273,7 @@ function _checkVariableByReference( fg::AbstractDFG,
                                     factor::AbstractPrior;
                                     srcType::Type{<:InferenceVariable} = getVariableType(fg, srcLabel) |> typeof,
                                     refKey::Symbol=:simulated,
-                                    prior = typeof(factor)( MvNormal(getParametricMeasurement(factor)...) ),
+                                    prior = typeof(factor)( MvNormal(getMeasurementParametric(factor)...) ),
                                     atol::Real = 1e-3,
                                     destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
                                     srcNumber = match(r"\d+", string(srcLabel)).match |> x->parse(Int,x),
@@ -283,7 +283,7 @@ function _checkVariableByReference( fg::AbstractDFG,
   refVal = if overridePPE !== nothing
     overridePPE
   else
-    getParametricMeasurement(factor)[1]
+    getMeasurementParametric(factor)[1]
   end
 
   ppe = DFG.MeanMaxPPE(refKey, refVal, refVal, refVal)
