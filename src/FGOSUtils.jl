@@ -251,7 +251,7 @@ Related
 """
 function calcPPE( var::DFGVariable,
                   varType::InferenceVariable=getVariableType(var);
-                  ppeType::Type{MeanMaxPPE}=MeanMaxPPE,
+                  ppeType::Type{<:MeanMaxPPE}=MeanMaxPPE,
                   solveKey::Symbol=:default,
                   ppeKey::Symbol=solveKey,
                   timestamp=now()  )
@@ -265,7 +265,7 @@ function calcPPE( var::DFGVariable,
   # returns coordinates at identify
   Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
   # calculate point
- 
+
   ## TODO make PPE only use getCoordinates for now (IIF v0.25)
   Pme_ = getCoordinates(typeof(varType),Pme)
   # Pma_ = getCoordinates(M,Pme)

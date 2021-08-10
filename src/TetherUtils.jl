@@ -3,7 +3,7 @@
 export cont2disc
 export rebaseFactorVariable!
 export getFactorMean
-export solveBinaryFactorParameteric, accumulateFactorMeans
+export solveFactorParameteric
 
 """
     $SIGNATURES
@@ -117,29 +117,29 @@ DevNotes
 
 Related:
 
-[`approxConv`](@ref), [`solveBinaryFactorParameteric`](@ref), `RoME.MutablePose2Pose2Gaussian`
+[`approxConv`](@ref), [`solveFactorParameteric`](@ref), `RoME.MutablePose2Pose2Gaussian`
 """
-function accumulateFactorMeans(dfg::AbstractDFG, fctsyms::Vector{Symbol})
+function accumulateFactorMeans(dfg::AbstractDFG, fctsyms::AbstractVector{Symbol})
 
   ## get the starting estimate
-  val = zeros(0)
   nextidx = 1
   onePrior = false
-  currsym = :null
-  if isPrior(dfg, fctsyms[nextidx])
+  currsym = :__nothing__
+  val = if isPrior(dfg, fctsyms[nextidx])
     # if first factor is prior
-    @assert !onePrior
+    # @assert !onePrior
     onePrior = true
-    val, = getParametricMeasurement(getFactorType(dfg, fctsyms[nextidx]))
+    val, = getMeasurementParametric(getFactorType(dfg, fctsyms[nextidx]))
     # val = getFactorMean(dfg, fctsyms[nextidx])
     currsym = ls(dfg, fctsyms[nextidx])[1] # prior connected to only one variable
     nextidx += 1
+    val
   else
     # get first value from current variable estimate
     vars = getVariableOrder(dfg, fctsyms[nextidx])
     nextsym = 1 < length(fctsyms) ? intersect( vars, ls(dfg, fctsyms[nextidx+1]) ) : vars[end]
     currsym = 1 < length(fctsyms) ? setdiff(vars, nextsym)[1] : vars[1]
-    val = calcPPE(dfg, currsym).suggested
+    calcPPE(dfg, currsym).suggested
   end
 
   srcsym = currsym
@@ -148,8 +148,7 @@ function accumulateFactorMeans(dfg::AbstractDFG, fctsyms::Vector{Symbol})
     # first find direction of solve
     vars = getVariableOrder(fct)
     trgsym = setdiff(vars, [srcsym])[1]
-    # varmask = (1:2)[getVariableOrder(fct) .== trgsym][1]
-    val = solveBinaryFactorParameteric(dfg,fct,val,srcsym,trgsym)
+    val = solveFactorParameteric(dfg, fct, [srcsym=>val;], trgsym)
     srcsym = trgsym
   end
 

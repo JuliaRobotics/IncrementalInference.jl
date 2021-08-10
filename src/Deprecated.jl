@@ -26,6 +26,91 @@ end
 ##==============================================================================
 
 
+# """
+#     $SIGNATURES
+
+# Calculate both measured and predicted relative variable values, starting with `from` at zeros up to `to::Symbol`.
+
+# Notes
+# - assume single variable separators only.
+
+# DevNotes
+# - TODO better consolidate with [`approxConvBelief`](@ref) which can now also work with factor chains.
+# """
+# function accumulateFactorChain( dfg::AbstractDFG,
+#                                 from::Symbol,
+#                                 to::Symbol,
+#                                 fsyms::Vector{Symbol}=findFactorsBetweenNaive(dfg, from, to);
+#                                 initval=zeros(size(getVal(dfg, from))))
+
+#   # get associated variables
+#   svars = union(ls.(dfg, fsyms)...)
+
+#   # use subgraph copys to do calculations
+#   tfg_meas = buildSubgraph(dfg, [svars;fsyms])
+#   tfg_pred = buildSubgraph(dfg, [svars;fsyms])
+
+#   # drive variable values manually to ensure no additional stochastics are introduced.
+#   nextvar = from
+#   initManual!(tfg_meas, nextvar, initval)
+#   initManual!(tfg_pred, nextvar, initval)
+
+#   # nextfct = fsyms[1] # for debugging
+#   for nextfct in fsyms
+#     nextvars = setdiff(ls(tfg_meas,nextfct),[nextvar])
+#     @assert length(nextvars) == 1 "accumulateFactorChain requires each factor pair to separated by a single variable"
+#     nextvar = nextvars[1]
+#     meas, pred = approxDeconv(dfg, nextfct) # solveFactorMeasurements
+#     pts_meas = approxConv(tfg_meas, nextfct, nextvar, (meas,ones(Int,100),collect(1:100)))
+#     pts_pred = approxConv(tfg_pred, nextfct, nextvar, (pred,ones(Int,100),collect(1:100)))
+#     initManual!(tfg_meas, nextvar, pts_meas)
+#     initManual!(tfg_pred, nextvar, pts_pred)
+#   end
+#   return getVal(tfg_meas,nextvar), getVal(tfg_pred,nextvar)
+# end
+
+
+# # TODO should this be consolidated with regular approxConv?
+# # TODO, perhaps pass Xi::Vector{DFGVariable} instead?
+# function approxConvBinary(arr::Vector{Vector{Float64}},
+#                           meas::AbstractFactor,
+#                           outdims::Int,
+#                           fmd::FactorMetadata,
+#                           measurement::Tuple=(Vector{Vector{Float64}}(),);
+#                           varidx::Int=2,
+#                           N::Int=length(arr),
+#                           vnds=DFGVariable[],
+#                           _slack=nothing )
+#   #
+#   # N = N == 0 ? size(arr,2) : N
+#   pts = [zeros(outdims) for _ in 1:N];
+#   ptsArr = Vector{Vector{Vector{Float64}}}()
+#   push!(ptsArr,arr)
+#   push!(ptsArr,pts)
+
+#   fmd.arrRef = ptsArr
+
+#   # TODO consolidate with ccwl??
+#   # FIXME do not divert Mixture for sampling
+#   # cf = _buildCalcFactorMixture(ccwl, fmd, 1, ccwl.measurement, ARR) # TODO perhaps 0 is safer
+#   # FIXME 0, 0, ()
+#   cf = CalcFactor( meas, fmd, 0, 0, (), ptsArr)
+
+#   measurement = length(measurement[1]) == 0 ? sampleFactor(cf, N) : measurement
+#   # measurement = size(measurement[1],2) == 0 ? sampleFactor(meas, N, fmd, vnds) : measurement
+
+#   zDim = length(measurement[1][1])
+#   ccw = CommonConvWrapper(meas, ptsArr[varidx], zDim, ptsArr, fmd, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)
+
+#   for n in 1:N
+#     ccw.cpt[Threads.threadid()].particleidx = n
+#     _solveCCWNumeric!( ccw, _slack=_slack )
+#   end
+#   return pts
+# end
+
+@deprecate getParametricMeasurement(w...;kw...) getMeasurementParametric(w...;kw...)
+
 # function prtslperr(s)
 #   println(s)
 #   sleep(0.1)
@@ -203,7 +288,7 @@ end
 
 @deprecate ensureAllInitialized!(w...;kw...) initAll!(w...;kw...)
 
-@deprecate getFactorMean(w...) IIF.getParametricMeasurement(w...)[1]
+@deprecate getFactorMean(w...) IIF.getMeasurementParametric(w...)[1]
 
 # """
 #     $SIGNATURES
