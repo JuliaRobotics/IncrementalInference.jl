@@ -108,8 +108,8 @@ l1_m = getKDEMean(getKDE(getVariable(fg, :l1)))[1]
 @test isapprox(x0_m, 0.0, atol = 1.0)
 @test isapprox(x1_m, 0.0, atol = 1.0)
 @test isapprox(x2_m, 0.0, atol = 1.0)
-@test isapprox(l0_m, 0.0, atol = 1.0)
-@test isapprox(l1_m, 0.0, atol = 1.0)
+@test isapprox(l0_m, 0.0, atol = 1.2)
+@test isapprox(l1_m, 0.0, atol = 1.2)
 
 #testing if values are close to one another
 @show testvals = [x0_m, x1_m, x2_m, l0_m, l1_m]
