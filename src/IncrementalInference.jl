@@ -392,8 +392,7 @@ export *,
   getPointType, 
   getPointIdentity,
   setVariableRefence!,
-  reshapeVec2Mat,
-  accumulateFactorChain
+  reshapeVec2Mat
 
 # more optional exports
 export HeatmapDensityRegular

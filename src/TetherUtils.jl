@@ -2,7 +2,7 @@
 
 export cont2disc
 export rebaseFactorVariable!
-export getFactorMean
+export accumulateFactorMeans
 export solveFactorParameteric
 
 """

@@ -5,7 +5,7 @@ using .DifferentialEquations
 
 import .DifferentialEquations: solve
 
-import IncrementalInference: getSample
+import IncrementalInference: getSample, getManifold
 
 export DERelative
 
@@ -38,6 +38,7 @@ struct DERelative{T <:InferenceVariable, P, D} <: AbstractRelativeRoots
   specialSampler::Function
 end
 
+getManifold(de::DERelative{T}) where T = getManifold(de.domain)
 
 """
 $SIGNATURES

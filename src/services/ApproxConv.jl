@@ -1,6 +1,6 @@
 
 export calcFactorResidual
-export accumulateFactorChain
+
 
 
 function approxConvBelief(dfg::AbstractDFG,
@@ -298,49 +298,6 @@ function solveFactorParameteric(dfg::AbstractDFG,
 end
 
 
-
-"""
-    $SIGNATURES
-
-Calculate both measured and predicted relative variable values, starting with `from` at zeros up to `to::Symbol`.
-
-Notes
-- assume single variable separators only.
-
-DevNotes
-- TODO better consolidate with [`approxConvBelief`](@ref) which can now also work with factor chains.
-"""
-function accumulateFactorChain( dfg::AbstractDFG,
-                                from::Symbol,
-                                to::Symbol,
-                                fsyms::Vector{Symbol}=findFactorsBetweenNaive(dfg, from, to);
-                                initval=zeros(size(getVal(dfg, from))))
-
-  # get associated variables
-  svars = union(ls.(dfg, fsyms)...)
-
-  # use subgraph copys to do calculations
-  tfg_meas = buildSubgraph(dfg, [svars;fsyms])
-  tfg_pred = buildSubgraph(dfg, [svars;fsyms])
-
-  # drive variable values manually to ensure no additional stochastics are introduced.
-  nextvar = from
-  initManual!(tfg_meas, nextvar, initval)
-  initManual!(tfg_pred, nextvar, initval)
-
-  # nextfct = fsyms[1] # for debugging
-  for nextfct in fsyms
-    nextvars = setdiff(ls(tfg_meas,nextfct),[nextvar])
-    @assert length(nextvars) == 1 "accumulateFactorChain requires each factor pair to separated by a single variable"
-    nextvar = nextvars[1]
-    meas, pred = approxDeconv(dfg, nextfct) # solveFactorMeasurements
-    pts_meas = approxConv(tfg_meas, nextfct, nextvar, (meas,ones(Int,100),collect(1:100)))
-    pts_pred = approxConv(tfg_pred, nextfct, nextvar, (pred,ones(Int,100),collect(1:100)))
-    initManual!(tfg_meas, nextvar, pts_meas)
-    initManual!(tfg_pred, nextvar, pts_pred)
-  end
-  return getVal(tfg_meas,nextvar), getVal(tfg_pred,nextvar)
-end
 
 
 #
