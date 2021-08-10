@@ -284,15 +284,12 @@ export *,
   getParent,
   getCliqSiblings,
   getNumCliqs,
-  getBelief, getKDE,
+  getBelief,
   CliqStateMachineContainer,
 
   solveCliqUp!,
   solveCliqDown!,
   fifoFreeze!,
-
-  # temp const types TODO
-  TempUpMsgPlotting,
 
   #functors need
   getSample,
@@ -310,7 +307,6 @@ export *,
   evalFactor,
   approxConvBelief,
   approxConv,
-  approxConvBinary,
 
   # more debugging tools
   localProduct,
