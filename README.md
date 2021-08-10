@@ -67,15 +67,15 @@ This library is built as a back-end solver which is closer to the mathetical ope
 <a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/JuliaRobotics/IncrementalInference.jl/master/doc/images/mmfgbt.gif" alt="IMAGE ALT TEXT HERE" width="480" height="320" /></a>
 </p>
 
-Contributors
-============
+Cite and Contributors
+=====================
 
 We are grateful for many, many contributions within the Julia package ecosystem -- see the [`Project.toml`](https://github.com/JuliaRobotics/Caesar.jl/blob/master/Project.toml) files for a far reaching list of upstream packages and contributions.
 
 Consider citing our work using the common reference at [Caesar.jl Citation with IncrementalInference.jl DOI](https://github.com/JuliaRobotics/Caesar.jl#contributors)
 
 Get Involved, and Code of Conduct
-=================================
+---------------------------------
 
 This project adheres to the [JuliaRobotics code of conduct](https://github.com/JuliaRobotics/administration/blob/master/code_of_conduct.md), and we invite contributions or comments from the community.  Use the slack channel, Julia Discourse, or Github issues to get in touch.
 
