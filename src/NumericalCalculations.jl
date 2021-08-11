@@ -94,8 +94,9 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   # norm(M, p, X) == distance(M, p, X)
   #TODO fix closure for performance
   fM = getManifold(fcttype)
-  function cost(Xc)
-    p = exp(M, ϵ, hat(M, ϵ, Xc))  
+  function cost(p, X, Xc)
+    hat!(M, X, ϵ, Xc)
+    exp!(M, p, ϵ, X)  
     # X = objResX(p)
     # return norm(fM, p, X)^2 #TODO the manifold of p and X are not always the same
     #options getPointIdentity or leave it to factor 
@@ -103,13 +104,17 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
     return sum(residual.^2)
   end
 
-  # separate statements to try improve type-stability 
-  r = if islen1
-    Optim.optimize(cost, X0c, Optim.BFGS())
-  else
-    Optim.optimize(cost, X0c, Optim.NelderMead())
-  end
-
+  # # separate statements to try improve type-stability 
+  # r = if islen1
+  #   Optim.optimize(cost, X0c, Optim.BFGS())
+  # else
+  #   Optim.optimize(cost, X0c, Optim.NelderMead())
+  # end
+  alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
+  X0 = hat(M, ϵ, X0c)
+  p0 = exp(M, ϵ, X0)
+  r = Optim.optimize(Xc->cost(p0, X0, Xc), X0c, alg)
+  
   return exp(M, ϵ, hat(M, ϵ, r.minimizer)) 
 
 end
