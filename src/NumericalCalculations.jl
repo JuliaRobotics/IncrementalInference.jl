@@ -104,13 +104,13 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
     return sum(residual.^2)
   end
 
-  # separate statements to try improve type-stability 
-  r = if islen1
-    Optim.optimize(cost, X0c, Optim.BFGS())
-  else
-    Optim.optimize(cost, X0c, Optim.NelderMead())
-  end
-
+  # # separate statements to try improve type-stability 
+  # r = if islen1
+  #   Optim.optimize(cost, X0c, Optim.BFGS())
+  # else
+  #   Optim.optimize(cost, X0c, Optim.NelderMead())
+  # end
+  alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
   X0 = hat(M, ϵ, X0c)
   p0 = exp(M, ϵ, X0)
   r = Optim.optimize(Xc->cost(p0, X0, Xc), X0c, alg)
