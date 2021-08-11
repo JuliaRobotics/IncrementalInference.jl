@@ -50,7 +50,7 @@ end
 
 
 
-Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{LinearRelative{N}}) where N = Manifolds.Euclidean(N) 
+Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{LinearRelative{N}}) where N = Manifolds.TranslationGroup(N) 
 
 
 

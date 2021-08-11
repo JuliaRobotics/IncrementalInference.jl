@@ -14,7 +14,8 @@ end
 
 EuclidDistance(::UniformScaling=LinearAlgebra.I) = EuclidDistance(Normal())
 
-getManifold(::InstanceType{EuclidDistance}) = Euclidean(1)
+# consider a different group?
+getManifold(::InstanceType{EuclidDistance}) = TranslationGroup(1)
 getDimension(::InstanceType{<:EuclidDistance}) = 1
 
 
@@ -30,7 +31,7 @@ function (s::CalcFactor{<:EuclidDistance})(z, x1, x2)
 end
 
 
-Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{EuclidDistance}) = Manifolds.Euclidean(1)
+Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{EuclidDistance}) = Manifolds.TranslationGroup(1)
 
 
 """
