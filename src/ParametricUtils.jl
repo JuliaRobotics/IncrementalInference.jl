@@ -44,6 +44,7 @@ Defaults to find the parametric measurement at field `Z` followed by `z`.
 
 Notes
 - Users should overload this method should their factor not default to `.Z<:ParametricType` or `.z<:ParametricType`
+- See https://github.com/JuliaRobotics/RoME.jl/issues/465
 """
 function getMeasurementParametric end
 
@@ -60,13 +61,8 @@ end
 function getMeasurementParametric(Z::MvNormal)
   meas = mean(Z)
   iΣ = invcov(Z)
-  # p_μ = exp(M, identity_element(M), hat(M, identity_element(M), meas))
-  # return p_μ, iΣ
   return meas, iΣ
 end
-
-# getMeasurementParametric(Z::Normal)   = getMeasurementParametric(TranslationGroup(1), Z)
-# getMeasurementParametric(Z::MvNormal) = getMeasurementParametric(TranslationGroup(length(mean(Z))), Z)
 
 # the point `p` on the manifold is the mean
 function getMeasurementParametric(s::ManifoldPrior)
@@ -88,6 +84,7 @@ function getMeasurementParametric(s::AbstractFactor)
   else
     error("$(typeof(s)) not supported, please use non-parametric or open an issue if it should be")
   end
+  
   return getMeasurementParametric(Z)
 end
 
@@ -115,6 +112,7 @@ function CalcFactorMahalanobis(fct::DFGFactor)
   multihypo = getSolverData(fct).multihypo
   nullhypo = getSolverData(fct).nullhypo
 
+  # FIXME, type instability, use dispatch instead of if-else
   if length(multihypo) > 0
     special = MaxMultihypo(multihypo)
   elseif nullhypo > 0 

@@ -235,6 +235,12 @@ function fifoFreeze!(dfg::AbstractDFG)
 end
 
 
+DFG.getPoint(typ::InferenceVariable, w...;kw...) = getPoint(typeof(typ), w...;kw...)
+DFG.getCoordinates(typ::InferenceVariable, w...;kw...) = getCoordinates(typeof(typ), w...;kw...)
+
+# WIP
+# _getMeasurementRepresentation(::AbstractPrior, coord::AbstractVector{<:Number}) = 
+
 
 """
     $SIGNATURES
@@ -267,7 +273,7 @@ function calcPPE( var::DFGVariable,
   # calculate point
 
   ## TODO make PPE only use getCoordinates for now (IIF v0.25)
-  Pme_ = getCoordinates(typeof(varType),Pme)
+  Pme_ = getCoordinates(varType,Pme)
   # Pma_ = getCoordinates(M,Pme)
   
   # suggested, max, mean, current time

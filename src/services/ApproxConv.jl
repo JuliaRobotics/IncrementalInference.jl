@@ -244,7 +244,8 @@ end
 """
     $SIGNATURES
 
-Helper function to propagate a parametric estimate along a factor chain.
+Helper function to propagate a parametric estimate along a factor chain.  
+This function takes and returns variable values as coordinates.
 
 Notes
 - Not used during MM-iSAM inference.
@@ -276,6 +277,7 @@ function solveFactorParameteric(dfg::AbstractDFG,
   # get the measurement point
   fctTyp = getFactorType(fct)
   mea, _ = getMeasurementParametric(fctTyp)
+  # should this be coords, tangent, or point
   measT = (mea,)
 
   # get variable points
@@ -283,18 +285,29 @@ function solveFactorParameteric(dfg::AbstractDFG,
     # hasp = haskey(getPPEDict(vari), key)
     # FIXME use PPE via Manifold points currently in coordinates
     # hasp ? getPPE(vari, key).suggested : calcMean(getBelief(vari, key))
-    calcMean(getBelief(vari, key))
+    pt = calcMean(getBelief(vari, key))
+
+    getCoordinates(getVariableType(vari),pt)
   end
 
   # overwrite specific src values from user
-  prms = _getParametric.(getVariable.(dfg, varLbls), solveKey)
+  coordVals = _getParametric.(getVariable.(dfg, varLbls), solveKey)
   for (srcsym, currval) in srcsym_vals
-    prms[findfirst(varLbls .== srcsym)] = currval
+    coordVals[findfirst(varLbls .== srcsym)] = currval
   end
-  pts = tuple(prms...)
+  crds = tuple(coordVals...)
   
-  # do the calculation to find solvefor index using the factor
-  return _evalFactorTemporary!( fctTyp, varTypes, sfidx, measT, pts; solveKey=solveKey, evaltmpkw... )
+  pts = tuple(map(t->getPoint(t...), zip(varTypes,crds))...)
+
+  @show varTypes
+  @show pts
+
+  # do the calculation to find solvefor index using the factor, as manifold point
+  pt = _evalFactorTemporary!( fctTyp, varTypes, sfidx, measT, pts; solveKey=solveKey, evaltmpkw... )[1]
+
+  @show pt
+
+  return getCoordinates(getVariableType(dfg, trgsym), pt)
 end
 
 

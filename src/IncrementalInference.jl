@@ -69,6 +69,8 @@ import DistributedFactorGraphs: rebuildFactorMetadata!
 import DistributedFactorGraphs: getDimension, getManifold, getPointType, getPointIdentity
 import DistributedFactorGraphs: getPPE, getPPEDict
 import DistributedFactorGraphs: getFactorOperationalMemoryType
+import DistributedFactorGraphs: getPoint, getCoordinates
+
 
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable
