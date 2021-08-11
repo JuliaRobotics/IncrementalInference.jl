@@ -51,21 +51,22 @@ function getMeasurementParametric(Z)
   error("$(typeof(Z)) is not supported, please use non-parametric or open an issue if it should be")
 end
 
-function getMeasurementParametric(M::AbstractManifold, Z::Normal)
+function getMeasurementParametric(Z::Normal)
   meas = mean(Z)
   iσ = 1/std(Z)^2
   return [meas], reshape([iσ],1,1)
 end
 
-function getMeasurementParametric(M::AbstractManifold, Z::MvNormal)
+function getMeasurementParametric(Z::MvNormal)
   meas = mean(Z)
   iΣ = invcov(Z)
-  p_μ = exp(M, identity_element(M), hat(M, identity_element(M), meas))
-  return p_μ, iΣ
+  # p_μ = exp(M, identity_element(M), hat(M, identity_element(M), meas))
+  # return p_μ, iΣ
+  return meas, iΣ
 end
 
-getMeasurementParametric(Z::Normal)   = getMeasurementParametric(TranslationGroup(1), Z)
-getMeasurementParametric(Z::MvNormal) = getMeasurementParametric(TranslationGroup(length(mean(Z))), Z)
+# getMeasurementParametric(Z::Normal)   = getMeasurementParametric(TranslationGroup(1), Z)
+# getMeasurementParametric(Z::MvNormal) = getMeasurementParametric(TranslationGroup(length(mean(Z))), Z)
 
 # the point `p` on the manifold is the mean
 function getMeasurementParametric(s::ManifoldPrior)
