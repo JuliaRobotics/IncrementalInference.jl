@@ -299,13 +299,8 @@ function solveFactorParameteric(dfg::AbstractDFG,
   
   pts = tuple(map(t->getPoint(t...), zip(varTypes,crds))...)
 
-  @show varTypes
-  @show pts
-
   # do the calculation to find solvefor index using the factor, as manifold point
   pt = _evalFactorTemporary!( fctTyp, varTypes, sfidx, measT, pts; solveKey=solveKey, evaltmpkw... )[1]
-
-  @show pt
 
   return getCoordinates(getVariableType(dfg, trgsym), pt)
 end
