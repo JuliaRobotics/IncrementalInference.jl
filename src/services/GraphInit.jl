@@ -246,7 +246,7 @@ function initManual!( dfg::AbstractDFG,
   #
   pts = predictbelief(dfg, label, usefcts, solveKey=solveKey)[1]
   vert = getVariable(dfg, label)
-  Xpre = AMP.manikde!(pts, getVariableType(vert) |> getManifolds )
+  Xpre = manikde!(getManifold(getVariableType(vert)), pts )
   initManual!(vert, Xpre, solveKey, dontmargin=dontmargin, N=N )
   # setValKDE!(vert, Xpre, true, solveKey=solveKey)
   # return nothing
