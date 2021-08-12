@@ -81,7 +81,7 @@ SolverParams(;dimID::Int=0,
               gibbsIters::Int=3,
               maxincidence::Int=500,
               alwaysFreshMeasurements::Bool=true,
-              attemptGradients::Bool=false,
+              attemptGradients::Bool=true,
               devParams::Dict{Symbol,String}=Dict{Symbol,String}()
             ) = begin useMsgLikelihoods==true && @warn "useMsgLikelihoods is under development, use with care, see #1010"
                 SolverParams( dimID,

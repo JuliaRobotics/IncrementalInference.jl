@@ -9,14 +9,16 @@ function fastnorm(u)
   @fastmath @inbounds return sqrt(s)
 end
 
+
 """
     $SIGNATURES
 
 Helper function for IIF.getSample, to generate a vector of points regardless of the Manifold and probability density function used.
 
-Related
+DevNotes:
+- FIXME deprecate to `sample`, see JuliaRobotics/RoME.jl#465
 
-[`getSample`](@ref)
+See also: [`getSample`](@ref), [`rand`]
 """
 randToPoints(distr::SamplableBelief, N::Int=1) = [rand(distr,1)[:] for i in 1:N]
 randToPoints(distr::ManifoldKernelDensity, N::Int=1) = rand(distr,N)
@@ -216,10 +218,10 @@ Related
 [`RoME.generateCanonicalFG_Honeycomb!`](@ref), [`accumulateFactorMeans`](@ref), [`getPPE`](@ref)
 """
 function _checkVariableByReference( fg::AbstractDFG,
-                                    srcLabel::Symbol,            # = :x5
-                                    destRegex::Regex,            # = r"l\d+"
-                                    destType::Type{<:InferenceVariable}, # = Point2
-                                    factor::AbstractRelative;    # = Pose2Poin2BearingRange(...)
+                                    srcLabel::Symbol,
+                                    destRegex::Regex,
+                                    destType::Type{<:InferenceVariable},
+                                    factor::AbstractRelative;
                                     srcType::Type{<:InferenceVariable} = getVariableType(fg, srcLabel) |> typeof,
                                     refKey::Symbol=:simulated,
                                     prior = DFG._getPriorType(srcType)( MvNormal(getPPE(fg[srcLabel], refKey).suggested, diagm(ones(getDimension(srcType)))) ),
@@ -245,16 +247,13 @@ function _checkVariableByReference( fg::AbstractDFG,
   end
 
   ppe = DFG.MeanMaxPPE(refKey, refVal, refVal, refVal)
-  # setPPE!(v_n, refKey, DFG.MeanMaxPPE, ppe)
 
   # now check if we already have a landmark at this location
   varLms = ls(fg, destRegex) |> sortDFG
   ppeLms = getPPE.(getVariable.(fg, varLms), refKey) .|> x->x.suggested
-  # @show typeof(ppeLms)
   errmask = ppeLms .|> x -> norm(x - ppe.suggested) < atol
   already = any(errmask)
 
-  # @assert sum(errmask) <= 1 "There should be only one landmark at $ppe"
   if already
     # does exist, ppe, variableLabel
     alrLm = varLms[findfirst(errmask)]
@@ -267,9 +266,9 @@ end
 
 
 function _checkVariableByReference( fg::AbstractDFG,
-                                    srcLabel::Symbol,            # = :x5
-                                    destRegex::Regex,            # = r"l\d+"
-                                    destType::Type{<:InferenceVariable}, # = Point2
+                                    srcLabel::Symbol,
+                                    destRegex::Regex,
+                                    destType::Type{<:InferenceVariable},
                                     factor::AbstractPrior;
                                     srcType::Type{<:InferenceVariable} = getVariableType(fg, srcLabel) |> typeof,
                                     refKey::Symbol=:simulated,
@@ -291,6 +290,9 @@ function _checkVariableByReference( fg::AbstractDFG,
   # Nope does not exist, ppe, generated new variable label only
   return false, ppe, Symbol(destPrefix, srcNumber)
 end
+
+
+
 
 
 #

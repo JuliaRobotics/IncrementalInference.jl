@@ -39,11 +39,18 @@ end
 """
     $SIGNATURES
 
-Returns the parametric measurement for a factor as a tuple (measurement, inverse covariance) for parametric inference (assumign Gaussian).
-Defaults to find the parametric measurement at field `Z` followed by `z`.
+Returns the parametric measurement for a factor as a tuple (measurement, inverse covariance) for parametric inference (assuming Gaussian).
+Defaults to find the parametric measurement at field `Zij`, `Z`, or `z`.
 
 Notes
 - Users should overload this method should their factor not default to `.Z<:ParametricType` or `.z<:ParametricType`
+- First design choice was to restrict this function to returning coordinates
+  - See https://github.com/JuliaRobotics/RoME.jl/issues/465
+  - Pay attention to which tangent space point is used for converting points on a manifold to coordinates,
+    - Originally written just for Lie Groups to support legacy, but future needs may well alter the design.
+- Original design driven by parametric solve and dead reckon tethering.
+
+See also: [`accumulateFactorMeans`](@ref), [`solveFactorParameteric`](@ref)
 """
 function getMeasurementParametric end
 
@@ -51,21 +58,17 @@ function getMeasurementParametric(Z)
   error("$(typeof(Z)) is not supported, please use non-parametric or open an issue if it should be")
 end
 
-function getMeasurementParametric(M::AbstractManifold, Z::Normal)
+function getMeasurementParametric(Z::Normal)
   meas = mean(Z)
   iσ = 1/std(Z)^2
   return [meas], reshape([iσ],1,1)
 end
 
-function getMeasurementParametric(M::AbstractManifold, Z::MvNormal)
+function getMeasurementParametric(Z::MvNormal)
   meas = mean(Z)
   iΣ = invcov(Z)
-  p_μ = exp(M, identity_element(M), hat(M, identity_element(M), meas))
-  return p_μ, iΣ
+  return meas, iΣ
 end
-
-getMeasurementParametric(Z::Normal)   = getMeasurementParametric(TranslationGroup(1), Z)
-getMeasurementParametric(Z::MvNormal) = getMeasurementParametric(TranslationGroup(length(mean(Z))), Z)
 
 # the point `p` on the manifold is the mean
 function getMeasurementParametric(s::ManifoldPrior)
@@ -87,6 +90,7 @@ function getMeasurementParametric(s::AbstractFactor)
   else
     error("$(typeof(s)) not supported, please use non-parametric or open an issue if it should be")
   end
+  
   return getMeasurementParametric(Z)
 end
 
@@ -114,6 +118,7 @@ function CalcFactorMahalanobis(fct::DFGFactor)
   multihypo = getSolverData(fct).multihypo
   nullhypo = getSolverData(fct).nullhypo
 
+  # FIXME, type instability, use dispatch instead of if-else
   if length(multihypo) > 0
     special = MaxMultihypo(multihypo)
   elseif nullhypo > 0 

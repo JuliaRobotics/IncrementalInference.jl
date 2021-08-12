@@ -31,7 +31,7 @@ Notes
 - Sampling can be more nuanced by injecting a hint, or location of interest:
   - Mostly aimed at limiting compute when faced with massive heatmaps, e.g. nav units are 10's but map is ~1e6.
 - Density approximation is constructed on Guassian measurement assumption of level set and sigma variation.
-- Assume data is on a regular grid on Euclidean(2)
+- Assume data is on a regular grid on TranslationGroup(2)
 
 DevNotes:
 - Generalize to scalar fields on any Manifold.
@@ -54,7 +54,7 @@ struct HeatmapDensityRegular{T <: Real, H <: Union{<:Function, Nothing}, B <: Un
   """general rule for kernel bandwidths used in construction of density, e.g. 0.7 of domain grid spacing"""
   bw_factor::T 
   """density function as samplable representation of the data over the domain"""
-  densityFnc::B # TODO change to ::ManifoldKernelDensity{Euclidean(2),BallTreeDensity}
+  densityFnc::B # TODO change to ::ManifoldKernelDensity{TranslationGroup(2),BallTreeDensity}
 end
 
 (hmd::HeatmapDensityRegular)(w...;kw...) = hmd.densityFnc(w...;kw...)
