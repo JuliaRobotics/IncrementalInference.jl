@@ -276,9 +276,13 @@ function solveFactorParameteric(dfg::AbstractDFG,
 
   # get the measurement point
   fctTyp = getFactorType(fct)
+  # this is definitely in coordinates, see JuliaRobotics/RoME.jl#465
   mea, _ = getMeasurementParametric(fctTyp)
-  # should this be coords, tangent, or point
-  measT = (mea,)
+  # must change measT to be a tangent vector
+  M = getManifold(fctTyp)
+  e0 = identity_element(M)
+  mea_ = hat(M, e0, mea)
+  measT = (mea_,)
 
   # get variable points
   function _getParametric(vari::DFGVariable, key=:default)

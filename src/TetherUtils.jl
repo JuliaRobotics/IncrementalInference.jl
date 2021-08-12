@@ -111,6 +111,7 @@ Notes
 - Not used during tree inference.
 - Expected uses are for user analysis of factors and estimates.
 - real-time dead reckoning chain prediction.
+- Returns mean value as coordinates
 
 DevNotes
 - # TODO consolidate with similar `approxConv`
