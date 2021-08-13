@@ -313,7 +313,7 @@ function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
           # calculate the general deconvolution between variables
           pts, = approxDeconv(tfg, afc.label, solveKey)  # solveFactorMeasurements
           # @show sft
-          newBel = manikde!(pts, sft) # getManifolds(sft)
+          newBel = manikde!(pts, sft)
           # replace dummy factor with real deconv factor using manikde approx belief measurement
           fullFct = _sft(newBel)
           deleteFactor!(tfg, afc.label)
