@@ -21,7 +21,7 @@ MutableLinearRelative(nm::MvNormal) = MutableLinearRelative{length(nm.μ), typeo
 MutableLinearRelative(nm::ManifoldKernelDensity) = MutableLinearRelative{Ndim(nm), typeof(nm)}(nm)
 
 getDimension(::Type{MutableLinearRelative{N,<:SamplableBelief}}) where {N} = N
-# getManifolds(::Type{MutableLinearRelative{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
+getManifold(::MutableLinearRelative{N}) where N = TranslationGroup(N)
 
 
 function IIF.getSample(cf::CalcFactor{<:MutableLinearRelative}, N::Int=1)
