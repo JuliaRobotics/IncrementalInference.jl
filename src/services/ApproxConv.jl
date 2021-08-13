@@ -239,7 +239,16 @@ end
 # group partial dimension factors by selected dimensions -- i.e. [(1,)], [(1,2),(1,2)], [(2,);(2;)]
 
 
+# WIP, see `_buildGraphByFactorAndTypes!` where pts are full MKD Beliefs, following #1351 
+# Legacy use in RoMEPlotting: plotFactor
+# function approxConvBelief(fct::AbstractFactorRelative,
+#                           varTypes::Union{<:Tuple,<:AbstractVector{<:InstanceType{T}}}, 
+#                           mkds::Union{<:Tuple,<:AbstractVector{<:InstanceType{T}}};
+#                           tfg::AbstractDFG=_buildGraphByFactorAndTypes!(fct,)
+#                           ) where {T <: InferenceVariable}
+#   #
 
+# end
 
 
 

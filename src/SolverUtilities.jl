@@ -135,6 +135,9 @@ Notes
 - Often used to quickly generate temporary graphs for a variety of local calculations.
 - does not yet support split `_` characters in auto-find `lastVar` from `varPattern`. 
 - Will always add a factor, but will skip adding variable labels that already exist in `dfg`.
+
+DevNotes
+- TODO allow pts to be full MKD beliefs, part of replacing old `approxConvCircular`, see #1351
 """
 function _buildGraphByFactorAndTypes!(fct::AbstractFactor, 
                                       varTypes::Tuple,
@@ -158,6 +161,7 @@ function _buildGraphByFactorAndTypes!(fct::AbstractFactor,
     # add the necessary variables
     exists(dfg, vars[s_]) ? nothing : addVariable!(dfg, vars[s_],  vTyp)
     # set the numerical values if available
+    # TODO allow pts to come in as full MKD beliefs, not just one point
     ((0 < length(pts)) && (pts[s_] isa Nothing)) ? nothing : initManual!(dfg,  vars[s_], [pts[s_],], solveKey, bw=ones(getDimension(vTyp)))
   end
   # if newFactor then add the factor on vars, else assume only one existing factor between vars
