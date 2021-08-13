@@ -477,7 +477,7 @@ include("InferDimensionUtils.jl")
 include("services/EvalFactor.jl")
 include("services/ApproxConv.jl")
 
-include("ConsolidateParametricRelative.jl") # FIXME CONSOLIDATE
+include("ConsolidateParametricRelatives.jl") # FIXME CONSOLIDATE
 
 include("GraphProductOperations.jl")
 include("SolveTree.jl")
