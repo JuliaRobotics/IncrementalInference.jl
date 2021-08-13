@@ -132,7 +132,6 @@ export *,
   # state machine methods
   StateMachine,
   exitStateMachine,
-  printSummary,
   print,
   getGraphFromHistory,
   getCliqSubgraphFromHistory,
@@ -463,13 +462,11 @@ include("Factors/PartialPrior.jl")
 include("Factors/PartialPriorPassThrough.jl")
 include("DefaultNodeTypes.jl") # older file
 
-
 # Refactoring in progress
 include("services/CalcFactor.jl")
 # gradient tools
 include("services/FactorGradients.jl")
 include("services/CliqueTypes.jl")
-
 
 # solving graphs
 include("SolverUtilities.jl")
@@ -479,6 +476,9 @@ include("ExplicitDiscreteMarginalizations.jl")
 include("InferDimensionUtils.jl")
 include("services/EvalFactor.jl")
 include("services/ApproxConv.jl")
+
+include("ConsolidateParametricRelative.jl") # FIXME CONSOLIDATE
+
 include("GraphProductOperations.jl")
 include("SolveTree.jl")
 include("TetherUtils.jl")
