@@ -381,7 +381,6 @@ struct MixedCircular <: Optim.Manifold
   isCircular::BitArray
 end
 
-# FIXME getManifolds is being deprecated, use getManifold instead.
 function MixedCircular(fg::AbstractDFG, varIds::Vector{Symbol})
   circMask = Bool[]
   for k = varIds
