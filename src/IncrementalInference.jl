@@ -132,7 +132,6 @@ export *,
   # state machine methods
   StateMachine,
   exitStateMachine,
-  printGraphSummary,
   printSummary,
   print,
   getGraphFromHistory,

@@ -312,4 +312,54 @@ end
 
 
 
+## ==========================================================================================
+## DEPRECATE / REFACTOR BELOW
+## ==========================================================================================
+
+
+
+
+"""
+    $SIGNATURES
+
+Build an approximate density `[Y|X,DX,.]=[X|Y,DX][DX|.]` as proposed by the conditional convolution.
+
+Notes
+- Assume both are on circular manifold, `manikde!(pts, (:Circular,))`
+"""
+function approxConvCircular(pX::ManifoldKernelDensity, 
+                            pDX::ManifoldKernelDensity; N::Int=100)
+  #
+
+  # building basic factor graph
+  tfg = initfg()
+  addVariable!(tfg, :s1, Sphere1)
+  addVariable!(tfg, :s2, Sphere1)
+  addFactor!(tfg, [:s1;:s2], Sphere1Sphere1(pDX), graphinit=false)
+  initManual!(tfg,:s1, pX)
+
+  # solve for outgoing proposal value
+  approxConv(tfg,:s1s2f1,:s2)
+end
+
+function approxConvCircular(pX::ManifoldKernelDensity, 
+                            pDX::SamplableBelief; N::Int=100)
+  #
+  pts = reshape(rand(pDX, N), 1, :)
+  pC = manikde!(pts, Sphere1)
+  approxConvCircular(pX, pC)
+end
+
+
+function approxConvCircular(pX::SamplableBelief, 
+                            pDX::ManifoldKernelDensity; N::Int=100)
+  #
+    pts = reshape(rand(pX, N), 1, :)
+  pC = manikde!(pts, Sphere1)
+  approxConvCircular(pC, pDX)
+end
+
+
+
+
 #
