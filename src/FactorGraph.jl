@@ -288,14 +288,14 @@ function resetVariable!(varid::VariableNodeData;
   for pt in pts
     fill!(pt, 0.0)
   end
-  pn = manikde!(pts, zeros(AMP.Ndim(val)), getManifolds(varid))
+  pn = manikde!(getManifold(varid), pts, bw=zeros(Ndim(val)))
   setValKDE!(varid, pn, false, 0.0)
   # setVariableInferDim!(varid, 0)
   # setVariableInitialized!(vari, false)
   nothing
 end
 
-resetVariable!(vari::DFGVariable; solveKey::Symbol=:default  )::Nothing = resetVariable!(getSolverData(vari), solveKey=solveKey)
+resetVariable!(vari::DFGVariable; solveKey::Symbol=:default  ) = resetVariable!(getSolverData(vari), solveKey=solveKey)
 
 function resetVariable!(dfg::G,
                         sym::Symbol;
@@ -383,7 +383,6 @@ function setDefaultNodeData!( v::DFGVariable,
   sp = Int[0;]
   (valpts, bws) = if initialized
     pN = resample(getBelief(v))
-    # pN = AMP.manikde!(randn(dims, N), getManifolds(varType));
     bws = getBW(pN)[:,1:1]
     pNpts = getPoints(pN)
     isinit = true
