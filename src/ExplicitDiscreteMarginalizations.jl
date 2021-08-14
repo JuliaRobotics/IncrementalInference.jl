@@ -63,7 +63,7 @@ allelements=
  [3, 4, 5, ...]
 activehypo=
 3-element Array{Any,1}:
- (0, [2])     # nullhypo -- forced afterward, likely to be deprecated in this case
+ (0, [2])     # nullhypo -- forced afterward, might be deprecated if better solution is found
  (1, [1, 2])  # unroll hypo lambda for X,La
  (2, [1, 2])  # unroll hypo lambda for X,La
  (3, [2, 3])  # would be (but cannot) unroll hypo La,Lb # almost our nullhypo # wont build a lambda
@@ -84,9 +84,10 @@ Notes:
 - Issue 427, race condition during initialization since n-ary variables not resolvable without other init.
 
 DevNotes
-- Improved implementations should implicitly induce the same behaviour through summation (integration) when marginalizing any number of discrete variables.
+- FIXME convert into some kind of `HypoRecipe` struct, to improve readibility and code maintainability
 - TODO add nullhypo cases to returning result
 - FIXME make type-stable `activehypo` and others
+- Improved implementations should implicitly induce the same behaviour through summation (integration) when marginalizing any number of discrete variables.
 
 ```
 # `allelements` example BearingRange [:x1, 0.5:l1a, 0.5:l1b]
@@ -135,7 +136,7 @@ sfidx=3, allelements=allidx[nhidx.==0], activehypo=(0,[3;])
 
 TODO still need to compensate multihypo case for user nullhypo addition.
 """
-function assembleHypothesesElements!( mh::Categorical,
+function _prepareHypoRecipe!( mh::Categorical,
                                       maxlen::Int,
                                       sfidx::Int,
                                       lenXi::Int,
@@ -220,11 +221,12 @@ function assembleHypothesesElements!( mh::Categorical,
   #   #
   # end
 
-  return certainidx, allelements, activehypo, mhidx
+  # hyporecipe::NamedTuple
+  return (;certainidx, allelements, activehypo, mhidx)
 end
 
 
-function assembleHypothesesElements!( mh::Nothing,
+function _prepareHypoRecipe!( mh::Nothing,
                                       maxlen::Int,
                                       sfidx::Int,
                                       lenXi::Int,
@@ -274,7 +276,8 @@ function assembleHypothesesElements!( mh::Nothing,
     end
   end
 
-  return certainidx, allelements, activehypo, mhidx
+  # return hyporecipe::NamedTuple
+  return (;certainidx, allelements, activehypo, mhidx)
 end
 
 
