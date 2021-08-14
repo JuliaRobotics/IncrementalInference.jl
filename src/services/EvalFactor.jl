@@ -230,6 +230,30 @@ end
 
 
 
+# function _calcIPCRelative(activeVars::AbstractVector{<:DFGVariable}, 
+#                           sfidx_active::Integer,
+#                           meas_pts...;
+#                           )
+#   #
+#   ipc = if ccwl._gradients === nothing 
+#     ones(getDimension(activeVars[sfidx_active]))
+#   else
+#     ipc_ = []
+#     # get infoPerCoord from all variables
+#     for (vid,var) in enumerate(activeVars)
+#       # set all other variables infoPerCoord values
+#       getLabel(var) != getLabel(activeVars[sfidx_active]) ? nothing : continue
+#       push!(ipc_, vid=>ones(getDimension(var)))
+#     end
+#     # update the gradients at current point estimates
+#     meas_pts = 
+#     ccwl._gradients(meas_pts)
+#     # do perturbation check
+#     allipc = calcPerturbationFromVariable(ccwl._gradients, ipc_)
+#     allipc[sfidx_masked]
+#   end
+
+# end
 
 """
     $(SIGNATURES)
@@ -265,30 +289,36 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   isinit = map(x->isInitialized(x), Xi)
   
   # assemble how hypotheses should be computed
-  # TODO convert to HypothesisRecipeElements result
-  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit, ccwl.nullhypo )
-  certainidx = ccwl.certainhypo
+  hyporecipe = _prepareHypoRecipe!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit, ccwl.nullhypo )
   
   # get manifold add operations
   # TODO, make better use of dispatch, see JuliaRobotics/RoME.jl#244
   # addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
   mani = getManifold(getVariableType(Xi[sfidx]))
-
+  
   # perform the numeric solutions on the indicated elements
   # FIXME consider repeat solve as workaround for inflation off-zero 
-  computeAcrossHypothesis!( ccwl, allelements, activehypo, certainidx, 
+  # FIXME figure out why certainidx is not used from the hyporecipe
+  certainidx = ccwl.certainhypo
+  @assert certainidx == hyporecipe.certainidx "expected hyporecipe.certainidx to be the same as cached in ccw"
+  computeAcrossHypothesis!( ccwl, hyporecipe.allelements, hyporecipe.activehypo, certainidx, 
                             sfidx, maxlen, mani, spreadNH=spreadNH, 
                             inflateCycles=inflateCycles, skipSolve=skipSolve,
                             _slack=_slack )
   #
-  # do info per coord
-  ipc = if ccwl._gradients === nothing 
-    ones(getDimension(Xi[sfidx]))
-  else
-    ipc_ = ones(getDimension(Xi[sfidx]))
-    # calcPerturbationFromVariable(ccwl._gradients, 2, ipc_) # TODO, WIP
-    ipc_                                                     # TODO, WIP
-  end
+  # ## do info per coord
+  # @assert hyporecipe.activehypo[1][1] === 0 "expected 0-hypo case in hyporecipe.activehypo, to get variable hypo mask for relative partial propagation calculations."
+  # # select only the active variables in case of multihypo
+  # activeids = hyporecipe.activehypo[hyporecipe.mhidx[smpid]+1][2]
+  # # solvefor index without the fractional variables
+  # active_mask = (s->x in activeids).(1:length(Xi))
+  # sfidx_active = sum(active_mask[1:sfidx])
+  # # build a view to the decision variable memory
+  # # activeVars = Xi[active_mask]
+  # smpid = 1 # assume gradients are just done for the first sample values
+  # meas_pts = tuple((_getindextuple(ccwl.measurement, smpid))..., (getindex.(varParams, smpid))...)
+  # ipc = _calcIPCRelative(activeVars, )
+  ipc = ones(getDimension(Xi[sfidx]))
 
   # return the found points, and info per coord
   return ccwl.params[ccwl.varidx], ipc
@@ -331,12 +361,13 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
 
   # Check which variables have been initialized, TODO not sure why forcing to Bool vs BitVector
   isinit::Vector{Bool} = Xi .|> isInitialized .|> Bool
-  _, _, _, mhidx = assembleHypothesesElements!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, ccwl.nullhypo )
+  hyporecipe = _prepareHypoRecipe!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, ccwl.nullhypo )
+  
   # get solvefor manifolds, FIXME ON FIRE, upgrade to new Manifolds.jl
   mani = getManifold(Xi[sfidx])
   # two cases on how to use the measurement
-  nhmask = mhidx .== 0
-  ahmask = mhidx .== 1
+  nhmask = hyporecipe.mhidx .== 0
+  ahmask = hyporecipe.mhidx .== 1
   # generate nullhypo samples
   # inject lots of entropy in nullhypo case
   # make spread (1σ) equal to mean distance of other fractionals

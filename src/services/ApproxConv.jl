@@ -168,7 +168,7 @@ end
 function calcProposalBelief(dfg::AbstractDFG,
                             fct::DFGFactor{<:CommonConvWrapper{<:PartialPriorPassThrough}},
                             target::Symbol,
-                            measurement::Tuple=(zeros(0,0),);
+                            measurement::Tuple=(Vector{Vector{Float64}}(),);
                             N::Int=length(measurement[1]),
                             solveKey::Symbol=:default,
                             dbg::Bool=false  )

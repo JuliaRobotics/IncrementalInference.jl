@@ -67,9 +67,11 @@ function approxDeconv(fcto::DFGFactor,
   # build a lambda that incorporates the multihypo selections
   # set these first
   # ccw.cpt[].activehypo / .p / .params  # params should already be set from construction
-  certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(nothing, N, 0, length(varsyms))
+  hyporecipe = _prepareHypoRecipe!(nothing, N, 0, length(varsyms))
+  # Juila 1.7 allows destructure assign `(;a,b) = namedtype`
+  # certainidx, allelements, activehypo, mhidx = 
   # only doing the current active hypo
-  @assert activehypo[2][1] == 1 "deconv was expecting hypothesis nr == (1, 1:d)"
+  @assert hyporecipe.activehypo[2][1] == 1 "deconv was expecting hypothesis nr == (1, 1:d)"
   
   islen1 = zDim == 1
   
@@ -80,7 +82,7 @@ function approxDeconv(fcto::DFGFactor,
     targeti_ = makeTarget(idx)
     
     # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
-    cpt_.activehypo = activehypo[2][2]
+    cpt_.activehypo = hyporecipe.activehypo[2][2]
 
     onehypo!, _ = _buildCalcFactorLambdaSample( ccw,
                                                 idx,
