@@ -114,7 +114,9 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   X0 = hat(M, ϵ, X0c)
   p0 = exp(M, ϵ, X0)
   r = Optim.optimize(Xc->cost(p0, X0, Xc), X0c, alg)
-  
+  if !Optim.converged(r)
+    @debug "Optim did not converge:" r
+  end
   return exp(M, ϵ, hat(M, ϵ, r.minimizer)) 
 
 end

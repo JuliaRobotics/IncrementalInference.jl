@@ -103,12 +103,8 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
   # also check distance to certainidx for general scale reference (workaround heuristic)
   for cidx in certainidx
     count += 1
-    cerMean = zeros(length(ccwl.params[cidx][1]))
-    # cerMean = Statistics.mean(ccwl.params[cidx], dims=2)[:]
-    for pr in ccwl.params[cidx]
-      cerMean .+= pr
-    end
-    cerMean ./= length(ccwl.params[cidx])
+    cerMeanPnt = mean(getManifold(ccwl.vartypes[cidx]), ccwl.params[cidx])
+    cerMean = getCoordinates(ccwl.vartypes[cidx], cerMeanPnt)
     dists[count] = norm(refMean[1:dims] - cerMean[1:dims])
   end
 
