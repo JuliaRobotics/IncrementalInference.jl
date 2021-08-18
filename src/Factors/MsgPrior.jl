@@ -23,9 +23,10 @@ function getSample(cf::CalcFactor{<:MsgPrior}, N::Int=1)
   (ret, )
 end
 
-# MKD already returns a vector of points
+# MKD sample returns a vector of points
 function getSample(cf::CalcFactor{<:MsgPrior{<:ManifoldKernelDensity}}, N::Int=1)
-  ret = rand(cf.factor.Z,N)
+  # ret = rand(cf.factor.Z,N)
+  ret = sample(cf.factor.Z, N)[1]
   (ret, )
 end
 

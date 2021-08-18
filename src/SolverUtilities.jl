@@ -20,8 +20,9 @@ DevNotes:
 
 See also: [`getSample`](@ref), [`rand`]
 """
-randToPoints(distr::SamplableBelief, N::Int=1) = [rand(distr,1)[:] for i in 1:N]
-randToPoints(distr::ManifoldKernelDensity, N::Int=1) = rand(distr,N)
+randToPoints(distr, N::Int=1) = [rand(distr,1)[:] for i in 1:N]
+# randToPoints(distr::SamplableBelief, N::Int=1) = [rand(distr,1)[:] for i in 1:N]
+# randToPoints(distr::ManifoldKernelDensity, N::Int=1) = rand(distr,N)
 
 
 
