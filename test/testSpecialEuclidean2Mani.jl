@@ -428,7 +428,7 @@ f = addFactor!(fg, [:x0, :x1a, :x1b], mf; multihypo=[1,0.5,0.5])
 
 solveTree!(fg)
 
-# pnts = getPoints(fg, :x0)
+pnts = getPoints(fg, :x0)
 # c = getCoordinates.(SpecialEuclidean2, pnts)
 # @cast p[i,j] := c[i][j]
 # scatter(p[:,1], p[:,2])
