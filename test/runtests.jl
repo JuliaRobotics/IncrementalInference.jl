@@ -1,18 +1,14 @@
-# addprocs(3)
 using Test
-# using Compat
-# using IncrementalInference
 
 # temporarily moved to start (for debugging)
+include("testSpecialEuclidean2Mani.jl")
 
-# @error "MUST RESTORE testpartialconstraint.jl"
 include("testFactorGradients.jl")
 include("testpartialconstraint.jl")
 include("testPartialNH.jl")
 
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
-include("testSpecialEuclidean2Mani.jl")
 
 
 include("testCliqSolveDbgUtils.jl")
