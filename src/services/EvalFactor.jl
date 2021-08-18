@@ -77,23 +77,18 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
   # get mean of all fractional variables
   # ccwl.params::Vector{Vector{P}}
   uncertainidx = setdiff(1:length(ccwl.params), certainidx)
-  uncMeans = zeros(length(ccwl.params[sfidx][1]), length(uncertainidx))
   dists = zeros(length(uncertainidx)+length(certainidx))
-  dims = length(ccwl.params[sfidx][1])
+
+  dims = manifold_dimension(getManifold(ccwl.vartypes[sfidx]))
+
+  uncMeans = zeros(dims, length(uncertainidx))
   for (count,i) in enumerate(uncertainidx)
-    # uncMeans[:,count] = Statistics.mean(ccwl.params[i], dims=2)[:]
-    for pr in ccwl.params[i]
-      uncMeans[:,count] .+= pr
-    end
-    uncMeans[:,count] ./= length(ccwl.params[i])
+    u = mean(getManifold(ccwl.vartypes[i]), ccwl.params[i])
+    uncMeans[:,count] .= getCoordinates(ccwl.vartypes[i], u)
   end
   count = 0
-  # refMean = Statistics.mean(ccwl.params[sfidx], dims=2)[:]
-  refMean = zeros(length(ccwl.params[sfidx][1]))
-  for pr in ccwl.params[sfidx]
-    refMean .+= pr
-  end
-  refMean ./= length(ccwl.params[sfidx])
+
+  refMean = getCoordinates(ccwl.vartypes[sfidx], mean(getManifold(ccwl.vartypes[sfidx]), ccwl.params[sfidx]))
 
   # calc for uncertain and certain
   for i in uncertainidx
