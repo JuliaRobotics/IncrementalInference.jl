@@ -63,7 +63,8 @@ function getSample(cf::CalcFactor{<:ManifoldFactor}, N::Int=1)
     (ret, )
 end
 
-function (cf::CalcFactor{<:ManifoldFactor{<:AbstractGroupManifold}})(Xc, p, q)
+# function (cf::CalcFactor{<:ManifoldFactor{<:AbstractGroupManifold}})(Xc, p, q)
+function (cf::CalcFactor{<:ManifoldFactor})(Xc, p, q)
 # function (cf::ManifoldFactor)(X, p, q)
     M = cf.factor.M
     # M = cf.M
