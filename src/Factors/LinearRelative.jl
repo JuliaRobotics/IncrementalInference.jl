@@ -34,10 +34,10 @@ getManifold(::InstanceType{LinearRelative{N}}) where N = getManifold(ContinuousE
 getDimension(::InstanceType{LinearRelative{N}}) where {N} = N
 
 
-function getSample(cf::CalcFactor{<:LinearRelative}, N::Int=1)
+function getSample(cf::CalcFactor{<:LinearRelative})
   # _samplemakevec(z::Real) = [z;]
   # _samplemakevec(z::AbstractVector{<:Real}) = z
-  (randToPoints(cf.factor.Z, N), )
+  (rand(cf.factor.Z, 1), )
 end
 
 

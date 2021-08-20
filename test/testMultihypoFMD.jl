@@ -14,14 +14,12 @@ struct MyFactor{T <: SamplableBelief} <: IIF.AbstractRelativeRoots
   # specialSampler::Function
 end
 
-function getSample( cf::CalcFactor{<:MyFactor}, 
-                    N::Int=1  )
+function getSample( cf::CalcFactor{<:MyFactor})
   #
   @warn "getSample(cf::CalcFactor{<:MyFactor},::Int) does not get hypo sub-selected FMD data"
   @show DFG.getLabel.(cf.metadata.fullvariables)
   # @assert DFG.getLabel.(fmd_[1].fullvariables) |> length < 3 "this factor is only between two variables"
-  ret = [rand(cf.factor.Z, 1) for _ in 1:N]
-  return (ret,)
+  return (rand(cf.factor.Z, 1),)
 end
 
 function (cf::CalcFactor{<:MyFactor})(z, X1, X2)

@@ -55,12 +55,16 @@ end
 
 DFG.getManifold(f::ManifoldFactor) = f.M
 
-function getSample(cf::CalcFactor{<:ManifoldFactor}, N::Int=1)
+function getSample(cf::CalcFactor{<:ManifoldFactor{M,Z}}) where {M,Z}
     #TODO @assert dim == cf.factor.Z's dimension
     #TODO investigate use of SVector if small dims
-    ret = [rand(cf.factor.Z) for _ in 1:N]
+    if M isa ManifoldKernelDensity
+        ret = sample(cf.factor.Z.belief)[1]
+    else
+        ret = rand(cf.factor.Z)
+    end
     #return coordinates as we do not know the point here #TODO separate Lie group
-    (ret, )
+    return (ret, )
 end
 
 # function (cf::CalcFactor{<:ManifoldFactor{<:AbstractGroupManifold}})(Xc, p, q)
@@ -99,16 +103,16 @@ DFG.getManifold(f::ManifoldPrior) = f.M
 
 # ManifoldPrior{M}(Z::SamplableBelief, p) where M = ManifoldPrior{M, typeof(Z), typeof(p)}(Z, p)
 
-function getSample(cf::CalcFactor{<:ManifoldPrior}, N::Int=1)
+function getSample(cf::CalcFactor{<:ManifoldPrior})
     Z = cf.factor.Z
     p = cf.factor.p
     M = cf.factor.M
     basis = cf.factor.basis
     retract_method = cf.factor.retract_method
 
-    points = [samplePoint(M, Z, p, basis, retract_method) for _=1:N]
+    point = samplePoint(M, Z, p, basis, retract_method)
     
-    return (points, )
+    return (point, )
 end
 
 #TODO investigate SVector if small dims, this is slower

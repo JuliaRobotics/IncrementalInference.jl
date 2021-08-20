@@ -11,16 +11,14 @@ import IncrementalInference: getSample
 struct SpecialPrior{T <: SamplableBelief} <: AbstractPrior
   z::T
 end
-getSample(s::CalcFactor{<:SpecialPrior}, N::Int) = ([rand(s.factor.z,1) for _ in 1:N], )
+getSample(s::CalcFactor{<:SpecialPrior}) = (rand(s.factor.z,1), )
 
 struct SpecialLinearOffset{T <: SamplableBelief} <: AbstractRelativeRoots
   z::T
 end
 
-function getSample(s::CalcFactor{<:SpecialLinearOffset}, N::Int)
-  fmd = s.metadata
-  ret = [rand(s.factor.z,1) for _ in 1:N]
-  (ret, )
+function getSample(s::CalcFactor{<:SpecialLinearOffset})
+  return (rand(s.factor.z,1), )
 end
 
 

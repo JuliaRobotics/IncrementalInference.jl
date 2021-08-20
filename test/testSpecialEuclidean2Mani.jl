@@ -177,9 +177,8 @@ struct ManiPose2Point2{T <: SamplableBelief} <: IIF.AbstractManifoldMinimize
     Z::T
 end
 
-function IIF.getSample(cf::CalcFactor{<:ManiPose2Point2}, N::Int=1)
-    ret = [rand(cf.factor.Z) for _ in 1:N]
-    (ret, )
+function IIF.getSample(cf::CalcFactor{<:ManiPose2Point2})
+    return (rand(cf.factor.Z), )
 end
 
 DFG.getManifold(::ManiPose2Point2) = TranslationGroup(2)

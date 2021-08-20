@@ -121,13 +121,14 @@ function _solveFactorODE!(measArr, prob, u0pts, Xtra...)
 end
 
 # FIXME see #1025, `multihypo=` will not work properly yet
-function getSample( cf::CalcFactor{<:DERelative}, 
-                    N::Int=1 )
+function getSample( cf::CalcFactor{<:DERelative})
   #
 
   oder = cf.factor
   fmd_ = cf.metadata
 
+  # FIXME remove N=1
+  N=1
   # how many trajectories to propagate?
   # @show getLabel(fmd_.fullvariables[2]), getDimension(fmd_.fullvariables[2])
   meas = [zeros(getDimension(fmd_.fullvariables[2])) for _ in 1:N]

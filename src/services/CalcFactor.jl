@@ -23,7 +23,7 @@ DevNotes
 - TODO only works on `.threadid()==1` at present, see #1094
 - Also see, JuliaRobotics/RoME.jl#465
 """
-sampleFactor(cf::CalcFactor{<:AbstractFactor}, N::Int=1  ) = getSample(cf, N)
+sampleFactor(cf::CalcFactor{<:AbstractFactor}, N::Int=1  ) = [getSample(cf) for _=1:N]
 
 
 

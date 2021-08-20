@@ -17,16 +17,14 @@ end
 # function MsgPrior(z::T, infd::R) where {T <: SamplableBelief, R <: Real}
 #     MsgPrior{T}(z, infd)
 # end
-
-function getSample(cf::CalcFactor{<:MsgPrior}, N::Int=1)
-  ret = [rand(cf.factor.Z,1) for _ in 1:N]
-  (ret, )
+function getSample(cf::CalcFactor{<:MsgPrior})
+  (rand(cf.factor.Z, 1), )
 end
 
+#TODO check these for manifolds, may need updating to samplePoint
 # MKD already returns a vector of points
-function getSample(cf::CalcFactor{<:MsgPrior{<:ManifoldKernelDensity}}, N::Int=1)
-  ret = rand(cf.factor.Z,N)
-  (ret, )
+function getSample(cf::CalcFactor{<:MsgPrior{<:ManifoldKernelDensity}})
+  (rand(cf.factor.Z), )
 end
 
 getManifold(mp::MsgPrior{<:ManifoldKernelDensity}) = mp.Z.manifold

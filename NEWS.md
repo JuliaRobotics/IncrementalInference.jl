@@ -24,6 +24,7 @@ The list below highlights major breaking changes, and please note that significa
 - Deprecate use of `solveBinaryFactorParameteric`, instead use `solveFactorParameteric`.
 - Deprecating `approxConvBinary`, use `approxConvBelief` instead.
 - Removing obsolete `approxConvCircular`, use `approxConvBelief` instead.
+- `getSample` should return a single sample and no longer takes the N(number of samples) parameter.
 
 # Major changes in v0.24
 

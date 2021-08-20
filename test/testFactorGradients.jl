@@ -83,7 +83,7 @@ TestPartialRelative2D(z::SamplableBelief) = TestPartialRelative2D(z, (2,))
 
 # imported earlier for overload
 getManifold(fnc::TestPartialRelative2D) = TranslationGroup(2)
-getSample(cf::CalcFactor{<:TestPartialRelative2D},N=1) = ([rand(cf.factor.Z) for _ in 1:N], )
+getSample(cf::CalcFactor{<:TestPartialRelative2D}) = (rand(cf.factor.Z), )
 
 # currently requires residual to be returned as a tangent vector element
 (cf::CalcFactor{<:TestPartialRelative2D})(z, x1, x2) = x2[2:2] - (x1[2:2] + z[1:1])

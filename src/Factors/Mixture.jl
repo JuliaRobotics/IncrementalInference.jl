@@ -71,13 +71,14 @@ _lengthOrNothing(val::Nothing) = 0
 
 
 # TODO make in-place memory version
-function getSample( cf::CalcFactor{<:Mixture}, 
-                    N::Int=1  )
+function getSample( cf::CalcFactor{<:Mixture})
   #
   # TODO consolidate #927, case if mechanics has a special sampler
   # TODO slight bit of waste in computation, but easiest way to ensure special tricks in s.mechanics::F are included
   ## example case is old FluxModelsPose2Pose2 requiring velocity
   # FIXME better consolidation of when to pass down .mechanics, also see #1099 and #1094 and #1069
+  #FIXME remove N=1
+  N=1
   cf_ = CalcFactor( cf.factor.mechanics, cf.metadata, 0, _lengthOrNothing(cf._legacyMeas), cf._legacyMeas, cf._legacyParams)
   smpls = getSample(cf_, N)
     # smpls = Array{Float64,2}(undef,s.dims,N)

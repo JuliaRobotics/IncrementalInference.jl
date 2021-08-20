@@ -16,7 +16,7 @@ end
 
 getManifold(pp::PartialPrior{<:PackedManifoldKernelDensity}) = pp.Z.manifold
 
-getSample(cf::CalcFactor{<:PartialPrior}, N::Int=1) = (randToPoints(cf.factor.Z,N), )
+getSample(cf::CalcFactor{<:PartialPrior}) = (rand(cf.factor.Z,1), )
 
 
 """
