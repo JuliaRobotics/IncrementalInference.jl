@@ -594,6 +594,9 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   # get a measurement sample
   meas_single = sampleFactor(_cf, 1)
 
+  #TODO preallocate measuerement?
+  measurement = Vector{eltype(meas_single)}()
+  
   # get the measurement dimension
   zdim = calcZDim(_cf)
   # some hypo resolution
@@ -637,9 +640,10 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
           PointType[],
           zdim,
           varParamsAll,
-          fmd,
+          fmd;
           specialzDim = hasfield(T, :zDim),
           partial = ispartl,
+          measurement,
           hypotheses=multihypo,
           certainhypo=certainhypo,
           nullhypo=nullhypo,

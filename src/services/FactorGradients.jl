@@ -7,7 +7,7 @@ export checkGradientsToleranceMask, calcPerturbationFromVariable
 # T_pt_args[:] = [(T1::Type{<:InferenceVariable}, point1); ...]
 # FORCED TO START AT EITHER :x1
 function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:AbstractRelativeRoots, <:AbstractManifoldMinimize}, 
-                                    measurement::Tuple,
+                                    measurement::Vector{<:Tuple},
                                     varTypes::Tuple,
                                     pts::Tuple;
                                     tfg::AbstractDFG = initfg(),
@@ -75,7 +75,7 @@ end
 
 function FactorGradientsCached!(fct::Union{<:AbstractRelativeMinimize, <:AbstractRelativeRoots, <:AbstractManifoldMinimize},
                                 varTypes::Tuple,
-                                meas_single::Tuple, 
+                                meas_single::Vector{<:Tuple}, 
                                 pts::Tuple; 
                                 h::Real=1e-4,
                                 _blockRecursion::Bool=true  )
@@ -115,6 +115,7 @@ function _setFGCSlack!(fgc::FactorGradientsCached!{F,S}, slack::Number) where {F
 end
 
 function (fgc::FactorGradientsCached!)(meas_pts...)
+  @warn "bla" meas_pts fgc.measurement
   # separate the measurements (forst) from the variable points (rest)
   lenm = length(fgc.measurement)
   @assert (length(fgc.currentPoints)+lenm) == length(meas_pts) "Unexpected number of arguments, got $(length(meas_pts)) but expected $(length(fgc.currentPoints)+lenm) instead.  Retry call with args (meas..., pts...)"
@@ -162,7 +163,7 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
 end
 
 # convenience function to update the gradients based on current measurement and point information stored in the fgc object
-(fgc::FactorGradientsCached!)() = fgc(fgc.measurement..., fgc.currentPoints...)
+(fgc::FactorGradientsCached!)() = fgc(fgc.measurement[1]..., fgc.currentPoints...)
 
 """
     $SIGNATURES

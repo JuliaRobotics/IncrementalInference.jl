@@ -85,7 +85,7 @@ f = addFactor!(fg, [:x1, :x2], mf)
 
 #test new error from solvetree
 # smtasks = Task[]
-@test solveTree!(fg; verbose=true) isa Tuple
+@test solveTree!(fg; smtasks, verbose=true) isa Tuple
 
 
 ## test partial prior issue

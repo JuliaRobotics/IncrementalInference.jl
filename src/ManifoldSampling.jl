@@ -19,7 +19,7 @@ function sampleTangent(M::AbstractGroupManifold, x::ManifoldKernelDensity, p=mea
 end
 
 function sampleTangent(x::ManifoldKernelDensity, p=mean(x)) 
-  return sampleTangent(x.manifold, coords, p)
+  return sampleTangent(x.manifold, x, p)
 end
 
 # Sampling Distributions
@@ -48,7 +48,9 @@ function samplePoint(M::AbstractGroupManifold, sbelief, p=identity_element(M), r
   X = sampleTangent(M, sbelief, p)
   return retract(M, p, X, retraction_method)
 end
-
+function samplePoint(x::ManifoldKernelDensity, p=mean(x)) 
+  return samplePoint(x.manifold, x, p)
+end
 
 ## default getSample
 # getSample(cf::CalcFactor{<:AbstractPrior}, N::Int=1) = ([samplePoint(getManifold(cf.factor), cf.factor.Z, ) for _=1:N], )

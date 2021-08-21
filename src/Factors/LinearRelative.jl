@@ -37,7 +37,7 @@ getDimension(::InstanceType{LinearRelative{N}}) where {N} = N
 function getSample(cf::CalcFactor{<:LinearRelative})
   # _samplemakevec(z::Real) = [z;]
   # _samplemakevec(z::AbstractVector{<:Real}) = z
-  (rand(cf.factor.Z, 1), )
+  (sampleTangent(TranslationGroup(1), cf.factor.Z), )
 end
 
 
@@ -45,6 +45,7 @@ end
 function (s::CalcFactor{<:LinearRelative})(z, x1, x2) 
   # TODO convert to distance(distance(x2,x1),z) # or use dispatch on `-` -- what to do about `.-`
   # v0.21+, should return residual
+  !(z isa Vector{Float64}) && (@warn "H" z x1 x2)
   return z .- (x2 .- x1)
 end
 

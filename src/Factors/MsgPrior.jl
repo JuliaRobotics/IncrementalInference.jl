@@ -24,7 +24,8 @@ end
 #TODO check these for manifolds, may need updating to samplePoint
 # MKD already returns a vector of points
 function getSample(cf::CalcFactor{<:MsgPrior{<:ManifoldKernelDensity}})
-  (rand(cf.factor.Z), )
+  mkd = cf.factor.Z
+  (samplePoint(mkd.manifold, mkd), )
 end
 
 getManifold(mp::MsgPrior{<:ManifoldKernelDensity}) = mp.Z.manifold

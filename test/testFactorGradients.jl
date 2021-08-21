@@ -15,7 +15,7 @@ import IncrementalInference: getSample, getManifold
 ##
 
 pp = LinearRelative(MvNormal([10;0],[1 0; 0 1]))
-measurement = ([10.0;0.0],)
+measurement = [([10.0;0.0],)]
 varTypes = (ContinuousEuclid{2}, ContinuousEuclid{2})
 pts = ([0;0.0], [9.5;0])
 

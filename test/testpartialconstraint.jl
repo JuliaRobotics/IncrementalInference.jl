@@ -141,14 +141,14 @@ doautoinit!(fg, :x2)
 @testset "test partial info per coord through relative convolution (conditional)" begin
 ##
 
-one_meas = ([10.0;], )
+one_meas = [([10.0;], )]
 pts = ([0;0.0], [0;10.0])
 gradients = FactorGradientsCached!(dpp, (ContinuousEuclid{2}, ContinuousEuclid{2}), one_meas, pts);
 
 ##
 
 # check that the gradients can be calculated
-J = gradients(one_meas..., pts...)
+J = gradients(one_meas[1]..., pts...)
 
 @test size(J) == (4,4)
 @test norm(J - [0 0 0 0; 0 0 0 1; 0 0 0 0; 0 1 0 0] ) < 1e-4
