@@ -501,6 +501,8 @@ include("SolverAPI.jl")
 # Symbolic tree analysis files.
 include("AnalysisTools.jl")
 
+include("ManifoldSampling.jl")
+
 # deprecation legacy support
 include("Deprecated.jl")
 
