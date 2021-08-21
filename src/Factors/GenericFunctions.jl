@@ -39,29 +39,6 @@ function distancePrior(M::AbstractManifold, meas, p)
 end
 
 ## ======================================================================================
-## Default Identities #TODO only development, replace with better idea
-## ======================================================================================
-
-default_identity(M) = error("No default identity element defined for $(typeof(M))")
-default_identity(M::GroupManifold{ℝ, <:ProductManifold}) = error("No default identity element defined for $(typeof(M))")
-function default_identity(::SpecialEuclidean{N}) where N
-    T = Float64
-    t = zeros(SVector{N, T})
-    R = SMatrix{N,N,T}(one(T)I)
-    return ProductRepr(t, R)
-end
-function default_identity(M::GroupManifold{ℝ, <:AbstractManifold})
-    T = Float64
-    s = representation_size(M)
-    return identity_element(M, zeros(SArray{Tuple{s...},T}))
-end
-
-# function default_identity(::SpecialOrthogonal{N}) where N
-#     T = Float64
-#     return SMatrix{N,N,T}(one(T)I)
-# end
-
-## ======================================================================================
 ## ManifoldFactor
 ## ======================================================================================
 abstract type AbstractManifoldMinimize <: AbstractRelative end
@@ -78,17 +55,15 @@ end
 
 DFG.getManifold(f::ManifoldFactor) = f.M
 
-# function getSample(cf::ManifoldFactor, N::Int=1)
 function getSample(cf::CalcFactor{<:ManifoldFactor}, N::Int=1)
     #TODO @assert dim == cf.factor.Z's dimension
     #TODO investigate use of SVector if small dims
     ret = [rand(cf.factor.Z) for _ in 1:N]
-
-    #TODO tangent or not?
-    # tangent for now to fit with rest
+    #return coordinates as we do not know the point here #TODO separate Lie group
     (ret, )
 end
 
+# function (cf::CalcFactor{<:ManifoldFactor{<:AbstractGroupManifold}})(Xc, p, q)
 function (cf::CalcFactor{<:ManifoldFactor})(Xc, p, q)
 # function (cf::ManifoldFactor)(X, p, q)
     M = cf.factor.M
@@ -103,11 +78,15 @@ end
 export ManifoldPrior
 # `p` is a point on manifold `M`
 # `Z` is a measurement at the tangent space of `p` on manifold `M` 
-struct ManifoldPrior{M <: AbstractManifold, T <: SamplableBelief, P} <: AbstractPrior
+struct ManifoldPrior{M <: AbstractManifold, T <: SamplableBelief, P, B <: AbstractBasis} <: AbstractPrior
     M::M 
     p::P #NOTE This is a fixed point from where the measurement `Z` is made in coordinates on tangent TpM
     Z::T
+    basis::B
+    retract_method::AbstractRetractionMethod
 end
+
+ManifoldPrior(M::AbstractGroupManifold, p, Z) = ManifoldPrior(M, p, Z, ManifoldsBase.VeeOrthogonalBasis(), ExponentialRetraction())
 
 DFG.getManifold(f::ManifoldPrior) = f.M
 
@@ -120,21 +99,15 @@ DFG.getManifold(f::ManifoldPrior) = f.M
 
 # ManifoldPrior{M}(Z::SamplableBelief, p) where M = ManifoldPrior{M, typeof(Z), typeof(p)}(Z, p)
 
-# function getSample(cf::ManifoldPrior, N::Int=1)
 function getSample(cf::CalcFactor{<:ManifoldPrior}, N::Int=1)
     Z = cf.factor.Z
     p = cf.factor.p
     M = cf.factor.M
-    # Z = cf.Z
-    # p = cf.p
-    # M = cf.M
-    
-    Xc = [rand(Z) for _ in 1:N]
-    
-    # X = get_vector.(Ref(M), Ref(p), Xc, Ref(DefaultOrthogonalBasis()))
-    X = hat.(Ref(M), Ref(p), Xc)
-    points = exp.(Ref(M), Ref(p), X)
+    basis = cf.factor.basis
+    retract_method = cf.factor.retract_method
 
+    points = [samplePoint(M, Z, p, basis, retract_method) for _=1:N]
+    
     return (points, )
 end
 
@@ -142,10 +115,8 @@ end
 # dim = manifold_dimension(M)
 # Xc = [SVector{dim}(rand(Z)) for _ in 1:N]
 
-# function (cf::ManifoldPrior)(m, p)
 function (cf::CalcFactor{<:ManifoldPrior})(m, p)
     M = cf.factor.M
-    # M = cf.M
     # return log(M, p, m)
     return vee(M,p,log(M, p, m))
     # return distancePrior(M, m, p)
@@ -162,36 +133,4 @@ function mahalanobus_distance2(M, X, inv_Σ)
     # Xc = get_coordinates(M, p, X, DefaultOrthogonalBasis())
     Xc = vee(M, p, X)
     return Xc' * inv_Σ * Xc
-end
-
-if false
-using IncrementalInference
-using Manifolds
-using LinearAlgebra
-using StaticArrays
-
-f = ManifoldFactor(SpecialOrthogonal(3), MvNormal([0.1, 0.02, 0.01]))
-s = getSample(f,10)[1]
-s[1]
-
-f = ManifoldFactor(SpecialEuclidean(2), MvNormal([0.1, 0.2, 0.01]))
-s = getSample(f,10)[1]
-s[1]
-
-
-f = ManifoldPrior(SpecialOrthogonal(2), SA[1.0 0; 0 1], MvNormal([0.1]))
-meas = getSample(f,10)[1]
-meas[1]
-f.(meas, Ref(SA[1.0 0; 0 1]))
-
-f = ManifoldPrior(SpecialOrthogonal(3), SA[1.0 0 0; 0 1 0; 0 0 1], MvNormal([0.1, 0.02, 0.01]))
-s = getSample(f,10)[1]
-s[1]
-
-f = ManifoldPrior(SpecialEuclidean(2), ProductRepr(SA[0,0], SA[1.0 0; 0 1]), MvNormal([0.1, 0.2, 0.01]))
-s = getSample(f,10)[1]
-s[1]
-
-
-
 end

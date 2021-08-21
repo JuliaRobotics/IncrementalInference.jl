@@ -40,7 +40,7 @@ fg = initfg()
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 
 # mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
-mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal(Diagonal(abs2.([0.01, 0.01, 0.01]))))
 p = addFactor!(fg, [:x0], mp)
 
 
@@ -109,6 +109,16 @@ pbel_ = approxConvBelief(fg, :x0f1, :x0)
 ##
 end
 
+struct ManifoldFactorSE2{T <: SamplableBelief} <: IIF.AbstractManifoldMinimize
+    Z::T
+end
+
+ManifoldFactorSE2() = ManifoldFactorSE2(MvNormal(Diagonal([1,1,1])))
+DFG.getManifold(::ManifoldFactorSE2) = SpecialEuclidean(2)
+
+IIF.selectFactorType(::Type{<:SpecialEuclidean2}, ::Type{<:SpecialEuclidean2}) = ManifoldFactorSE2
+
+
 @testset "Test Pose2 like hex as SpecialEuclidean2" begin
 ##
 
@@ -151,7 +161,13 @@ vnd = getVariableSolverData(fg, :x6)
 smtasks = Task[]
 solveTree!(fg; smtasks);
 
-##
+## Special test for manifold based messages
+
+#FIXME this may show some bug in propagateBelief caused by empty factors
+fg.solverParams.useMsgLikelihoods = true
+@test_broken solveTree!(fg; smtasks) isa Tuple
+
+
 end
 
 ## ======================================================================================
