@@ -161,7 +161,7 @@ Related
 mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
                                   H<:Union{Nothing, Distributions.Categorical},
                                   C<:Union{Nothing, Vector{Int}},
-                                  NTP,
+                                  NTP <: NamedTuple,
                                   G} <: FactorOperationalMemory
   #
   ### Values consistent across all threads during approx convolution
