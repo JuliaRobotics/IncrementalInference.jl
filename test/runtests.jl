@@ -6,7 +6,6 @@ using Test
 # temporarily moved to start (for debugging)
 
 # @error "MUST RESTORE testpartialconstraint.jl"
-include("testMixtureLinearConditional.jl")
 include("testFactorGradients.jl")
 include("testpartialconstraint.jl")
 include("testPartialNH.jl")
@@ -74,6 +73,7 @@ include("testMultithreaded.jl")
 include("testmultihypothesisapi.jl")
 include("fourdoortest.jl")
 include("testCircular.jl")
+include("testMixtureLinearConditional.jl")
 include("testFluxModelsDistribution.jl")
 include("testDERelative.jl")
 include("testAnalysisTools.jl")
