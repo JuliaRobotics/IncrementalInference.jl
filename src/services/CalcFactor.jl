@@ -246,15 +246,17 @@ Notes
 - `Xi` is order sensitive.
 - for initialization, solveFor = Nothing.
 - `P = getPointType(<:InferenceVariable)`
+
+DevNotes
+- FIXME ARR internally should become a NamedTuple
 """
-function prepareparamsarray( #ARR::AbstractVector{<:AbstractVector{P}},
-                              Xi::Vector{<:DFGVariable},
-                              solvefor::Union{Nothing, Symbol},
-                              N::Int=0;
-                              solveKey::Symbol=:default  ) where P
+function prepareparamsarray(Xi::Vector{<:DFGVariable},
+                            solvefor::Union{Nothing, Symbol},
+                            N::Int=0;
+                            solveKey::Symbol=:default  ) where P
   #
   # FIXME ON FIRE, refactor to new NamedTuple instead
-  ARR = Vector{Vector{Any}}()
+  varParamsAll = Vector{Vector{Any}}()
 
   LEN = Int[]
   maxlen = N # FIXME see #105
@@ -263,8 +265,8 @@ function prepareparamsarray( #ARR::AbstractVector{<:AbstractVector{P}},
 
   for xi in Xi
     vecP = getVal(xi, solveKey=solveKey)
-    push!(ARR, vecP)
-    LEN = length.(ARR)
+    push!(varParamsAll, vecP)
+    LEN = length.(varParamsAll)
     maxlen = maximum([N; LEN])
     count += 1
     if xi.label == solvefor
@@ -277,14 +279,14 @@ function prepareparamsarray( #ARR::AbstractVector{<:AbstractVector{P}},
   for i in 1:count
     if SAMP[i]
       Pr = getBelief(Xi[i], solveKey)
-      _resizePointsVector!(ARR[i], Pr, maxlen)
+      _resizePointsVector!(varParamsAll[i], Pr, maxlen)
     end
   end
 
   # TODO --rather define reusable memory for the proposal
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
   if sfidx > 0 
-    ARR[sfidx] = deepcopy(ARR[sfidx]) 
+    varParamsAll[sfidx] = deepcopy(varParamsAll[sfidx]) 
   end
 
   # get solvefor manifolds
@@ -293,7 +295,7 @@ function prepareparamsarray( #ARR::AbstractVector{<:AbstractVector{P}},
 
   # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
   # maxlen = N == 0 ? maxlen : N
-  return ARR, maxlen, sfidx, mani
+  return varParamsAll, maxlen, sfidx, mani
 end
 
 """
