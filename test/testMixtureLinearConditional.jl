@@ -4,7 +4,11 @@
 using IncrementalInference
 using Test
 using TensorCast
+# using Statistics
 # using Manifolds # should be done within regular exports
+
+using Pkg
+Pkg.resolve()
 
 ##
 
@@ -85,6 +89,8 @@ f0 = addFactor!(fg, [:x0;], mp)
 mr = Mixture(LinearRelative, (fancy=manikde!([randn(1) for _ in 1:75], ContinuousEuclid(1)), naive=Normal(0,10)), [0.4;0.6])
 f1 = addFactor!(fg, [:x0;:x1], mr)
 
+##
+
 pf0 = DFG.packFactor(fg, f0)
 pf1 = DFG.packFactor(fg, f1)
 
@@ -102,7 +108,13 @@ f1_ = DFG.unpackFactor(fg_, pf1)
 
 # ENV["JULIA_DEBUG"] = "DistributedFactorGraphs"
 @warn("Skipping pack/unpack compareFactor test for `timezone` and `zone`")
-@test DFG.compareFactor(f1, f1_, skip=[:components;:labels;:timezone;:zone;:vartypes])
+@show typeof(f1)
+@show typeof(f1_)
+
+@show  typeof(getSolverData(f1).fnc.params);
+@show typeof(getSolverData(f1_).fnc.params);
+
+@test DFG.compareFactor(f1, f1_, skip=[:components;:labels;:timezone;:zone;:vartypes,:params])
 
 @test IIF._getCCW(f1).usrfnc!.components.naive == IIF._getCCW(f1).usrfnc!.components.naive
 
