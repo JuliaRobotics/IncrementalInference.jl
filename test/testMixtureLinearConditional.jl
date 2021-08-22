@@ -114,7 +114,7 @@ f1_ = DFG.unpackFactor(fg_, pf1)
 @show  typeof(getSolverData(f1).fnc.params);
 @show typeof(getSolverData(f1_).fnc.params);
 
-@test DFG.compareFactor(f1, f1_, skip=[:components;:labels;:timezone;:zone;:vartypes,:params])
+@test DFG.compareFactor(f1, f1_, skip=[:components;:labels;:timezone;:zone;:vartypes;])
 
 @test IIF._getCCW(f1).usrfnc!.components.naive == IIF._getCCW(f1).usrfnc!.components.naive
 
