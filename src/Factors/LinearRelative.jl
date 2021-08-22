@@ -37,7 +37,7 @@ getDimension(::InstanceType{LinearRelative{N}}) where {N} = N
 function getSample(cf::CalcFactor{<:LinearRelative})
   # _samplemakevec(z::Real) = [z;]
   # _samplemakevec(z::AbstractVector{<:Real}) = z
-  (sampleTangent(TranslationGroup(1), cf.factor.Z), )
+  (sampleTangent(getManifold(cf.factor), cf.factor.Z), )
 end
 
 

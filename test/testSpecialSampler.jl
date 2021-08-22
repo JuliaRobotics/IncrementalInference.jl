@@ -57,10 +57,10 @@ tree, smt, hist = solveTree!(fg)
 
 ## Singleton (Prior)
 
-fcm, = IIF._getCCW(fg, :x0f1).measurement |> deepcopy
+fcm = map(x->x[1], IIF._getCCW(fg, :x0f1).measurement |> deepcopy)
 pts = approxConv(fg, :x0f1, :x1)
-fcm2, = IIF._getCCW(fg, :x0f1).measurement
-fcm3, = IIF._getCCW(fg, :x0f1).measurement |> deepcopy
+fcm2 = map(x->x[1], IIF._getCCW(fg, :x0f1).measurement)
+fcm3 = map(x->x[1], IIF._getCCW(fg, :x0f1).measurement |> deepcopy)
 
 @test 0.1 < norm(fcm - fcm2)
 @test norm(fcm2 - fcm3) < 1e-5
@@ -68,17 +68,17 @@ fcm3, = IIF._getCCW(fg, :x0f1).measurement |> deepcopy
 ## Pairwise
 
 # forward direction
-fcm, = IIF._getCCW(fg, :x0x1f1).measurement |> deepcopy
+fcm = map(x->x[1], IIF._getCCW(fg, :x0x1f1).measurement |> deepcopy)
 pts = approxConv(fg, :x0x1f1, :x1)
-fcm2, = IIF._getCCW(fg, :x0x1f1).measurement
+fcm2 = map(x->x[1], IIF._getCCW(fg, :x0x1f1).measurement)
 
 @test 0.1 < norm(fcm - fcm2)
 
 
 # reverse direction
-fcm, = IIF._getCCW(fg, :x0x1f1).measurement |> deepcopy
+fcm, = map(x->x[1], IIF._getCCW(fg, :x0x1f1).measurement |> deepcopy)
 pts = approxConv(fg, :x0x1f1, :x0)
-fcm2, = IIF._getCCW(fg, :x0x1f1).measurement
+fcm2, = map(x->x[1], IIF._getCCW(fg, :x0x1f1).measurement)
 
 @test 0.1 < norm(fcm - fcm2)
 
