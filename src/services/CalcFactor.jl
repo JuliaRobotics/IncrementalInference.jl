@@ -247,12 +247,15 @@ Notes
 - for initialization, solveFor = Nothing.
 - `P = getPointType(<:InferenceVariable)`
 """
-function prepareparamsarray!( ARR::AbstractVector{<:AbstractVector{P}},
+function prepareparamsarray( #ARR::AbstractVector{<:AbstractVector{P}},
                               Xi::Vector{<:DFGVariable},
                               solvefor::Union{Nothing, Symbol},
                               N::Int=0;
                               solveKey::Symbol=:default  ) where P
   #
+  # FIXME ON FIRE, refactor to new NamedTuple instead
+  ARR = Vector{Vector{Any}}()
+
   LEN = Int[]
   maxlen = N # FIXME see #105
   count = 0
@@ -290,7 +293,7 @@ function prepareparamsarray!( ARR::AbstractVector{<:AbstractVector{P}},
 
   # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
   # maxlen = N == 0 ? maxlen : N
-  return maxlen, sfidx, mani
+  return ARR, maxlen, sfidx, mani
 end
 
 """
@@ -342,13 +345,13 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
 
   #FIXME, see #1321
-  vecPtsArr = Vector{Vector{Any}}()
+  # vecPtsArr = Vector{Vector{Any}}()
 
   #TODO some better consolidate is needed
   ccwl.vartypes = typeof.(getVariableType.(Xi))
 
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
-  maxlen, sfidx, mani = prepareparamsarray!(vecPtsArr, Xi, solvefor, N, solveKey=solveKey)
+  vecPtsArr, maxlen, sfidx, mani = prepareparamsarray( Xi, solvefor, N, solveKey=solveKey)
 
   # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
   ccwl.xDim = getDimension(getVariableType(Xi[sfidx]))
