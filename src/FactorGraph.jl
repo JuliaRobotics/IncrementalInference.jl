@@ -584,7 +584,8 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
 
   # standard factor metadata
   sflbl = 0==length(Xi) ? :null : getLabel(Xi[end])
-  fmd = FactorMetadata(Xi, getLabel.(Xi), varParamsAll, sflbl, nothing)
+  lbs = getLabel.(Xi)
+  fmd = FactorMetadata(Xi, lbs, varParamsAll, sflbl, nothing)
   
   # create a temporary CalcFactor object for extracting the first sample
   # TODO, deprecate this:  guess measurement points type

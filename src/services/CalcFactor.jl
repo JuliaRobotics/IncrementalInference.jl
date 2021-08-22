@@ -189,8 +189,13 @@ function CommonConvWrapper( fnc::T,
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
                             inflation::Real=3.0,
                             vartypes=typeof.(getVariableType.(factormetadata.fullvariables)),
-                            gradients=nothing) where {T<:FunctorInferenceType,P,H,Q}
+                            gradients=nothing) where {T<:AbstractFactor,P,H,Q}
   #
+  # FIXME, deprecate params::Vector throughout codebase
+  tup = tuple(params...)
+  nms = tuple(factormetadata.variablelist...)
+  p_ntup = NamedTuple{nms,typeof(tup)}(tup)
+
   return  CommonConvWrapper(fnc,
                             xDim,
                             zDim,
@@ -199,7 +204,7 @@ function CommonConvWrapper( fnc::T,
                             hypotheses,
                             certainhypo,
                             Float64(nullhypo),
-                            params,
+                            p_ntup, # params,
                             varidx,
                             measurement,
                             threadmodel,
@@ -356,7 +361,11 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
     _setCCWDecisionDimsConv!(ccwl)
 
   # SHOULD WE SLICE ARR DOWN BY PARTIAL DIMS HERE (OR LATER)?
-  ccwl.params = vecPtsArr # map( ar->view(ar, ccwl.partialDims, :), vecPtsArr)
+  # FIXME refactor new type higher up.
+  tup = tuple(vecPtsArr...)
+  nms = tuple(getLabel.(Xi)...)
+  ntp = NamedTuple{nms,typeof(tup)}(tup)
+  ccwl.params = ntp # vecPtsArr # map( ar->view(ar, ccwl.partialDims, :), vecPtsArr)
   
   # get factor metadata -- TODO, populate, also see #784
   fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)
