@@ -589,7 +589,6 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   # varParamsAll = Vector{Vector{Any}}()
   varParamsAll, maxlen, sfidx, mani = prepareparamsarray( Xi, nothing, 0) # Nothing for init.
 
-
   # standard factor metadata
   sflbl = 0==length(Xi) ? :null : getLabel(Xi[end])
   lbs = getLabel.(Xi)
