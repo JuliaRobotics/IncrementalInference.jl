@@ -39,7 +39,7 @@ Related
 function approxDeconv(fcto::DFGFactor,
                       ccw::CommonConvWrapper = _getCCW(fcto);
                       N::Int=100,
-                      measurement::Vector{<:Tuple}=sampleFactor(ccw, N),
+                      measurement::AbstractVector{<:Tuple}=sampleFactor(ccw, N),
                       retries::Int=3  )
   #
   # but what if this is a partial factor -- is that important for general cases in deconv?

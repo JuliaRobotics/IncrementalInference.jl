@@ -257,7 +257,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
                                 T_::Type{<:AbstractRelative},
-                                measurement::Vector{<:Tuple}=Tuple[];#FIXME
+                                measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
                                 needFreshMeasurements::Bool=true,
                                 solveKey::Symbol=:default,
                                 N::Int= 0<length(measurement) ? length(measurement) : maximum(Npts.(getBelief.(Xi, solveKey))),
@@ -322,7 +322,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
                                 T_::Type{<:AbstractPrior},
-                                measurement::Vector{<:Tuple}=Tuple[];#FIXME
+                                measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
                                 needFreshMeasurements::Bool=true,
                                 solveKey::Symbol=:default,
                                 N::Int=length(measurement),
@@ -424,7 +424,7 @@ end
 function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
                                 solvefor::Symbol,
-                                measurement::Vector{<:Tuple}=Tuple[];#FIXME
+                                measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
                                 kw... ) where {N_,F<:AbstractFactor,S,T}
   #
   evalPotentialSpecific(Xi,
@@ -438,7 +438,7 @@ end
 function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{F},
                                 solvefor::Symbol,
-                                measurement::Vector{<:Tuple}=Tuple[];#FIXME
+                                measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
                                 kw... ) where {F <: AbstractFactor}
   #
   evalPotentialSpecific(Xi,
@@ -458,7 +458,7 @@ Single entry point for evaluating factors from factor graph, using multiple disp
 function evalFactor(dfg::AbstractDFG,
                     fct::DFGFactor,
                     solvefor::Symbol,
-                    measurement::Vector{<:Tuple}=Tuple[];#FIXME
+                    measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
                     needFreshMeasurements::Bool=true,
                     solveKey::Symbol=:default,
                     N::Int=length(measurement),
@@ -511,7 +511,7 @@ Related
 function _evalFactorTemporary!( fct::AbstractFactor,
                                 varTypes::Tuple,
                                 sfidx::Int,  # solve for index, assuming variable order for fct
-                                measurement::Vector{<:Tuple},
+                                measurement::AbstractVector{<:Tuple},
                                 pts::Tuple;
                                 tfg::AbstractDFG=initfg(),
                                 solveKey::Symbol=:default,

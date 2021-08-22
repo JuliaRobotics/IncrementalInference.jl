@@ -7,7 +7,7 @@ export checkGradientsToleranceMask, calcPerturbationFromVariable
 # T_pt_args[:] = [(T1::Type{<:InferenceVariable}, point1); ...]
 # FORCED TO START AT EITHER :x1
 function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:AbstractRelativeRoots, <:AbstractManifoldMinimize}, 
-                                    measurement::Vector{<:Tuple},
+                                    measurement::AbstractVector{<:Tuple},
                                     varTypes::Tuple,
                                     pts::Tuple;
                                     tfg::AbstractDFG = initfg(),
@@ -75,7 +75,7 @@ end
 
 function FactorGradientsCached!(fct::Union{<:AbstractRelativeMinimize, <:AbstractRelativeRoots, <:AbstractManifoldMinimize},
                                 varTypes::Tuple,
-                                meas_single::Vector{<:Tuple}, 
+                                meas_single::AbstractVector{<:Tuple}, 
                                 pts::Tuple; 
                                 h::Real=1e-4,
                                 _blockRecursion::Bool=true  )

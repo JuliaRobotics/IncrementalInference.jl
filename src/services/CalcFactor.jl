@@ -118,7 +118,7 @@ Related
 """
 function calcFactorResidualTemporary( fct::AbstractRelative, 
                                       varTypes::Tuple,
-                                      measurement::Vector{<:Tuple},
+                                      measurement::AbstractVector{<:Tuple},
                                       pts::Tuple;
                                       tfg::AbstractDFG = initfg(),
                                       _blockRecursion::Bool=false )
