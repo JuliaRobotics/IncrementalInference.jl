@@ -52,6 +52,12 @@ function samplePoint(x::ManifoldKernelDensity, p=mean(x))
   return samplePoint(x.manifold, x, p)
 end
 
+# FIXME: rather use manifolds
+function samplePoint(distr::SamplableBelief)
+  Base.depwarn("samplePoint(distr::SamplableBelief) should be replaced by samplePoint(M<:AbstractManifold, distr::SamplableBelief, ...)", :samplePoint)
+  rand(distr,1)
+end
+
 ## default getSample
 # getSample(cf::CalcFactor{<:AbstractPrior}, N::Int=1) = ([samplePoint(getManifold(cf.factor), cf.factor.Z, ) for _=1:N], )
 # getSample(cf::CalcFactor{<:AbstractRelative}, N::Int=1) = ([sampleTangent(getManifold(cf.factor), cf.factor.Z) for _=1:N], )

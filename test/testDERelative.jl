@@ -66,12 +66,13 @@ end
 
 meas = sampleFactor(fg, :x0x1f1, 10)
 @test size(meas[1][1],1) == 1
-@test size(meas[1],1) == 10
+@test size(meas,1) == 10
 
 
 ## do all forward solutions
 
-pts, = sampleFactor(fg, :x0f1, 100)
+_pts = sampleFactor(fg, :x0f1, 100)
+pts = map(x->x[1], _pts)
 initManual!(fg, :x0, pts)
 pts_ = approxConv(fg, :x0x1f1, :x1)
 @cast pts[i,j] := pts_[j][i]

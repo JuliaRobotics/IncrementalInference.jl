@@ -13,7 +13,7 @@ using IncrementalInference
 fg = initfg()
 addVariable!(fg, :x0, ContinuousEuclid{3})
 
-addFactor!(fg, [:x0;], PartialPrior(MvNormal(zeros(2), ones(2)),(2,3)) )
+addFactor!(fg, [:x0;], PartialPrior(MvNormal(zeros(2), ones(2)), (2,3)) )
 
 addVariable!(fg, :x1, ContinuousEuclid{3})
 addFactor!(fg, [:x1;], PartialPrior(Normal(10,1),(1,)))
