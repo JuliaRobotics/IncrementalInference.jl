@@ -189,8 +189,13 @@ function CommonConvWrapper( fnc::T,
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
                             inflation::Real=3.0,
                             vartypes=typeof.(getVariableType.(factormetadata.fullvariables)),
-                            gradients=nothing) where {T<:FunctorInferenceType,P,H,Q}
+                            gradients=nothing) where {T<:AbstractFactor,P,H,Q}
   #
+  # FIXME, deprecate params::Vector throughout codebase
+  tup = tuple(params...)
+  nms = tuple(factormetadata.variablelist...)
+  p_ntup = NamedTuple{nms,typeof(tup)}(tup)
+
   return  CommonConvWrapper(fnc,
                             xDim,
                             zDim,
@@ -199,7 +204,7 @@ function CommonConvWrapper( fnc::T,
                             hypotheses,
                             certainhypo,
                             Float64(nullhypo),
-                            params,
+                            p_ntup, # params,
                             varidx,
                             measurement,
                             threadmodel,
@@ -241,13 +246,18 @@ Notes
 - `Xi` is order sensitive.
 - for initialization, solveFor = Nothing.
 - `P = getPointType(<:InferenceVariable)`
+
+DevNotes
+- FIXME ARR internally should become a NamedTuple
 """
-function prepareparamsarray!( ARR::AbstractVector{<:AbstractVector{P}},
-                              Xi::Vector{<:DFGVariable},
-                              solvefor::Union{Nothing, Symbol},
-                              N::Int=0;
-                              solveKey::Symbol=:default  ) where P
+function prepareparamsarray(Xi::Vector{<:DFGVariable},
+                            solvefor::Union{Nothing, Symbol},
+                            N::Int=0;
+                            solveKey::Symbol=:default  ) where P
   #
+  # FIXME ON FIRE, refactor to new NamedTuple instead
+  varParamsAll = Vector{Vector{Any}}()
+
   LEN = Int[]
   maxlen = N # FIXME see #105
   count = 0
@@ -255,8 +265,8 @@ function prepareparamsarray!( ARR::AbstractVector{<:AbstractVector{P}},
 
   for xi in Xi
     vecP = getVal(xi, solveKey=solveKey)
-    push!(ARR, vecP)
-    LEN = length.(ARR)
+    push!(varParamsAll, vecP)
+    LEN = length.(varParamsAll)
     maxlen = maximum([N; LEN])
     count += 1
     if xi.label == solvefor
@@ -269,14 +279,14 @@ function prepareparamsarray!( ARR::AbstractVector{<:AbstractVector{P}},
   for i in 1:count
     if SAMP[i]
       Pr = getBelief(Xi[i], solveKey)
-      _resizePointsVector!(ARR[i], Pr, maxlen)
+      _resizePointsVector!(varParamsAll[i], Pr, maxlen)
     end
   end
 
   # TODO --rather define reusable memory for the proposal
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
   if sfidx > 0 
-    ARR[sfidx] = deepcopy(ARR[sfidx]) 
+    varParamsAll[sfidx] = deepcopy(varParamsAll[sfidx]) 
   end
 
   # get solvefor manifolds
@@ -285,7 +295,7 @@ function prepareparamsarray!( ARR::AbstractVector{<:AbstractVector{P}},
 
   # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
   # maxlen = N == 0 ? maxlen : N
-  return maxlen, sfidx, mani
+  return varParamsAll, maxlen, sfidx, mani
 end
 
 """
@@ -337,13 +347,13 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
 
   #FIXME, see #1321
-  vecPtsArr = Vector{Vector{Any}}()
+  # vecPtsArr = Vector{Vector{Any}}()
 
   #TODO some better consolidate is needed
   ccwl.vartypes = typeof.(getVariableType.(Xi))
 
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
-  maxlen, sfidx, mani = prepareparamsarray!(vecPtsArr, Xi, solvefor, N, solveKey=solveKey)
+  vecPtsArr, maxlen, sfidx, mani = prepareparamsarray( Xi, solvefor, N, solveKey=solveKey)
 
   # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
   ccwl.xDim = getDimension(getVariableType(Xi[sfidx]))
@@ -356,7 +366,11 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
     _setCCWDecisionDimsConv!(ccwl)
 
   # SHOULD WE SLICE ARR DOWN BY PARTIAL DIMS HERE (OR LATER)?
-  ccwl.params = vecPtsArr # map( ar->view(ar, ccwl.partialDims, :), vecPtsArr)
+  # FIXME refactor new type higher up.
+  tup = tuple(vecPtsArr...)
+  nms = tuple(getLabel.(Xi)...)
+  ntp = NamedTuple{nms,typeof(tup)}(tup)
+  ccwl.params = ntp # vecPtsArr # map( ar->view(ar, ccwl.partialDims, :), vecPtsArr)
   
   # get factor metadata -- TODO, populate, also see #784
   fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)

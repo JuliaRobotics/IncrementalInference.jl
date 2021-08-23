@@ -150,7 +150,8 @@ function sampleFactor( cf::CalcFactor{<:DERelative}, N::Int=1)
 
   # solve likely elements
   for i in 1:N
-    idxArr = getindex.(fmd_.arrRef, i)
+    # TODO, does this respect hyporecipe ???
+    idxArr = (k->fmd_.arrRef[k][i]).(1:length(fmd_.arrRef))
     _solveFactorODE!(meas[i], prob, u0pts[i], _maketuplebeyond2args(idxArr...)...)
     # _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(fmd_.arrRef...)...)
   end

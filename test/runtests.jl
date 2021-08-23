@@ -71,8 +71,8 @@ include("fourdoortest.jl")
 @test_skip include("testCircular.jl") #FIXME change to CircleGroup
 include("testMixtureLinearConditional.jl")
 include("testFluxModelsDistribution.jl")
-include("testDERelative.jl")
 include("testAnalysisTools.jl")
+include("testDERelative.jl")
 
 include("testBasicParametric.jl")
 include("testMixtureParametric.jl")

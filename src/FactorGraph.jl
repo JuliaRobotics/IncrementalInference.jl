@@ -567,7 +567,12 @@ end
 
 _selectHypoVariables(allVars::Union{<:Tuple, <:AbstractVector},mh::Nothing,sel::Integer=0 ) = collect(1:length(allVars))
 
+"""
+    $SIGNATURES
 
+Notes
+- Can be called with `length(Xi)==0`
+"""
 function prepgenericconvolution(Xi::Vector{<:DFGVariable},
                                 usrfnc::T;
                                 multihypo::Union{Nothing, Distributions.Categorical}=nothing,
@@ -576,16 +581,19 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
                                 inflation::Real=0.0,
                                 _blockRecursion::Bool=false  ) where {T <: AbstractFactor}
   #
+  length(Xi) !== 0 ? nothing : @debug("cannot prep ccw.param list with length(Xi)==0, see DFG #590")
+
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
   # FIXME stop using Any, see #1321
-  varParamsAll = Vector{Vector{Any}}()
-  maxlen, sfidx, mani = prepareparamsarray!(varParamsAll, Xi, nothing, 0) # Nothing for init.
+  # varParamsAll = Vector{Vector{Any}}()
+  varParamsAll, maxlen, sfidx, mani = prepareparamsarray( Xi, nothing, 0) # Nothing for init.
 
   # standard factor metadata
   sflbl = 0==length(Xi) ? :null : getLabel(Xi[end])
-  fmd = FactorMetadata(Xi, getLabel.(Xi), varParamsAll, sflbl, nothing)
-  
+  lbs = getLabel.(Xi)
+  fmd = FactorMetadata(Xi, lbs, varParamsAll, sflbl, nothing)
+
   # create a temporary CalcFactor object for extracting the first sample
   # TODO, deprecate this:  guess measurement points type
   # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead

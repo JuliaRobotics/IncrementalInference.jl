@@ -73,7 +73,7 @@ end
 predictbelief(dfg::AbstractDFG,
               destlbl::Symbol,
               fctlbls::AbstractVector{Symbol};
-              kw... ) = predictbelief(dfg, getVariable(dfg, destlbl), getFactor.(dfg, fctlbls); kw... )
+              kw... ) = predictbelief(dfg, getVariable(dfg, destlbl), map(x->getFactor(dfg, x), fctlbls); kw... )
 #
 
 predictbelief(dfg::AbstractDFG,

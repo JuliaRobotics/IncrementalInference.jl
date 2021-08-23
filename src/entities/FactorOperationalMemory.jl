@@ -30,7 +30,7 @@ Related
 
 [`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref), [`FactorMetadata`](@ref), [`ConvPerThread`](@ref)
 """
-struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,Vector{<:Tuple}}, X <: AbstractVector}
+struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,Vector{<:Tuple}}, X}
   # the interface compliant user object functor containing the data and logic
   factor::T
   # the metadata to be passed to the user residual function
@@ -93,7 +93,7 @@ DevNotes
 """
 mutable struct FactorMetadata{FV<:AbstractVector{<:DFGVariable}, 
                               VL<:AbstractVector{Symbol}, 
-                              AR<:AbstractVector{<:AbstractArray}, 
+                              AR, # <:AbstractVector{<:AbstractArray} 
                               CD}
   # full list of Vector{DFGVariable} connected to the factor
   fullvariables::FV # Vector{<:DFGVariable}
@@ -161,7 +161,7 @@ Related
 mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
                                   H<:Union{Nothing, Distributions.Categorical},
                                   C<:Union{Nothing, Vector{Int}},
-                                  P,
+                                  NTP <: NamedTuple,
                                   G,
                                   MT<:Tuple} <: FactorOperationalMemory
   #
@@ -181,12 +181,13 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
   # values specific to one complete convolution operation
   # FIXME ? JT - What if all points are not on the same manifold?  See #1321
   #          DF, just make it NamedTuple? -- some detail on pinning CCW down at construction only
-  params::Vector{<:AbstractVector{P}} # parameters passed to each hypothesis evaluation event on user function
+  params::NTP #Vector{<:AbstractVector{P}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
   # FIXME make type stable, JT should now be type stable if rest works
   measurement::Vector{MT} # user defined measurement values for each approxConv operation
   threadmodel::Type{<:_AbstractThreadModel} # Union{Type{SingleThreaded}, Type{MultiThreaded}}
-  ### particular convolution computation values per particle idx (varies by thread)
+  # FIXME, deprecate for only `readonly` and build CalcFactor objects on stack instead
+    ## will be obsolete: particular convolution computation values per particle idx (varies by thread)
   cpt::Vector{<:ConvPerThread}
   # inflationSpread
   inflation::Float64
