@@ -121,12 +121,12 @@ function _solveFactorODE!(measArr, prob, u0pts, Xtra...)
 end
 
 # FIXME see #1025, `multihypo=` will not work properly yet
-function getSample( cf::CalcFactor{<:DERelative}, 
-                    N::Int=1 )
+function sampleFactor( cf::CalcFactor{<:DERelative}, N::Int=1)
   #
 
   oder = cf.factor
   fmd_ = cf.metadata
+
 
   # how many trajectories to propagate?
   # @show getLabel(fmd_.fullvariables[2]), getDimension(fmd_.fullvariables[2])
@@ -156,7 +156,7 @@ function getSample( cf::CalcFactor{<:DERelative},
     # _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(fmd_.arrRef...)...)
   end
 
-  return (meas, [diffOp for _ in 1:N])
+  return map(x->(x, diffOp), meas)
 end
 # getDimension(oderel.domain)
 

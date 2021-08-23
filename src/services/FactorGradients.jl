@@ -13,7 +13,7 @@ function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:Abst
                                     tfg::AbstractDFG = initfg(),
                                     _blockRecursion::Bool=true,
                                     # gradients relative to coords requires 
-                                    slack_resid = calcFactorResidualTemporary(fct, varTypes, measurement, pts, tfg=tfg, _blockRecursion=_blockRecursion),
+                                    slack_resid = calcFactorResidualTemporary(fct, varTypes, [measurement], pts, tfg=tfg, _blockRecursion=_blockRecursion),
                                     # numerical diff perturbation size
                                     h::Real=1e-4  ) 
   #
@@ -29,7 +29,7 @@ function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:Abst
   T_pth_s_i =     (s,i) -> AMP.makePointFromCoords(M[s], coord_h(s,i), pts[s])         # exp(M,..., hat(M,...) )
   tup_pt_s_i_h =  (s,i) -> tuple(pts[1:(s-1)]..., T_pth_s_i(s,i), pts[(s+1):end]...)
   # build a residual calculation specifically considering graph factor selections `s`, e.g. for binary `s ∈ {1,2}`.
-  f_dsi_h =       (d,s,i) -> IIF._evalFactorTemporary!(fct, varTypes, d, measurement, tup_pt_s_i_h(s,i); tfg=tfg, newFactor=false, currNumber=0, _slack=slack_resid )
+  f_dsi_h =       (d,s,i) -> IIF._evalFactorTemporary!(fct, varTypes, d, [measurement], tup_pt_s_i_h(s,i); tfg=tfg, newFactor=false, currNumber=0, _slack=slack_resid )
   # standard calculus derivative definition (in coordinate space)
   Δf_dsi =        (d,s,i, crd=coord_(d)) -> (f_dsi_h(d,s,i)[1] - crd)./h
   # jacobian block per s, for each i
@@ -129,7 +129,7 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
   measurement = tuple(meas_pts[1:lenm]...)
   pts = tuple(meas_pts[(1+lenm):end]...)
   varTypes = tuple(getVariableType.(getVariable.(fgc._tfg, getVariableOrder(fgc.dfgfct)))...)
-  new_slack = calcFactorResidualTemporary(fct, varTypes, measurement, pts; tfg=fgc._tfg)
+  new_slack = calcFactorResidualTemporary(fct, varTypes, [measurement], pts; tfg=fgc._tfg)
   # TODO make sure slack_residual is properly wired up with all the lambda functions as expected
   _setFGCSlack!(fgc, new_slack)
   # setPointsMani!(fgc.slack_residual, new_slack)

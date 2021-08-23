@@ -3,7 +3,7 @@
 using IncrementalInference
 using Test
 using TensorCast
-import IncrementalInference: getSample
+# import IncrementalInference: getSample
 
 ##
 

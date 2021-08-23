@@ -19,9 +19,8 @@ getManifold(::InstanceType{EuclidDistance}) = TranslationGroup(1)
 getDimension(::InstanceType{<:EuclidDistance}) = 1
 
 
-function getSample(cf::CalcFactor{<:EuclidDistance}, N::Int=1)
-  ret = [rand(cf.factor.Z,1) for _ in 1:N]
-  (ret, )
+function getSample(cf::CalcFactor{<:EuclidDistance})
+  (rand(cf.factor.Z, 1), )
 end
 
 # new and simplified interface for both nonparametric and parametric

@@ -15,13 +15,13 @@ import IncrementalInference: getSample
 mutable struct DevelopPrior{T <: SamplableBelief} <: AbstractPrior
   x::T
 end
-getSample(cf::CalcFactor{<:DevelopPrior}, N::Int=1) = (randToPoints(cf.factor.x, N), )
+getSample(cf::CalcFactor{<:DevelopPrior}) = (rand(cf.factor.x, 1), )
 
 mutable struct DevelopLikelihood{T <: SamplableBelief} <: AbstractRelativeRoots
   x::T
 end
 
-getSample(cf::CalcFactor{<:DevelopLikelihood}, N::Int=1) = (randToPoints(cf.factor.x, N), )
+getSample(cf::CalcFactor{<:DevelopLikelihood}) = (rand(cf.factor.x, 1), )
 function (cf::CalcFactor{<:DevelopLikelihood})(meas, wXi, wXj)
   #
   return meas - (wXj - wXi)

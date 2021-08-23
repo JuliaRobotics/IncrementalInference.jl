@@ -325,7 +325,6 @@ export *,
   AliasingScalarSampler,
   rand!,
   rand,
-  randToPoints,
   fastnorm,
 
   # new wrapper (experimental)

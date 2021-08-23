@@ -58,7 +58,7 @@ Related
 
 [`calcFactorResidualTemporary`](@ref), [`_buildGraphByFactorAndTypes`](@ref)
 """
-mutable struct FactorGradientsCached!{F <: AbstractRelative,S,M<:Tuple,P,G,L}
+mutable struct FactorGradientsCached!{F <: AbstractRelative, S, M <: Tuple, P, G, L}
   dfgfct::DFGFactor{<:CommonConvWrapper{F}}
   # cached jacobian matrix of gradients
   cached_gradients::Matrix{Float64}
