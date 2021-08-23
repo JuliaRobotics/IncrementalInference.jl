@@ -175,7 +175,7 @@ DevNotes
 - TODO refactor relationship and common fields between (CCW, FMd, CPT, CalcFactor)
 """
 function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
-                                      smpid::Int,
+                                      smpid::Integer,
                                       cpt_::ConvPerThread = ccwl.cpt[Threads.threadid()],
                                       target = view(ccwl.params[ccwl.varidx][smpid], cpt_.p),
                                       measurement_ = ccwl.measurement,
@@ -187,7 +187,8 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   varParams = view(ccwl.params, cpt_.activehypo)
   
   # prepare fmd according to hypo selection
-  # FIXME must refactor (memory waste)
+  # FIXME must refactor (memory waste) and consolidate with CCW CPT FMd CF
+  # FIXME move up out of smpid loop and only update bare minimal fields
   _fmd_ = FactorMetadata( view(fmd_.fullvariables, cpt_.activehypo), 
                           view(fmd_.variablelist, cpt_.activehypo),
                           varParams, # view(fmd_.arrRef, cpt_.activehypo),

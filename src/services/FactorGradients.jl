@@ -26,12 +26,12 @@ function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:Abst
   # perturb the coords of one variable on the factor
   coord_h =       (s,i, crd=coord_(s)) -> (crd[i] += h; crd)
   # reassemble TypePoint vector with perturbation at (s,i)
-  T_pth_s_i =     (s,i) -> AMP.makePointFromCoords(M[s], coord_h(s,i), pts[s])         # exp(M,..., hat(M,...) )
+  T_pth_s_i =     (s,i) -> makePointFromCoords(M[s], coord_h(s,i), pts[s])         # exp(M,..., hat(M,...) )
   tup_pt_s_i_h =  (s,i) -> tuple(pts[1:(s-1)]..., T_pth_s_i(s,i), pts[(s+1):end]...)
   # build a residual calculation specifically considering graph factor selections `s`, e.g. for binary `s ∈ {1,2}`.
   f_dsi_h =       (d,s,i) -> IIF._evalFactorTemporary!(fct, varTypes, d, [measurement], tup_pt_s_i_h(s,i); tfg=tfg, newFactor=false, currNumber=0, _slack=slack_resid )
   # standard calculus derivative definition (in coordinate space)
-  Δf_dsi =        (d,s,i, crd=coord_(d)) -> (f_dsi_h(d,s,i)[1] - crd)./h
+  Δf_dsi =        (d,s,i, crd=coord_(d)) -> (makeCoordsFromPoint(M[s], f_dsi_h(d,s,i)[1]) - crd)./h
   # jacobian block per s, for each i
   ▽f_ds =         (d,s, crd=coord_(d)) -> ((i)->Δf_dsi(d,s,i,crd)).(1:length(crd))
   # jacobian stored in user provided matrix
@@ -115,15 +115,19 @@ function _setFGCSlack!(fgc::FactorGradientsCached!{F,S}, slack::Number) where {F
 end
 
 function (fgc::FactorGradientsCached!)(meas_pts...)
+  # @warn "YELLING TIMBER1"
+
   # separate the measurements (forst) from the variable points (rest)
   lenm = length(fgc.measurement)
-  @assert (length(fgc.currentPoints)+lenm) == length(meas_pts) "Unexpected number of arguments, got $(length(meas_pts)) but expected $(length(fgc.currentPoints)+lenm) instead.  Retry call with args (meas..., pts...)"
+  @assert (length(fgc.currentPoints)+lenm) == length(meas_pts) "Unexpected number of arguments, got $(length(meas_pts)) but expected $(length(fgc.currentPoints)+lenm) instead.  Retry call with args (meas..., pts...), got meas_pts=$meas_pts"
 
   # update in-place the new measurement value in preparation for new gradient calculation
+  # TODO should outside measurement be used or only that stored in FGC object?
   for (m, tup_m) in enumerate(fgc.measurement)
     setPointsMani!(tup_m, meas_pts[m])
   end
 
+  # @warn "YELLING TIMBER2"
   # update the residual _slack in preparation for new gradient calculation
   fct = getFactorType(fgc.dfgfct)
   measurement = tuple(meas_pts[1:lenm]...)
@@ -139,6 +143,9 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
     # update the local memory in fgc to take the values of incoming `pts`
     setPointsMani!(fgc.currentPoints[s], pt)
   end
+  # @warn "YELLING TIMBER3" fgc.measurement meas_pts
+  println.(fgc.currentPoints)
+
 
   # update the gradients at new values contained in fgc
   st = 0
@@ -156,6 +163,8 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
     # recalculate the off diagonals
     λ()
   end
+  # @warn "YELLING TIMBER4"
+
   
   # return newly calculated gradients
   return fgc.cached_gradients

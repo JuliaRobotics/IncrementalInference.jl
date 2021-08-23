@@ -59,7 +59,7 @@ This is an old function name that will be replaced by [`propagateBelief`](@ref).
 """
 function predictbelief( dfg::AbstractDFG,
                         destvert::DFGVariable,
-                        factors::Vector{<:DFGFactor};
+                        factors::AbstractVector{<:DFGFactor};
                         asPartial::Bool=false,
                         kw... )
   #

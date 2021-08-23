@@ -64,9 +64,9 @@ Notes:
 - FIXME, allow particle subpopulations instead of just all of a variable
 """
 function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
-                                                sfidx::Int,
-                                                certainidx::Vector{Int};
-                                                kappa::Float64=3.0  )
+                                                sfidx::Integer,
+                                                certainidx::AbstractVector{<:Integer};
+                                                kappa::Real=3.0  )
   #
   if sfidx in certainidx
     msst_ = sqrt(calcCovarianceBasic(getManifold(ccwl.vartypes[sfidx]), ccwl.params[sfidx]))
@@ -145,12 +145,13 @@ end
 
 Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  
 This function dispatches both `AbstractRelativeRoots` and `AbstractRelativeMinimize` factors.
+
+DevNotes
+- Future combo with `_calcIPCRelative`
 """
 function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
                                               <:CommonConvWrapper{Mixture{N_,F,S,T}}},
-                                  allelements::AbstractVector,
-                                  activehypo,
-                                  certainidx::Vector{Int},
+                                  hyporecipe::NamedTuple,
                                   sfidx::Int,
                                   maxlen::Int,
                                   mani::ManifoldsBase.AbstractManifold; # maniAddOps::Tuple;
@@ -160,10 +161,14 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
                                   _slack=nothing ) where {N_,F<:AbstractRelative,S,T}
   #
   count = 0
+  # transition to new hyporecipe approach
+  allelements = hyporecipe.allelements
+  activehypo  = hyporecipe.activehypo
+  certainidx  = hyporecipe.certainidx
 
   cpt_ = ccwl.cpt[Threads.threadid()]
   
-  # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
+  @assert ccwl.certainhypo == hyporecipe.certainidx "expected hyporecipe.certainidx to be the same as cached in ccw"
   for (hypoidx, vars) in activehypo
     count += 1
     
@@ -220,31 +225,70 @@ end
   #   approxConvOnElements!(ccwl, allelements[count])
 
 
+# TODO what about nullhypo in recipe (when .mhidx[smpid]==0)?
+# TODO figure out how best to combine with computeAcrossHypothesis!
+function _calcIPCRelative(Xi::AbstractVector{<:DFGVariable},
+                          ccwl::CommonConvWrapper,
+                          hyporecipe::NamedTuple,
+                          sfidx::Integer,
+                          smpid::Integer=findfirst(x->x != 0, hyporecipe.mhidx)
+                          )
+  #
+  @assert hyporecipe.activehypo[1][1] === 0 "expected 0-hypo case in hyporecipe.activehypo, to get variable hypo mask for relative partial propagation calculations."
+  @assert hyporecipe.mhidx[smpid] !== 0 "_calcIPCRelative does not yet handle nullhypo gradients, try alternative hypo (smpid=$smpid), available hypos are hyporecipe.mhidx=$(hyporecipe.mhidx)"
 
-# function _calcIPCRelative(activeVars::AbstractVector{<:DFGVariable}, 
-#                           sfidx_active::Integer,
-#                           meas_pts...;
-#                           )
-#   #
-#   ipc = if ccwl._gradients === nothing 
-#     ones(getDimension(activeVars[sfidx_active]))
-#   else
-#     ipc_ = []
-#     # get infoPerCoord from all variables
-#     for (vid,var) in enumerate(activeVars)
-#       # set all other variables infoPerCoord values
-#       getLabel(var) != getLabel(activeVars[sfidx_active]) ? nothing : continue
-#       push!(ipc_, vid=>ones(getDimension(var)))
-#     end
-#     # update the gradients at current point estimates
-#     meas_pts = 
-#     ccwl._gradients(meas_pts)
-#     # do perturbation check
-#     allipc = calcPerturbationFromVariable(ccwl._gradients, ipc_)
-#     allipc[sfidx_masked]
-#   end
+  # select only the active variables in case of multihypo
+  # @show smpid
+  # @show hyporecipe.mhidx
+  # @show hyporecipe.activehypo
+  # NOTE +1 bc first element in .activehypo is nullhypo case, e.g. `(0,[1;])`
+  _selhypo = hyporecipe.mhidx[smpid] + 1
+  activehypo = hyporecipe.activehypo[_selhypo] 
+  activeids = activehypo[2]
+  # solvefor index without the fractional variables
+  active_mask = (x->x in activeids).(1:length(Xi))
+  sfidx_active = sum(active_mask[1:sfidx])
+  
+  # build a view to the decision variable memory
+  activeParams = view(ccwl.params, activeids)
+  activeVars = Xi[active_mask]
 
-# end
+  # assume gradients are just done for the first sample values
+  # error("Possible issue, a factor has one manifold and attached variables have different manifolds.  Make sure the plumbing respects that.")
+  @show typeof(ccwl.usrfnc!)
+  @show sfidx
+  # @show getLabel.(Xi)
+  @show getLabel.(activeVars)
+  @show getVariableType.(activeVars)
+  # @show _getindextuple(ccwl.measurement, smpid)
+  meas_pts = tuple((_getindextuple(ccwl.measurement, smpid))..., (getindex.(activeParams, smpid))...)
+  # @show meas_pts
+  #
+  ipc = if ccwl._gradients === nothing 
+    ones(getDimension(activeVars[sfidx_active]))
+  else
+    ipc_ = Pair[]
+    # get infoPerCoord from all variables
+    for (vid,var) in enumerate(activeVars)
+      # set all other variables infoPerCoord values
+      getLabel(var) != getLabel(activeVars[sfidx_active]) ? nothing : continue
+      push!(ipc_, vid=>ones(getDimension(var)))
+    end
+    # update the gradients at current point estimates
+    # meas_pts = 
+    ccwl._gradients(meas_pts...)
+    # do perturbation check
+    # @show ipc_
+    allipc = calcPerturbationFromVariable(ccwl._gradients, ipc_)
+    allipc[sfidx_active]
+  end
+
+  @show ipc
+  # FIXME REMOVE, overwrite with defauls during dev
+  # fill!(ipc, 1.0)
+  
+  return ipc
+end
 
 """
     $(SIGNATURES)
@@ -289,26 +333,14 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   
   # perform the numeric solutions on the indicated elements
   # FIXME consider repeat solve as workaround for inflation off-zero 
-  # FIXME figure out why certainidx is not used from the hyporecipe
-  certainidx = ccwl.certainhypo
-  @assert certainidx == hyporecipe.certainidx "expected hyporecipe.certainidx to be the same as cached in ccw"
-  computeAcrossHypothesis!( ccwl, hyporecipe.allelements, hyporecipe.activehypo, certainidx, 
+  # NOTE alternate use of ccwl.certainidx to hyporecipe, certainidx = ccwl.certainhypo
+  computeAcrossHypothesis!( ccwl, hyporecipe,
                             sfidx, maxlen, mani, spreadNH=spreadNH, 
                             inflateCycles=inflateCycles, skipSolve=skipSolve,
                             _slack=_slack )
   #
   # ## do info per coord
-  # @assert hyporecipe.activehypo[1][1] === 0 "expected 0-hypo case in hyporecipe.activehypo, to get variable hypo mask for relative partial propagation calculations."
-  # # select only the active variables in case of multihypo
-  # activeids = hyporecipe.activehypo[hyporecipe.mhidx[smpid]+1][2]
-  # # solvefor index without the fractional variables
-  # active_mask = (s->x in activeids).(1:length(Xi))
-  # sfidx_active = sum(active_mask[1:sfidx])
-  # # build a view to the decision variable memory
-  # # activeVars = Xi[active_mask]
-  # smpid = 1 # assume gradients are just done for the first sample values
-  # meas_pts = tuple((_getindextuple(ccwl.measurement, smpid))..., (getindex.(varParams, smpid))...)
-  # ipc = _calcIPCRelative(activeVars, )
+  # ipc_ = _calcIPCRelative(Xi, ccwl, hyporecipe, sfidx)
   ipc = ones(getDimension(Xi[sfidx]))
 
   # return the found points, and info per coord
