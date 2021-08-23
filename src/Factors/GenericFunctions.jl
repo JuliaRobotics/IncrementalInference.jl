@@ -7,7 +7,7 @@
 Generic function that can be used in binary factors to calculate distance between points on Lie Groups with measurements.
 """
 function distancePoint2Point(M::AbstractGroupManifold, m, p, q)
-    q̂ = compose(M, p, m)
+    q̂ = Manifolds.compose(M, p, m)
     # return log(M, q, q̂)
     return vee(M, q, log(M, q, q̂))
     # return distance(M, q, q̂)
@@ -15,7 +15,7 @@ end
 
 #::MeasurementOnTangent
 function distanceTangent2Point(M::AbstractGroupManifold, X, p, q)
-    q̂ = compose(M, p, exp(M, identity_element(M, p), X)) #for groups
+    q̂ = Manifolds.compose(M, p, exp(M, identity_element(M, p), X)) #for groups
     # return log(M, q, q̂)
     return vee(M, q, log(M, q, q̂))
     # return distance(M, q, q̂)
