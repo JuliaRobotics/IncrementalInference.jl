@@ -43,7 +43,7 @@ function solveFactorParameteric(dfg::AbstractDFG,
   M = getManifold(fctTyp)
   e0 = identity_element(M)
   mea_ = hat(M, e0, mea)
-  measT = (mea_,)
+  measT = [(mea_,)]
 
   # get variable points
   function _getParametric(vari::DFGVariable, key=:default)

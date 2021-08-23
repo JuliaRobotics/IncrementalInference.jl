@@ -23,7 +23,7 @@ DevNotes
 - TODO only works on `.threadid()==1` at present, see #1094
 - Also see, JuliaRobotics/RoME.jl#465
 """
-sampleFactor(cf::CalcFactor{<:AbstractFactor}, N::Int=1  ) = getSample(cf, N)
+sampleFactor(cf::CalcFactor{<:AbstractFactor}, N::Int=1  ) = [getSample(cf) for _=1:N]
 
 
 
@@ -118,7 +118,7 @@ Related
 """
 function calcFactorResidualTemporary( fct::AbstractRelative, 
                                       varTypes::Tuple,
-                                      measurement::Tuple,
+                                      measurement::AbstractVector{<:Tuple},
                                       pts::Tuple;
                                       tfg::AbstractDFG = initfg(),
                                       _blockRecursion::Bool=false )
@@ -137,7 +137,7 @@ function calcFactorResidualTemporary( fct::AbstractRelative,
   end
 
   # assume a single sample point is being run
-  return calcFactorResidual(_dfgfct, _measurement..., pts...)
+  return calcFactorResidual(_dfgfct, _measurement[1]..., pts...)
 end
 
 
@@ -180,7 +180,7 @@ function CommonConvWrapper( fnc::T,
                             activehypo= 1:length(params),
                             nullhypo::Real=0,
                             varidx::Int=1,
-                            measurement::Tuple=(Vector{Vector{Float64}}(),),  # FIXME should not be a Matrix
+                            measurement::Vector{<:Tuple}=Vector(Vector{Float64}(),),  # FIXME should not be a Matrix
                             particleidx::Int=1,
                             xDim::Int=size(X,1),
                             partialDims::AbstractVector{<:Integer}=collect(1:size(X,1)), # TODO make this SVector, and name partialDims

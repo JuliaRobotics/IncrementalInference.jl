@@ -6,9 +6,9 @@ export calcFactorResidual
 function approxConvBelief(dfg::AbstractDFG,
                           fc::DFGFactor,
                           target::Symbol,
-                          measurement::Tuple=(Vector{Vector{Float64}}(),);
+                          measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
                           solveKey::Symbol=:default,
-                          N::Int=length(measurement[1]), 
+                          N::Int=length(measurement), 
                           skipSolve::Bool=false )
   #
   v1 = getVariable(dfg, target)
@@ -62,9 +62,9 @@ Related
 function approxConvBelief(dfg::AbstractDFG, 
                           from::Symbol, 
                           target::Symbol,
-                          measurement::Tuple=(Vector{Vector{Float64}}(),);
+                          measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
                           solveKey::Symbol=:default,
-                          N::Int = length(measurement[1]),
+                          N::Int = length(measurement),
                           tfg::AbstractDFG = initfg(),
                           setPPEmethod::Union{Nothing, Type{<:AbstractPointParametricEst}}=nothing,
                           setPPE::Bool= setPPEmethod !== nothing,
@@ -152,8 +152,8 @@ Notes
 function calcProposalBelief(dfg::AbstractDFG,
                             fct::DFGFactor,
                             target::Symbol,
-                            measurement::Tuple=(Vector{Vector{Float64}}(),);
-                            N::Int=length(measurement[1]),
+                            measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
+                            N::Int=length(measurement),
                             solveKey::Symbol=:default,
                             dbg::Bool=false  )
   #
@@ -168,8 +168,8 @@ end
 function calcProposalBelief(dfg::AbstractDFG,
                             fct::DFGFactor{<:CommonConvWrapper{<:PartialPriorPassThrough}},
                             target::Symbol,
-                            measurement::Tuple=(Vector{Vector{Float64}}(),);
-                            N::Int=length(measurement[1]),
+                            measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
+                            N::Int=length(measurement),
                             solveKey::Symbol=:default,
                             dbg::Bool=false  )
   #
@@ -207,7 +207,7 @@ function proposalbeliefs!(dfg::AbstractDFG,
                           destlbl::Symbol,
                           factors::AbstractVector{<:DFGFactor},
                           dens::AbstractVector{<:ManifoldKernelDensity},
-                          measurement::Tuple=(Vector{Vector{Float64}}(),);
+                          measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
                           solveKey::Symbol=:default,
                           N::Int=getSolverParams(dfg).N, #maximum([length(getPoints(getBelief(dfg, destlbl, solveKey))); getSolverParams(dfg).N]),
                           dbg::Bool=false  )

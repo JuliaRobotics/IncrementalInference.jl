@@ -25,7 +25,7 @@ ccw = IIF._getCCW(fg, :x0x1f1)
 
 res = calcFactorResidualTemporary(lr3,
                                   (ContinuousEuclid{3},ContinuousEuclid{3}),
-                                  ([0;0;0.5],),
+                                  [([0;0;0.5],)],
                                   (zeros(3), [0;0;1.0])  )
 #
 
