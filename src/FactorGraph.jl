@@ -594,6 +594,9 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   # get a measurement sample
   meas_single = sampleFactor(_cf, 1)
 
+  #TODO preallocate measuerement?
+  measurement = Vector{eltype(meas_single)}()
+  
   # get the measurement dimension
   zdim = calcZDim(_cf)
   # some hypo resolution
@@ -617,7 +620,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
     # FIXME, suppressing nested gradient propagation on GenericMarginals for the time being, see #1010
     if (!_blockRecursion) && usrfnc isa AbstractRelative && !(usrfnc isa GenericMarginal)
       # take first value from each measurement-tuple-element
-      measurement_ = map(x->x[1], meas_single)
+      measurement_ = meas_single[1]
       # compensate if no info available during deserialization
       # take the first value from each variable param
       pts_ = map(x->x[1], varParamsAll)
@@ -629,6 +632,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
     end
   catch e
     @warn "Unable to create measurements and gradients for $usrfnc during prep of CCW, falling back on no-partial information assumption.  Enable ENV[\"JULIA_DEBUG\"] = \"IncrementalInference\" for @debug printing to see the error."
+    # rethrow(e)
     @debug(e)
   end
 
@@ -637,9 +641,10 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
           PointType[],
           zdim,
           varParamsAll,
-          fmd,
+          fmd;
           specialzDim = hasfield(T, :zDim),
           partial = ispartl,
+          measurement,
           hypotheses=multihypo,
           certainhypo=certainhypo,
           nullhypo=nullhypo,

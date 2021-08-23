@@ -114,7 +114,9 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   X0 = hat(M, ϵ, X0c)
   p0 = exp(M, ϵ, X0)
   r = Optim.optimize(Xc->cost(p0, X0, Xc), X0c, alg)
-  
+  if !Optim.converged(r)
+    @debug "Optim did not converge:" r
+  end
   return exp(M, ϵ, hat(M, ϵ, r.minimizer)) 
 
 end
@@ -205,13 +207,13 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
 
   # build static lambda
   unrollHypo! = if _slack === nothing
-    () -> cf( (_getindextuple(measurement_, smpid))..., (getindex.(varParams, smpid))... )
+    () -> cf( measurement_[smpid]..., (getindex.(varParams, smpid))... )
   else
     # slack is used to shift the residual away from the natural "zero" tension position of a factor, 
     # this is useful when calculating factor gradients at a variety of param locations resulting in "non-zero slack" of the residual.
     # see `IIF.calcFactorResidualTemporary`
     # NOTE this minus operation assumes _slack is either coordinate or tangent vector element (not a manifold or group element)
-    () -> cf( (_getindextuple(measurement_, smpid))..., (getindex.(varParams, smpid))... ) .- _slack
+    () -> cf( measurement_[smpid]..., (getindex.(varParams, smpid))... ) .- _slack
   end
 
   return unrollHypo!, target

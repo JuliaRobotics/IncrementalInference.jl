@@ -10,20 +10,6 @@ function fastnorm(u)
 end
 
 
-"""
-    $SIGNATURES
-
-Helper function for IIF.getSample, to generate a vector of points regardless of the Manifold and probability density function used.
-
-DevNotes:
-- FIXME deprecate to `sample`, see JuliaRobotics/RoME.jl#465
-
-See also: [`getSample`](@ref), [`rand`]
-"""
-randToPoints(distr::SamplableBelief, N::Int=1) = [rand(distr,1)[:] for i in 1:N]
-randToPoints(distr::ManifoldKernelDensity, N::Int=1) = rand(distr,N)
-
-
 
 """
     $TYPEDSIGNATURES

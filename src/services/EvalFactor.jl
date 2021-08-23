@@ -77,23 +77,18 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
   # get mean of all fractional variables
   # ccwl.params::Vector{Vector{P}}
   uncertainidx = setdiff(1:length(ccwl.params), certainidx)
-  uncMeans = zeros(length(ccwl.params[sfidx][1]), length(uncertainidx))
   dists = zeros(length(uncertainidx)+length(certainidx))
-  dims = length(ccwl.params[sfidx][1])
+
+  dims = manifold_dimension(getManifold(ccwl.vartypes[sfidx]))
+
+  uncMeans = zeros(dims, length(uncertainidx))
   for (count,i) in enumerate(uncertainidx)
-    # uncMeans[:,count] = Statistics.mean(ccwl.params[i], dims=2)[:]
-    for pr in ccwl.params[i]
-      uncMeans[:,count] .+= pr
-    end
-    uncMeans[:,count] ./= length(ccwl.params[i])
+    u = mean(getManifold(ccwl.vartypes[i]), ccwl.params[i])
+    uncMeans[:,count] .= getCoordinates(ccwl.vartypes[i], u)
   end
   count = 0
-  # refMean = Statistics.mean(ccwl.params[sfidx], dims=2)[:]
-  refMean = zeros(length(ccwl.params[sfidx][1]))
-  for pr in ccwl.params[sfidx]
-    refMean .+= pr
-  end
-  refMean ./= length(ccwl.params[sfidx])
+
+  refMean = getCoordinates(ccwl.vartypes[sfidx], mean(getManifold(ccwl.vartypes[sfidx]), ccwl.params[sfidx]))
 
   # calc for uncertain and certain
   for i in uncertainidx
@@ -103,12 +98,8 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
   # also check distance to certainidx for general scale reference (workaround heuristic)
   for cidx in certainidx
     count += 1
-    cerMean = zeros(length(ccwl.params[cidx][1]))
-    # cerMean = Statistics.mean(ccwl.params[cidx], dims=2)[:]
-    for pr in ccwl.params[cidx]
-      cerMean .+= pr
-    end
-    cerMean ./= length(ccwl.params[cidx])
+    cerMeanPnt = mean(getManifold(ccwl.vartypes[cidx]), ccwl.params[cidx])
+    cerMean = getCoordinates(ccwl.vartypes[cidx], cerMeanPnt)
     dists[count] = norm(refMean[1:dims] - cerMean[1:dims])
   end
 
@@ -310,22 +301,22 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
                                 T_::Type{<:AbstractRelative},
-                                measurement::Tuple=(Vector{Float64}(),);
+                                measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
                                 needFreshMeasurements::Bool=true,
                                 solveKey::Symbol=:default,
-                                N::Int= 0<length(measurement[1]) ? length(measurement[1]) : maximum(Npts.(getBelief.(Xi, solveKey))),
+                                N::Int= 0<length(measurement) ? length(measurement) : maximum(Npts.(getBelief.(Xi, solveKey))),
                                 spreadNH::Real=3.0,
                                 inflateCycles::Int=3,
                                 dbg::Bool=false,
                                 skipSolve::Bool=false,
                                 _slack=nothing  ) where {T <: AbstractFactor}
   #
-  
+
   # Prep computation variables
   # NOTE #1025, should FMD be built here...
   sfidx, maxlen, mani = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N, needFreshMeasurements=needFreshMeasurements, solveKey=solveKey)
   # check for user desired measurement values
-  if 0 < length(measurement[1])
+  if 0 < length(measurement)
     ccwl.measurement = measurement
   end
 
@@ -363,10 +354,10 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
                                 T_::Type{<:AbstractPrior},
-                                measurement::Tuple=(Vector{Vector{Float64}}(),);
+                                measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
                                 needFreshMeasurements::Bool=true,
                                 solveKey::Symbol=:default,
-                                N::Int=length(measurement[1]),
+                                N::Int=length(measurement),
                                 dbg::Bool=false,
                                 spreadNH::Real=3.0,
                                 inflateCycles::Int=3,
@@ -427,7 +418,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
     for m in (1:length(addEntr))[ahmask]
       # FIXME, selection for all measurement::Tuple elements
       # @info "check broadcast" ccwl.usrfnc! addEntr[m] ccwl.measurement[1][m]
-      setPointsMani!(addEntr[m], ccwl.measurement[1][m])
+      setPointsMani!(addEntr[m], ccwl.measurement[m][1])
     end
     # ongoing part of RoME.jl #244
     addEntropyOnManifold!(mani, addEntrNH, 1:getDimension(mani), spreadDist)
@@ -443,7 +434,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
         # FIXME, need ability to replace partial points
         partialCoords = ccwl.partialDims
         Msrc, = getManifoldPartial(mani,partialCoords)
-        setPointsManiPartial!(mani, addEntr[m], Msrc, ccwl.measurement[1][m], partialCoords)
+        setPointsManiPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m][1], partialCoords)
         # addEntr[m][dimnum] = ccwl.measurement[1][m][i]
       # end
     end
@@ -465,7 +456,7 @@ end
 function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
                                 solvefor::Symbol,
-                                measurement::Tuple=(Vector{Vector{Float64}}(),);
+                                measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
                                 kw... ) where {N_,F<:AbstractFactor,S,T}
   #
   evalPotentialSpecific(Xi,
@@ -479,7 +470,7 @@ end
 function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{F},
                                 solvefor::Symbol,
-                                measurement::Tuple=(Vector{Vector{Float64}}(),);
+                                measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
                                 kw... ) where {F <: AbstractFactor}
   #
   evalPotentialSpecific(Xi,
@@ -499,10 +490,10 @@ Single entry point for evaluating factors from factor graph, using multiple disp
 function evalFactor(dfg::AbstractDFG,
                     fct::DFGFactor,
                     solvefor::Symbol,
-                    measurement::Tuple=(Vector{Vector{Float64}}(),);
+                    measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
                     needFreshMeasurements::Bool=true,
                     solveKey::Symbol=:default,
-                    N::Int=length(measurement[1]),
+                    N::Int=length(measurement),
                     inflateCycles::Int=getSolverParams(dfg).inflateCycles,
                     dbg::Bool=false,
                     skipSolve::Bool=false,
@@ -552,7 +543,7 @@ Related
 function _evalFactorTemporary!( fct::AbstractFactor,
                                 varTypes::Tuple,
                                 sfidx::Int,  # solve for index, assuming variable order for fct
-                                meas_single::Tuple,
+                                measurement::AbstractVector{<:Tuple},
                                 pts::Tuple;
                                 tfg::AbstractDFG=initfg(),
                                 solveKey::Symbol=:default,
@@ -568,7 +559,6 @@ function _evalFactorTemporary!( fct::AbstractFactor,
   solvefor = getVariableOrder(_dfgfct)[sfidx]
 
   # do the factor evaluation
-  measurement = ([meas_single[1],],)
   sfPts, _ = evalFactor(tfg, _dfgfct, solvefor, measurement, needFreshMeasurements=false, solveKey=solveKey, inflateCycles=1, _slack=_slack )
 
   return sfPts

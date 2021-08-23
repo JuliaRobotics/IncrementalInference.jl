@@ -8,7 +8,7 @@ import IncrementalInference: HeatmapDensityRegular
 
 ## define new local variable types for testing
 
-@defVariable Point2 TranslationGroup(2) [0.0, 0.0]
+@defVariable TranslationGroup2 TranslationGroup(2) [0.0, 0.0]
 
 # @defVariable SpecialEuclidean2 SpecialEuclidean(2) ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0]))
 @defVariable SpecialEuclidean2 SpecialEuclidean(2) ProductRepr([0.0,0.0], [1.0 0.0; 0.0 1.0])
@@ -40,7 +40,7 @@ fg = initfg()
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 
 # mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
-mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal(Diagonal(abs2.([0.01, 0.01, 0.01]))))
 p = addFactor!(fg, [:x0], mp)
 
 
@@ -85,7 +85,7 @@ f = addFactor!(fg, [:x1, :x2], mf)
 
 #test new error from solvetree
 # smtasks = Task[]
-@test solveTree!(fg; verbose=true) isa Tuple
+@test solveTree!(fg; smtasks, verbose=true) isa Tuple
 
 
 ## test partial prior issue
@@ -108,6 +108,16 @@ pbel_ = approxConvBelief(fg, :x0f1, :x0)
 
 ##
 end
+
+struct ManifoldFactorSE2{T <: SamplableBelief} <: IIF.AbstractManifoldMinimize
+    Z::T
+end
+
+ManifoldFactorSE2() = ManifoldFactorSE2(MvNormal(Diagonal([1,1,1])))
+DFG.getManifold(::ManifoldFactorSE2) = SpecialEuclidean(2)
+
+IIF.selectFactorType(::Type{<:SpecialEuclidean2}, ::Type{<:SpecialEuclidean2}) = ManifoldFactorSE2
+
 
 @testset "Test Pose2 like hex as SpecialEuclidean2" begin
 ##
@@ -151,7 +161,13 @@ vnd = getVariableSolverData(fg, :x6)
 smtasks = Task[]
 solveTree!(fg; smtasks);
 
-##
+## Special test for manifold based messages
+
+#FIXME this may show some bug in propagateBelief caused by empty factors
+fg.solverParams.useMsgLikelihoods = true
+@test_broken solveTree!(fg; smtasks) isa Tuple
+
+
 end
 
 ## ======================================================================================
@@ -161,9 +177,8 @@ struct ManiPose2Point2{T <: SamplableBelief} <: IIF.AbstractManifoldMinimize
     Z::T
 end
 
-function IIF.getSample(cf::CalcFactor{<:ManiPose2Point2}, N::Int=1)
-    ret = [rand(cf.factor.Z) for _ in 1:N]
-    (ret, )
+function IIF.getSample(cf::CalcFactor{<:ManiPose2Point2})
+    return (rand(cf.factor.Z), )
 end
 
 DFG.getManifold(::ManiPose2Point2) = TranslationGroup(2)
@@ -195,7 +210,7 @@ mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatri
 p = addFactor!(fg, [:x0], mp)
 
 ##
-v1 = addVariable!(fg, :x1, Point2)
+v1 = addVariable!(fg, :x1, TranslationGroup2)
 mf = ManiPose2Point2(MvNormal([1,2], [0.01,0.01]))
 f = addFactor!(fg, [:x0, :x1], mf)
 
@@ -376,4 +391,98 @@ initAll!(fg)
 end
 
 
+@testset "Test SpecialEuclidean(2) to TranslationGroup(2) multihypo" begin
+    
+##
+fg = initfg()
+# fg.solverParams.attemptGradients=false
+
+v0 = addVariable!(fg, :x0, SpecialEuclidean2)
+
+mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+p = addFactor!(fg, [:x0], mp)
+
+##
+addVariable!(fg, :x1a, TranslationGroup2)
+addVariable!(fg, :x1b, TranslationGroup2)
+mf = ManiPose2Point2(MvNormal([1,2], [0.01,0.01]))
+f = addFactor!(fg, [:x0, :x1a, :x1b], mf; multihypo=[1,0.5,0.5])
+
+solveTree!(fg)
+
+vnd = getVariableSolverData(fg, :x0)
+@test isapprox(SpecialEuclidean(2), mean(SpecialEuclidean(2), vnd.val), ProductRepr([0.0,0.0], [1.0 0; 0 1]), atol=0.1)
+
+#FIXME I would expect close to 50% of particles to land on the correct place
+pnt = getPoints(fg, :x1a)
+@test sum(isapprox.(pnt, Ref([1.0,2.0]), atol=0.1)) > 25
+
+#FIXME I would expect close to 50% of particles to land on the correct place
+pnt = getPoints(fg, :x1b)
+@test sum(isapprox.(pnt, Ref([1.0,2.0]), atol=0.1)) > 25
+
+
+## other way around
+
+fg = initfg()
+fg.solverParams.attemptGradients=false
+
+addVariable!(fg, :x0, SpecialEuclidean2)
+addVariable!(fg, :x1a, TranslationGroup2)
+addVariable!(fg, :x1b, TranslationGroup2)
+
+mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([10, 10, 0.01]))
+p = addFactor!(fg, [:x0], mp)
+mp = ManifoldPrior(TranslationGroup(2), [1.,1], MvNormal([0.01, 0.01]))
+p = addFactor!(fg, [:x1a], mp)
+mp = ManifoldPrior(TranslationGroup(2), [-1.,1], MvNormal([0.01, 0.01]))
+p = addFactor!(fg, [:x1b], mp)
+
+mf = ManiPose2Point2(MvNormal([0., 1], [0.01,0.01]))
+f = addFactor!(fg, [:x0, :x1a, :x1b], mf; multihypo=[1,0.5,0.5])
+
+solveTree!(fg)
+
+pnts = getPoints(fg, :x0)
+# c = getCoordinates.(SpecialEuclidean2, pnts)
+# @cast p[i,j] := c[i][j]
+# scatter(p[:,1], p[:,2])
+
+#FIXME
+@test 10 < sum(isapprox.(Ref(SpecialEuclidean(2)), pnts, Ref(ProductRepr([-1.0,0.0], [1.0 0; 0 1])), atol=0.5))
+@test 10 < sum(isapprox.(Ref(SpecialEuclidean(2)), pnts, Ref(ProductRepr([1.0,0.0], [1.0 0; 0 1])), atol=0.5))
+
+
+end
+
+@testset "Test SpecialEuclidean(2) to SpecialEuclidean(2) multihypo" begin
+##
+fg = initfg()
+# fg.solverParams.attemptGradients=false
+
+v0 = addVariable!(fg, :x0, SpecialEuclidean2)
+
+mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+p = addFactor!(fg, [:x0], mp)
+
+##
+addVariable!(fg, :x1a, SpecialEuclidean2)
+addVariable!(fg, :x1b, SpecialEuclidean2)
+mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([1,2,pi/4], [0.01,0.01,0.01]))
+f = addFactor!(fg, [:x0, :x1a, :x1b], mf; multihypo=[1,0.5,0.5])
+
+solveTree!(fg)
+
+vnd = getVariableSolverData(fg, :x0)
+@test isapprox(SpecialEuclidean(2), mean(SpecialEuclidean(2), vnd.val), ProductRepr([0.0,0.0], [1.0 0; 0 1]), atol=0.1)
+
+#FIXME I would expect close to 50% of particles to land on the correct place
+pnt = getPoints(fg, :x1a)
+@test sum(isapprox.(Ref(SpecialEuclidean(2)), pnt, Ref(ProductRepr([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071])), atol=0.1)) > 25
+
+#FIXME I would expect close to 50% of particles to land on the correct place
+pnt = getPoints(fg, :x1b)
+@test sum(isapprox.(Ref(SpecialEuclidean(2)), pnt, Ref(ProductRepr([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071])), atol=0.1)) > 25
+
+end
 #

@@ -20,13 +20,12 @@ MutableLinearRelative(nm::Distributions.ContinuousUnivariateDistribution) = Muta
 MutableLinearRelative(nm::MvNormal) = MutableLinearRelative{length(nm.μ), typeof(nm)}(nm)
 MutableLinearRelative(nm::ManifoldKernelDensity) = MutableLinearRelative{Ndim(nm), typeof(nm)}(nm)
 
-getDimension(::Type{MutableLinearRelative{N,<:SamplableBelief}}) where {N} = N
-getManifold(::MutableLinearRelative{N}) where N = TranslationGroup(N)
+DFG.getDimension(::Type{MutableLinearRelative{N,<:SamplableBelief}}) where {N} = N
+DFG.getManifold(::MutableLinearRelative{N}) where N = TranslationGroup(N)
 
 
-function IIF.getSample(cf::CalcFactor{<:MutableLinearRelative}, N::Int=1)
-    ret = [rand(cf.factor.Z,1) for _ in 1:N]
-    (ret, )
+function IIF.getSample(cf::CalcFactor{<:MutableLinearRelative})
+    return (rand(cf.factor.Z, 1), )
 end
 
 function (s::CalcFactor{<:MutableLinearRelative})(  meas,
