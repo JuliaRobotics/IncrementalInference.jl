@@ -7,8 +7,8 @@ using Test
 
 # @error "MUST RESTORE testpartialconstraint.jl"
 #FIXME temporarily @test_skip
-@test_skip include("testFactorGradients.jl")
-@test_skip include("testpartialconstraint.jl")
+include("testFactorGradients.jl")
+include("testpartialconstraint.jl")
 include("testPartialNH.jl")
 
 include("testSphereMani.jl")
@@ -23,7 +23,7 @@ include("testCompareVariablesFactors.jl")
 include("typeReturnMemRef.jl")
 include("basicGraphsOperations.jl")
 include("testMixturePrior.jl")
-@test_skip include("testGradientUtils.jl")
+include("testGradientUtils.jl")
 include("testPartialFactors.jl")
 include("testPartialPrior.jl")
 include("testSaveLoadDFG.jl")
