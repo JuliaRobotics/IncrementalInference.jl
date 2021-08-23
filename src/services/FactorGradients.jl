@@ -61,8 +61,6 @@ function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:Abst
       # create a view into the full jacobian matrix at (d,s)
       _J_ds = view(J_f, (1+Σd):(Σd+len_d), (1+Σs):(Σs+len_s))
       # function is ready for calculation but actual jacobian values must still be done
-      @show s_
-      @show coord_(d_)
       λ_row = tuple(λ_row..., () -> ▽f_ds_J!(_J_ds, d_,s_))
       Σs += len_s
     end
@@ -117,7 +115,7 @@ function _setFGCSlack!(fgc::FactorGradientsCached!{F,S}, slack::Number) where {F
 end
 
 function (fgc::FactorGradientsCached!)(meas_pts...)
-  @warn "YELLING TIMBER1"
+  # @warn "YELLING TIMBER1"
 
   # separate the measurements (forst) from the variable points (rest)
   lenm = length(fgc.measurement)
@@ -129,7 +127,7 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
     setPointsMani!(tup_m, meas_pts[m])
   end
 
-  @warn "YELLING TIMBER2"
+  # @warn "YELLING TIMBER2"
   # update the residual _slack in preparation for new gradient calculation
   fct = getFactorType(fgc.dfgfct)
   measurement = tuple(meas_pts[1:lenm]...)
@@ -145,7 +143,7 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
     # update the local memory in fgc to take the values of incoming `pts`
     setPointsMani!(fgc.currentPoints[s], pt)
   end
-  @warn "YELLING TIMBER3" fgc.measurement meas_pts
+  # @warn "YELLING TIMBER3" fgc.measurement meas_pts
   println.(fgc.currentPoints)
 
 
@@ -165,7 +163,7 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
     # recalculate the off diagonals
     λ()
   end
-  @warn "YELLING TIMBER4"
+  # @warn "YELLING TIMBER4"
 
   
   # return newly calculated gradients

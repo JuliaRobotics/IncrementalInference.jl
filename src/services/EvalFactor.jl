@@ -349,7 +349,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                             _slack=_slack )
   #
   # ## do info per coord
-  ipc_ = _calcIPCRelative(Xi, ccwl, hyporecipe, sfidx)
+  # ipc_ = _calcIPCRelative(Xi, ccwl, hyporecipe, sfidx)
   ipc = ones(getDimension(Xi[sfidx]))
 
   # return the found points, and info per coord
@@ -571,7 +571,6 @@ function _evalFactorTemporary!( fct::AbstractFactor,
   measurement = ([meas_single[1],],)
   sfPts, _ = evalFactor(tfg, _dfgfct, solvefor, measurement, needFreshMeasurements=false, solveKey=solveKey, inflateCycles=1, _slack=_slack )
 
-  @show sfPts
   return sfPts
 end
 
