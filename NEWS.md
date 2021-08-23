@@ -17,9 +17,13 @@ The list below highlights major breaking changes, and please note that significa
 - PPE methods used keyword `method::AbstractPointParametricType` which is now replaced with the keyword `ppeType`.
 - Belief points are now stored as a `Vector{P}` (rather than legacy `Matrix`), and currently still under the restriction `P <: AbstractVector{<:Real}`.  Objective is moving to `P` any user desired point that fits with the JuliaManifolds/Manifolds.jl patterns.
 - Deprecating use of `ensureAllInitialized!`, use `initAll!` instead.
-- New helper function `randToPoints(::SamplableBelief, N=1)::Vector{P}` to help with `getSample` for cases with new `ManifoldKernelDensity` beliefs for manifolds containing points of type `P`.
 - Upstream `calcHelix_T` canonical generator utility from RoME.jl.
 - Deserialization of factors with DFG needs new API and change of solverData and CCW type in factor.
+- Deprecate use of `getParametricMeasurement` and use `getMeasurementParametric` instead, and add `<:AbstractManifold` to API.
+- Deprecate use of `solveBinaryFactorParameteric`, instead use `solveFactorParameteric`.
+- Deprecating `approxConvBinary`, use `approxConvBelief` instead.
+- Removing obsolete `approxConvCircular`, use `approxConvBelief` instead.
+- `getSample` should return a single sample and no longer takes the N(number of samples) parameter.
 
 # Major changes in v0.24
 

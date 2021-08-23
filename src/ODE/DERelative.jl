@@ -5,7 +5,7 @@ using .DifferentialEquations
 
 import .DifferentialEquations: solve
 
-import IncrementalInference: getSample
+import IncrementalInference: getSample, getManifold
 
 export DERelative
 
@@ -38,6 +38,7 @@ struct DERelative{T <:InferenceVariable, P, D} <: AbstractRelativeRoots
   specialSampler::Function
 end
 
+getManifold(de::DERelative{T}) where T = getManifold(de.domain)
 
 """
 $SIGNATURES
@@ -120,12 +121,12 @@ function _solveFactorODE!(measArr, prob, u0pts, Xtra...)
 end
 
 # FIXME see #1025, `multihypo=` will not work properly yet
-function getSample( cf::CalcFactor{<:DERelative}, 
-                    N::Int=1 )
+function sampleFactor( cf::CalcFactor{<:DERelative}, N::Int=1)
   #
 
   oder = cf.factor
   fmd_ = cf.metadata
+
 
   # how many trajectories to propagate?
   # @show getLabel(fmd_.fullvariables[2]), getDimension(fmd_.fullvariables[2])
@@ -149,12 +150,13 @@ function getSample( cf::CalcFactor{<:DERelative},
 
   # solve likely elements
   for i in 1:N
-    idxArr = getindex.(fmd_.arrRef, i)
+    # TODO, does this respect hyporecipe ???
+    idxArr = (k->fmd_.arrRef[k][i]).(1:length(fmd_.arrRef))
     _solveFactorODE!(meas[i], prob, u0pts[i], _maketuplebeyond2args(idxArr...)...)
     # _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(fmd_.arrRef...)...)
   end
 
-  return (meas, [diffOp for _ in 1:N])
+  return map(x->(x, diffOp), meas)
 end
 # getDimension(oderel.domain)
 

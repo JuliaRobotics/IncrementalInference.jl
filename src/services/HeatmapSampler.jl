@@ -2,9 +2,9 @@
 
 @info "Including Interpolations related functions in IncrementalInference."
 
-# using Interpolations 
+using .Interpolations 
 
-# only export once the convenience constructors are available along with conditional Interpolations dependency
+# only export on Requires.jl
 export HeatmapDensityRegular
 
 ##
@@ -72,7 +72,7 @@ function HeatmapDensityRegular( data::AbstractMatrix{<:Real},
   # constuct a pre-density from which to draw intermediate samples
   density_ = fitKDE(support_, weights_, domain...; bw_factor=bw_factor)
   pts_preIS, = sample(density_, N)
-  @show size(pts_preIS)
+  # @show size(pts_preIS)
   
   @cast vec_preIS[j][i] := pts_preIS[i,j]
   
@@ -96,7 +96,8 @@ function HeatmapDensityRegular( data::AbstractMatrix{<:Real},
   # final samplable density object
   bw = getBW(density_)[:,1]
   @cast pts[i,j] := vec_preIS[j][i]
-  density = kde!(collect(pts), bw, weights)
+  bel = kde!(collect(pts), bw, weights)
+  density = ManifoldKernelDensity(TranslationGroup(Ndim(bel)), bel)
 
   # return `<:SamplableBelief` object
   HeatmapDensityRegular(data, domain, hist_callback, level, sigma, float(sigma_scale), bw_factor, density)

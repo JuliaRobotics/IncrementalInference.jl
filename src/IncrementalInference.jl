@@ -68,6 +68,9 @@ import DistributedFactorGraphs: compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!
 import DistributedFactorGraphs: getDimension, getManifold, getPointType, getPointIdentity
 import DistributedFactorGraphs: getPPE, getPPEDict
+import DistributedFactorGraphs: getFactorOperationalMemoryType
+import DistributedFactorGraphs: getPoint, getCoordinates
+
 
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable
@@ -129,8 +132,6 @@ export *,
   # state machine methods
   StateMachine,
   exitStateMachine,
-  printGraphSummary,
-  printSummary,
   print,
   getGraphFromHistory,
   getCliqSubgraphFromHistory,
@@ -283,15 +284,12 @@ export *,
   getParent,
   getCliqSiblings,
   getNumCliqs,
-  getBelief, getKDE,
+  getBelief,
   CliqStateMachineContainer,
 
   solveCliqUp!,
   solveCliqDown!,
   fifoFreeze!,
-
-  # temp const types TODO
-  TempUpMsgPlotting,
 
   #functors need
   getSample,
@@ -309,7 +307,6 @@ export *,
   evalFactor,
   approxConvBelief,
   approxConv,
-  approxConvBinary,
 
   # more debugging tools
   localProduct,
@@ -328,7 +325,6 @@ export *,
   AliasingScalarSampler,
   rand!,
   rand,
-  randToPoints,
   fastnorm,
 
   # new wrapper (experimental)
@@ -344,6 +340,7 @@ export *,
 
   # user functions
   predictbelief,
+  propagateBelief,
   getCliqMat,
   getCliqAssocMat,
   getCliqMsgMat,
@@ -390,49 +387,50 @@ export *,
   getPointType, 
   getPointIdentity,
   setVariableRefence!,
-  reshapeVec2Mat,
-  accumulateFactorChain
+  reshapeVec2Mat
 
-
+# more optional exports
+export HeatmapDensityRegular
 
 
 export  buildCliqSubgraph_StateMachine
 
 
 const NothingUnion{T} = Union{Nothing, T}
+const BeliefArray{T} = Union{Array{T,2}, Adjoint{T, Array{T,2}} }
+
 
 # regular
-include("FactorGraphTypes.jl")
+include("entities/SolverParams.jl")
 
 # JT TODO move to somewhere more fitting? (DF, perhaps not remember its IIF.SolverParams)
 const InMemDFGType = DFG.LightDFG{SolverParams}
 
-import DistributedFactorGraphs: getFactorOperationalMemoryType
 
-getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
-getFactorOperationalMemoryType(dfg::NoSolverParams) = CommonConvWrapper
+include("entities/FactorOperationalMemory.jl")
 
-include("AliasScalarSampling.jl")
+
+include("Factors/GenericMarginal.jl")
 include("entities/OptionalDensities.jl")
-include("BeliefTypes.jl")
-include("CalcFactor.jl")
+include("entities/FactorGradients.jl")
 
+# Special belief types for sampling as a distribution
+include("entities/AliasScalarSampling.jl")
 
-include("Factors/GenericFunctions.jl")
+include("entities/BeliefTypes.jl")
 
-# Refactoring in progress
-include("Factors/MsgLikelihoods.jl")
+# factors needed for belief propagation on the tree
+include("Factors/MsgPrior.jl")
 
-include("entities/GraphConstraintTypes.jl")
-include("CliqueTypes.jl")
+include("entities/CliqueTypes.jl")
+include("entities/JunctionTreeTypes.jl")
 
-include("JunctionTreeTypes.jl")
+include("services/GraphInit.jl")
 include("FactorGraph.jl")
+include("services/BayesNet.jl")
 include("SerializingDistributions.jl")
 include("SerializationMKD.jl")
 include("DispatchPackedConversions.jl")
-
-include("Variables/DefaultVariables.jl")
 
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
@@ -444,18 +442,30 @@ include("JunctionTree.jl")
 include("TreeMessageAccessors.jl")
 include("TreeMessageUtils.jl")
 include("TreeBasedInitialization.jl")
-include("HeatmapSampler.jl")
 
-# special variables and factors, see RoME.jl for more examples
+
+
+# included variables of IIF, easy to extend in user's context
+include("Variables/DefaultVariables.jl")
+include("Variables/Circular.jl")
+
+# included factors, see RoME.jl for more examples
+include("Factors/GenericFunctions.jl")
+include("Factors/MsgLikelihoods.jl")
 include("Factors/Mixture.jl")
 include("Factors/DefaultPrior.jl")
 include("Factors/LinearRelative.jl")
 include("Factors/EuclidDistance.jl")
 include("Factors/Circular.jl")
-include("Variables/Circular.jl")
 include("Factors/PartialPrior.jl")
 include("Factors/PartialPriorPassThrough.jl")
 include("DefaultNodeTypes.jl") # older file
+
+# Refactoring in progress
+include("services/CalcFactor.jl")
+# gradient tools
+include("services/FactorGradients.jl")
+include("services/CliqueTypes.jl")
 
 # solving graphs
 include("SolverUtilities.jl")
@@ -463,7 +473,11 @@ include("NumericalCalculations.jl")
 include("DeconvUtils.jl")
 include("ExplicitDiscreteMarginalizations.jl")
 include("InferDimensionUtils.jl")
-include("ApproxConv.jl")
+include("services/EvalFactor.jl")
+include("services/ApproxConv.jl")
+
+include("ConsolidateParametricRelatives.jl") # FIXME CONSOLIDATE
+
 include("GraphProductOperations.jl")
 include("SolveTree.jl")
 include("TetherUtils.jl")
@@ -483,12 +497,10 @@ include("CanonicalGraphExamples.jl")
 include("AdditionalUtils.jl")
 include("SolverAPI.jl")
 
-# gradient tools
-include("entities/FactorGradients.jl")
-include("services/FactorGradients.jl")
-
 # Symbolic tree analysis files.
 include("AnalysisTools.jl")
+
+include("ManifoldSampling.jl")
 
 # deprecation legacy support
 include("Deprecated.jl")
@@ -498,12 +510,9 @@ include("Deprecated.jl")
 exportimg(pl) = error("Please do `using Gadfly` to allow image export.")
 function __init__()
   @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" include("RequireInteractiveUtils.jl")
-
   @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" include("EmbeddedPlottingUtils.jl")
-
   @require DifferentialEquations="0c46a032-eb83-5123-abaf-570d42b7fbaa" include("ODE/DERelative.jl")
-
-  @require Interpolations="a98d9a8b-a2ab-59e6-89dd-64a1c18fca59" include("HeatmapSampler.jl")
+  @require Interpolations="a98d9a8b-a2ab-59e6-89dd-64a1c18fca59" include("services/HeatmapSampler.jl")
 
   # combining neural networks natively into the non-Gaussian  factor graph object
   @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin

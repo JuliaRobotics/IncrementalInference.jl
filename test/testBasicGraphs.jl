@@ -286,23 +286,23 @@ X4 = (getBelief(fg, :x4) |> getKDEMean)[1]
 
 pts_ = getPoints(getBelief(fg, :x0))
 TensorCast.@cast pts[i,j] := pts_[j][i]
-@test 0.2 < Statistics.cov( pts[1,:] ) < 2.3
+@test 0.2 < Statistics.cov( pts[1,:] ) < 2.8
 
 pts_ = getPoints(getBelief(fg, :x1))
 TensorCast.@cast pts[i,j] := pts_[j][i]
-@test 0.2 < Statistics.cov( pts[1,:] ) < 2.4
+@test 0.2 < Statistics.cov( pts[1,:] ) < 2.9
 
 pts_ = getPoints(getBelief(fg, :x2))
 TensorCast.@cast pts[i,j] := pts_[j][i]
-@test 0.2 < Statistics.cov( pts[1,:] ) < 2.6
+@test 0.2 < Statistics.cov( pts[1,:] ) < 3.0
 
 pts_ = getPoints(getBelief(fg, :x3))
 TensorCast.@cast pts[i,j] := pts_[j][i]
-@test 0.2 < Statistics.cov( pts[1,:] ) < 2.7
+@test 0.2 < Statistics.cov( pts[1,:] ) < 3.1
 
 pts_ = getPoints(getBelief(fg, :x4))
 TensorCast.@cast pts[i,j] := pts_[j][i]
-@test 0.2 < Statistics.cov( pts[1,:] ) < 2.8
+@test 0.2 < Statistics.cov( pts[1,:] ) < 3.2
 
 @testset "Test localProduct on solveKey" begin
 
@@ -350,8 +350,6 @@ X0reset = pts |> deepcopy
 
 
 end
-
-
 
 
 

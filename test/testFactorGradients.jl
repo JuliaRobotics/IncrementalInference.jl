@@ -38,9 +38,15 @@ J__
 @test norm( J__ - [0 0 1 0; 0 0 0 1; 1 0 0 0; 0 1 0 0] ) < 1e-4
 
 
-##
+## build new functor container
 
 gradFct = FactorGradientsCached!(pp, varTypes, measurement, pts);
+
+## test grad calc for current values
+
+J_c = gradFct()
+
+@test norm( J_c - [0 0 1 0; 0 0 0 1; 1 0 0 0; 0 1 0 0] ) < 1e-4
 
 ##
 
@@ -53,7 +59,7 @@ J = gradFct(measurement..., pts...)
 
 ## check on transmitted info per coords
 
-ret = calcPerturbationFromVariable(gradFct, 1, [1;1])
+ret = calcPerturbationFromVariable(gradFct, [1=>[1;1]])
 
 # the fromVar itself should be zero
 @test length(ret[1]) == 2
@@ -77,7 +83,7 @@ TestPartialRelative2D(z::SamplableBelief) = TestPartialRelative2D(z, (2,))
 
 # imported earlier for overload
 getManifold(fnc::TestPartialRelative2D) = TranslationGroup(2)
-getSample(cf::CalcFactor{<:TestPartialRelative2D},N=1) = ([rand(cf.factor.Z) for _ in 1:N], )
+getSample(cf::CalcFactor{<:TestPartialRelative2D}) = (rand(cf.factor.Z, 1), )
 
 # currently requires residual to be returned as a tangent vector element
 (cf::CalcFactor{<:TestPartialRelative2D})(z, x1, x2) = x2[2:2] - (x1[2:2] + z[1:1])
@@ -103,7 +109,7 @@ J = gradients(measurement..., pts...)
 
 ## check on transmitted info per coords
 
-ret = calcPerturbationFromVariable(gradients, 1, [1;1])
+ret = calcPerturbationFromVariable(gradients, [1=>[1;1]])
 
 # the fromVar itself should be zero
 @test length(ret[1]) == 2
@@ -115,7 +121,7 @@ ret = calcPerturbationFromVariable(gradients, 1, [1;1])
 
 ## check the reverse perturbation
 
-ret = calcPerturbationFromVariable(gradients, 2, [1;1])
+ret = calcPerturbationFromVariable(gradients, [2=>[1;1]])
 
 # only the first coordinate dimension is affected
 @test length(ret[1]) == 2

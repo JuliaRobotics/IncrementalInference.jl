@@ -6,7 +6,7 @@ using Test
 
 ##
 
-@testset "Test Sphere(2) prior" begin
+@testset "Test Sphere(2) prior and relative (broken)" begin
 ##
 
 Base.convert(::Type{<:Tuple}, M::Sphere{2, ℝ}) = (:Euclid, :Euclid)
@@ -26,7 +26,7 @@ fg = initfg()
 
 v0 = addVariable!(fg, :x0, Sphere2)
 
-mp = ManifoldPrior(Sphere(2), SA[1., 0, 0], MvNormal([0.01, 0.01]))
+mp = ManifoldPrior(Sphere(2), SA[1., 0, 0], MvNormal([0.01, 0.01]), DefaultOrthonormalBasis(), ExponentialRetraction())
 p = addFactor!(fg, [:x0], mp)
 
 doautoinit!(fg, :x0)

@@ -180,23 +180,60 @@ function setValKDE!(v::DFGVariable,
   nothing
 end
 function setValKDE!(v::DFGVariable,
-                    p::ManifoldKernelDensity,
+                    mkd::ManifoldKernelDensity,
                     setinit::Bool=true,
                     inferdim::Real=0;
                     solveKey::Symbol=:default  )
   #
   # @error("TESTING setValKDE! ", solveKey, string(listSolveKeys(v)))
-  setValKDE!(getSolverData(v,solveKey),p,setinit, Float64(inferdim))
+  setValKDE!(getSolverData(v,solveKey),mkd,setinit, Float64(inferdim))
   nothing
 end
 function setValKDE!(dfg::AbstractDFG,
                     sym::Symbol,
-                    p::ManifoldKernelDensity,
+                    mkd::ManifoldKernelDensity,
                     setinit::Bool=true,
                     inferdim::Real=0;
                     solveKey::Symbol=:default  )
   #
-  setValKDE!(getVariable(dfg, sym), p, setinit, inferdim, solveKey=solveKey)
+  setValKDE!(getVariable(dfg, sym), mkd, setinit, inferdim, solveKey=solveKey)
+  nothing
+end
+
+
+
+function setValKDE!(vnd::VariableNodeData,
+                    mkd::ManifoldKernelDensity{M,B,Nothing},
+                    setinit::Bool=true,
+                    inferdim::Union{Float32, Float64, Int32, Int64}=0 ) where {M,B}
+  #
+  # L==Nothing means no partials
+  ptsArr = AMP.getPoints(mkd) # , false) # for not partial
+  # also set the bandwidth
+  bws = getBW(mkd)[:,1]
+  setValKDE!(vnd,ptsArr,bws,setinit,inferdim )
+  nothing
+end
+
+
+function setValKDE!(vnd::VariableNodeData,
+                    mkd::ManifoldKernelDensity{M,B,L},
+                    setinit::Bool=true,
+                    inferdim::Union{Float32, Float64, Int32, Int64}=0 ) where {M,B,L<:AbstractVector}
+  #
+  oldBel = getBelief(vnd)
+
+  # New infomation might be partial
+  newBel = replace(oldBel, mkd)
+
+  # Set partial dims as Manifold points
+  ptsArr = AMP.getPoints(newBel, false)
+
+  # also get the bandwidth
+  bws = getBandwidth(newBel, false)
+
+  # update values in graph
+  setValKDE!(vnd,ptsArr,bws,setinit,inferdim )
   nothing
 end
 
@@ -226,19 +263,16 @@ setVariableInferDim!(vari::DFGVariable, val::Real) = setVariableInferDim!(getSol
 ## ==============================================================================================
 ## ==============================================================================================
 
+"""
+    $(SIGNATURES)
 
-function setValKDE!(vd::VariableNodeData,
-                    p::ManifoldKernelDensity,
-                    setinit::Bool=true,
-                    inferdim::Union{Float32, Float64, Int32, Int64}=0 )
-  #
-  ptsArr = AMP.getPoints(p)
-  # @show typeof(ptsArr)
-  # @cast ptsArr[j][i] := pts[i,j]
-  bws = getBW(p)[:,1]
-  setValKDE!(vd,ptsArr,bws,setinit,inferdim )
-  nothing
-end
+Get a ManifoldKernelDensity estimate from variable node data.
+"""
+getBelief(vnd::VariableNodeData) = manikde!(getManifold(getVariableType(vnd)), getVal(vnd), bw=getBW(vnd)[:,1] )
+
+getBelief(v::DFGVariable, solvekey::Symbol=:default) = getBelief(getSolverData(v, solvekey))
+getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol=:default) = getBelief(getVariable(dfg, lbl), solvekey)
+
 
 """
     $SIGNATURES
@@ -254,14 +288,14 @@ function resetVariable!(varid::VariableNodeData;
   for pt in pts
     fill!(pt, 0.0)
   end
-  pn = manikde!(pts, zeros(AMP.Ndim(val)), getManifolds(varid))
+  pn = manikde!(getManifold(varid), pts, bw=zeros(Ndim(val)))
   setValKDE!(varid, pn, false, 0.0)
   # setVariableInferDim!(varid, 0)
   # setVariableInitialized!(vari, false)
   nothing
 end
 
-resetVariable!(vari::DFGVariable; solveKey::Symbol=:default  )::Nothing = resetVariable!(getSolverData(vari), solveKey=solveKey)
+resetVariable!(vari::DFGVariable; solveKey::Symbol=:default  ) = resetVariable!(getSolverData(vari), solveKey=solveKey)
 
 function resetVariable!(dfg::G,
                         sym::Symbol;
@@ -349,7 +383,6 @@ function setDefaultNodeData!( v::DFGVariable,
   sp = Int[0;]
   (valpts, bws) = if initialized
     pN = resample(getBelief(v))
-    # pN = AMP.manikde!(randn(dims, N), getManifolds(varType));
     bws = getBW(pN)[:,1:1]
     pNpts = getPoints(pN)
     isinit = true
@@ -425,6 +458,11 @@ end
 _variableType(varType::InferenceVariable) = varType
 _variableType(varType::Type{<:InferenceVariable}) = varType()
 
+
+## ==================================================================================================
+## DFG Overloads on addVariable! and addFactor!
+## ==================================================================================================
+
 """
 $(SIGNATURES)
 
@@ -487,80 +525,8 @@ function addVariable!(dfg::AbstractDFG,
   return v
 end
 
-function _resizePointsVector!(vecP::AbstractVector{P}, mkd::ManifoldKernelDensity, N::Int) where P
-  #
-  pN = length(vecP)
-  resize!(vecP, N)
-  for j in pN:N
-    smp = AMP.sample(mkd, 1)[1]
-    # @show j, smp, typeof(smp), typeof(vecP[j])
-    vecP[j] = smp[1]
-  end
-
-  vecP
-end
 
 
-"""
-    $(SIGNATURES)
-
-Prepare the particle arrays `ARR` to be used for approximate convolution.
-This function ensures that ARR has te same dimensions among all the parameters.
-Function returns with ARR[sfidx] pointing at newly allocated deepcopy of the
-existing values in getVal(Xi[.label==solvefor]).
-
-Notes
-- Return values `sfidx` is the element in ARR where `Xi.label==solvefor` and
-- `maxlen` is length of all (possibly resampled) `ARR` contained particles.
-- `Xi` is order sensitive.
-- for initialization, solveFor = Nothing.
-- `P = getPointType(<:InferenceVariable)`
-"""
-function prepareparamsarray!( ARR::AbstractVector{<:AbstractVector{P}},
-                              Xi::Vector{<:DFGVariable},
-                              solvefor::Union{Nothing, Symbol},
-                              N::Int=0;
-                              solveKey::Symbol=:default  ) where P
-  #
-  LEN = Int[]
-  maxlen = N # FIXME see #105
-  count = 0
-  sfidx = 0
-
-  for xi in Xi
-    vecP = getVal(xi, solveKey=solveKey)
-    push!(ARR, vecP)
-    LEN = length.(ARR)
-    maxlen = maximum([N; LEN])
-    count += 1
-    if xi.label == solvefor
-      sfidx = count #xi.index
-    end
-  end
-
-  # resample variables with too few kernels (manifolds points)
-  SAMP = LEN .< maxlen
-  for i in 1:count
-    if SAMP[i]
-      Pr = getBelief(Xi[i], solveKey)
-      _resizePointsVector!(ARR[i], Pr, maxlen)
-    end
-  end
-
-  # TODO --rather define reusable memory for the proposal
-  # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
-  if sfidx > 0 
-    ARR[sfidx] = deepcopy(ARR[sfidx]) 
-  end
-
-  # get solvefor manifolds
-  # FIXME deprecate use of (:null,)
-  mani = length(Xi)==0 || sfidx==0 ? (:null,) : getManifold(Xi[sfidx])
-
-  # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
-  # maxlen = N == 0 ? maxlen : N
-  return maxlen, sfidx, mani
-end
 
 function parseusermultihypo(multihypo::Nothing, nullhypo::Float64)
   verts = Symbol[]
@@ -584,41 +550,7 @@ function parseusermultihypo(multihypo::Vector{Float64}, nullhypo::Float64)
   return mh, nullhypo
 end
 
-# import IncrementalInference: prepgenericconvolution, convert
 
-"""
-    $SIGNATURES
-
-Function to calculate measurement dimension from factor sampling.
-
-Notes
-- Will not work in all situations, but good enough so far.
-  - # TODO standardize via domain or manifold definition...??
-"""
-function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
-  #
-  try
-    M = getManifold(T)
-    return manifold_dimension(M)
-  catch
-    try 
-      M = getManifold(cf.factor)
-      return manifold_dimension(M)
-    catch
-      @warn "no method getManifold(::$(string(T))), calcZDim will attempt legacy length(sample) method instead"
-    end
-  end
-  
-  # NOTE try to make sure we get matrix back (not a vector)
-  smpls = sampleFactor(cf, 2)[1]
-  return length(smpls[1])
-end
-
-calcZDim(ccw::CommonConvWrapper) = calcZDim(CalcFactor(ccw))
-
-calcZDim(cf::CalcFactor{<:GenericMarginal}) = 0
-
-calcZDim(cf::CalcFactor{<:ManifoldPrior}) = manifold_dimension(cf.factor.M)
 
 # return a BitVector masking the fractional portion, assuming converted 0's on 100% confident variables 
 _getFractionalVars(varList::Union{<:Tuple, <:AbstractVector}, mh::Nothing) = zeros(length(varList)) .== 1
@@ -635,7 +567,12 @@ end
 
 _selectHypoVariables(allVars::Union{<:Tuple, <:AbstractVector},mh::Nothing,sel::Integer=0 ) = collect(1:length(allVars))
 
+"""
+    $SIGNATURES
 
+Notes
+- Can be called with `length(Xi)==0`
+"""
 function prepgenericconvolution(Xi::Vector{<:DFGVariable},
                                 usrfnc::T;
                                 multihypo::Union{Nothing, Distributions.Categorical}=nothing,
@@ -644,16 +581,19 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
                                 inflation::Real=0.0,
                                 _blockRecursion::Bool=false  ) where {T <: AbstractFactor}
   #
+  length(Xi) !== 0 ? nothing : @debug("cannot prep ccw.param list with length(Xi)==0, see DFG #590")
+
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
   # FIXME stop using Any, see #1321
-  varParamsAll = Vector{Vector{Any}}()
-  maxlen, sfidx, mani = prepareparamsarray!(varParamsAll, Xi, nothing, 0) # Nothing for init.
+  # varParamsAll = Vector{Vector{Any}}()
+  varParamsAll, maxlen, sfidx, mani = prepareparamsarray( Xi, nothing, 0) # Nothing for init.
 
   # standard factor metadata
   sflbl = 0==length(Xi) ? :null : getLabel(Xi[end])
-  fmd = FactorMetadata(Xi, getLabel.(Xi), varParamsAll, sflbl, nothing)
-  
+  lbs = getLabel.(Xi)
+  fmd = FactorMetadata(Xi, lbs, varParamsAll, sflbl, nothing)
+
   # create a temporary CalcFactor object for extracting the first sample
   # TODO, deprecate this:  guess measurement points type
   # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
@@ -662,6 +602,9 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   # get a measurement sample
   meas_single = sampleFactor(_cf, 1)
 
+  #TODO preallocate measuerement?
+  measurement = Vector{eltype(meas_single)}()
+  
   # get the measurement dimension
   zdim = calcZDim(_cf)
   # some hypo resolution
@@ -685,7 +628,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
     # FIXME, suppressing nested gradient propagation on GenericMarginals for the time being, see #1010
     if (!_blockRecursion) && usrfnc isa AbstractRelative && !(usrfnc isa GenericMarginal)
       # take first value from each measurement-tuple-element
-      measurement_ = map(x->x[1], meas_single)
+      measurement_ = meas_single[1]
       # compensate if no info available during deserialization
       # take the first value from each variable param
       pts_ = map(x->x[1], varParamsAll)
@@ -696,7 +639,8 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
       gradients = FactorGradientsCached!(usrfnc, tuple(varTypes[hypoidxs]...), measurement_, tuple(pts_[hypoidxs]...), _blockRecursion=true);
     end
   catch e
-    @warn "Unable to create measurements and gradients for $usrfnc during prep of CCW, falling back on no-partial information assumption.  Enable @debug printing to see the error."
+    @warn "Unable to create measurements and gradients for $usrfnc during prep of CCW, falling back on no-partial information assumption.  Enable ENV[\"JULIA_DEBUG\"] = \"IncrementalInference\" for @debug printing to see the error."
+    # rethrow(e)
     @debug(e)
   end
 
@@ -705,9 +649,10 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
           PointType[],
           zdim,
           varParamsAll,
-          fmd,
+          fmd;
           specialzDim = hasfield(T, :zDim),
           partial = ispartl,
+          measurement,
           hypotheses=multihypo,
           certainhypo=certainhypo,
           nullhypo=nullhypo,
@@ -770,409 +715,6 @@ function isLeastOneHypoAvailable( sfidx::Int,
           sfidx in uncertnidx && sum(isinit[certainidx]) == length(certainidx)
 end
 
-"""
-    $SIGNATURES
-
-Return `(::Bool, ::OKVarlist, ::NotOkayVarList)` on whether all other variables (besides `loovar::Symbol`)
-attached to factor `fct::Symbol` are all initialized -- i.e. `fct` is usable.
-
-Notes:
-- Special carve out for multihypo cases, see issue 427, where at least one hypothesis should be available, but not all required at first.
-
-Development Notes
-* TODO get faster version of isInitialized for database version
-
-Related
-
-doautoinit!, initManual!, isInitialized, isMultihypo
-"""
-function factorCanInitFromOtherVars(dfg::AbstractDFG,
-                                    fct::Symbol,
-                                    loovar::Symbol;
-                                    solveKey::Symbol=:default)
-  #
-  # all variables attached to this factor
-  varsyms = DFG.getNeighbors(dfg, fct)
-
-  # which element is being solved for
-  sfidx = (1:length(varsyms))[varsyms .== loovar][1]
-  # list of factors to use in init operation
-  fctlist = Symbol[]
-  # list fo variables that cannot be used
-  faillist = Symbol[]
-  isinit = Bool[]
-  for vsym in varsyms
-    # check each variable one by one
-    xi = DFG.getVariable(dfg, vsym)
-    isi = isInitialized(xi, solveKey)
-    push!(isinit, isi)
-    if !isi
-      push!(faillist, vsym)
-    end
-  end
-
-  ## determine if this factor can be used
-  # priors and general n-ary cases
-  canuse = length(varsyms)==1 || (length(faillist)==1 && loovar in faillist)
-  ## special multihypo case (at least one hypothesis is available or initializing first hypo)
-  fctnode = getFactor(dfg, fct)
-  # @show canuse, isMultihypo(fctnode), isinit
-  if !canuse && isMultihypo(fctnode)
-    # multihypo=[1;0.5;0.5] : sfidx=1, isinit=[0,1,0] -- true
-    # multihypo=[1;0.5;0.5] : sfidx=1, isinit=[0,0,1] -- true
-    # multihypo=[1;0.5;0.5] : sfidx=2|3, isinit=[1,0,0] -- true
-    mhp = getMultihypoDistribution(fctnode).p
-    allmhp,certainidx,uncertnidx = getHypothesesVectors(mhp)
-    if isLeastOneHypoAvailable(sfidx, certainidx, uncertnidx, isinit)
-       # special case works
-       @info "allowing init from incomplete set of previously initialized hypotheses, fct=$fct"
-       canuse = true
-    end
-  end
-
-  # should add the factor for use?
-  if canuse
-    push!(fctlist, fct)
-  end
-
-  # return if can use, the factor in an array, and the non-initialized variables attached to the factor
-  return (canuse, fctlist, faillist)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}}
-end
-
-
-# wow, that was quite far off -- needs testing
-# function factorCanInitFromOtherVars(dfg::T,
-#                                     fct::Symbol,
-#                                     loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}} where T <: AbstractDFG
-#   #
-#   # all variables attached to this factor
-#   varsyms = getNeighbors(dfg, fct)
-#
-#   # list of factors to use in init operation
-#   useinitfct = Symbol[]
-#   faillist = Symbol[]
-#   for vsym in varsyms
-#     xi = DFG.getVariable(dfg, vsym)
-#     if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
-#       push!(useinitfct, fct)
-#     end
-#   end
-#
-#   return (length(useinitfct)==length(varsyms)&&length(faillist)==0,
-#           useinitfct,
-#           faillist   )
-# end
-
-"""
-    $(SIGNATURES)
-
-EXPERIMENTAL: initialize target variable `xi` based on connected factors in the
-factor graph `fgl`.  Possibly called from `addFactor!`, or `doCliqAutoInitUp!` (?).
-
-Notes:
-- Special carve out for multihypo cases, see issue 427.
-
-Development Notes:
-> Target factor is first (singletons) or second (dim 2 pairwise) variable vertex in `xi`.
-* TODO use DFG properly with local operations and DB update at end.
-* TODO get faster version of `isInitialized` for database version.
-* TODO: Persist this back if we want to here.
-"""
-function doautoinit!( dfg::AbstractDFG,
-                      xi::DFGVariable;
-                      solveKey::Symbol=:default,
-                      singles::Bool=true,
-                      N::Int=maximum([length(getPoints(getBelief(xi, solveKey))); getSolverParams(dfg).N]),
-                      logger=ConsoleLogger() )
-  #
-  didinit = false
-  # don't initialize a variable more than once
-  if !isInitialized(xi, solveKey)
-    with_logger(logger) do
-      @info "try doautoinit! of $(xi.label)"
-    end
-    # get factors attached to this variable xi
-    vsym = xi.label
-    neinodes = DFG.getNeighbors(dfg, vsym)
-    # proceed if has more than one neighbor OR even if single factor
-    if (singles || length(neinodes) > 1)
-      # Which of the factors can be used for initialization
-      useinitfct = Symbol[]
-      # Consider factors connected to $vsym...
-      for xifct in neinodes
-        canuse, usefct, notusevars = factorCanInitFromOtherVars(dfg, xifct, vsym, solveKey=solveKey)
-        if canuse
-          union!(useinitfct, usefct)
-        end
-      end
-      with_logger(logger) do
-        @info "init with useinitfct $useinitfct"
-      end
-      # println("Consider all singleton (unary) factors to $vsym...")
-      # calculate the predicted belief over $vsym
-      if length(useinitfct) > 0
-        with_logger(logger) do
-          @info "do init of $vsym"
-        end
-        # FIXME ensure a product of only partial densities and returned pts are put to proper dimensions
-        pts,inferdim = predictbelief(dfg, vsym, useinitfct, solveKey=solveKey, logger=logger)
-        setValKDE!(xi, pts, true, inferdim, solveKey=solveKey)
-        # Update the estimates (longer DFG function used so cloud is also updated)
-        setVariablePosteriorEstimates!(dfg, xi.label, solveKey)
-        # Update the data in the event that it's not local
-        # TODO perhaps usecopy=false
-        updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent=false)    
-        # deepcopy graphinit value, see IIF #612
-        updateVariableSolverData!(dfg, xi.label, getSolverData(xi, solveKey), :graphinit, true, Symbol[]; warn_if_absent=false)
-        didinit = true
-      end
-    end
-  end
-  return didinit
-end
-
-function doautoinit!( dfg::AbstractDFG,
-                      Xi::Vector{<:DFGVariable};
-                      solveKey::Symbol=:default,
-                      singles::Bool=true,
-                      N::Int=getSolverParams(dfg).N,
-                      logger=ConsoleLogger()  )
-  #
-  #
-  # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
-  # do double depth search for variable nodes
-
-  didinit = true
-
-  # loop over all requested variables that must be initialized
-  for xi in Xi
-    didinit &= doautoinit!(dfg, xi, solveKey=solveKey, singles=singles, N=N, logger=logger)
-  end
-  return didinit
-end
-
-function doautoinit!( dfg::AbstractDFG,
-                      xsyms::Vector{Symbol};
-                      solveKey::Symbol=:default,
-                      singles::Bool=true,
-                      N::Int=getSolverParams(dfg).N,
-                      logger=ConsoleLogger()  )
-  #
-  verts = getVariable.(dfg, xsyms)
-  return doautoinit!(dfg, verts, solveKey=solveKey, singles=singles, N=N, logger=logger)
-end
-function doautoinit!( dfg::AbstractDFG,
-                      xsym::Symbol;
-                      solveKey::Symbol=:default,
-                      singles::Bool=true,
-                      N::Int=getSolverParams(dfg).N,
-                      logger=ConsoleLogger()  )
-  #
-  return doautoinit!(dfg, [getVariable(dfg, xsym);], solveKey=solveKey, singles=singles, N=N, logger=logger)
-end
-
-"""
-    $(TYPEDSIGNATURES)
-
-Method to manually initialize a variable using a set of points.
-
-Notes
-- Disable automated graphinit on `addFactor!(fg, ...; graphinit=false)
-  - any un-initialized variables will automatically be initialized by `solveTree!`
-
-Example:
-
-```julia
-# some variable is added to fg
-addVariable!(fg, :somepoint3, ContinuousEuclid{2})
-
-# data is organized as (row,col) == (dimension, samples)
-pts = randn(2,100)
-initManual!(fg, :somepoint3, pts)
-
-# manifold management should be done automatically.
-# note upgrades are coming to consolidate with Manifolds.jl, see RoME #244
-
-## it is also possible to initManual! by using existing factors, e.g.
-initManual!(fg, :x3, [:x2x3f1])
-```
-
-DevNotes
-- TODO better document graphinit and treeinit.
-"""
-function initManual!( variable::DFGVariable, 
-                      ptsArr::ManifoldKernelDensity,
-                      solveKey::Symbol=:default;
-                      dontmargin::Bool=false,
-                      N::Int=length(getPoints(ptsArr)) )
-  #
-  @debug "initManual! $label"
-  if !(solveKey in listSolveKeys(variable))
-    @debug "$(getLabel(variable)) needs new VND solveKey=$(solveKey)"
-    varType = getVariableType(variable)
-    setDefaultNodeData!(variable, 0, N, getDimension(varType), solveKey=solveKey, 
-    initialized=false, varType=varType, dontmargin=dontmargin)
-  end
-  setValKDE!(variable, ptsArr, true, solveKey=solveKey)
-  return nothing
-end
-function initManual!( dfg::AbstractDFG, 
-                      label::Symbol, 
-                      belief::ManifoldKernelDensity,
-                      solveKey::Symbol=:default;
-                      dontmargin::Bool=false,
-                      N::Int=getSolverParams(dfg).N  )
-  #
-  variable = getVariable(dfg, label)
-  initManual!(variable, belief, solveKey, dontmargin=dontmargin, N=N)
-  return nothing
-end
-function initManual!( dfg::AbstractDFG, 
-                      label::Symbol, 
-                      usefcts::Vector{Symbol},
-                      solveKey::Symbol=:default;
-                      dontmargin::Bool=false,
-                      N::Int=getSolverParams(dfg).N )
-  #
-  pts = predictbelief(dfg, label, usefcts, solveKey=solveKey)[1]
-  vert = getVariable(dfg, label)
-  Xpre = AMP.manikde!(pts, getVariableType(vert) |> getManifolds )
-  initManual!(vert, Xpre, solveKey, dontmargin=dontmargin, N=N )
-  # setValKDE!(vert, Xpre, true, solveKey=solveKey)
-  # return nothing
-end
-
-
-function initManual!( dfg::AbstractDFG, 
-                      sym::Symbol, 
-                      pts::AbstractVector{P}, 
-                      solveKey::Symbol=:default;
-                      bw=nothing ) where {P}
-  #
-  var = getVariable(dfg, sym)
-  M = getManifold(var)
-  pp = manikde!(M, pts, bw=bw)
-  initManual!(var,pp, solveKey)
-end
-
-const initVariableManual! = initManual!
-
-"""
-    $SIGNATURES
-
-Set solveKey values of `dest::AbstractDFG` according to `initKey::Symbol=:graphinit` values.
-
-Notes
-- Some flexibility for using two DFGs and different key values, see Examples and code for details.
-- Can also be specific with `varList::Vector{Symbol}`.
-- Returns `dest` graph.
-- Uses the supersolve mechanism.
-
-Examples
-```julia
-resetInitialValues!(fg)
-resetInitialValues!(fg1,fg2)  # into 1 from 2
-resetInitialValues!(fg1,fg1,:myotherinit)  # use different init value into solveKey :default
-resetInitialValues!(fg1,fg1,:graphinit, :mysolver) # not into solveKey=:default but :mysolver
-resetInitialValues!(fg1, varList=[:x1;:l3])  # Specific variables only
-
-# Into `fgNew` object, leaving `fg` untouched
-fgNew = deepcopy(fg)
-resetInitialValues!(fgNew,fg)
-```
-
-Related
-
-initManual!, graphinit (keyword)
-"""
-function resetInitialValues!(dest::AbstractDFG,
-                            src::AbstractDFG=dest,
-                            initKey::Symbol=:graphinit,
-                            solveKey::Symbol=:default;
-                            varList::AbstractVector{Symbol}=ls(dest))
-  #
-  for vs in varList
-    vnd = getSolverData(getVariable(src, vs), initKey)
-    # guess we definitely want to use copy to preserve the initKey memory
-    updateVariableSolverData!(dest,vs,vnd,solveKey,true; warn_if_absent=false)
-  end
-  return dest
-end
-const resetInitValues! = resetInitialValues!
-
-"""
-    $SIGNATURES
-
-Ensure that no variables set as `solvable=1` are floating free without any connected `solvable=1` factors.  If any found, then set those 'free' variable's `solvable=solvableFallback` (default `0`).
-
-Related
-
-ensureAllInitialized!
-"""
-function ensureSolvable!(dfg::AbstractDFG; solvableTarget::Int=1, solvableFallback::Int=0)
-  # workaround in case isolated variables occur
-  solvVars = ls(dfg, solvable=solvableTarget)
-  varHasFact = (x->length(ls(dfg,x, solvable=solvableTarget))==0).(solvVars)
-  blankVars = solvVars[findall(varHasFact)]
-  if 0 < length(blankVars)
-    @warn("solveTree! dissallows solvable variables without any connected solvable factors -- forcing solvable=0 on $(blankVars)")
-    (x->setSolvable!(dfg, x, solvableFallback)).(blankVars)
-  end
-  return blankVars
-end
-
-"""
-    $SIGNATURES
-
-Perform `graphinit` over all variables with `solvable=1` (default).
-
-Related
-
-ensureSolvable!, (EXPERIMENTAL 'treeinit')
-"""
-function initAll!(dfg::AbstractDFG,
-                  solveKey::Symbol=:default; 
-                  solvable::Int=1,
-                  N::Int=getSolverParams(dfg).N )
-  #
-  # allvarnodes = getVariables(dfg)
-  syms = intersect(getAddHistory(dfg), ls(dfg, solvable=solvable) )
-  # syms = ls(dfg, solvable=solvable) # |> sortDFG
-  
-  # May have to first add the solveKey VNDs if they are not yet available
-  for sym in syms
-    var = getVariable(dfg, sym)
-    # does SolverData exist for this solveKey?
-    if !( solveKey in listSolveKeys(var) )
-      varType = getVariableType(var)
-      # accept complete defaults for a novel solveKey
-      setDefaultNodeData!(var, 0, N, getDimension(varType), solveKey=solveKey, 
-                          initialized=false, varType=varType, dontmargin=false)
-    end
-  end
-
-  # do the init
-  repeatCount = 0
-  repeatFlag = true
-  while repeatFlag
-    repeatFlag = false
-    repeatCount += 1
-    if 10 < repeatCount
-      @info "not able to initialize all variables via the factor graph, abort autoinit."
-      break;
-    end
-    for sym in syms
-      var = getVariable(dfg, sym)
-      # is this SolverData initialized?
-      if !isInitialized(var, solveKey)
-        @info "$(var.label) is not initialized, and will do so now..."
-        doautoinit!(dfg, [var;], solveKey=solveKey, singles=true)
-        !isInitialized(var, solveKey) ? (repeatFlag = true) : nothing
-      end
-    end
-  end
-  nothing
-end
 
 function assembleFactorName(dfg::AbstractDFG,
                             Xi::Vector{<:DFGVariable} )
@@ -1195,6 +737,8 @@ function assembleFactorName(dfg::AbstractDFG,
   end
   return Symbol(namestring)
 end
+
+
 
 """
     $(SIGNATURES)
@@ -1220,9 +764,8 @@ function DFG.addFactor!(dfg::AbstractDFG,
                         suppressChecks::Bool=false,
                         inflation::Real=getSolverParams(dfg).inflation,
                         namestring::Symbol = assembleFactorName(dfg, Xi),
-                        _blockRecursion::Bool=false  )
+                        _blockRecursion::Bool=!getSolverParams(dfg).attemptGradients  )
   #
-  # depcrecation
 
   varOrderLabels = Symbol[v.label for v=Xi]
   solverData = getDefaultFactorData(dfg, 
@@ -1261,16 +804,7 @@ function DFG.addFactor!(dfg::AbstractDFG,
                         usrfnc::AbstractFactor;
                         suppressChecks::Bool=false,
                         kw...  )
-                        # multihypo::Vector{<:Real}=Float64[],
-                        # nullhypo::Float64=0.0,
-                        # solvable::Int=1,
-                        # timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
-                        # tags::Vector{Symbol}=Symbol[],
-                        # graphinit::Bool=getSolverParams(dfg).graphinit,
-                        # threadmodel=SingleThreaded,
-                        # inflation::Real=getSolverParams(dfg).inflation,
   #
-  # depcrecation
 
   # basic sanity check for unary vs n-ary
   if !suppressChecks
@@ -1279,218 +813,11 @@ function DFG.addFactor!(dfg::AbstractDFG,
 
   # variables = getVariable.(dfg, xisyms)
   variables = map(vid -> getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, variables, usrfnc; suppressChecks=suppressChecks, kw... ) # multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, tags=tags, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp, inflation=inflation )
+  addFactor!(dfg, variables, usrfnc; suppressChecks=suppressChecks, kw... ) 
 end
 
 
 
-
-function prtslperr(s)
-  println(s)
-  sleep(0.1)
-  error(s)
-end
-
-"""
-    $SIGNATURES
-
-Determine the variable ordering used to construct both the Bayes Net and Bayes/Junction/Elimination tree.
-
-Notes
-- Heuristic method -- equivalent to QR or Cholesky.
-- Are using Blas `QR` function to extract variable ordering.
-- **NOT USING SUITE SPARSE** -- which would requires commercial license.
-- For now `A::Array{<:Number,2}` as a dense matrix.
-- Columns of `A` are system variables, rows are factors (without differentiating between partial or full factor).
-- default is to use `solvable=1` and ignore factors and variables that might be used for dead reckoning or similar.
-
-Future
-- TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
-- TODO: Incidence matrix is rectagular and adjacency is the square.
-"""
-function getEliminationOrder( dfg::G;
-                              ordering::Symbol=:qr,
-                              solvable::Int=1,
-                              constraints::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
-  #
-  @assert 0 == length(constraints) || ordering == :ccolamd "Must use ordering=:ccolamd when trying to use constraints"
-  # Get the sparse adjacency matrix, variable, and factor labels
-  adjMat, permuteds, permutedsf = DFG.getBiadjacencyMatrix(dfg, solvable=solvable)
-  # adjMat, permuteds, permutedsf = DFG.getAdjacencyMatrixSparse(dfg, solvable=solvable)
-
-  # Create dense adjacency matrix
-
-  p = Int[]
-  if ordering==:chol
-    # hack for dense matrix....
-    A = adjMat
-    p = cholesky(Matrix(A'A),Val(true)).piv
-    @warn "check that cholesky ordering is not reversed -- basically how much fill in (separator size) are you seeing???  Long skinny chains in tree is bad."
-  elseif ordering==:qr
-    # hack for dense matrix....
-    A = Array(adjMat)
-    # this is the default
-    q,r,p = qr(A, Val(true))
-    p .= p |> reverse
-  elseif ordering==:ccolamd
-    cons = zeros(SuiteSparse_long, length(adjMat.colptr) - 1)
-    cons[findall(x->x in constraints, permuteds)] .= 1
-    p = Ccolamd.ccolamd(adjMat, cons)
-    @warn "Ccolamd is experimental in IIF at this point in time."
-  else
-    prtslperr("getEliminationOrder -- cannot do the requested ordering $(ordering)")
-  end
-
-  # Return the variable ordering that we should use for the Bayes map
-  # reverse order checked in #475 and #499
-  return permuteds[p]
-end
-
-
-# lets create all the vertices first and then deal with the elimination variables thereafter
-function addBayesNetVerts!( dfg::AbstractDFG,
-                            elimOrder::Array{Symbol,1} )
-  #
-  for pId in elimOrder
-    vert = DFG.getVariable(dfg, pId)
-    if getSolverData(vert).BayesNetVertID == nothing || getSolverData(vert).BayesNetVertID == :_null # Special serialization case of nothing
-      @debug "[AddBayesNetVerts] Assigning $pId.data.BayesNetVertID = $pId"
-      getSolverData(vert).BayesNetVertID = pId
-    else
-      @warn "addBayesNetVerts -- Something is wrong, variable '$pId' should not have an existing Bayes net reference to '$(getSolverData(vert).BayesNetVertID)'"
-    end
-  end
-end
-
-function addConditional!( dfg::AbstractDFG,
-                          vertId::Symbol,
-                          Si::Vector{Symbol} )
-  #
-  bnv = DFG.getVariable(dfg, vertId)
-  bnvd = getSolverData(bnv)
-  bnvd.separator = Si
-  for s in Si
-    push!(bnvd.BayesNetOutVertIDs, s)
-  end
-  return nothing
-end
-
-function addChainRuleMarginal!( dfg::AbstractDFG,
-                                Si::Vector{Symbol} )
-  #
-
-  lbls = String[]
-  genmarg = GenericMarginal()
-  Xi = map(v -> DFG.getVariable(dfg, v), Si)
-  # @info "adding marginal to"
-  # for x in Xi
-  #   @info "x.index=",x.index
-  # end
-  addFactor!( dfg, Xi, genmarg, graphinit=false, suppressChecks=true )
-  nothing
-end
-
-function rmVarFromMarg( dfg::AbstractDFG,
-                        fromvert::DFGVariable,
-                        gm::Vector{DFGFactor}  )
-  #
-
-  @debug " - Removing $(fromvert.label)"
-  for m in gm
-    @debug "Looking at $(m.label)"
-    for n in DFG.getNeighbors(dfg, m) #x1, x2
-      if n == fromvert.label # n.label ==? x1
-        @debug "   - Breaking link $(m.label)->$(fromvert.label)..."
-        @debug "     - Original links: $(DFG.ls(dfg, m))"
-        remvars = setdiff(DFG.ls(dfg, m), [fromvert.label])
-        @debug "     - New links: $remvars"
-
-        DFG.deleteFactor!(dfg, m) # Remove it
-        if length(remvars) > 0
-          @debug "$(m.label) still has links to other variables, readding it back..."
-          addFactor!(dfg, remvars, _getCCW(m).usrfnc!, graphinit=false, suppressChecks=true )
-        else
-          @debug "$(m.label) doesn't have any other links, not adding it back..."
-        end
-      end
-    end
-    # Added back in chain rule.
-    if DFG.exists(dfg, m) && length(DFG.getNeighbors(dfg, m)) <= 1
-      @warn "removing vertex id=$(m.label)"
-      DFG.deleteFactor!(dfg, m)
-    end
-  end
-  return nothing
-end
-
-function buildBayesNet!(dfg::AbstractDFG,
-                        elimorder::Vector{Symbol};
-                        solvable::Int=1 )
-  #
-  # addBayesNetVerts!(dfg, elimorder)
-  for v in elimorder
-    @debug """ 
-                Eliminating $(v)
-                ===============
-          """
-    # which variable are we eliminating
-
-    # all factors adjacent to this variable
-    fi = Symbol[]
-    Si = Symbol[]
-    gm = DFGFactor[]
-
-    vert = DFG.getVariable(dfg, v)
-    for fctId in DFG.getNeighbors(dfg, vert, solvable=solvable)
-      fct = DFG.getFactor(dfg, fctId)
-      if (getSolverData(fct).eliminated != true)
-        push!(fi, fctId)
-        for sepNode in DFG.getNeighbors(dfg, fct, solvable=solvable)
-          # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
-          if sepNode != v && !(sepNode in Si) # Symbol comparison!
-            push!(Si,sepNode)
-          end
-        end
-        getSolverData(fct).eliminated = true
-      end
-
-      if typeof(_getCCW(fct)) == CommonConvWrapper{GenericMarginal}
-        push!(gm, fct)
-      end
-    end
-
-    if v != elimorder[end]
-      addConditional!(dfg, v, Si)
-      # not yet inserting the new prior p(Si) back into the factor graph
-    end
-
-    # mark variable
-    getSolverData(vert).eliminated = true
-
-    # TODO -- remove links from current vertex to any marginals
-    rmVarFromMarg(dfg, vert, gm)
-
-    #add marginal on remaining variables... ? f(xyz) = f(x | yz) f(yz)
-    # new function between all Si (round the outside, right the outside)
-    length(Si) > 0 && addChainRuleMarginal!(dfg, Si)
-
-  end
-  return nothing
-end
-
-
-
-"""
-    $(SIGNATURES)
-
-Get KernelDensityEstimate kde estimate stored in variable node.
-"""
-getBelief(vnd::VariableNodeData) = manikde!(getVal(vnd), getBW(vnd)[:,1], getVariableType(vnd) )
-
-getBelief(v::DFGVariable, solvekey::Symbol=:default) = getBelief(getSolverData(v, solvekey))
-getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol=:default) = getBelief(getVariable(dfg, lbl), solvekey)
-
-const getKDE = getBelief
 
 
 #

@@ -13,7 +13,7 @@ using IncrementalInference
 fg = initfg()
 addVariable!(fg, :x0, ContinuousEuclid{3})
 
-addFactor!(fg, [:x0;], PartialPrior(MvNormal(zeros(2), ones(2)),(2,3)) )
+addFactor!(fg, [:x0;], PartialPrior(MvNormal(zeros(2), ones(2)), (2,3)) )
 
 addVariable!(fg, :x1, ContinuousEuclid{3})
 addFactor!(fg, [:x1;], PartialPrior(Normal(10,1),(1,)))
@@ -35,7 +35,8 @@ oldBel = getBelief(fg, destlbl)
 oldpts = getPoints(oldBel)
 
 varType = getVariableType(fg, destlbl)
-pGM = AMP.productbelief(oldpts, getManifold(varType), dens, 100, asPartial=false )
+pGM = getPoints( AMP.manifoldProduct(dens, getManifold(varType), N=100, oldPoints=oldpts), false )
+# pGM = AMP.productbelief(oldpts, getManifold(varType), dens, 100, asPartial=false )
 
 
 ##

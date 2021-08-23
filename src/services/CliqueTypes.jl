@@ -1,67 +1,3 @@
-# Clique types
-
-##==============================================================================
-## BayesTreeNodeData
-##==============================================================================
-
-
-"""
-    $TYPEDEF
-
-Cache messages being passed on the tree, one container per clique.
-
-Notes
-- See model 2 (?) on IIF #674
-"""
-mutable struct MessageBuffer
-  # up receive message buffer (multiple children, multiple messages)
-  upRx::Dict{Int, LikelihoodMessage} 
-  # down receive message buffer (one parent)
-  downRx::Union{Nothing, LikelihoodMessage} 
-  # RESERVED up outgoing message buffer (one parent)
-  upTx::Union{Nothing, LikelihoodMessage} 
-  # RESERVED down outgoing message buffer (multiple children but one message)
-  downTx::Union{Nothing, LikelihoodMessage} 
-end
-MessageBuffer() = MessageBuffer(Dict{Int, LikelihoodMessage}(), nothing, nothing, nothing)
-
-
-"""
-$(TYPEDEF)
-
-Data structure for each clique in the Bayes (Junction) tree.
-"""
-mutable struct BayesTreeNodeData
-  status::CliqStatus
-  frontalIDs::Vector{Symbol}
-  separatorIDs::Vector{Symbol}
-  inmsgIDs::Vector{Symbol} # Int
-  potIDs::Vector{Symbol} # Int # this is likely redundant TODO -- remove
-  potentials::Vector{Symbol}
-  partialpotential::Vector{Bool}
-
-  dwnPotentials::Vector{Symbol}
-  dwnPartialPotential::Vector{Bool}
-
-  cliqAssocMat::Array{Bool,2}
-  cliqMsgMat::Array{Bool,2}
-  directvarIDs::Vector{Symbol}
-  directFrtlMsgIDs::Vector{Symbol}
-  msgskipIDs::Vector{Symbol}
-  itervarIDs::Vector{Symbol}
-  directPriorMsgIDs::Vector{Symbol}
-  debug
-  debugDwn
-
-  allmarginalized::Bool
-  initialized::Symbol
-  upsolved::Bool
-  downsolved::Bool
-  isCliqReused::Bool             # holdover
-
-  # JT Local messages saved for cache and debugging, see IIF #675
-  messages::MessageBuffer
-end
 
 
 
@@ -153,26 +89,6 @@ function compare( c1::BayesTreeNodeData,
 end
 
 
-## Packed types for serialization
-
-
-mutable struct PackedBayesTreeNodeData
-  frontalIDs::Vector{Symbol}
-  separatorIDs::Vector{Symbol}
-  inmsgIDs::Vector{Symbol} # Int
-  potIDs::Vector{Symbol} # Int # this is likely redundant TODO -- remove
-  potentials::Vector{Symbol}
-  partialpotential::Vector{Bool}
-  dwnPotentials::Vector{Symbol}
-  dwnPartialPotential::Vector{Bool}
-  cliqAssocMat::Array{Bool,2}
-  cliqMsgMat::Array{Bool,2}
-  directvarIDs::Vector{Symbol} # Int
-  directFrtlMsgIDs::Vector{Symbol} # Int
-  msgskipIDs::Vector{Symbol} # Int
-  itervarIDs::Vector{Symbol} # Int
-  directPriorMsgIDs::Vector{Symbol} # Int
-end
 
 
 
@@ -222,29 +138,13 @@ end
 ## Cliques
 ## TreeClique
 ##==============================================================================
-struct CliqueId{T}
-  value::T
-end
+
 
 Base.getindex(cId::CliqueId) = cId.value
 Base.show(io::IO, ::MIME"text/plain", x::CliqueId) = print(io, x.value)
 Base.show(io::IO, x::CliqueId) = print(io, x.value)
 
-"""
-    $(TYPEDEF)
-Structure to store clique data
-DEV NOTES: To replace TreeClique completely
-    $(FIELDS)
-"""
-mutable struct TreeClique
-  "Interger id unique within a tree with userId, robotId, sessionId"
-  id::CliqueId{Int64} # not to be confused with the underlying index used by LightGraphs.jl, see issue #540
-  "Data as `BayesTreeNodeData`"
-  data::BayesTreeNodeData 
-  "Drawing attributes"
-  attributes::Dict{String, Any} 
-  #solveInProgress #on a clique level a "solve in progress" might be very handy
-end
+
 
 getId(c::TreeClique) = c.id
 
@@ -274,6 +174,3 @@ function setLabel!(cliq::TreeClique, lbl::String)
   lbl
 end
 
-
-
-## end Cliques

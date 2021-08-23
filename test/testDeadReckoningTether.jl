@@ -20,13 +20,12 @@ MutableLinearRelative(nm::Distributions.ContinuousUnivariateDistribution) = Muta
 MutableLinearRelative(nm::MvNormal) = MutableLinearRelative{length(nm.μ), typeof(nm)}(nm)
 MutableLinearRelative(nm::ManifoldKernelDensity) = MutableLinearRelative{Ndim(nm), typeof(nm)}(nm)
 
-getDimension(::Type{MutableLinearRelative{N,<:SamplableBelief}}) where {N} = N
-# getManifolds(::Type{MutableLinearRelative{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
+DFG.getDimension(::Type{MutableLinearRelative{N,<:SamplableBelief}}) where {N} = N
+DFG.getManifold(::MutableLinearRelative{N}) where N = TranslationGroup(N)
 
 
-function IIF.getSample(cf::CalcFactor{<:MutableLinearRelative}, N::Int=1)
-    ret = [rand(cf.factor.Z,1) for _ in 1:N]
-    (ret, )
+function IIF.getSample(cf::CalcFactor{<:MutableLinearRelative})
+    return (rand(cf.factor.Z, 1), )
 end
 
 function (s::CalcFactor{<:MutableLinearRelative})(  meas,
@@ -99,7 +98,9 @@ tree2, smt, hists = solveTree!(fg);
 
 val = accumulateFactorMeans(fg, [:x0deadreckon_x0f1])
 
-@test norm(val - calcVariablePPE(fg, :x0).suggested) < 1e-8
+# must fix return type stability
+fval = float(val...)
+@test isapprox(fval, calcVariablePPE(fg, :x0).suggested[1], atol=1e-8 )
 
 #TODO improve test
 rebaseFactorVariable!(fg, :x0deadreckon_x0f1, [:x1; :deadreckon_x0])

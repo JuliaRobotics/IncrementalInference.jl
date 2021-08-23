@@ -9,39 +9,6 @@ function fastnorm(u)
   @fastmath @inbounds return sqrt(s)
 end
 
-"""
-    $SIGNATURES
-
-Helper function for IIF.getSample, to generate a vector of points regardless of the Manifold and probability density function used.
-
-Related
-
-[`getSample`](@ref)
-"""
-randToPoints(distr::SamplableBelief, N::Int=1) = [rand(distr,1)[:] for i in 1:N]
-randToPoints(distr::ManifoldKernelDensity, N::Int=1) = rand(distr,N)
-
-_setPointsMani!(dest::AbstractVector, src::AbstractVector) = (dest .= src)
-_setPointsMani!(dest::AbstractMatrix, src::AbstractMatrix) = (dest .= src)
-function _setPointsMani!(dest::AbstractVector, src::AbstractMatrix)
-  @assert size(src,2) == 1 "Workaround _setPointsMani! currently only allows size(::Matrix, 2) == 1"
-  _setPointsMani!(dest, src[:])
-end
-function _setPointsMani!(dest::AbstractMatrix, src::AbstractVector)
-  @assert size(dest,2) == 1 "Workaround _setPointsMani! currently only allows size(::Matrix, 2) == 1"
-  _setPointsMani!(view(dest,:,1), src)
-end
-
-function _setPointsMani!(dest::AbstractVector, src::AbstractVector{<:AbstractVector})
-  @assert length(src) == 1 "Workaround _setPointsMani! currently only allows Vector{Vector{P}}(...) |> length == 1"
-  _setPointsMani!(dest, src[1])
-end
-
-function _setPointsMani!(dest::ProductRepr, src::ProductRepr)
-  for (k,prt) in enumerate(dest.parts)
-    _setPointsMani!(prt, src.parts[k])
-  end
-end
 
 
 """
@@ -51,10 +18,11 @@ Calculate the Kernel Embedding MMD 'distance' between sample points (or kernel d
 
 Notes
 - `bw::Vector=[0.001;]` controls the mmd kernel bandwidths.
+- Overloading from ApproxManifoldProducts
 
 Related
 
-`KDE.kld`
+`AMP.kld`
 """
 function mmd( p1::AbstractVector{P1}, 
               p2::AbstractVector{P2}, 
@@ -153,6 +121,9 @@ Notes
 - Often used to quickly generate temporary graphs for a variety of local calculations.
 - does not yet support split `_` characters in auto-find `lastVar` from `varPattern`. 
 - Will always add a factor, but will skip adding variable labels that already exist in `dfg`.
+
+DevNotes
+- TODO allow pts to be full MKD beliefs, part of replacing old `approxConvCircular`, see #1351
 """
 function _buildGraphByFactorAndTypes!(fct::AbstractFactor, 
                                       varTypes::Tuple,
@@ -176,6 +147,7 @@ function _buildGraphByFactorAndTypes!(fct::AbstractFactor,
     # add the necessary variables
     exists(dfg, vars[s_]) ? nothing : addVariable!(dfg, vars[s_],  vTyp)
     # set the numerical values if available
+    # TODO allow pts to come in as full MKD beliefs, not just one point
     ((0 < length(pts)) && (pts[s_] isa Nothing)) ? nothing : initManual!(dfg,  vars[s_], [pts[s_],], solveKey, bw=ones(getDimension(vTyp)))
   end
   # if newFactor then add the factor on vars, else assume only one existing factor between vars
@@ -202,7 +174,7 @@ Notes
 - This function does not add new variables or factors to `fg`, user must do that themselves after.
   - Useful to use in combination with `setPPE!` on new variable.
 - At time of writing `accumulateFactorMeans` could only incorporate priors or binary relative factors.
-  - internal info, see [`solveBinaryFactorParameteric`](@ref),
+  - internal info, see [`solveFactorParameteric`](@ref),
   - This means at time of writing `factor` must be a binary factor.
 - Tip, if simulations are inducing odometry bias, think of using two factors from caller (e.g. simPerfect and simBias).
 
@@ -236,10 +208,10 @@ Related
 [`RoME.generateCanonicalFG_Honeycomb!`](@ref), [`accumulateFactorMeans`](@ref), [`getPPE`](@ref)
 """
 function _checkVariableByReference( fg::AbstractDFG,
-                                    srcLabel::Symbol,            # = :x5
-                                    destRegex::Regex,            # = r"l\d+"
-                                    destType::Type{<:InferenceVariable}, # = Point2
-                                    factor::AbstractRelative;    # = Pose2Poin2BearingRange(...)
+                                    srcLabel::Symbol,
+                                    destRegex::Regex,
+                                    destType::Type{<:InferenceVariable},
+                                    factor::AbstractRelative;
                                     srcType::Type{<:InferenceVariable} = getVariableType(fg, srcLabel) |> typeof,
                                     refKey::Symbol=:simulated,
                                     prior = DFG._getPriorType(srcType)( MvNormal(getPPE(fg[srcLabel], refKey).suggested, diagm(ones(getDimension(srcType)))) ),
@@ -265,16 +237,13 @@ function _checkVariableByReference( fg::AbstractDFG,
   end
 
   ppe = DFG.MeanMaxPPE(refKey, refVal, refVal, refVal)
-  # setPPE!(v_n, refKey, DFG.MeanMaxPPE, ppe)
 
   # now check if we already have a landmark at this location
   varLms = ls(fg, destRegex) |> sortDFG
   ppeLms = getPPE.(getVariable.(fg, varLms), refKey) .|> x->x.suggested
-  # @show typeof(ppeLms)
   errmask = ppeLms .|> x -> norm(x - ppe.suggested) < atol
   already = any(errmask)
 
-  # @assert sum(errmask) <= 1 "There should be only one landmark at $ppe"
   if already
     # does exist, ppe, variableLabel
     alrLm = varLms[findfirst(errmask)]
@@ -287,13 +256,13 @@ end
 
 
 function _checkVariableByReference( fg::AbstractDFG,
-                                    srcLabel::Symbol,            # = :x5
-                                    destRegex::Regex,            # = r"l\d+"
-                                    destType::Type{<:InferenceVariable}, # = Point2
+                                    srcLabel::Symbol,
+                                    destRegex::Regex,
+                                    destType::Type{<:InferenceVariable},
                                     factor::AbstractPrior;
                                     srcType::Type{<:InferenceVariable} = getVariableType(fg, srcLabel) |> typeof,
                                     refKey::Symbol=:simulated,
-                                    prior = typeof(factor)( MvNormal(getParametricMeasurement(factor)...) ),
+                                    prior = typeof(factor)( MvNormal(getMeasurementParametric(factor)...) ),
                                     atol::Real = 1e-3,
                                     destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
                                     srcNumber = match(r"\d+", string(srcLabel)).match |> x->parse(Int,x),
@@ -303,7 +272,7 @@ function _checkVariableByReference( fg::AbstractDFG,
   refVal = if overridePPE !== nothing
     overridePPE
   else
-    getParametricMeasurement(factor)[1]
+    getMeasurementParametric(factor)[1]
   end
 
   ppe = DFG.MeanMaxPPE(refKey, refVal, refVal, refVal)
@@ -311,6 +280,9 @@ function _checkVariableByReference( fg::AbstractDFG,
   # Nope does not exist, ppe, generated new variable label only
   return false, ppe, Symbol(destPrefix, srcNumber)
 end
+
+
+
 
 
 #

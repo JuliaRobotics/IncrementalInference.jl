@@ -85,7 +85,7 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   # the variable is a manifold point, we are working on the tangent plane in optim for now.
   # 
   #TODO this is not general to all manifolds, should work for lie groups.
-  # ϵ = identity(M, u0)
+  # ϵ = identity_element(M, u0)
   ϵ = getPointIdentity(variableType)
   # X0c = get_coordinates(M, u0, log(M, ϵ, u0), DefaultOrthogonalBasis()) 
   X0c = vee(M, u0, log(M, ϵ, u0)) 
@@ -94,8 +94,9 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   # norm(M, p, X) == distance(M, p, X)
   #TODO fix closure for performance
   fM = getManifold(fcttype)
-  function cost(Xc)
-    p = exp(M, ϵ, hat(M, ϵ, Xc))  
+  function cost(p, X, Xc)
+    hat!(M, X, ϵ, Xc)
+    exp!(M, p, ϵ, X)  
     # X = objResX(p)
     # return norm(fM, p, X)^2 #TODO the manifold of p and X are not always the same
     #options getPointIdentity or leave it to factor 
@@ -103,10 +104,19 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
     return sum(residual.^2)
   end
 
-  alg = islen1 ? Optim.BFGS() : Optim.NelderMead() 
-
-  r = Optim.optimize(cost, X0c, alg)
-  
+  # # separate statements to try improve type-stability 
+  # r = if islen1
+  #   Optim.optimize(cost, X0c, Optim.BFGS())
+  # else
+  #   Optim.optimize(cost, X0c, Optim.NelderMead())
+  # end
+  alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
+  X0 = hat(M, ϵ, X0c)
+  p0 = exp(M, ϵ, X0)
+  r = Optim.optimize(Xc->cost(p0, X0, Xc), X0c, alg)
+  if !Optim.converged(r)
+    @debug "Optim did not converge:" r
+  end
   return exp(M, ϵ, hat(M, ϵ, r.minimizer)) 
 
 end
@@ -122,8 +132,19 @@ end
 # internal function to dispatch view on either vector or matrix, rows are dims and samples are columns
 # _viewdim1or2(other, ind...) = other
 _getindextuple(tup::Tuple, ind1::Int) = [getindex(t, ind1) for t in tup]
+# _getindextuple(tup::NamedTuple, ind1::Int) = [getindex(t, ind1) for t in tup]
 # _viewdim1or2(arr::AbstractMatrix, ind1, ind2) = view(arr, ind1, ind2)
 
+
+# TODO, likely a shortlived function, and should be replaced with ccw.hypoParams::Tuple(hypo1, hypo2,...), made at construction and allows direct hypo lookup
+# DevNotes, also see new `hyporecipe` approach (towards consolidation CCW CPT FMd CF...)
+function _view(nt::NamedTuple{S,T}, idx::AbstractVector{<:Integer}) where {S,T}
+  # nms = tuple([S[i] for i in idx]...)
+  tup = tuple([nt[i] for i in idx]...)
+  # return that particular hypo
+  # NamedTuple{nms, typeof(tup)}(tup)
+  tup
+end
 
 function _buildCalcFactorMixture( ccwl::CommonConvWrapper,
                                   _fmd_,
@@ -147,6 +168,9 @@ function _buildCalcFactorMixture( ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
               length(measurement_), measurement_, varParams)
 end
 
+
+
+
 """
     $SIGNATURES
 Internal function to build lambda pre-objective function for finding factor residuals. 
@@ -163,7 +187,7 @@ DevNotes
 - TODO refactor relationship and common fields between (CCW, FMd, CPT, CalcFactor)
 """
 function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
-                                      smpid::Int,
+                                      smpid::Integer,
                                       cpt_::ConvPerThread = ccwl.cpt[Threads.threadid()],
                                       target = view(ccwl.params[ccwl.varidx][smpid], cpt_.p),
                                       measurement_ = ccwl.measurement,
@@ -172,10 +196,11 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   #
 
   # build a view to the decision variable memory
-  varParams = view(ccwl.params, cpt_.activehypo)
+  varParams = _view(ccwl.params, cpt_.activehypo)
   
   # prepare fmd according to hypo selection
-  # FIXME must refactor (memory waste)
+  # FIXME must refactor (memory waste) and consolidate with CCW CPT FMd CF
+  # FIXME move up out of smpid loop and only update bare minimal fields
   _fmd_ = FactorMetadata( view(fmd_.fullvariables, cpt_.activehypo), 
                           view(fmd_.variablelist, cpt_.activehypo),
                           varParams, # view(fmd_.arrRef, cpt_.activehypo),
@@ -194,13 +219,13 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
 
   # build static lambda
   unrollHypo! = if _slack === nothing
-    () -> cf( (_getindextuple(measurement_, smpid))..., (getindex.(varParams, smpid))... )
+    () -> cf( measurement_[smpid]..., (getindex.(varParams, smpid))... )
   else
     # slack is used to shift the residual away from the natural "zero" tension position of a factor, 
     # this is useful when calculating factor gradients at a variety of param locations resulting in "non-zero slack" of the residual.
     # see `IIF.calcFactorResidualTemporary`
     # NOTE this minus operation assumes _slack is either coordinate or tangent vector element (not a manifold or group element)
-    () -> cf( (_getindextuple(measurement_, smpid))..., (getindex.(varParams, smpid))... ) .- _slack
+    () -> cf( measurement_[smpid]..., (getindex.(varParams, smpid))... ) .- _slack
   end
 
   return unrollHypo!, target

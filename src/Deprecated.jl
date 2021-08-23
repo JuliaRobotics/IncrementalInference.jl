@@ -25,7 +25,195 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
-@deprecate calcPerturbationFromVariable( fgc::FactorGradientsCached!, fromVar::Int, infoPerCoord::AbstractVector;tol::Real=0.02*fgc._h ) calcPerturbationFromVariable(fgc, [fromVar => infoPerCoord;], tol=tol )
+function getSample(cf::CalcFactor, N::Int) 
+  # Base.depwarn("`getSample(cf, N)` is deprecated, use `getSample(cf)`", :getSample)
+  error("`getSample(cf, N)` is deprecated, use `getSample(cf)`")
+end
+
+# """
+#     $SIGNATURES
+
+# Build an approximate density `[Y|X,DX,.]=[X|Y,DX][DX|.]` as proposed by the conditional convolution.
+
+# Notes
+# - Assume both are on circular manifold, `manikde!(pts, (:Circular,))`
+# """
+# function approxConvCircular(pX::ManifoldKernelDensity, 
+#                             pDX::ManifoldKernelDensity; N::Int=100)
+#   #
+
+#   # building basic factor graph
+#   tfg = initfg()
+#   addVariable!(tfg, :s1, Sphere1)
+#   addVariable!(tfg, :s2, Sphere1)
+#   addFactor!(tfg, [:s1;:s2], Sphere1Sphere1(pDX), graphinit=false)
+#   initManual!(tfg,:s1, pX)
+
+#   # solve for outgoing proposal value
+#   approxConv(tfg,:s1s2f1,:s2)
+# end
+
+# function approxConvCircular(pX::ManifoldKernelDensity, 
+#                             pDX::SamplableBelief; N::Int=100)
+#   #
+#   pts = reshape(rand(pDX, N), 1, :)
+#   pC = manikde!(pts, Sphere1)
+#   approxConvCircular(pX, pC)
+# end
+
+
+# function approxConvCircular(pX::SamplableBelief, 
+#                             pDX::ManifoldKernelDensity; N::Int=100)
+#   #
+#     pts = reshape(rand(pX, N), 1, :)
+#   pC = manikde!(pts, Sphere1)
+#   approxConvCircular(pC, pDX)
+# end
+
+
+
+@deprecate printGraphSummary(dfg::AbstractDFG, logger=ConsoleLogger()) show(logger.stream, MIME("text/plain"), dfg)
+@deprecate printSummary(dfg::AbstractDFG, logger=ConsoleLogger()) show(logger.stream, MIME("text/plain"), dfg)
+
+
+# """
+#     $SIGNATURES
+
+# Print basic summary of graph to `logger=ConsoleLogger()`.
+# """
+# function printGraphSummary(dfg::G, logger=ConsoleLogger())::Nothing where {G <: AbstractDFG}
+#     vars = ls(dfg)
+#     fcts = lsf(dfg)
+
+#     prio = lsfPriors(dfg)
+
+#     isinit = map(x->isInitialized(dfg,x), vars)
+#     infdim = map(x->getVariableInferredDim(dfg, x), vars)
+#     numedges = map(v->length(ls(dfg, v)), vars)
+#     numfed = map(fc->length(ls(dfg, fc)), fcts)
+#     vardims = map(v->getDimension(getVariable(dfg, v)), vars)
+#     fctdims = map(v->getDimension(getFactor(dfg, v)), fcts)
+#     priodims = map(v->getDimension(getFactor(dfg, v)), prio)
+
+#     with_logger(logger) do
+#       @info "Distributed Factor Graph summary:"
+#       @info "  num variables:    $(length(vars))"
+#       @info "  num factors:      $(length(fcts)), w/ $(length(prio)) priors"
+#       @info "  var initialized:  $(sum(isinit))"
+#       @info ""
+#       @info "  var num edges: min. $(minimum(numedges)) | mean $(round(Statistics.mean(numedges),digits=2)) | 90% $(round(quantile(numedges,0.9),digits=2)) | max. $(maximum(numedges))"
+#       @info "  fct num edges: min. $(minimum(numfed)) | mean $(round(Statistics.mean(numfed),digits=2)) | 90% $(round(quantile(numfed,0.9),digits=2)) | max. $(maximum(numfed))"
+#       @info "  Variable dims: min. $(minimum(vardims)) | mean $(round(Statistics.mean(vardims),digits=2)) | 90% $(round(quantile(vardims,0.9),digits=2)) | max. $(maximum(vardims))"
+#       @info "  Factor dims:   min. $(minimum(fctdims)) | mean $(round(Statistics.mean(fctdims),digits=2)) | 90% $(round(quantile(fctdims,0.9),digits=2)) | max. $(maximum(fctdims))"
+#       @info "  Prior dimens:  min. $(minimum(priodims)) | mean $(round(Statistics.mean(priodims),digits=2)) | 90% $(round(quantile(priodims,0.9),digits=2)) | max. $(maximum(priodims))"
+#       @info "  var infr'dims: min. $(minimum(infdim)) | mean $(round(Statistics.mean(infdim),digits=2)) | 90% $(round(quantile(infdim,0.9),digits=2)) | max. $(maximum(infdim))"
+#     end
+#     nothing
+# end
+
+# """
+#     $SIGNATURES
+
+# Print basic summary of graph to `logger=ConsoleLogger()`.
+# """
+# function printSummary(dfg::G, logger=ConsoleLogger()) where G <: AbstractDFG
+#     printGraphSummary(dfg, logger)
+# end
+
+
+
+# """
+#     $SIGNATURES
+
+# Calculate both measured and predicted relative variable values, starting with `from` at zeros up to `to::Symbol`.
+
+# Notes
+# - assume single variable separators only.
+
+# DevNotes
+# - TODO better consolidate with [`approxConvBelief`](@ref) which can now also work with factor chains.
+# """
+# function accumulateFactorChain( dfg::AbstractDFG,
+#                                 from::Symbol,
+#                                 to::Symbol,
+#                                 fsyms::Vector{Symbol}=findFactorsBetweenNaive(dfg, from, to);
+#                                 initval=zeros(size(getVal(dfg, from))))
+
+#   # get associated variables
+#   svars = union(ls.(dfg, fsyms)...)
+
+#   # use subgraph copys to do calculations
+#   tfg_meas = buildSubgraph(dfg, [svars;fsyms])
+#   tfg_pred = buildSubgraph(dfg, [svars;fsyms])
+
+#   # drive variable values manually to ensure no additional stochastics are introduced.
+#   nextvar = from
+#   initManual!(tfg_meas, nextvar, initval)
+#   initManual!(tfg_pred, nextvar, initval)
+
+#   # nextfct = fsyms[1] # for debugging
+#   for nextfct in fsyms
+#     nextvars = setdiff(ls(tfg_meas,nextfct),[nextvar])
+#     @assert length(nextvars) == 1 "accumulateFactorChain requires each factor pair to separated by a single variable"
+#     nextvar = nextvars[1]
+#     meas, pred = approxDeconv(dfg, nextfct) # solveFactorMeasurements
+#     pts_meas = approxConv(tfg_meas, nextfct, nextvar, (meas,ones(Int,100),collect(1:100)))
+#     pts_pred = approxConv(tfg_pred, nextfct, nextvar, (pred,ones(Int,100),collect(1:100)))
+#     initManual!(tfg_meas, nextvar, pts_meas)
+#     initManual!(tfg_pred, nextvar, pts_pred)
+#   end
+#   return getVal(tfg_meas,nextvar), getVal(tfg_pred,nextvar)
+# end
+
+
+# # TODO should this be consolidated with regular approxConv?
+# # TODO, perhaps pass Xi::Vector{DFGVariable} instead?
+# function approxConvBinary(arr::Vector{Vector{Float64}},
+#                           meas::AbstractFactor,
+#                           outdims::Int,
+#                           fmd::FactorMetadata,
+#                           measurement::Tuple=(Vector{Vector{Float64}}(),);
+#                           varidx::Int=2,
+#                           N::Int=length(arr),
+#                           vnds=DFGVariable[],
+#                           _slack=nothing )
+#   #
+#   # N = N == 0 ? size(arr,2) : N
+#   pts = [zeros(outdims) for _ in 1:N];
+#   ptsArr = Vector{Vector{Vector{Float64}}}()
+#   push!(ptsArr,arr)
+#   push!(ptsArr,pts)
+
+#   fmd.arrRef = ptsArr
+
+#   # TODO consolidate with ccwl??
+#   # FIXME do not divert Mixture for sampling
+#   # cf = _buildCalcFactorMixture(ccwl, fmd, 1, ccwl.measurement, ARR) # TODO perhaps 0 is safer
+#   # FIXME 0, 0, ()
+#   cf = CalcFactor( meas, fmd, 0, 0, (), ptsArr)
+
+#   measurement = length(measurement[1]) == 0 ? sampleFactor(cf, N) : measurement
+#   # measurement = size(measurement[1],2) == 0 ? sampleFactor(meas, N, fmd, vnds) : measurement
+
+#   zDim = length(measurement[1][1])
+#   ccw = CommonConvWrapper(meas, ptsArr[varidx], zDim, ptsArr, fmd, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)
+
+#   for n in 1:N
+#     ccw.cpt[Threads.threadid()].particleidx = n
+#     _solveCCWNumeric!( ccw, _slack=_slack )
+#   end
+#   return pts
+# end
+
+@deprecate getParametricMeasurement(w...;kw...) getMeasurementParametric(w...;kw...)
+
+# function prtslperr(s)
+#   println(s)
+#   sleep(0.1)
+#   error(s)
+# end
+
+@deprecate getKDE(w...;kw...) getBelief(w...;kw...)
 
 @deprecate findRelatedFromPotential(w...;kw...) (calcProposalBelief(w...;kw...),)
 
@@ -135,6 +323,31 @@ end
 ## Deprecate code below before v0.26
 ##==============================================================================
 
+# wow, that was quite far off -- needs testing
+# function factorCanInitFromOtherVars(dfg::T,
+#                                     fct::Symbol,
+#                                     loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}} where T <: AbstractDFG
+#   #
+#   # all variables attached to this factor
+#   varsyms = getNeighbors(dfg, fct)
+#
+#   # list of factors to use in init operation
+#   useinitfct = Symbol[]
+#   faillist = Symbol[]
+#   for vsym in varsyms
+#     xi = DFG.getVariable(dfg, vsym)
+#     if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
+#       push!(useinitfct, fct)
+#     end
+#   end
+#
+#   return (length(useinitfct)==length(varsyms)&&length(faillist)==0,
+#           useinitfct,
+#           faillist   )
+# end
+
+@deprecate calcPerturbationFromVariable( fgc::FactorGradientsCached!, fromVar::Int, infoPerCoord::AbstractVector;tol::Real=0.02*fgc._h ) calcPerturbationFromVariable(fgc, [fromVar => infoPerCoord;], tol=tol )
+
 function getVal(vA::Vector{<:DFGVariable}, solveKey::Symbol=:default)
   @error "getVal(::Vector{DFGVariable}) is obsolete, use getVal.(DFGVariable) instead."
   # len = length(vA)
@@ -171,7 +384,7 @@ end
 
 @deprecate ensureAllInitialized!(w...;kw...) initAll!(w...;kw...)
 
-@deprecate getFactorMean(w...) IIF.getParametricMeasurement(w...)[1]
+@deprecate getFactorMean(w...) IIF.getMeasurementParametric(w...)[1]
 
 # """
 #     $SIGNATURES

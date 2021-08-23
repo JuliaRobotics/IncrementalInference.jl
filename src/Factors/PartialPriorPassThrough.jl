@@ -9,4 +9,8 @@ struct PartialPriorPassThrough{B <: HeatmapDensityRegular, T <:Tuple} <: Abstrac
 end
 
 # this step is skipped during main inference process
-getSample(cf::CalcFactor{<:PartialPriorPassThrough}, N::Int=1) = ([rand(cf.factor.Z.densityFnc,1) for _ in 1:N], )
+getSample(cf::CalcFactor{<:PartialPriorPassThrough}) = (rand(cf.factor.Z.densityFnc, 1), )
+
+getManifold(pppt::PartialPriorPassThrough{<:HeatmapDensityRegular{T,H,<:ManifoldKernelDensity}}) where {T,H} = (pppt.Z.densityFnc.manifold)
+
+#

@@ -152,7 +152,10 @@ function manikde!(pts::AbstractVector{P},
                   vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}) where P
   #
   M = getManifold(vartype)
-  infoPerCoord=ones(AMP.getNumberCoords(M, pts[1]))
+  # @info "WHAT" vartype, M
+  # @show pts[1]
+  # @show manifold_dimension(M)
+  infoPerCoord=ones(manifold_dimension(M))
   return AMP.manikde!(M, pts, infoPerCoord=infoPerCoord)
 end
 
@@ -232,6 +235,12 @@ function fifoFreeze!(dfg::AbstractDFG)
 end
 
 
+DFG.getPoint(typ::InferenceVariable, w...;kw...) = getPoint(typeof(typ), w...;kw...)
+DFG.getCoordinates(typ::InferenceVariable, w...;kw...) = getCoordinates(typeof(typ), w...;kw...)
+
+# WIP
+# _getMeasurementRepresentation(::AbstractPrior, coord::AbstractVector{<:Number}) = 
+
 
 """
     $SIGNATURES
@@ -248,7 +257,7 @@ Related
 """
 function calcPPE( var::DFGVariable,
                   varType::InferenceVariable=getVariableType(var);
-                  ppeType::Type{MeanMaxPPE}=MeanMaxPPE,
+                  ppeType::Type{<:MeanMaxPPE}=MeanMaxPPE,
                   solveKey::Symbol=:default,
                   ppeKey::Symbol=solveKey,
                   timestamp=now()  )
@@ -262,9 +271,9 @@ function calcPPE( var::DFGVariable,
   # returns coordinates at identify
   Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
   # calculate point
- 
+
   ## TODO make PPE only use getCoordinates for now (IIF v0.25)
-  Pme_ = getCoordinates(typeof(varType),Pme)
+  Pme_ = getCoordinates(varType,Pme)
   # Pma_ = getCoordinates(M,Pme)
   
   # suggested, max, mean, current time

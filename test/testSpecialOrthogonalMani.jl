@@ -92,7 +92,7 @@ vnd = getVariableSolverData(fg, :x0)
 @test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
 @test all(is_point.(Ref(M), vnd.val))
 
-points = sampleFactor(fg, :x0f1, 100)[1]
+points = map(x->x[1], sampleFactor(fg, :x0f1, 100))
 IIF.calcCovarianceBasic(SpecialOrthogonal(3), points)
 
 ##

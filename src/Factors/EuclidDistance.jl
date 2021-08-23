@@ -14,13 +14,13 @@ end
 
 EuclidDistance(::UniformScaling=LinearAlgebra.I) = EuclidDistance(Normal())
 
-getManifold(::InstanceType{EuclidDistance}) = Euclidean(1)
+# consider a different group?
+getManifold(::InstanceType{EuclidDistance}) = TranslationGroup(1)
 getDimension(::InstanceType{<:EuclidDistance}) = 1
 
 
-function getSample(cf::CalcFactor{<:EuclidDistance}, N::Int=1)
-  ret = [rand(cf.factor.Z,1) for _ in 1:N]
-  (ret, )
+function getSample(cf::CalcFactor{<:EuclidDistance})
+  (rand(cf.factor.Z, 1), )
 end
 
 # new and simplified interface for both nonparametric and parametric
@@ -30,7 +30,7 @@ function (s::CalcFactor{<:EuclidDistance})(z, x1, x2)
 end
 
 
-Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{EuclidDistance}) = Manifolds.Euclidean(1)
+Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{EuclidDistance}) = Manifolds.TranslationGroup(1)
 
 
 """

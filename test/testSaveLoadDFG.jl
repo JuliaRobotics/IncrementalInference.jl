@@ -37,6 +37,8 @@ end
 ##
 
 fg = generateCanonicalFG_Kaess()
+getSolverParams(fg).attemptGradients = true
+
 addVariable!(fg, :x4, ContinuousScalar)
 addFactor!(fg, [:x2;:x3;:x4], LinearRelative(Normal()), multihypo=[1.0;0.6;0.4])
 addFactor!(fg, [:x1;], Prior(Normal(10,1)), nullhypo=0.5)

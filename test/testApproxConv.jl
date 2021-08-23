@@ -25,7 +25,7 @@ ccw = IIF._getCCW(fg, :x0x1f1)
 
 res = calcFactorResidualTemporary(lr3,
                                   (ContinuousEuclid{3},ContinuousEuclid{3}),
-                                  ([0;0;0.5],),
+                                  [([0;0;0.5],)],
                                   (zeros(3), [0;0;1.0])  )
 #
 
@@ -78,9 +78,23 @@ pts_ = approxConv(fg, :x1f1, :l2)
 @test 1.6 < Statistics.std(pts) < 4.0
 
 ##
-
 end
 
 
+@testset "test approxConvBelief with partial prior" begin
+##
+
+fg = initfg()
+
+addVariable!(fg, :x0, ContinuousEuclid{2})
+pp = PartialPrior(Normal(),(2,))
+addFactor!(fg, [:x0], pp, graphinit=false)
+
+approxConvBelief(fg, :x0f1, :x0)
+
+@info "second test with more complicated manifolds in testSpecialEuclidean2Mani.jl"
+
+##
+end
 
 #

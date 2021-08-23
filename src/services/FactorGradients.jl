@@ -6,14 +6,14 @@ export checkGradientsToleranceMask, calcPerturbationFromVariable
 
 # T_pt_args[:] = [(T1::Type{<:InferenceVariable}, point1); ...]
 # FORCED TO START AT EITHER :x1
-function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:AbstractRelativeRoots}, 
+function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:AbstractRelativeRoots, <:AbstractManifoldMinimize}, 
                                     measurement::Tuple,
                                     varTypes::Tuple,
                                     pts::Tuple;
                                     tfg::AbstractDFG = initfg(),
                                     _blockRecursion::Bool=true,
                                     # gradients relative to coords requires 
-                                    slack_resid = calcFactorResidualTemporary(fct, varTypes, measurement, pts, tfg=tfg, _blockRecursion=_blockRecursion),
+                                    slack_resid = calcFactorResidualTemporary(fct, varTypes, [measurement], pts, tfg=tfg, _blockRecursion=_blockRecursion),
                                     # numerical diff perturbation size
                                     h::Real=1e-4  ) 
   #
@@ -26,12 +26,12 @@ function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:Abst
   # perturb the coords of one variable on the factor
   coord_h =       (s,i, crd=coord_(s)) -> (crd[i] += h; crd)
   # reassemble TypePoint vector with perturbation at (s,i)
-  T_pth_s_i =     (s,i) -> AMP.makePointFromCoords(M[s], coord_h(s,i), pts[s])         # exp(M,..., hat(M,...) )
+  T_pth_s_i =     (s,i) -> makePointFromCoords(M[s], coord_h(s,i), pts[s])         # exp(M,..., hat(M,...) )
   tup_pt_s_i_h =  (s,i) -> tuple(pts[1:(s-1)]..., T_pth_s_i(s,i), pts[(s+1):end]...)
   # build a residual calculation specifically considering graph factor selections `s`, e.g. for binary `s ∈ {1,2}`.
-  f_dsi_h =       (d,s,i) -> IIF._evalFactorTemporary!(fct, varTypes, d, measurement, tup_pt_s_i_h(s,i); tfg=tfg, newFactor=false, currNumber=0, _slack=slack_resid )
+  f_dsi_h =       (d,s,i) -> IIF._evalFactorTemporary!(fct, varTypes, d, [measurement], tup_pt_s_i_h(s,i); tfg=tfg, newFactor=false, currNumber=0, _slack=slack_resid )
   # standard calculus derivative definition (in coordinate space)
-  Δf_dsi =        (d,s,i, crd=coord_(d)) -> (f_dsi_h(d,s,i)[1] - crd)./h
+  Δf_dsi =        (d,s,i, crd=coord_(d)) -> (makeCoordsFromPoint(M[s], f_dsi_h(d,s,i)[1]) - crd)./h
   # jacobian block per s, for each i
   ▽f_ds =         (d,s, crd=coord_(d)) -> ((i)->Δf_dsi(d,s,i,crd)).(1:length(crd))
   # jacobian stored in user provided matrix
@@ -73,7 +73,7 @@ function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:Abst
 end
 
 
-function FactorGradientsCached!(fct::Union{<:AbstractRelativeMinimize, <:AbstractRelativeRoots},
+function FactorGradientsCached!(fct::Union{<:AbstractRelativeMinimize, <:AbstractRelativeRoots, <:AbstractManifoldMinimize},
                                 varTypes::Tuple,
                                 meas_single::Tuple, 
                                 pts::Tuple; 
@@ -108,37 +108,44 @@ end
 getCoordSizes(fgc::FactorGradientsCached!) = fgc._coord_sizes
 
 
-_setFGCSlack!(fgc::FactorGradientsCached!{F}, slack) where F = _setPointsMani!(fgc.slack_residual, slack)
+_setFGCSlack!(fgc::FactorGradientsCached!{F}, slack) where F = setPointsMani!(fgc.slack_residual, slack)
 
 function _setFGCSlack!(fgc::FactorGradientsCached!{F,S}, slack::Number) where {F,S<:Number}
   fgc.slack_residual = slack
 end
 
 function (fgc::FactorGradientsCached!)(meas_pts...)
+  # @warn "YELLING TIMBER1"
+
   # separate the measurements (forst) from the variable points (rest)
   lenm = length(fgc.measurement)
-  @assert (length(fgc.currentPoints)+lenm) == length(meas_pts) "Unexpected number of arguments, got $(length(meas_pts)) but expected $(length(fgc.currentPoints)+lenm) instead.  Retry call with args (meas..., pts...)"
+  @assert (length(fgc.currentPoints)+lenm) == length(meas_pts) "Unexpected number of arguments, got $(length(meas_pts)) but expected $(length(fgc.currentPoints)+lenm) instead.  Retry call with args (meas..., pts...), got meas_pts=$meas_pts"
 
   # update in-place the new measurement value in preparation for new gradient calculation
+  # TODO should outside measurement be used or only that stored in FGC object?
   for (m, tup_m) in enumerate(fgc.measurement)
-    _setPointsMani!(tup_m, meas_pts[m])
+    setPointsMani!(tup_m, meas_pts[m])
   end
 
+  # @warn "YELLING TIMBER2"
   # update the residual _slack in preparation for new gradient calculation
   fct = getFactorType(fgc.dfgfct)
   measurement = tuple(meas_pts[1:lenm]...)
   pts = tuple(meas_pts[(1+lenm):end]...)
   varTypes = tuple(getVariableType.(getVariable.(fgc._tfg, getVariableOrder(fgc.dfgfct)))...)
-  new_slack = calcFactorResidualTemporary(fct, varTypes, measurement, pts; tfg=fgc._tfg)
+  new_slack = calcFactorResidualTemporary(fct, varTypes, [measurement], pts; tfg=fgc._tfg)
   # TODO make sure slack_residual is properly wired up with all the lambda functions as expected
   _setFGCSlack!(fgc, new_slack)
-  # _setPointsMani!(fgc.slack_residual, new_slack)
+  # setPointsMani!(fgc.slack_residual, new_slack)
 
   # set new points in preparation for new gradient calculation
   for (s,pt) in enumerate(meas_pts[(lenm+1):end])
     # update the local memory in fgc to take the values of incoming `pts`
-    _setPointsMani!(fgc.currentPoints[s], pt)
+    setPointsMani!(fgc.currentPoints[s], pt)
   end
+  # @warn "YELLING TIMBER3" fgc.measurement meas_pts
+  println.(fgc.currentPoints)
+
 
   # update the gradients at new values contained in fgc
   st = 0
@@ -156,10 +163,15 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
     # recalculate the off diagonals
     λ()
   end
+  # @warn "YELLING TIMBER4"
+
   
   # return newly calculated gradients
   return fgc.cached_gradients
 end
+
+# convenience function to update the gradients based on current measurement and point information stored in the fgc object
+(fgc::FactorGradientsCached!)() = fgc(fgc.measurement..., fgc.currentPoints...)
 
 """
     $SIGNATURES
@@ -262,6 +274,19 @@ function calcPerturbationFromVariable(fgc::FactorGradientsCached!,
   return tuple(ipcBlk...)
 end
 
+
+function calcPerturbationFromVariable(ccwl::CommonConvWrapper, 
+                                      sfidx::Int,
+                                      smpid::Int=1;
+                                      tol::Real=0.02*ccwl.gradients_cached._h  )
+  #
+  # collapse the hypo associated with smpid
+  # get the variables associated with this hypo
+  # assemble the leave-one-out of varidx=>infoPerCoords -- e.g. sfidx=1, `var_ipcs::Vector{<:Pair}=[2=>ipc2;]`
+  #  NOTE varidx as per the factor args, i.e. after fractional associations (hypos) are collapsed
+  # calcPerturbationFromVariable(ccwl.gradients_cached, var_ipcs; tol=tol)
+  error("UNDER CONSTRUCTION")
+end
 
 
 #
