@@ -59,16 +59,22 @@ end
 
 (hmd::HeatmapDensityRegular)(w...;kw...) = hmd.densityFnc(w...;kw...)
 
-function rand(hms::HeatmapDensityRegular, N::Int=1)
-  rand(hms.densityFnc, N)
+function sampleTangent(M::AbstractManifold, hms::HeatmapDensityRegular)
+  sampleTangent(M, hms.densityFnc)
 end
 
 
-function Base.show(io::IO, mime::MIME"text/plain", x::HeatmapDensityRegular{T,H,B}) where {T,H,B}
-  printstyled(io, "HeatmapDensityRegular{$T,H,B}", bold=true, color=:blue)
+function Base.show(io::IO, x::HeatmapDensityRegular{T,H,B}) where {T,H,B}
+  printstyled(io, "HeatmapDensityRegular{", bold=true, color=:blue)
   println(io)
-  println(io, " (H)int:      ", H)
-  println(io, "  B:          ", B)
+  printstyled(io, "    T", color=:magenta, bold=true )
+  println(io, "      = ", T)
+  printstyled(io, "    H", color=:magenta, bold=true )
+  println(io, "`int  = ", H )
+  printstyled(io, "    B", color=:magenta, bold=true )
+  println(io, "      = ", B )
+  printstyled(io, " }", color=:blue, bold=true)
+  println(io, "(")
   println(io, "  data:       ", size(x.data))
   println(io, "    min/max:    ", round(minimum(x.data),digits=5), " / ", round(maximum(x.data),digits=5))
   println(io, "  domain:     ", size(x.domain[1]), ", ", size(x.domain[2]))
@@ -78,9 +84,12 @@ function Base.show(io::IO, mime::MIME"text/plain", x::HeatmapDensityRegular{T,H,
   println(io, "  sigma:      ", x.sigma)
   println(io, "  sig.scale:  ", x.sigma_scale)
   println(io, "  bw_factor:  ", x.bw_factor)
-  show(io, mime, x.densityFnc)
+  print(io, "  ")
+  show(io, x.densityFnc)
   nothing
 end
+
+Base.show(io::IO, ::MIME"text/plain", x::HeatmapDensityRegular) = show(io, x)
 
 Base.show(io::IO, ::MIME"application/prs.juno.inline", x::HeatmapDensityRegular) = show(io,x)
 
