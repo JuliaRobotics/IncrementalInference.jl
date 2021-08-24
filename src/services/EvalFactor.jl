@@ -434,7 +434,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
         # FIXME, need ability to replace partial points
         partialCoords = ccwl.partialDims
         Msrc, = getManifoldPartial(mani,partialCoords)
-        setPointsManiPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m][1], partialCoords)
+        setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m][1], partialCoords)
         # addEntr[m][dimnum] = ccwl.measurement[1][m][i]
       # end
     end
