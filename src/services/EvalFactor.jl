@@ -427,6 +427,11 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   else
     # FIXME but how to add partial factor info only on affected dimensions fro general manifold points?
     pvec = [fnc.partial...]
+
+    if !hasmethod(getManifold, (typeof(fnc),)) 
+      @debug "No method getManifold for $(typeof(fnc)), using getManifoldPartial"
+    end
+
     # active hypo that receives the regular measurement information
     for m in (1:length(addEntr))[ahmask]
       # addEntr is no longer in coordinates, these are now general manifold points!!
@@ -434,12 +439,11 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
         # FIXME, need ability to replace partial points
         partialCoords = ccwl.partialDims
 
-        #FIXME use try catch as with calcZDim for now, JT would like to standardize to getManifold
-        try
+        #FIXME check if getManifold is defined otherwise fall back to getManifoldPartial, JT: I would like to standardize to getManifold
+        if hasmethod(getManifold, (typeof(fnc),))
           Msrc = getManifold(fnc)
           setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m][1], partialCoords, false)
-        catch
-          @warn "No method getManifold, attempting getManifoldPartial, future warnings are suppressed" maxlog = 1
+        else
           Msrc, = getManifoldPartial(mani,partialCoords)
           setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m][1], partialCoords)
         end
