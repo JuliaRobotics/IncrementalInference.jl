@@ -433,8 +433,16 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
       # for (i,dimnum) in enumerate(fnc.partial)
         # FIXME, need ability to replace partial points
         partialCoords = ccwl.partialDims
-        Msrc = getManifold(fnc)
-        setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m][1], partialCoords)
+
+        #FIXME use try catch as with calcZDim for now, JT would like to standardize to getManifold
+        try
+          Msrc = getManifold(fnc)
+          setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m][1], partialCoords, false)
+        catch
+          @warn "No method getManifold, attempting getManifoldPartial, future warnings are suppressed" maxlog = 1
+          Msrc, = getManifoldPartial(mani,partialCoords)
+          setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m][1], partialCoords)
+        end
         # addEntr[m][dimnum] = ccwl.measurement[1][m][i]
       # end
     end
