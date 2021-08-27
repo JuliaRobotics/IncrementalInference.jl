@@ -137,7 +137,7 @@ function calcFactorResidualTemporary( fct::AbstractRelative,
   end
 
   # assume a single sample point is being run
-  return calcFactorResidual(_dfgfct, _measurement, pts...) #FIXME #1371
+  return calcFactorResidual(_dfgfct, _measurement, pts...) 
 end
 
 
