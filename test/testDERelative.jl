@@ -65,7 +65,7 @@ end
 ## basic sample test
 
 meas = sampleFactor(fg, :x0x1f1, 10)
-@test size(meas[1],1) == 1
+@test size(meas[1][1],1) == 1
 @test size(meas,1) == 10
 
 

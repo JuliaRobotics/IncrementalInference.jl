@@ -162,11 +162,11 @@ end
 
 
 # NOTE see #1025, CalcFactor should fix `multihypo=` in `cf.metadata` fields
-function (cf::CalcFactor{<:DERelative})(meas1,
-                                        diffOp,
-                                        X...)
+function (cf::CalcFactor{<:DERelative})(measurement, X...)
   #
-  
+  meas1 = measurement[1]
+  diffOp = measurement[2]
+
   oderel = cf.factor
   
   # work on-manifold

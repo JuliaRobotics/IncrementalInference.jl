@@ -173,7 +173,7 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
 end
 
 # convenience function to update the gradients based on current measurement and point information stored in the fgc object
-(fgc::FactorGradientsCached!)() = fgc(fgc.measurement, fgc.currentPoints...) #FIXME #1371
+(fgc::FactorGradientsCached!)() = fgc(fgc.measurement, fgc.currentPoints...)
 
 """
     $SIGNATURES
