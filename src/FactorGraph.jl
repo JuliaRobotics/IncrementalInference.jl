@@ -600,11 +600,11 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, varParamsAll) # (Vector{MeasType}(),)
   
   # get a measurement sample
-  meas_single = sampleFactor(_cf, 1)
+  meas_single = sampleFactor(_cf, 1)[1]
 
-  #TODO preallocate measuerement?
-  measurement = Vector{eltype(meas_single)}()
-  
+  #TODO preallocate measurement?
+  measurement = Vector{typeof(meas_single)}()
+
   # get the measurement dimension
   zdim = calcZDim(_cf)
   # some hypo resolution
@@ -628,7 +628,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
     # FIXME, suppressing nested gradient propagation on GenericMarginals for the time being, see #1010
     if (!_blockRecursion) && usrfnc isa AbstractRelative && !(usrfnc isa GenericMarginal)
       # take first value from each measurement-tuple-element
-      measurement_ = meas_single[1]
+      measurement_ = meas_single
       # compensate if no info available during deserialization
       # take the first value from each variable param
       pts_ = map(x->x[1], varParamsAll)

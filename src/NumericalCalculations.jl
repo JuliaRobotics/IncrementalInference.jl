@@ -219,13 +219,13 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
 
   # build static lambda
   unrollHypo! = if _slack === nothing
-    () -> cf( measurement_[smpid]..., (getindex.(varParams, smpid))... )
+    () -> cf( measurement_[smpid], (getindex.(varParams, smpid))... ) #FIXME #1371
   else
     # slack is used to shift the residual away from the natural "zero" tension position of a factor, 
     # this is useful when calculating factor gradients at a variety of param locations resulting in "non-zero slack" of the residual.
     # see `IIF.calcFactorResidualTemporary`
     # NOTE this minus operation assumes _slack is either coordinate or tangent vector element (not a manifold or group element)
-    () -> cf( measurement_[smpid]..., (getindex.(varParams, smpid))... ) .- _slack
+    () -> cf( measurement_[smpid], (getindex.(varParams, smpid))... ) .- _slack #FIXME #1371
   end
 
   return unrollHypo!, target

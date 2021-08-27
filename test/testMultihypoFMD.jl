@@ -19,7 +19,7 @@ function getSample( cf::CalcFactor{<:MyFactor})
   @warn "getSample(cf::CalcFactor{<:MyFactor},::Int) does not get hypo sub-selected FMD data"
   @show DFG.getLabel.(cf.metadata.fullvariables)
   # @assert DFG.getLabel.(fmd_[1].fullvariables) |> length < 3 "this factor is only between two variables"
-  return (rand(cf.factor.Z, 1),)
+  return rand(cf.factor.Z, 1)
 end
 
 function (cf::CalcFactor{<:MyFactor})(z, X1, X2)

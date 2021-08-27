@@ -7,13 +7,13 @@ export checkGradientsToleranceMask, calcPerturbationFromVariable
 # T_pt_args[:] = [(T1::Type{<:InferenceVariable}, point1); ...]
 # FORCED TO START AT EITHER :x1
 function _prepFactorGradientLambdas(fct::Union{<:AbstractRelativeMinimize,<:AbstractRelativeRoots, <:AbstractManifoldMinimize}, 
-                                    measurement::Tuple,
+                                    measurement,
                                     varTypes::Tuple,
                                     pts::Tuple;
                                     tfg::AbstractDFG = initfg(),
                                     _blockRecursion::Bool=true,
                                     # gradients relative to coords requires 
-                                    slack_resid = calcFactorResidualTemporary(fct, varTypes, [measurement], pts, tfg=tfg, _blockRecursion=_blockRecursion),
+                                    slack_resid = calcFactorResidualTemporary(fct, varTypes, measurement, pts, tfg=tfg, _blockRecursion=_blockRecursion),
                                     # numerical diff perturbation size
                                     h::Real=1e-4  ) 
   #
@@ -75,7 +75,7 @@ end
 
 function FactorGradientsCached!(fct::Union{<:AbstractRelativeMinimize, <:AbstractRelativeRoots, <:AbstractManifoldMinimize},
                                 varTypes::Tuple,
-                                meas_single::Tuple, 
+                                meas_single, 
                                 pts::Tuple; 
                                 h::Real=1e-4,
                                 _blockRecursion::Bool=true  )
@@ -118,28 +118,30 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
   # @warn "YELLING TIMBER1"
 
   # separate the measurements (forst) from the variable points (rest)
-  lenm = length(fgc.measurement)
+  lenm = 1# fgc.measurement is a single measurement so length is always 1
+
   @assert (length(fgc.currentPoints)+lenm) == length(meas_pts) "Unexpected number of arguments, got $(length(meas_pts)) but expected $(length(fgc.currentPoints)+lenm) instead.  Retry call with args (meas..., pts...), got meas_pts=$meas_pts"
 
   # update in-place the new measurement value in preparation for new gradient calculation
   # TODO should outside measurement be used or only that stored in FGC object?
-  for (m, tup_m) in enumerate(fgc.measurement)
-    setPointsMani!(tup_m, meas_pts[m])
-  end
+  # for (m, tup_m) in enumerate(fgc.measurement)
+    # setPointsMani!(tup_m, meas_pts[m])
+  # end
+  fgc.measurement = meas_pts[1]
 
   # @warn "YELLING TIMBER2"
   # update the residual _slack in preparation for new gradient calculation
   fct = getFactorType(fgc.dfgfct)
-  measurement = tuple(meas_pts[1:lenm]...)
-  pts = tuple(meas_pts[(1+lenm):end]...)
+  measurement = meas_pts[1]
+  pts = meas_pts[2:end]
   varTypes = tuple(getVariableType.(getVariable.(fgc._tfg, getVariableOrder(fgc.dfgfct)))...)
-  new_slack = calcFactorResidualTemporary(fct, varTypes, [measurement], pts; tfg=fgc._tfg)
+  new_slack = calcFactorResidualTemporary(fct, varTypes, measurement, pts; tfg=fgc._tfg)
   # TODO make sure slack_residual is properly wired up with all the lambda functions as expected
   _setFGCSlack!(fgc, new_slack)
   # setPointsMani!(fgc.slack_residual, new_slack)
 
   # set new points in preparation for new gradient calculation
-  for (s,pt) in enumerate(meas_pts[(lenm+1):end])
+  for (s,pt) in enumerate(meas_pts[2:end])
     # update the local memory in fgc to take the values of incoming `pts`
     setPointsMani!(fgc.currentPoints[s], pt)
   end
@@ -171,7 +173,7 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
 end
 
 # convenience function to update the gradients based on current measurement and point information stored in the fgc object
-(fgc::FactorGradientsCached!)() = fgc(fgc.measurement..., fgc.currentPoints...)
+(fgc::FactorGradientsCached!)() = fgc(fgc.measurement, fgc.currentPoints...) #FIXME #1371
 
 """
     $SIGNATURES

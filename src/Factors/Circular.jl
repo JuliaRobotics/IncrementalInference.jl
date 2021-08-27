@@ -22,7 +22,7 @@ CircularCircular(::UniformScaling) = CircularCircular(Normal())
 
 
 function getSample(cf::CalcFactor{<:CircularCircular})
-  (rand(cf.factor.Z, 1), )
+  return rand(cf.factor.Z, 1)
 end
 
 function (cf::CalcFactor{<:CircularCircular})(meas,
@@ -61,7 +61,7 @@ PriorCircular(::UniformScaling) = PriorCircular(Normal())
 
 
 function getSample(cf::CalcFactor{<:PriorCircular})
-  return (rand(cf.factor.Z, 1), )
+  return rand(cf.factor.Z, 1)
 end
 
 

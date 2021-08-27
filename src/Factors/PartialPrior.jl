@@ -16,7 +16,7 @@ end
 
 getManifold(pp::PartialPrior{<:PackedManifoldKernelDensity}) = pp.Z.manifold
 
-getSample(cf::CalcFactor{<:PartialPrior}) = (samplePoint(cf.factor.Z), )
+getSample(cf::CalcFactor{<:PartialPrior}) = samplePoint(cf.factor.Z)
 
 
 """

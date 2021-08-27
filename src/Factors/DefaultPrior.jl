@@ -12,7 +12,7 @@ struct Prior{T <: SamplableBelief} <: AbstractPrior
 end
 Prior(::UniformScaling) = Prior(Normal())
 
-getSample(cf::CalcFactor{<:Prior}) = (rand(cf.factor.Z, 1), )
+getSample(cf::CalcFactor{<:Prior}) = rand(cf.factor.Z, 1)
 
 
 # basic default

@@ -4,7 +4,6 @@ using Test
 using IncrementalInference
 using TensorCast
 # going to introduce two new constraint types
-# import IncrementalInference: getSample
 
 ##
 

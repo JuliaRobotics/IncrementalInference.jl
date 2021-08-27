@@ -6,7 +6,7 @@ export calcFactorResidual
 function approxConvBelief(dfg::AbstractDFG,
                           fc::DFGFactor,
                           target::Symbol,
-                          measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
+                          measurement::AbstractVector=Tuple[];
                           solveKey::Symbol=:default,
                           N::Int=length(measurement), 
                           skipSolve::Bool=false )
@@ -62,7 +62,7 @@ Related
 function approxConvBelief(dfg::AbstractDFG, 
                           from::Symbol, 
                           target::Symbol,
-                          measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
+                          measurement::AbstractVector=Tuple[];
                           solveKey::Symbol=:default,
                           N::Int = length(measurement),
                           tfg::AbstractDFG = initfg(),
@@ -152,7 +152,7 @@ Notes
 function calcProposalBelief(dfg::AbstractDFG,
                             fct::DFGFactor,
                             target::Symbol,
-                            measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
+                            measurement::AbstractVector=Tuple[];
                             N::Int=length(measurement),
                             solveKey::Symbol=:default,
                             dbg::Bool=false  )
@@ -168,7 +168,7 @@ end
 function calcProposalBelief(dfg::AbstractDFG,
                             fct::DFGFactor{<:CommonConvWrapper{<:PartialPriorPassThrough}},
                             target::Symbol,
-                            measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
+                            measurement::AbstractVector=Tuple[];
                             N::Int=length(measurement),
                             solveKey::Symbol=:default,
                             dbg::Bool=false  )
@@ -207,7 +207,7 @@ function proposalbeliefs!(dfg::AbstractDFG,
                           destlbl::Symbol,
                           factors::AbstractVector{<:DFGFactor},
                           dens::AbstractVector{<:ManifoldKernelDensity},
-                          measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
+                          measurement::AbstractVector=Tuple[];
                           solveKey::Symbol=:default,
                           N::Int=getSolverParams(dfg).N, #maximum([length(getPoints(getBelief(dfg, destlbl, solveKey))); getSolverParams(dfg).N]),
                           dbg::Bool=false  )
