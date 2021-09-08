@@ -573,13 +573,13 @@ _selectHypoVariables(allVars::Union{<:Tuple, <:AbstractVector},mh::Nothing,sel::
 Notes
 - Can be called with `length(Xi)==0`
 """
-function prepgenericconvolution(Xi::Vector{<:DFGVariable},
-                                usrfnc::T;
-                                multihypo::Union{Nothing, Distributions.Categorical}=nothing,
-                                nullhypo::Real=0.0,
-                                threadmodel=MultiThreaded,
-                                inflation::Real=0.0,
-                                _blockRecursion::Bool=false  ) where {T <: AbstractFactor}
+function _prepCCW(Xi::Vector{<:DFGVariable},
+                  usrfnc::T;
+                  multihypo::Union{Nothing, Distributions.Categorical}=nothing,
+                  nullhypo::Real=0.0,
+                  threadmodel=MultiThreaded,
+                  inflation::Real=0.0,
+                  _blockRecursion::Bool=false  ) where {T <: AbstractFactor}
   #
   length(Xi) !== 0 ? nothing : @debug("cannot prep ccw.param list with length(Xi)==0, see DFG #590")
 
@@ -610,7 +610,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   # some hypo resolution
   certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   
-  # sort out partialDims here
+  # partialDims are sensitive to both which solvefor variable index and whether the factor is partial
   ispartl = hasfield(T, :partial)
   partialDims = if ispartl
     Int[usrfnc.partial...]
@@ -690,7 +690,7 @@ function getDefaultFactorData(dfg::AbstractDFG,
   mhcat, nh = parseusermultihypo(multihypo, nullhypo)
 
   # allocate temporary state for convolutional operations (not stored)
-  ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel, inflation=inflation, _blockRecursion=_blockRecursion)
+  ccw = _prepCCW(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel, inflation=inflation, _blockRecursion=_blockRecursion)
 
   # and the factor data itself
   return FunctionNodeData{typeof(ccw)}(eliminated, potentialused, edgeIDs, ccw, multihypo, ccw.certainhypo, nullhypo, solveInProgress, inflation)

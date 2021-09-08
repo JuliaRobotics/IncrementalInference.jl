@@ -177,10 +177,10 @@ function CommonConvWrapper( fnc::T,
                             activehypo= 1:length(params),
                             nullhypo::Real=0,
                             varidx::Int=1,
-                            measurement::AbstractVector=Vector(Vector{Float64}(),),  # FIXME should not be a Matrix
+                            measurement::AbstractVector=Vector(Vector{Float64}(),),
                             particleidx::Int=1,
                             xDim::Int=size(X,1),
-                            partialDims::AbstractVector{<:Integer}=collect(1:size(X,1)), # TODO make this SVector, and name partialDims
+                            partialDims::AbstractVector{<:Integer}=1:length(X),
                             perturb=zeros(zDim),
                             res::AbstractVector{<:Real}=zeros(zDim),
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
@@ -208,7 +208,7 @@ function CommonConvWrapper( fnc::T,
                                               activehypo=activehypo, 
                                               perturb=perturb, res=res )).(1:Threads.nthreads()),
                             inflation,
-                            partialDims,  # SVector(Int32.()...)
+                            partialDims,
                             DataType[vartypes...],
                             gradients)
 end
@@ -304,9 +304,9 @@ function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
 
   # NOTE should only be done in the constructor
   ccwl.partialDims = if ccwl.partial
-    Int32[ccwl.usrfnc!.partial...]
+    Int[ccwl.usrfnc!.partial...]
   else
-    Int32[1:ccwl.xDim...]
+    Int[1:ccwl.xDim...]
   end
   
   nothing
@@ -391,7 +391,7 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
     cpt_.X = ccwl.params[sfidx]
 
     # used in ccw functor for AbstractRelativeMinimize
-    # TODO JT - Confirm it should be updated here. Testing in prepgenericconvolution
+    # TODO JT - Confirm it should be updated here. Testing in _prepCCW
     resize!(cpt_.res, ccwl.zDim) 
     fill!(cpt_.res, 0.0)
   end
