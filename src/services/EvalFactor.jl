@@ -186,7 +186,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       # consider duplicate convolution approximations for inflation off-zero
       # ultimately set by dfg.params.inflateCycles
       for iflc in 1:inflateCycles
-        addEntropyOnManifold!(mani, addEntr, 1:getDimension(mani), spreadDist, cpt_.p)
+        addEntropyOnManifold!(mani, addEntr, 1:getDimension(mani), spreadDist, ccwl.partialDims)
         # no calculate new proposal belief on kernels `allelements[count]`
         skipSolve ? @warn("skipping numerical solve operation") : approxConvOnElements!(ccwl, allelements[count], _slack)
       end
@@ -446,7 +446,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
           Msrc = getManifold(fnc)
           setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m], partialCoords, false)
         else
-          Msrc, = getManifoldPartial(mani,partialCoords)
+          Msrc, = getManifoldPartial(mani, partialCoords)
           setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m], partialCoords)
         end
         # addEntr[m][dimnum] = ccwl.measurement[1][m][i]

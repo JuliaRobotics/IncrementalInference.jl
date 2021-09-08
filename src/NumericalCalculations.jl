@@ -189,7 +189,7 @@ DevNotes
 function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
                                       smpid::Integer,
                                       cpt_::ConvPerThread = ccwl.cpt[Threads.threadid()],
-                                      target = view(ccwl.params[ccwl.varidx][smpid], cpt_.p),
+                                      target = view(ccwl.params[ccwl.varidx][smpid], ccwl.partialDims),
                                       measurement_ = ccwl.measurement,
                                       fmd_::FactorMetadata = cpt_.factormetadata;
                                       _slack=nothing  )
@@ -267,7 +267,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
 
   smpid = cpt_.particleidx
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
-  islen1 = length(cpt_.p) == 1 || ccwl.partial
+  islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
   # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
 
   # build the pre-objective function for this sample's hypothesis selection
@@ -282,8 +282,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
 
   # do the parameter search over defined decision variables using Minimization
-  # @info "FACTOR TYPE AT SOLVE" getFactorType(ccwl) string(cpt_.res) smpid string(cpt_.p)
-  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid][cpt_.p], islen1 )
+  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid][ccwl.partialDims], islen1 )
   
   # Check for NaNs
   if sum(isnan.(retval)) != 0
@@ -292,7 +291,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   end
 
   # insert result back at the correct variable element location
-  cpt_.X[smpid][cpt_.p] .= retval
+  cpt_.X[smpid][ccwl.partialDims] .= retval
   
   nothing
 end
@@ -318,8 +317,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
 
   smpid = cpt_.particleidx
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
-  islen1 = length(cpt_.p) == 1 || ccwl.partial
-  # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
+  islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
 
   # build the pre-objective function for this sample's hypothesis selection
   unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, cpt_, view(ccwl.params[ccwl.varidx], smpid), _slack=_slack)

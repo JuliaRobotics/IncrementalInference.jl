@@ -151,7 +151,6 @@ function ConvPerThread( X::AbstractVector{P},
                         factormetadata::FactorMetadata;
                         particleidx::Int=1,
                         activehypo= 1:length(params),
-                        p::AbstractVector{<:Integer}=collect(1:1),
                         perturb=zeros(zDim),
                         res=zeros(zDim),
                         thrid_ = 0  ) where P
@@ -160,7 +159,6 @@ function ConvPerThread( X::AbstractVector{P},
                         particleidx,
                         factormetadata,
                         Int[activehypo;],
-                        Int[p...;],
                         perturb,
                         X,
                         res )
@@ -179,10 +177,10 @@ function CommonConvWrapper( fnc::T,
                             activehypo= 1:length(params),
                             nullhypo::Real=0,
                             varidx::Int=1,
-                            measurement::AbstractVector=Vector(Vector{Float64}(),),  # FIXME should not be a Matrix
+                            measurement::AbstractVector=Vector(Vector{Float64}(),),
                             particleidx::Int=1,
                             xDim::Int=size(X,1),
-                            partialDims::AbstractVector{<:Integer}=collect(1:size(X,1)), # TODO make this SVector, and name partialDims
+                            partialDims::AbstractVector{<:Integer}=1:length(X),
                             perturb=zeros(zDim),
                             res::AbstractVector{<:Real}=zeros(zDim),
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
@@ -207,10 +205,10 @@ function CommonConvWrapper( fnc::T,
                             measurement,
                             threadmodel,
                             (i->ConvPerThread(X, zDim,factormetadata, particleidx=particleidx,
-                                              activehypo=activehypo, p=partialDims, 
+                                              activehypo=activehypo, 
                                               perturb=perturb, res=res )).(1:Threads.nthreads()),
                             inflation,
-                            partialDims,  # SVector(Int32.()...)
+                            partialDims,
                             DataType[vartypes...],
                             gradients)
 end
@@ -303,20 +301,14 @@ Internal method to set which dimensions should be used as the decision variables
 function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
                                               CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:Union{AbstractManifoldMinimize, AbstractRelativeMinimize, AbstractRelativeRoots, AbstractPrior},S,T}
   #
-  # return nothing
 
-  p = if ccwl.partial
-    Int32[ccwl.usrfnc!.partial...]
-  else
-    Int32[1:ccwl.xDim...]
-  end
-
-  ccwl.partialDims = (p)
   # NOTE should only be done in the constructor
-  for thrid in 1:Threads.nthreads()
-    length(ccwl.cpt[thrid].p) != length(p) ? resize!(ccwl.cpt[thrid].p, length(p)) : nothing
-    ccwl.cpt[thrid].p .= p # SVector... , see ccw.partialDims
+  ccwl.partialDims = if ccwl.partial
+    Int[ccwl.usrfnc!.partial...]
+  else
+    Int[1:ccwl.xDim...]
   end
+  
   nothing
 end
 
@@ -368,7 +360,7 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   tup = tuple(vecPtsArr...)
   nms = tuple(getLabel.(Xi)...)
   ntp = NamedTuple{nms,typeof(tup)}(tup)
-  ccwl.params = ntp # vecPtsArr # map( ar->view(ar, ccwl.partialDims, :), vecPtsArr)
+  ccwl.params = ntp
   
   # get factor metadata -- TODO, populate, also see #784
   fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)
@@ -399,7 +391,7 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
     cpt_.X = ccwl.params[sfidx]
 
     # used in ccw functor for AbstractRelativeMinimize
-    # TODO JT - Confirm it should be updated here. Testing in prepgenericconvolution
+    # TODO JT - Confirm it should be updated here. Testing in _prepCCW
     resize!(cpt_.res, ccwl.zDim) 
     fill!(cpt_.res, 0.0)
   end
