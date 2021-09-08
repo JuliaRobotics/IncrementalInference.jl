@@ -43,6 +43,7 @@ function getLevelSetSigma(  data::AbstractMatrix{<:Real},
 end
 
 # TODO make n-dimensional, and later on-manifold
+# TODO better standardize for heatmaps on manifolds
 function fitKDE(support,
                 weights,
                 x_grid::AbstractVector{<:Real}, 
@@ -94,6 +95,7 @@ function HeatmapDensityRegular( data::AbstractMatrix{<:Real},
   weights ./= sum(weights)  # normalized
   
   # final samplable density object
+  # TODO better standardize for heatmaps on manifolds
   bw = getBW(density_)[:,1]
   @cast pts[i,j] := vec_preIS[j][i]
   bel = kde!(collect(pts), bw, weights)
