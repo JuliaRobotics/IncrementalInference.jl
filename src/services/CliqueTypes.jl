@@ -69,7 +69,8 @@ function compare( l1::LikelihoodMessage,
   return TP
 end
 
-Base.==(l1::LikelihoodMessage,l2::LikelihoodMessage) = compare(l1,l2)
+# overload
+==(l1::LikelihoodMessage,l2::LikelihoodMessage) = compare(l1,l2)
 
 
 
