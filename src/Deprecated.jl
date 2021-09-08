@@ -25,6 +25,8 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+# moved to IncrementalInference/attic
+# include("CSMOccuranceUtils.jl")
 
 @deprecate prepgenericconvolution(w...;kw...) _prepCCW(w...;kw...)
 
