@@ -173,7 +173,6 @@ function CommonConvWrapper( fnc::T,
                             zDim::Int,
                             params::AbstractVector{<:AbstractVector{Q}},
                             factormetadata::FactorMetadata;
-                            specialzDim::Bool=false,
                             partial::Bool=false,
                             hypotheses::H=nothing,
                             certainhypo=nothing,
@@ -199,7 +198,6 @@ function CommonConvWrapper( fnc::T,
   return  CommonConvWrapper(fnc,
                             xDim,
                             zDim,
-                            specialzDim,
                             partial,
                             hypotheses,
                             certainhypo,
@@ -390,12 +388,9 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
     # sampleFactor!(ccwl, maxlen, fmd, vnds)
   end
 
-
+  # cache the measurement dimension
   ccwl.zDim = calcZDim(CalcFactor(ccwl))
-  # if ccwl.specialzDim
-  #   ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
-  # else
-  # end
+  # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
   ccwl.varidx = sfidx
 
   # set each CPT

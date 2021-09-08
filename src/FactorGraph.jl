@@ -650,7 +650,6 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
           zdim,
           varParamsAll,
           fmd;
-          specialzDim = hasfield(T, :zDim),
           partial = ispartl,
           measurement,
           hypotheses=multihypo,
