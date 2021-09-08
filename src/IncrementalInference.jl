@@ -483,7 +483,6 @@ include("SolveTree.jl")
 include("TetherUtils.jl")
 include("TreeDebugTools.jl")
 include("CliqStateMachineUtils.jl")
-include("CSMOccuranceUtils.jl")
 
 #EXPERIMENTAL parametric
 include("ParametricCSMFunctions.jl")
