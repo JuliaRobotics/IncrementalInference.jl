@@ -451,7 +451,6 @@ include("Variables/Circular.jl")
 
 # included factors, see RoME.jl for more examples
 include("Factors/GenericFunctions.jl")
-include("Factors/MsgLikelihoods.jl")
 include("Factors/Mixture.jl")
 include("Factors/DefaultPrior.jl")
 include("Factors/LinearRelative.jl")
