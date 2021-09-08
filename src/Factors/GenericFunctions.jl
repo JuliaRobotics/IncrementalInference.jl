@@ -64,7 +64,7 @@ function getSample(cf::CalcFactor{<:ManifoldFactor{M,Z}}) where {M,Z}
         ret = rand(cf.factor.Z)
     end
     #return coordinates as we do not know the point here #TODO separate Lie group
-    return (ret, )
+    return ret
 end
 
 # function (cf::CalcFactor{<:ManifoldFactor{<:AbstractGroupManifold}})(Xc, p, q)
@@ -112,7 +112,7 @@ function getSample(cf::CalcFactor{<:ManifoldPrior})
 
     point = samplePoint(M, Z, p, basis, retract_method)
     
-    return (point, )
+    return point
 end
 
 #TODO investigate SVector if small dims, this is slower

@@ -71,8 +71,8 @@ meas = sampleFactor(fg, :x0x1f1, 10)
 
 ## do all forward solutions
 
-_pts = sampleFactor(fg, :x0f1, 100)
-pts = map(x->x[1], _pts)
+pts = sampleFactor(fg, :x0f1, 100)
+
 initManual!(fg, :x0, pts)
 pts_ = approxConv(fg, :x0x1f1, :x1)
 @cast pts[i,j] := pts_[j][i]

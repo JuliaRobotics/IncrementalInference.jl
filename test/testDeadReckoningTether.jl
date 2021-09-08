@@ -25,7 +25,7 @@ DFG.getManifold(::MutableLinearRelative{N}) where N = TranslationGroup(N)
 
 
 function IIF.getSample(cf::CalcFactor{<:MutableLinearRelative})
-    return (rand(cf.factor.Z, 1), )
+    return rand(cf.factor.Z, 1)
 end
 
 function (s::CalcFactor{<:MutableLinearRelative})(  meas,

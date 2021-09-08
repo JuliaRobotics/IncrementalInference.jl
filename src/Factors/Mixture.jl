@@ -87,7 +87,7 @@ function sampleFactor( cf::CalcFactor{<:Mixture}, N::Int=1)
   for i in 1:N
     mixComponent = cf.factor.components[cf.factor.labels[i]]
     # measurements relate to the factor's manifold (either tangent vector or manifold point)
-    setPointsMani!(smpls[i][1], rand(mixComponent,1))
+    setPointsMani!(smpls[i], rand(mixComponent,1))
   end
 
   # TODO only does first element of meas::Tuple at this stage, see #1099

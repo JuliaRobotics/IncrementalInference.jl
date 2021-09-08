@@ -18,14 +18,14 @@ end
 #     MsgPrior{T}(z, infd)
 # end
 function getSample(cf::CalcFactor{<:MsgPrior})
-  (rand(cf.factor.Z, 1), )
+  return rand(cf.factor.Z, 1)
 end
 
 #TODO check these for manifolds, may need updating to samplePoint
 # MKD already returns a vector of points
 function getSample(cf::CalcFactor{<:MsgPrior{<:ManifoldKernelDensity}})
   mkd = cf.factor.Z
-  (samplePoint(mkd.manifold, mkd), )
+  return samplePoint(mkd.manifold, mkd)
 end
 
 getManifold(mp::MsgPrior{<:ManifoldKernelDensity}) = mp.Z.manifold

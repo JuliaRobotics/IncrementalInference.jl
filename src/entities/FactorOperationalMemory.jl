@@ -30,7 +30,7 @@ Related
 
 [`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref), [`FactorMetadata`](@ref), [`ConvPerThread`](@ref)
 """
-struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,Vector{<:Tuple}}, X}
+struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,AbstractVector}, X}
   # the interface compliant user object functor containing the data and logic
   factor::T
   # the metadata to be passed to the user residual function
@@ -163,7 +163,7 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
                                   C<:Union{Nothing, Vector{Int}},
                                   NTP <: NamedTuple,
                                   G,
-                                  MT<:Tuple} <: FactorOperationalMemory
+                                  MT} <: FactorOperationalMemory
   #
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function

@@ -7,7 +7,7 @@ struct BrokenFactor{T<: SamplableBelief} <: AbstractRelativeRoots
 end
 
 function IIF.getSample(cf::CalcFactor{<:BrokenFactor})
-  return (rand(cf.factor.Z, 1), )
+  return rand(cf.factor.Z, 1)
 end
 
 function (s::CalcFactor{<:BrokenFactor})(z,

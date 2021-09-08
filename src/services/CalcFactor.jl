@@ -118,7 +118,7 @@ Related
 """
 function calcFactorResidualTemporary( fct::AbstractRelative, 
                                       varTypes::Tuple,
-                                      measurement::AbstractVector{<:Tuple},
+                                      measurement,
                                       pts::Tuple;
                                       tfg::AbstractDFG = initfg(),
                                       _blockRecursion::Bool=false )
@@ -133,11 +133,11 @@ function calcFactorResidualTemporary( fct::AbstractRelative,
   else
     # now use the CommonConvWrapper object in `_dfgfct`
     cfo = CalcFactor(_getCCW(_dfgfct))
-    sampleFactor(cfo, 1)
+    sampleFactor(cfo, 1)[1]
   end
 
   # assume a single sample point is being run
-  return calcFactorResidual(_dfgfct, _measurement[1]..., pts...)
+  return calcFactorResidual(_dfgfct, _measurement, pts...) 
 end
 
 
@@ -180,7 +180,7 @@ function CommonConvWrapper( fnc::T,
                             activehypo= 1:length(params),
                             nullhypo::Real=0,
                             varidx::Int=1,
-                            measurement::Vector{<:Tuple}=Vector(Vector{Float64}(),),  # FIXME should not be a Matrix
+                            measurement::AbstractVector=Vector(Vector{Float64}(),),  # FIXME should not be a Matrix
                             particleidx::Int=1,
                             xDim::Int=size(X,1),
                             partialDims::AbstractVector{<:Integer}=collect(1:size(X,1)), # TODO make this SVector, and name partialDims

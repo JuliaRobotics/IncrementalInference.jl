@@ -11,7 +11,7 @@ end
 getManifold(pppt::PartialPriorPassThrough{<:HeatmapDensityRegular{T,H,<:ManifoldKernelDensity}}) where {T,H} = (pppt.Z.densityFnc.manifold)
 
 # this step is skipped during main inference process
-getSample(cf::CalcFactor{<:PartialPriorPassThrough}) = (sampleTangent(getManifold(cf.factor), cf.factor.Z), )
+getSample(cf::CalcFactor{<:PartialPriorPassThrough}) = sampleTangent(getManifold(cf.factor), cf.factor.Z)
 
 
 #

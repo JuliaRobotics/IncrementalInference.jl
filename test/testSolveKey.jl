@@ -24,8 +24,7 @@ deleteVariableSolverData!(fg, :b, :default)
 
 ##
 
-_pts = sampleFactor(fg, :af1, 100)
-pts = map(p->p[1], _pts) 
+pts = sampleFactor(fg, :af1, 100)
 
 IIF.setDefaultNodeData!(getVariable(fg, :a), 0, 100, 1, solveKey=:testSolveKey, 
                         initialized=false, varType=ContinuousScalar(), dontmargin=false)
