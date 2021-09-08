@@ -127,8 +127,6 @@ mutable struct ConvPerThread{R,F<:FactorMetadata,P}
   factormetadata::F
   # subsection indices to select which params should be used for this hypothesis evaluation
   activehypo::Vector{Int}
-  # Select which decision variables to include in a particular optimization run
-  p::Vector{Int}
   # slight numerical perturbation for degenerate solver cases such as division by zero
   perturb::Vector{Float64}
   # working memory location for optimization routines on target decision variables
