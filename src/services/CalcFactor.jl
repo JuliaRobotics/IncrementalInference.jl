@@ -388,12 +388,9 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
     # sampleFactor!(ccwl, maxlen, fmd, vnds)
   end
 
-
+  # cache the measurement dimension
   ccwl.zDim = calcZDim(CalcFactor(ccwl))
-  # if ccwl.specialzDim
-  #   ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
-  # else
-  # end
+  # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
   ccwl.varidx = sfidx
 
   # set each CPT
