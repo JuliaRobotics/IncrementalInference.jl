@@ -92,7 +92,7 @@ tree = solveTree!(fg)
 # freeze 2,4,6 to all marginalize clique 2
 setfreeze!(fg, [:x2, :x4, :x6])
 smtasks = Task[];
-tree = solveTree!(fg; recordcliqs=ls(fg); smtasks=smtasks);
+tree = solveTree!(fg; recordcliqs=ls(fg), smtasks=smtasks);
 
 hists = fetchCliqHistoryAll!(smtasks)
 
