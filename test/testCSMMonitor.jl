@@ -47,7 +47,7 @@ initAll!(fg)
 # add a broken factor - mid
 addFactor!(fg, [:x9, :lm10], BrokenFactor(Normal()); graphinit=false)
 smtasks = Task[]
-@test_throws CompositeException tree, smt, hist = IIF.solveTree!(fg; smtasks=smtasks);
+@test_throws CompositeException tree = IIF.solveTree!(fg; smtasks=smtasks);
 sleep(0.1)
 
 ## Test parametric solve also
