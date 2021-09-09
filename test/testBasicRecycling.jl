@@ -63,7 +63,9 @@ addFactor!(fg, [:x7,:x8], LinearRelative(Normal(1.0, 0.1)))
 addFactor!(fg, [:x8,:x9], LinearRelative(Normal(1.0, 0.1)))
 addFactor!(fg, [:lm0, :x9], LinearRelative(Normal(9,0.1)))
 
-tree = solveTree!(fg; recordcliqs=ls(fg));
+smtasks = Task[];
+tree = solveTree!(fg; recordcliqs=ls(fg), smtasks=smtasks);
+hists = fetchCliqHistoryAll!(smtasks)
 
 #clique 7 should be marginalized and therefor not do up or downsolve
 @test calcCliquesRecycled(tree) == (7,1,0,0)
@@ -145,11 +147,12 @@ getSolverParams(fg).treeinit = true
 
 # tree = buildTreeReset!(fg, drawpdf=true, show=true)
 
-smtasks = Task[]
-tree = solveTree!(fg; smtasks=smtasks, recordcliqs=ls(fg));
+tree = solveTree!(fg; recordcliqs=ls(fg)); # , smtasks=smtasks
 
 addFactor!(fg, [:lm3], Prior(Normal(3, 0.1)), graphinit=false)
+smtasks = Task[]
 tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
+hists = fetchCliqHistoryAll!(smtasks)
 
 @test !(IIF.solveUp_StateMachine in getindex.(hists[4], 3))
 
