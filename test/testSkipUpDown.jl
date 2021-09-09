@@ -19,6 +19,7 @@ getSolverParams(fg).downsolve = false
 
 smtasks = Task[]
 tree = solveTree!(fg; smtasks=smtasks, recordcliqs=[:x4]);
+hists = fetchCliqHistoryAll!(smtasks)
 
 # See if downsolve was called
 @test !(IIF.solveDown_StateMachine in getindex.(hists[2], 3))
