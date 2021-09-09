@@ -118,6 +118,21 @@ DFG.getManifold(::ManifoldFactorSE2) = SpecialEuclidean(2)
 
 IIF.selectFactorType(::Type{<:SpecialEuclidean2}, ::Type{<:SpecialEuclidean2}) = ManifoldFactorSE2
 
+function IIF.getSample(cf::CalcFactor{<:ManifoldFactorSE2}) 
+  M = SpecialEuclidean(2)
+  ϵ = identity_element(M)
+  X = sampleTangent(M, cf.factor.Z, ϵ)
+  return X
+end
+
+function (cf::CalcFactor{<:ManifoldFactorSE2})(X, p, q)
+    M = SpecialEuclidean(2)
+    q̂ = Manifolds.compose(M, p, exp(M, identity_element(M, p), X)) #for groups
+    Xc = zeros(3)
+    vee!(M, Xc, q, log(M, q, q̂))
+    return Xc
+end
+  
 
 @testset "Test Pose2 like hex as SpecialEuclidean2" begin
 ##
@@ -169,6 +184,53 @@ fg.solverParams.useMsgLikelihoods = true
 
 
 end
+
+
+@testset "test deconv on <:AbstractManifoldMinimize" begin
+
+##
+
+fg = initfg()
+getSolverParams(fg).useMsgLikelihoods = true
+
+addVariable!(fg, :x0, SpecialEuclidean2)
+addVariable!(fg, :x1, SpecialEuclidean2)
+
+mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([10.0,10.0]), @MMatrix([-1.0 0.0; 0.0 -1.0])), MvNormal([0.1, 0.1, 0.01]))
+p = addFactor!(fg, [:x0], mp)
+
+doautoinit!(fg,:x0)
+
+addFactor!(fg, [:x0;:x1], ManifoldFactorSE2(MvNormal([10.0,0,0.1], diagm([0.5,0.5,0.05].^2))))
+
+initAll!(fg)
+
+# now check deconv
+
+pred, meas = approxDeconv(fg, :x0x1f1)
+
+@test mmd(SpecialEuclidean(2), pred, meas) < 1e-1
+
+p_t = map(x->x.parts[1], pred)
+m_t = map(x->x.parts[1], meas)
+p_θ = map(x->x.parts[2][2], pred)
+m_θ = map(x->x.parts[2][2], meas)
+
+@test isapprox(mean(p_θ), 0.1, atol=0.02)
+@test isapprox(std(p_θ), 0.05, atol=0.02)
+
+@test isapprox(mean(p_t), [10,0], atol=0.2)
+@test isapprox(std(p_t), [0.5,0.5], atol=0.2)
+
+@test isapprox(mean(p_θ), mean(m_θ), atol=0.02)
+@test isapprox(std(p_θ), std(m_θ), atol=0.02)
+
+@test isapprox(mean(p_t), mean(m_t), atol=0.2)
+@test isapprox(std(p_t), std(m_t), atol=0.2)
+
+
+end
+
 
 ## ======================================================================================
 ##

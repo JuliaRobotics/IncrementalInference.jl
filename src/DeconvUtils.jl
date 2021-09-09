@@ -97,7 +97,7 @@ function approxDeconv(fcto::DFGFactor,
     # find solution via SubArray view pointing to original memory location
     if fcttype isa AbstractManifoldMinimize
       sfidx = ccw.varidx
-      targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx], ccw.vartypes[sfidx](), islen1)
+      targeti_ .= _solveLambdaNumericMeas(fcttype, hypoObj, res_, measurement[idx], ccw.vartypes[sfidx](), islen1)
     else
       targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx], islen1)
     end

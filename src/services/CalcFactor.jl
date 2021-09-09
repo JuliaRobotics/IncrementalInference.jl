@@ -62,7 +62,7 @@ function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
   
   # NOTE try to make sure we get matrix back (not a vector)
   smpls = sampleFactor(cf, 2)[1]
-  return length(smpls[1])
+  return length(smpls)
 end
 
 calcZDim(ccw::CommonConvWrapper) = calcZDim(CalcFactor(ccw))
@@ -128,7 +128,7 @@ function calcFactorResidualTemporary( fct::AbstractRelative,
   _, _dfgfct = _buildGraphByFactorAndTypes!(fct, varTypes, pts, dfg=tfg, _blockRecursion=_blockRecursion)
   
   # get a fresh measurement if needed
-  _measurement = if length(measurement) != 0
+  _measurement = if measurement != [] #length(measurement) != 0
     measurement
   else
     # now use the CommonConvWrapper object in `_dfgfct`

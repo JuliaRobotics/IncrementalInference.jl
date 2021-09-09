@@ -122,6 +122,38 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
 end
 
 
+#TODO Consolidate with _solveLambdaNumeric, see #1374
+function _solveLambdaNumericMeas( fcttype::Union{F,<:Mixture{N_,F,S,T}},
+                                  objResX::Function,
+                                  residual::AbstractVector{<:Real},
+                                  u0,#::AbstractVector{<:Real},
+                                  variableType::InferenceVariable,  
+                                  islen1::Bool=false)  where {N_,F<:AbstractManifoldMinimize,S,T}
+  #
+  # Assume measurement is on the tangent
+  M = getManifold(variableType)#fcttype.M
+  # the variable is a manifold point, we are working on the tangent plane in optim for now.
+  ϵ = getPointIdentity(variableType)
+  X0c = vee(M, ϵ, u0) 
+
+  function cost(X, Xc)
+    hat!(M, X, ϵ, Xc)
+    residual = objResX(X)
+    return sum(residual.^2)
+  end
+
+  alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
+  X0 = hat(M, ϵ, X0c)
+  r = Optim.optimize(Xc->cost(X0, Xc), X0c, alg)
+  if !Optim.converged(r)
+    @debug "Optim did not converge:" r
+  end
+
+  return hat(M, ϵ, r.minimizer)
+
+end
+
+
 
 ## ================================================================================================
 ## Heavy dispatch for all AbstractFactor / Mixture cases below
