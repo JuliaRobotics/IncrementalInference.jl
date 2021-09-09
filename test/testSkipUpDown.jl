@@ -18,7 +18,7 @@ getSolverParams(fg).useMsgLikelihoods = true
 getSolverParams(fg).downsolve = false
 
 smtasks = Task[]
-tree, smt, hists = solveTree!(fg; smtasks=smtasks, recordcliqs=[:x4]);
+tree = solveTree!(fg; smtasks=smtasks, recordcliqs=[:x4]);
 
 # See if downsolve was called
 @test !(IIF.solveDown_StateMachine in getindex.(hists[2], 3))
@@ -34,7 +34,7 @@ end
 getSolverParams(fg).upsolve = false
 getSolverParams(fg).downsolve = true
 
-tree, smt, hists = solveTree!(fg; smtasks=smtasks, recordcliqs=[:x4]);
+tree = solveTree!(fg; smtasks=smtasks, recordcliqs=[:x4]);
 # See if upsolved was called
 @test !(IIF.solveUp_StateMachine in getindex.(hists[2], 3))
 
@@ -45,7 +45,7 @@ for var in sortDFG(ls(fg))
 end
 
 # recycled downsolve only
-tree, smt, hists = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=[:x4]);
+tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=[:x4]);
 @test !(IIF.solveUp_StateMachine in getindex.(hists[2], 3))
 
 

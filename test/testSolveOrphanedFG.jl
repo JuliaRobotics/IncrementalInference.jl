@@ -28,7 +28,7 @@ addFactor!(fg, [:x11;:x12], LinearRelative(Normal(-10,1.0)))
 # getSolverParams(fg).showtree = true
 # solve factor graph with two orphaned components
 vo = Symbol[:x12, :x2, :x0, :x11, :x1, :x10]
-tree, smt, hist = solveTree!(fg, eliminationOrder=vo)
+tree = solveTree!(fg, eliminationOrder=vo)
 
 # test tree will have two different root nodes
 @test getEliminationOrder(tree) == vo

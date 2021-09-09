@@ -117,7 +117,7 @@ addFactor!(fg, [:x1;:l1;:l1_0], LinearRelative(Normal(l1-x1, lnoise)), multihypo
 addFactor!(fg, [:x2;:l2;:l2_0], LinearRelative(Normal(l2-x2, lnoise)), multihypo=[1;1/2;1/2])
 addFactor!(fg, [:x1;:x2], LinearRelative(Normal(0, Onoise)))
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 # drawTree(tree, show=true)
 

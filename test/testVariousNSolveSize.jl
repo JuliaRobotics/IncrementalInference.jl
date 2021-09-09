@@ -26,7 +26,7 @@ getSolverParams(fg).N = 150
 # getSolverParams(fg).multiproc = false
 # getSolverParams(fg).async = false
 smtasks = Task[]
-tree, smt, hist = solveTree!(fg; smtasks, recordcliqs=ls(fg));
+tree = solveTree!(fg; smtasks, recordcliqs=ls(fg));
 
 ##
 
@@ -38,7 +38,7 @@ pts_ = getBelief(fg, :x1) |> getPoints
 
 # test with change for second solve
 getSolverParams(fg).N = 200
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 pts_ = getBelief(fg, :x1) |> getPoints
 @test length(pts_) == 200
@@ -46,7 +46,7 @@ pts_ = getBelief(fg, :x1) |> getPoints
 
 println("test making N smaller than current")
 getSolverParams(fg).N = 99
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 pts_ = getBelief(fg, :x1) |> getPoints
 @warn "removing older solve N size test, likely to be reviewed and updated to new workflow in the future"

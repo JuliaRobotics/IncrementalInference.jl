@@ -106,7 +106,7 @@ function runFullBatchIterations(;N=100, iters=50)
 
   FG = deepcopy(fg)
   for i in 1:iters
-    tree, smt, hist = solveTree!(fg)
+    tree = solveTree!(fg)
     push!(FG, deepcopy(fg))
   end
   return FG

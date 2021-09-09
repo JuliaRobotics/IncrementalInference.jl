@@ -254,7 +254,7 @@ DevNotes
 Example
 ```julia
 # pass in old `tree` to enable compute recycling -- see online Documentation for more details
-tree, smt, hist = solveTree!(fg [,tree])
+tree = solveTree!(fg [,tree])
 ```
 
 Related
@@ -386,7 +386,7 @@ function solveTree!(dfgl::AbstractDFG,
     printCSMHistorySequential(hist, joinLogPath(dfgl,"HistoryCSMAll.txt") )
   end
 
-  return oldtree, smtasks, hist
+  return oldtree
 end
 
 """

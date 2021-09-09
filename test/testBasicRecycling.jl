@@ -18,7 +18,7 @@ fg = generateCanonicalFG_lineStep(N;
 deleteFactor!.(fg, [Symbol("x$(i)lm0f1") for i=1:(N-1)])
 
 # tree = buildTreeReset!(fg, show=true, drawpdf=true)
-tree, smtasks, hists = solveTree!(fg)
+tree = solveTree!(fg)
 
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
@@ -37,7 +37,7 @@ fifoFreeze!(fg)
 
 ##
 
-tree, smtasks, hists = solveTree!(fg; recordcliqs=ls(fg));
+tree = solveTree!(fg; recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     println("Testing ", var,": ", sppe)
@@ -63,7 +63,7 @@ addFactor!(fg, [:x7,:x8], LinearRelative(Normal(1.0, 0.1)))
 addFactor!(fg, [:x8,:x9], LinearRelative(Normal(1.0, 0.1)))
 addFactor!(fg, [:lm0, :x9], LinearRelative(Normal(9,0.1)))
 
-tree, smtasks, hists = solveTree!(fg; recordcliqs=ls(fg));
+tree = solveTree!(fg; recordcliqs=ls(fg));
 
 #clique 7 should be marginalized and therefor not do up or downsolve
 @test calcCliquesRecycled(tree) == (7,1,0,0)
@@ -84,14 +84,14 @@ unfreezeVariablesAll!(fg)
 # freeze again
 defaultFixedLagOnTree!(fg, 9)
 
-tree, smtasks, hists = solveTree!(fg)
+tree = solveTree!(fg)
 
 @test lm0 == getVal(fg, :lm0) #Still Frozen
 @test X1cmp != getVal(fg, :x1) #not frozen
 
 # freeze 2,4,6 to all marginalize clique 2
 setfreeze!(fg, [:x2, :x4, :x6])
-tree, smtasks, hists = solveTree!(fg; recordcliqs=ls(fg));
+tree = solveTree!(fg; recordcliqs=ls(fg));
 
 #clique 2 should be marginalized and therefor not do up or downsolve
 @test calcCliquesRecycled(tree) == (7,1,0,0)
@@ -99,7 +99,7 @@ tree, smtasks, hists = solveTree!(fg; recordcliqs=ls(fg));
 @test !(IIF.solveUp_StateMachine in getindex.(hists[2], 3))
 @test areCliqVariablesAllMarginalized(fg, tree.cliques[2])
 
-tree, smtasks, hists = solveTree!(fg, tree; recordcliqs=ls(fg));
+tree = solveTree!(fg, tree; recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     println("Testing ", var,": ", sppe)
@@ -111,7 +111,7 @@ end
 X1 = deepcopy(getVal(fg, :x1))
 
 setfreeze!(fg, [:x3, :x5])
-tree, smtasks, hists = solveTree!(fg, tree; recordcliqs=ls(fg));
+tree = solveTree!(fg, tree; recordcliqs=ls(fg));
 # csmAnimate(tree, hists, frames=1)
 
 @test calcCliquesRecycled(tree) == (7,3,4,0)
@@ -143,10 +143,10 @@ getSolverParams(fg).treeinit = true
 # tree = buildTreeReset!(fg, drawpdf=true, show=true)
 
 smtasks = Task[]
-tree, smt, hists = solveTree!(fg; smtasks=smtasks, recordcliqs=ls(fg));
+tree = solveTree!(fg; smtasks=smtasks, recordcliqs=ls(fg));
 
 addFactor!(fg, [:lm3], Prior(Normal(3, 0.1)), graphinit=false)
-_, _, hists = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
+tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 
 @test !(IIF.solveUp_StateMachine in getindex.(hists[4], 3))
 
@@ -187,7 +187,7 @@ getSolverParams(fg).useMsgLikelihoods = true
 tree = buildTreeReset!(fg)#, drawpdf=true, show=true)
 
 smtasks = Task[]
-_,_,hists = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
+tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
@@ -198,7 +198,7 @@ end
 # add some more 
 deepcopyGraph!(fg, sfg, vsyms[4:6], fsyms[4:6])
 
-_,_,hists = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
+tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
@@ -209,7 +209,7 @@ end
 # add some more 
 deepcopyGraph!(fg, sfg, vsyms[7:8], fsyms[7:8])
 
-_,_,hists = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
+tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
@@ -220,7 +220,7 @@ end
 # add some more,close the loop 
 deepcopyGraph!(fg, sfg, Symbol[], [fsyms[9]])
 
-_,_,hists = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
+tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
@@ -230,7 +230,7 @@ end
 
 # force a reshuffle
 addFactor!(fg, [:x4], Prior(Normal(4.1,0.1)))
-_,_,hists = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
+tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
@@ -241,7 +241,7 @@ end
 # and another reuse
 addFactor!(fg, [:x4], Prior(Normal(3.9,0.1)))
 
-_,_,hists = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
+tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested

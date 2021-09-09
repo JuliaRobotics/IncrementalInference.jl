@@ -93,7 +93,7 @@ plotKDE(fg, [:x0, :x1, :x2, :x3])
 
 # Find global best likelihood solution (posterior belief)
 # After defining the problem, we can find the 'minimum free energy' solution
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 # and look at the posterior belief, and notice which consensus modes stand out in the posterior
 plotKDE(fg, [:x0, :x1, :x2, :x3])

@@ -51,7 +51,7 @@ fg2 = deepcopy(fg)
 # easier error messages
 getSolverParams(fg).multiproc = false
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 x1a = getVariable(fg, :x0)
 x1b = getVariable(fg2, :x0)

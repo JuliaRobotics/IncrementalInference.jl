@@ -28,12 +28,12 @@ addFactor!(fg, [:x0;], Prior(Normal(0.0,1.0)))
 @test !isSolved(getVariable(fg, :x0))
 
 # run solver once
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 @test getSolvedCount(fg, :x0) == 1
 @test isSolved(fg, :x0)
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 @test getSolvedCount(fg, :x0) == 2
 @test isSolved(fg, :x0)
@@ -61,7 +61,7 @@ fg = initfg()
 addVariable!(fg, :x0, ContinuousScalar)
 addFactor!(fg, [:x0;], Prior(Normal(1000.0,1.0)))
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 # check mean and covariance
 @test abs((getBelief(fg, :x0) |> getKDEMean)[1]-1000) < 0.5
@@ -80,7 +80,7 @@ addVariable!(fg, :x0, ContinuousScalar)
 addFactor!(fg, [:x0;], Prior(Normal(0.0,1.0)))
 addFactor!(fg, [:x0;], Prior(Normal(0.0,1.0)))
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 # check mean and covariance
 @test (getBelief(fg, :x0) |> getKDEMean .|> abs)[1] < 0.4
@@ -101,7 +101,7 @@ addFactor!(fg, [:x0;], Prior(Normal(0.0,1.0)))
 addFactor!(fg, [:x0;], Prior(Normal(0.0,1.0)))
 addFactor!(fg, [:x0;], Prior(Normal(0.0,1.0)))
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 # check mean and covariance
 @test (getBelief(fg, :x0) |> getKDEMean .|> abs)[1] < 0.4
@@ -122,7 +122,7 @@ addVariable!(fg, :x0, ContinuousScalar)
 addFactor!(fg, [:x0;], Prior(Normal(-1.0,1.0)))
 addFactor!(fg, [:x0;], Prior(Normal(+1.0,1.0)))
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 # check mean and covariance -- should be zero
 @test (getBelief(fg, :x0) |> getKDEMean .|> abs)[1] < 0.8
@@ -142,7 +142,7 @@ addVariable!(fg, :x0, ContinuousScalar)
 addFactor!(fg, [:x0;], Prior(Normal(-1.0-1000,1.0)))
 addFactor!(fg, [:x0;], Prior(Normal(+1.0-1000,1.0)))
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 # check mean and covariance -- should be zero
 @test abs((getBelief(fg, :x0) |> getKDEMean)[1] + 1000) < 0.6
@@ -165,7 +165,7 @@ addFactor!(fg, [:x0;], Prior(Normal(0.0,1.0)))
 addFactor!(fg, [:x1;], Prior(Normal(0.0,1.0)))
 addFactor!(fg, [:x0;:x1;], LinearRelative(Normal(0.0,10.0)))
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 # check mean and covariance -- should be zero
 @test (getBelief(fg, :x0) |> getKDEMean .|> abs)[1] < 0.6
@@ -191,7 +191,7 @@ addFactor!(fg, [:x0;], Prior(Normal(-1.0,1.0)))
 addFactor!(fg, [:x1;], Prior(Normal(+1.0,1.0)))
 addFactor!(fg, [:x0;:x1;], LinearRelative(Normal(0.0,10.0)))
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 # check mean and covariance -- should be near each prior
 @test abs((getBelief(fg, :x0) |> getKDEMean)[1]+1) < 0.75
@@ -220,7 +220,7 @@ addFactor!(fg, [:x2;], Prior(Normal(+1.0,1.0)))
 addFactor!(fg, [:x0;:x1;], LinearRelative(Normal(0.0,1.0)))
 addFactor!(fg, [:x1;:x2;], LinearRelative(Normal(0.0,1.0)))
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 
 
@@ -264,7 +264,7 @@ addFactor!(fg, [:x3;:x4;], LinearRelative(Normal(0.0,1.0)))
 # #1196
 drawGraph(fg, filepath="testgraphplot/myfg.dot", show=false)
 
-tree, smt, hist = solveTree!(fg, storeOld=true)
+tree = solveTree!(fg, storeOld=true)
 
 # using KernelDensityEstimatePlotting
 # plotKDE((x->getBelief(fg,x)).([:x0;:x1;:x2;:x3;:x4]))
@@ -331,7 +331,7 @@ pts_ = getPoints(getBelief(fg, :x0))
 TensorCast.@cast pts[i,j] := pts_[j][i]
 X0 = pts |> deepcopy
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 # values after solve
 pts_ = getPoints(getBelief(fg, :x0))

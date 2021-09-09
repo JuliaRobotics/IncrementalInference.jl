@@ -166,7 +166,7 @@ addFactor!(fg, [:x0,:x1], mlr)
 # dfgplot(fg)
 # end
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 ##
 

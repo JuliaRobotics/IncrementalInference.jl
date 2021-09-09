@@ -182,7 +182,7 @@ pts_ = getBelief(fg,:x2) |> getPoints
 
 ##
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 ##
 
