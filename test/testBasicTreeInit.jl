@@ -5,7 +5,9 @@ using IncrementalInference
 @testset "basic per clique stopping criteria" begin
 
 fg = generateCanonicalFG_lineStep(1)
-tree = solveTree!(fg, recordcliqs=[:x0;], limititercliqs=[(:x0=>2);])
+smtasks = Task[]
+tree = solveTree!(fg, smtasks=smtasks, recordcliqs=[:x0;], limititercliqs=[(:x0=>2);])
+hist = fetchCliqHistoryAll!(smtasks)
 
 @test haskey(hist, 1)
 
@@ -13,7 +15,9 @@ tree = solveTree!(fg, recordcliqs=[:x0;], limititercliqs=[(:x0=>2);])
 
 #normal solve should have 11 states, update when more are added.
 fg = generateCanonicalFG_lineStep(1)
-tree = solveTree!(fg, recordcliqs=[:x0;]);
+smtasks = Task[]
+tree = solveTree!(fg, smtasks=smtasks, recordcliqs=[:x0;]);
+hist = fetchCliqHistoryAll!(smtasks)
 
 @test haskey(hist, 1)
 
