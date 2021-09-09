@@ -91,7 +91,10 @@ tree = solveTree!(fg)
 
 # freeze 2,4,6 to all marginalize clique 2
 setfreeze!(fg, [:x2, :x4, :x6])
-tree = solveTree!(fg; recordcliqs=ls(fg));
+smtasks = Task[];
+tree = solveTree!(fg; recordcliqs=ls(fg); smtasks=smtasks);
+
+hists = fetchCliqHistoryAll!(smtasks)
 
 #clique 2 should be marginalized and therefor not do up or downsolve
 @test calcCliquesRecycled(tree) == (7,1,0,0)

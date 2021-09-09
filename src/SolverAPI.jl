@@ -372,8 +372,7 @@ function solveTree!(dfgl::AbstractDFG,
   oldtree.eliminationOrder = tree.eliminationOrder
   oldtree.buildTime = tree.buildTime
 
-  hist = !opt.async ? fetchCliqHistoryAll!(smtasks) : hist
-
+  
   if opt.drawtree && opt.async
     @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"
     push!(smtasks, treetask)
@@ -383,9 +382,10 @@ function solveTree!(dfgl::AbstractDFG,
 
   # if debugging and not async then also print the CSMHistory
   if opt.dbg && !opt.async
-    printCSMHistorySequential(hist, joinLogPath(dfgl,"HistoryCSMAll.txt") )
+    hists = !opt.async ? fetchCliqHistoryAll!(smtasks) : hist
+    printCSMHistorySequential(hists, joinLogPath(dfgl,"HistoryCSMAll.txt") )
   end
-
+  
   return oldtree
 end
 
