@@ -34,7 +34,9 @@ end
 getSolverParams(fg).upsolve = false
 getSolverParams(fg).downsolve = true
 
+smtasks = Task[]
 tree = solveTree!(fg; smtasks=smtasks, recordcliqs=[:x4]);
+hists = fetchCliqHistoryAll!(smtasks);
 # See if upsolved was called
 @test !(IIF.solveUp_StateMachine in getindex.(hists[2], 3))
 
