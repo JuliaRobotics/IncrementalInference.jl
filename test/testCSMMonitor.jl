@@ -58,7 +58,7 @@ addFactor!(fg, [:x9, :lm10], BrokenFactor(Normal()); graphinit=false)
 ##
 # IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
 ##
-@test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
+@test_throws CompositeException tree2 = IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
 sleep(0.1)
 
 deleteFactor!(fg, :x9lm10f2)
@@ -66,14 +66,14 @@ deleteFactor!(fg, :x9lm10f2)
 ## add a broken factor - leave
 
 addFactor!(fg, [:x10, :lm10], BrokenFactor(Normal()); graphinit=false)
-@test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
+@test_throws CompositeException tree2 = IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
 sleep(0.1)
 
 deleteFactor!(fg, :x10lm10f2)
 
 ## add a broken factor - root
 addFactor!(fg, [:x7, :lm10], BrokenFactor(Normal()); graphinit=false)
-@test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
+@test_throws CompositeException tree2 = IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
 
 
 ##

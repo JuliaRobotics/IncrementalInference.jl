@@ -84,7 +84,7 @@ foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val[1] .= x.second
 # getSolverParams(fg).async = true
 getSolverParams(fg).graphinit = false
 
-tree2, smt, hist = IIF.solveTree!(fg; algorithm = :parametric) #, recordcliqs=ls(fg))
+tree2 = IIF.solveTree!(fg; algorithm = :parametric) #, recordcliqs=ls(fg))
 
 
 for i in 0:10
@@ -150,7 +150,7 @@ foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val[1] .= x.second
   #   global smt
   #   global hist
 #force message passing with manual variable order
-tree2, smt, hist = solveTree!(fg; algorithm=:parametric, eliminationOrder=[:x0, :x2, :x1])
+tree2 = solveTree!(fg; algorithm=:parametric, eliminationOrder=[:x0, :x2, :x1])
 # end
 foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), getVariables(fg))
 
@@ -189,7 +189,7 @@ foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val[1] .= x.second
 # fg.solverParams.drawtree = true
 # fg.solverParams.dbg = false
 getSolverParams(fg).graphinit = false
-tree2, smt, hist = IIF.solveTree!(fg; algorithm=:parametric)
+tree2 = IIF.solveTree!(fg; algorithm=:parametric)
 
 # print results
 if false
