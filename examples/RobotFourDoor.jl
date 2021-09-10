@@ -62,7 +62,7 @@ plotKDE(fg, :x4)
 addFactor!(fg,[:x4], doorPrior)
 
 # solve over all data
-tree, smt, hists = solveTree!(fg)
+tree = solveTree!(fg)
 
 # list variables and factors in fg
 @show ls(fg) # |> sortDFG

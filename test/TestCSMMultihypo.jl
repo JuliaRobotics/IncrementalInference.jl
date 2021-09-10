@@ -72,7 +72,7 @@ getSolverParams(fg).limititers = 30 # previous runaway CSM issue due to excessiv
 # getSolverParams(fg).drawtree = false
 # getSolverParams(fg).showtree = false
 
-tree, smt, hist = solveTree!(fg, recordcliqs=ls(fg))
+tree = solveTree!(fg, recordcliqs=ls(fg))
 
 
 # drawGraph(fg)

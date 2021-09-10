@@ -62,7 +62,7 @@ addFactor!(fg, [:x1; :x2], LinearRelative(Normal(x2-x1, odom_noise)))
 
 ## Solve graph
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 # drawGraph(fg)
 # drawTree(tree, show=true)
 

@@ -14,7 +14,11 @@ using Reexport
 
 using Manifolds
 
-export ℝ, AbstractManifold, Euclidean, Circle
+export ℝ, AbstractManifold
+# common groups -- preferred defaults at this time.
+export TranslationGroup, CircleGroup
+# common non-groups -- TODO still teething problems to sort out in IIF v0.25-v0.26.
+export Euclidean, Circle
 
 import NLsolve
 import NLSolversBase
@@ -119,9 +123,9 @@ export FunctorInferenceType, PackedInferenceType
 export AbstractPrior, AbstractRelative, AbstractRelativeRoots, AbstractRelativeMinimize
 
 # not sure if this is necessary
-export convert
+export convert, *
 
-export *,
+export
   CSMHistory,
   # getTreeCliqsSolverHistories,
 

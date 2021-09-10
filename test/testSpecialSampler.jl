@@ -43,7 +43,7 @@ addFactor!(fg, [:x0], SpecialPrior(Normal()))
 addVariable!(fg, :x1, ContinuousScalar)
 addFactor!(fg, [:x0;:x1], SpecialLinearOffset(Normal(10,1)))
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 @test getPPE(fg, :x0).suggested[1] |> abs < 1.0
 

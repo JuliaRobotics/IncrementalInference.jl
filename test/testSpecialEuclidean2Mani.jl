@@ -85,7 +85,7 @@ f = addFactor!(fg, [:x1, :x2], mf)
 
 #test new error from solvetree
 # smtasks = Task[]
-@test solveTree!(fg; smtasks, verbose=true) isa Tuple
+@test solveTree!(fg; smtasks, verbose=true) isa AbstractBayesTree
 
 
 ## test partial prior issue
@@ -180,7 +180,7 @@ solveTree!(fg; smtasks);
 
 #FIXME this may show some bug in propagateBelief caused by empty factors
 fg.solverParams.useMsgLikelihoods = true
-@test_broken solveTree!(fg; smtasks) isa Tuple
+@test_broken solveTree!(fg; smtasks) isa AbstractBayesTree
 
 
 end

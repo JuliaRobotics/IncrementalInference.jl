@@ -688,7 +688,7 @@ fg = initfg()
 
 fsy = getTreeAllFrontalSyms(fg, tree) # for later use
 # perform inference to find the factor graph marginal posterior estimates
-tree, smt, hist = solveTree!(fg, recordcliqs=fsy)
+tree = solveTree!(fg, recordcliqs=fsy)
 
 # generate frames in standard location /tmp/caesar/csmCompound/
 #  requires: sudo apt-get install graphviz

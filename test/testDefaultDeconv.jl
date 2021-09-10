@@ -92,7 +92,7 @@ getSolverParams(fg).useMsgLikelihoods = true
 vo = [:x3,:x5,:x1,:l1,:x4,:x2,:x6,:x0]
 
 mkpath(getLogPath(fg))
-tree, smt, hists = solveTree!(fg, eliminationOrder=vo, timeout=40, verbose=true) 
+tree = solveTree!(fg, eliminationOrder=vo, timeout=40, verbose=true) 
 
 # msg = getMsgUpThis(tree.cliques[2])
 msg = IIF.getMessageBuffer(tree.cliques[2]).upRx

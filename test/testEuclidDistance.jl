@@ -22,7 +22,7 @@ addFactor!(fg, [:x0;:x1], eud)
 
 ##
 
-tree, _, = solveTree!(fg)
+tree = solveTree!(fg)
 
 ##
 
@@ -55,7 +55,7 @@ addVariable!(fg, :x1, ContinuousEuclid{2})
 eud = EuclidDistance(Normal(10,1))
 addFactor!(fg, [:x0;:x1], eud)
 
-tree, _, = solveTree!(fg)
+tree = solveTree!(fg)
 
 @test isapprox(getPPE(fg, :x0).suggested[1], 0, atol=1)
 @test isapprox(getPPE(fg, :x0).suggested[1], 0, atol=1)
@@ -119,7 +119,7 @@ fg = IIF.generateCanonicalFG_EuclidDistance(points)
 
 for i in 1:1
   # global TP, N
-  tree, _, = solveTree!(fg, eliminationOrder=eo);
+  tree = solveTree!(fg, eliminationOrder=eo);
 
   L1_ = getBelief(fg, :l1) |> getPoints
   @cast L1[i,j] := L1_[j][i] 
@@ -219,7 +219,7 @@ initManual!(fg, :l1, [rand(init) for _ in 1:N])
 eliminationOrder = [:l1; :x2; :x1]
 # one clique eliminationOrder
 eliminationOrder = [:l1; :x2; :x1]
-tree,_ = solveTree!(fg; eliminationOrder)
+tree = solveTree!(fg; eliminationOrder)
 
 ##
 

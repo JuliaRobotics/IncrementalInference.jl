@@ -112,7 +112,7 @@ end
 ##
 
 getSolverParams(fg).N = N
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 pts_ = getVal(fg, :x1)
 @cast pts[i,j] := pts_[j][i]
 
@@ -292,7 +292,7 @@ val_, = predictbelief(fg, v2, [f3;f4], N=N)
 ##
 
 getSolverParams(fg).N = N
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 
 pts_ = getVal(fg, :x1)

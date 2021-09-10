@@ -33,7 +33,7 @@ getSolverParams(fg).useMsgLikelihoods = true
 # ENV["JULIA_DEBUG"] = :csm_4
 
 smtasks = Task[]
-tree, smt, hist = IIF.solveTree!(fg; smtasks=smtasks); #, recordcliqs=ls(fg));
+hist = IIF.solveTree!(fg; smtasks=smtasks); #, recordcliqs=ls(fg));
 
 
 ##
@@ -77,7 +77,7 @@ getSolverParams(fg).treeinit = true
 getSolverParams(fg).useMsgLikelihoods = true
 
 smtasks = Task[]
-tree, smt, hists = IIF.solveTree!(fg; smtasks=smtasks);
+tree = IIF.solveTree!(fg; smtasks=smtasks);
 
 
 ##
@@ -115,7 +115,7 @@ getSolverParams(fg).treeinit = true
 getSolverParams(fg).useMsgLikelihoods = true
 
 smtasks = Task[]
-tree, smt, hists = IIF.solveTree!(fg; smtasks=smtasks);
+tree = IIF.solveTree!(fg; smtasks=smtasks);
 
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested

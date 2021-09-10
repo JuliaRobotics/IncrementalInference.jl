@@ -55,7 +55,7 @@ getSolverParams(dfg).limititers = 50
 ## getSolverParams(dfg).async = true
 
 
-tree, smtasks, hist = solveTree!(dfg) #, recordcliqs=ls(dfg))
+tree = solveTree!(dfg) #, recordcliqs=ls(dfg))
 
 pts_ = getBelief(dfg, :c) |> getPoints
 TensorCast.@cast pts[i,j] := pts_[j][i]
