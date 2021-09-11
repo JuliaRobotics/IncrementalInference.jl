@@ -77,7 +77,7 @@ mutable struct Pose1Pose1Test{T} <: AbstractRelativeRoots
 end
 
 function getSample(cf::CalcFactor{<:Pose1Pose1Test})
-  return (rand(cf.factor.Dx, 1),)
+  return rand(cf.factor.Dx, 1)
 end
 
 #proposed standardized parameter list, does not have to be functor
@@ -182,7 +182,7 @@ pts_ = getBelief(fg,:x2) |> getPoints
 
 ##
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 ##
 

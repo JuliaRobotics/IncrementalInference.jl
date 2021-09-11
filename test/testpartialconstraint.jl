@@ -14,13 +14,13 @@ mutable struct DevelopPartial{P <: Tuple} <: AbstractPrior
   x::Distribution
   partial::P 
 end
-getSample(cf::CalcFactor{<:DevelopPartial}) = (rand(cf.factor.x, 1), )
+getSample(cf::CalcFactor{<:DevelopPartial}) = rand(cf.factor.x, 1)
 
 #
 mutable struct DevelopDim2 <: AbstractPrior
   x::Distribution
 end
-getSample(cf::CalcFactor{<:DevelopDim2}) = (rand(cf.factor.x, 1), )
+getSample(cf::CalcFactor{<:DevelopDim2}) = rand(cf.factor.x, 1)
 
 
 mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
@@ -30,7 +30,7 @@ mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
 end
 getManifold(::IIF.InstanceType{DevelopPartialPairwise}) = TranslationGroup(1)
 
-getSample(cf::CalcFactor{<:DevelopPartialPairwise}) = (rand(cf.factor.x, 1), )
+getSample(cf::CalcFactor{<:DevelopPartialPairwise}) = rand(cf.factor.x, 1)
 
 function (dp::CalcFactor{<:DevelopPartialPairwise})(meas,
                                                     x1,
@@ -112,7 +112,7 @@ end
 ##
 
 getSolverParams(fg).N = N
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 pts_ = getVal(fg, :x1)
 @cast pts[i,j] := pts_[j][i]
 
@@ -141,14 +141,14 @@ doautoinit!(fg, :x2)
 @testset "test partial info per coord through relative convolution (conditional)" begin
 ##
 
-one_meas = ([10.0;], )
+one_meas = [10.0;]
 pts = ([0;0.0], [0;10.0])
 gradients = FactorGradientsCached!(dpp, (ContinuousEuclid{2}, ContinuousEuclid{2}), one_meas, pts);
 
 ##
 
 # check that the gradients can be calculated
-J = gradients(one_meas..., pts...)
+J = gradients(one_meas, pts...)
 
 @test size(J) == (4,4)
 @test norm(J - [0 0 0 0; 0 0 0 1; 0 0 0 0; 0 1 0 0] ) < 1e-4
@@ -292,7 +292,7 @@ val_, = predictbelief(fg, v2, [f3;f4], N=N)
 ##
 
 getSolverParams(fg).N = N
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 
 pts_ = getVal(fg, :x1)

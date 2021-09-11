@@ -122,6 +122,38 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
 end
 
 
+#TODO Consolidate with _solveLambdaNumeric, see #1374
+function _solveLambdaNumericMeas( fcttype::Union{F,<:Mixture{N_,F,S,T}},
+                                  objResX::Function,
+                                  residual::AbstractVector{<:Real},
+                                  u0,#::AbstractVector{<:Real},
+                                  variableType::InferenceVariable,  
+                                  islen1::Bool=false)  where {N_,F<:AbstractManifoldMinimize,S,T}
+  #
+  # Assume measurement is on the tangent
+  M = getManifold(variableType)#fcttype.M
+  # the variable is a manifold point, we are working on the tangent plane in optim for now.
+  ϵ = getPointIdentity(variableType)
+  X0c = vee(M, ϵ, u0) 
+
+  function cost(X, Xc)
+    hat!(M, X, ϵ, Xc)
+    residual = objResX(X)
+    return sum(residual.^2)
+  end
+
+  alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
+  X0 = hat(M, ϵ, X0c)
+  r = Optim.optimize(Xc->cost(X0, Xc), X0c, alg)
+  if !Optim.converged(r)
+    @debug "Optim did not converge:" r
+  end
+
+  return hat(M, ϵ, r.minimizer)
+
+end
+
+
 
 ## ================================================================================================
 ## Heavy dispatch for all AbstractFactor / Mixture cases below
@@ -189,7 +221,7 @@ DevNotes
 function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
                                       smpid::Integer,
                                       cpt_::ConvPerThread = ccwl.cpt[Threads.threadid()],
-                                      target = view(ccwl.params[ccwl.varidx][smpid], cpt_.p),
+                                      target = view(ccwl.params[ccwl.varidx][smpid], ccwl.partialDims),
                                       measurement_ = ccwl.measurement,
                                       fmd_::FactorMetadata = cpt_.factormetadata;
                                       _slack=nothing  )
@@ -219,13 +251,13 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
 
   # build static lambda
   unrollHypo! = if _slack === nothing
-    () -> cf( measurement_[smpid]..., (getindex.(varParams, smpid))... )
+    () -> cf( measurement_[smpid], (getindex.(varParams, smpid))... )
   else
     # slack is used to shift the residual away from the natural "zero" tension position of a factor, 
     # this is useful when calculating factor gradients at a variety of param locations resulting in "non-zero slack" of the residual.
     # see `IIF.calcFactorResidualTemporary`
     # NOTE this minus operation assumes _slack is either coordinate or tangent vector element (not a manifold or group element)
-    () -> cf( measurement_[smpid]..., (getindex.(varParams, smpid))... ) .- _slack
+    () -> cf( measurement_[smpid], (getindex.(varParams, smpid))... ) .- _slack
   end
 
   return unrollHypo!, target
@@ -267,7 +299,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
 
   smpid = cpt_.particleidx
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
-  islen1 = length(cpt_.p) == 1 || ccwl.partial
+  islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
   # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
 
   # build the pre-objective function for this sample's hypothesis selection
@@ -282,8 +314,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
 
   # do the parameter search over defined decision variables using Minimization
-  # @info "FACTOR TYPE AT SOLVE" getFactorType(ccwl) string(cpt_.res) smpid string(cpt_.p)
-  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid][cpt_.p], islen1 )
+  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid][ccwl.partialDims], islen1 )
   
   # Check for NaNs
   if sum(isnan.(retval)) != 0
@@ -292,7 +323,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   end
 
   # insert result back at the correct variable element location
-  cpt_.X[smpid][cpt_.p] .= retval
+  cpt_.X[smpid][ccwl.partialDims] .= retval
   
   nothing
 end
@@ -318,8 +349,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
 
   smpid = cpt_.particleidx
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
-  islen1 = length(cpt_.p) == 1 || ccwl.partial
-  # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
+  islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
 
   # build the pre-objective function for this sample's hypothesis selection
   unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, cpt_, view(ccwl.params[ccwl.varidx], smpid), _slack=_slack)

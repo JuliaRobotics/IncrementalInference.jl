@@ -25,7 +25,7 @@ tree = buildTreeReset!(fg, drawpdf=true, show=true)
 # solve the factor graph and show solving progress on tree in src/JunctionTree.jl
 fg.solverParams.showtree = true
 fg.solverParams.drawtree = true
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 
 ## building a new tree -- as per IIF.prepBatchTree(...)

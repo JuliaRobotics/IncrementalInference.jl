@@ -12,7 +12,7 @@ mutable struct GenericMarginal <: AbstractRelativeRoots
     GenericMarginal(a,b,c) = new(a,b,c)
 end
 
-getSample(::CalcFactor{<:GenericMarginal}) = ([0],)
+getSample(::CalcFactor{<:GenericMarginal}) = [0]
 
 mutable struct PackedGenericMarginal <: PackedInferenceType
     Zij::Array{Float64,1}

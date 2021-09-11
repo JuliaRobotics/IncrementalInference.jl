@@ -3,7 +3,7 @@
 using Test
 using IncrementalInference
 using Manifolds
-
+using DistributedFactorGraphs
 ##
 
 import IncrementalInference: getSample
@@ -15,7 +15,9 @@ end
 
 PartialDim2(Z::D) where {D <: IIF.SamplableBelief} = PartialDim2(Z, (2,))
 
-getSample(cfo::CalcFactor{<:PartialDim2}) = (rand(cfo.factor.Z, 1), )
+DFG.getManifold(::PartialDim2) = TranslationGroup(2)
+
+getSample(cfo::CalcFactor{<:PartialDim2}) = [0; rand(cfo.factor.Z)]
 
 
 ##

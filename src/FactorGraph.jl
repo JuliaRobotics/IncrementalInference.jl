@@ -573,13 +573,13 @@ _selectHypoVariables(allVars::Union{<:Tuple, <:AbstractVector},mh::Nothing,sel::
 Notes
 - Can be called with `length(Xi)==0`
 """
-function prepgenericconvolution(Xi::Vector{<:DFGVariable},
-                                usrfnc::T;
-                                multihypo::Union{Nothing, Distributions.Categorical}=nothing,
-                                nullhypo::Real=0.0,
-                                threadmodel=MultiThreaded,
-                                inflation::Real=0.0,
-                                _blockRecursion::Bool=false  ) where {T <: AbstractFactor}
+function _prepCCW(Xi::Vector{<:DFGVariable},
+                  usrfnc::T;
+                  multihypo::Union{Nothing, Distributions.Categorical}=nothing,
+                  nullhypo::Real=0.0,
+                  threadmodel=MultiThreaded,
+                  inflation::Real=0.0,
+                  _blockRecursion::Bool=false  ) where {T <: AbstractFactor}
   #
   length(Xi) !== 0 ? nothing : @debug("cannot prep ccw.param list with length(Xi)==0, see DFG #590")
 
@@ -600,17 +600,17 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, varParamsAll) # (Vector{MeasType}(),)
   
   # get a measurement sample
-  meas_single = sampleFactor(_cf, 1)
+  meas_single = sampleFactor(_cf, 1)[1]
 
-  #TODO preallocate measuerement?
-  measurement = Vector{eltype(meas_single)}()
-  
+  #TODO preallocate measurement?
+  measurement = Vector{typeof(meas_single)}()
+
   # get the measurement dimension
   zdim = calcZDim(_cf)
   # some hypo resolution
   certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   
-  # sort out partialDims here
+  # partialDims are sensitive to both which solvefor variable index and whether the factor is partial
   ispartl = hasfield(T, :partial)
   partialDims = if ispartl
     Int[usrfnc.partial...]
@@ -628,7 +628,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
     # FIXME, suppressing nested gradient propagation on GenericMarginals for the time being, see #1010
     if (!_blockRecursion) && usrfnc isa AbstractRelative && !(usrfnc isa GenericMarginal)
       # take first value from each measurement-tuple-element
-      measurement_ = meas_single[1]
+      measurement_ = meas_single
       # compensate if no info available during deserialization
       # take the first value from each variable param
       pts_ = map(x->x[1], varParamsAll)
@@ -650,7 +650,6 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
           zdim,
           varParamsAll,
           fmd;
-          specialzDim = hasfield(T, :zDim),
           partial = ispartl,
           measurement,
           hypotheses=multihypo,
@@ -691,7 +690,7 @@ function getDefaultFactorData(dfg::AbstractDFG,
   mhcat, nh = parseusermultihypo(multihypo, nullhypo)
 
   # allocate temporary state for convolutional operations (not stored)
-  ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel, inflation=inflation, _blockRecursion=_blockRecursion)
+  ccw = _prepCCW(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel, inflation=inflation, _blockRecursion=_blockRecursion)
 
   # and the factor data itself
   return FunctionNodeData{typeof(ccw)}(eliminated, potentialused, edgeIDs, ccw, multihypo, ccw.certainhypo, nullhypo, solveInProgress, inflation)

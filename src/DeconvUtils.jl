@@ -39,7 +39,7 @@ Related
 function approxDeconv(fcto::DFGFactor,
                       ccw::CommonConvWrapper = _getCCW(fcto);
                       N::Int=100,
-                      measurement::AbstractVector{<:Tuple}=sampleFactor(ccw, N),
+                      measurement::AbstractVector=sampleFactor(ccw, N),
                       retries::Int=3  )
   #
   # but what if this is a partial factor -- is that important for general cases in deconv?
@@ -59,7 +59,7 @@ function approxDeconv(fcto::DFGFactor,
   fmd = _getFMdThread(ccw)
   
   # TODO assuming vector on only first container in measurement::Tuple
-  makeTarget = (i) -> measurement[i][1] # TODO does not support copy-primitive types like Float64, only Ref()
+  makeTarget = (i) -> measurement[i] # TODO does not support copy-primitive types like Float64, only Ref()
   # makeTarget = (i) -> view(measurement[1][i],:)
   # makeTarget = (i) -> view(measurement[1], :, i)
   
@@ -97,17 +97,17 @@ function approxDeconv(fcto::DFGFactor,
     # find solution via SubArray view pointing to original memory location
     if fcttype isa AbstractManifoldMinimize
       sfidx = ccw.varidx
-      targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx][1], ccw.vartypes[sfidx](), islen1)
+      targeti_ .= _solveLambdaNumericMeas(fcttype, hypoObj, res_, measurement[idx], ccw.vartypes[sfidx](), islen1)
     else
-      targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx][1], islen1)
+      targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx], islen1)
     end
 
   end
 
   # return (deconv-prediction-result, independent-measurement)
-  r_meas = map(m->m[1], measurement)
-  r_fctSmpls = map(m->m[1], fctSmpls)
-  return r_meas, r_fctSmpls
+  # r_meas = map(m->m[1], measurement)
+  # r_fctSmpls = map(m->m[1], fctSmpls)
+  return measurement, fctSmpls
 end
 
 

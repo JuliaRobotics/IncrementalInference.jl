@@ -14,7 +14,11 @@ using Reexport
 
 using Manifolds
 
-export ℝ, AbstractManifold, Euclidean, Circle
+export ℝ, AbstractManifold
+# common groups -- preferred defaults at this time.
+export TranslationGroup, CircleGroup
+# common non-groups -- TODO still teething problems to sort out in IIF v0.25-v0.26.
+export Euclidean, Circle
 
 import NLsolve
 import NLSolversBase
@@ -119,9 +123,9 @@ export FunctorInferenceType, PackedInferenceType
 export AbstractPrior, AbstractRelative, AbstractRelativeRoots, AbstractRelativeMinimize
 
 # not sure if this is necessary
-export convert
+export convert, *
 
-export *,
+export
   CSMHistory,
   # getTreeCliqsSolverHistories,
 
@@ -451,7 +455,6 @@ include("Variables/Circular.jl")
 
 # included factors, see RoME.jl for more examples
 include("Factors/GenericFunctions.jl")
-include("Factors/MsgLikelihoods.jl")
 include("Factors/Mixture.jl")
 include("Factors/DefaultPrior.jl")
 include("Factors/LinearRelative.jl")
@@ -483,7 +486,6 @@ include("SolveTree.jl")
 include("TetherUtils.jl")
 include("TreeDebugTools.jl")
 include("CliqStateMachineUtils.jl")
-include("CSMOccuranceUtils.jl")
 
 #EXPERIMENTAL parametric
 include("ParametricCSMFunctions.jl")

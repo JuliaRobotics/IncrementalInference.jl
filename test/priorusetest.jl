@@ -35,7 +35,7 @@ addFactor!(fg, [:x0; :x1], LinearRelative(Normal(0.0, 0.01)))
 addFactor!(fg, [:x1; :x2], LinearRelative(Normal(0.0, 0.01)))
 
 #solve
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 x0_m = getKDEMean(getKDE(getVariable(fg, :x0)))[1]
 x1_m = getKDEMean(getKDE(getVariable(fg, :x1)))[1]
 x2_m = getKDEMean(getKDE(getVariable(fg, :x2)))[1]
@@ -88,7 +88,7 @@ addFactor!(fg, [:x2; :l0], LinearRelative(Normal(0, 0.01)))
 addFactor!(fg, [:x2; :l1], LinearRelative(Normal(0, 0.01)))
 
 #solve
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 x0_m = getKDEMean(getKDE(getVariable(fg, :x0)))[1]
 x1_m = getKDEMean(getKDE(getVariable(fg, :x1)))[1]

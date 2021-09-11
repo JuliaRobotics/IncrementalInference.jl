@@ -30,7 +30,7 @@ Related
 
 [`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref), [`FactorMetadata`](@ref), [`ConvPerThread`](@ref)
 """
-struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,Vector{<:Tuple}}, X}
+struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,AbstractVector}, X}
   # the interface compliant user object functor containing the data and logic
   factor::T
   # the metadata to be passed to the user residual function
@@ -127,8 +127,6 @@ mutable struct ConvPerThread{R,F<:FactorMetadata,P}
   factormetadata::F
   # subsection indices to select which params should be used for this hypothesis evaluation
   activehypo::Vector{Int}
-  # Select which decision variables to include in a particular optimization run
-  p::Vector{Int}
   # slight numerical perturbation for degenerate solver cases such as division by zero
   perturb::Vector{Float64}
   # working memory location for optimization routines on target decision variables
@@ -142,7 +140,7 @@ end
 """
 $(TYPEDEF)
 
-Main factor memory container used during inference operations.
+Main factor memory container used during inference operations -- i.e. values specific to one complete convolution operation
 
 Notes
 - CCW does not get serialized / persisted
@@ -158,41 +156,41 @@ Related
 
 [`CalcFactor`](@ref), [`CalcFactorMahalanobis`](@ref), [`FactorMetadata`](@ref), [`ConvPerThread`](@ref)
 """
-mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
+mutable struct CommonConvWrapper{ T<:AbstractFactor,
                                   H<:Union{Nothing, Distributions.Categorical},
                                   C<:Union{Nothing, Vector{Int}},
                                   NTP <: NamedTuple,
                                   G,
-                                  MT<:Tuple} <: FactorOperationalMemory
+                                  MT} <: FactorOperationalMemory
   #
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function
   # general setup
   xDim::Int
   zDim::Int
-  # special case settings
-  specialzDim::Bool # is there a special zDim requirement -- defined by user
-  # is this a partial constraint -- defined by user, see new 
+  # is this a partial constraint as defined by the existance of factor field `.partial::Tuple`
   partial::Bool 
   # multi hypothesis settings
-  hypotheses::H # categorical to select which hypothesis is being considered during convolution operation
+  hypotheses::H 
+  # categorical to select which hypothesis is being considered during convolution operation
   certainhypo::C
   nullhypo::Float64
-  # values specific to one complete convolution operation
-  # FIXME ? JT - What if all points are not on the same manifold?  See #1321
-  #          DF, just make it NamedTuple? -- some detail on pinning CCW down at construction only
-  params::NTP #Vector{<:AbstractVector{P}} # parameters passed to each hypothesis evaluation event on user function
-  varidx::Int # which index is being solved for in params?
+  # parameters passed to each hypothesis evaluation event on user function, #1321
+  params::NTP 
+  # which index is being solved for in params?
+  varidx::Int 
   # FIXME make type stable, JT should now be type stable if rest works
-  measurement::Vector{MT} # user defined measurement values for each approxConv operation
-  threadmodel::Type{<:_AbstractThreadModel} # Union{Type{SingleThreaded}, Type{MultiThreaded}}
+  #   user defined measurement values for each approxConv operation
+  measurement::Vector{MT} 
+  # TODO refactor and deprecate this old approach, Union{Type{SingleThreaded}, Type{MultiThreaded}}
+  threadmodel::Type{<:_AbstractThreadModel} 
   # FIXME, deprecate for only `readonly` and build CalcFactor objects on stack instead
     ## will be obsolete: particular convolution computation values per particle idx (varies by thread)
   cpt::Vector{<:ConvPerThread}
   # inflationSpread
   inflation::Float64
-  # DONT USE THIS YET which dimensions does this factor influence
-  partialDims::Vector{Int} # should become SVector{N, Int}
+  # Which dimensions does this factor influence.  Sensitive (mutable) to both which 'solvefor index' variable and whether the factor is partial dimension
+  partialDims::Vector{<:Integer}
   # variable types for points in params
   vartypes::Vector{DataType}
   # experimental feature to embed gradient calcs with ccw

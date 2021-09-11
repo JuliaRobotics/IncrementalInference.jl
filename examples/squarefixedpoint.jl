@@ -38,7 +38,7 @@ doautoinit!(fg, :xy)
 initManual!(fg, :x, randn(1,100))
 
 # find solution
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 ## plot the result
 plotKDE(map(x->getKDE(fg,x), [:x; :xy]))

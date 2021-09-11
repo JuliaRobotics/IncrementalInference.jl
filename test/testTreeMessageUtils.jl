@@ -18,7 +18,7 @@ deleteFactor!.(fg, [Symbol("x$(i)lm0f1") for i=1:(N-1)])
 # fixed eliminationOrder for repeatability
 eliminationOrder = [:x3, :x8, :x5, :x1, :x6, :lm0, :x7, :x4, :x2, :x0]
 smtasks = Task[]
-tree, smt, hists = solveTree!(fg; smtasks=smtasks, eliminationOrder=eliminationOrder)
+tree = solveTree!(fg; smtasks=smtasks, eliminationOrder=eliminationOrder)
 
 allmsgs = getTreeCliqUpMsgsAll(tree)
 #TODO better test but for now spot check a few keys

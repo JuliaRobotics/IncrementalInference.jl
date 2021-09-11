@@ -74,7 +74,7 @@ drawGraph(fg, show=true)
 tree = buildTreeReset!(fg, drawpdf=true, show=true)
 
 ## Solve graph
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 # tree = buildTreeReset!(fg, drawpdf=true, show=true)
 

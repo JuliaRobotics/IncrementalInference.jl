@@ -53,7 +53,9 @@ doautoinit!(fg, :x1)
 # smtasks = Task[]
 solveTree!(fg) #; smtasks, verbose=true, recordcliqs=ls(fg))
 # hists = fetchCliqHistoryAll!(smtasks);
-
+# SArray 0.763317 seconds (2.36 M allocations: 160.488 MiB, 4.16% gc time)
+# Vector 0.786390 seconds (2.41 M allocations: 174.334 MiB, 3.97% gc time)
+# Vector 0.858993 seconds (2.42 M allocations: 176.613 MiB, 3.43% gc time) sample not tuple  
 ##
 
 end
@@ -92,7 +94,7 @@ vnd = getVariableSolverData(fg, :x0)
 @test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
 @test all(is_point.(Ref(M), vnd.val))
 
-points = map(x->x[1], sampleFactor(fg, :x0f1, 100))
+points = sampleFactor(fg, :x0f1, 100)
 IIF.calcCovarianceBasic(SpecialOrthogonal(3), points)
 
 ##

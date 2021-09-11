@@ -25,6 +25,11 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+# moved to IncrementalInference/attic
+# include("CSMOccuranceUtils.jl")
+
+@deprecate prepgenericconvolution(w...;kw...) _prepCCW(w...;kw...)
+
 function getSample(cf::CalcFactor, N::Int) 
   # Base.depwarn("`getSample(cf, N)` is deprecated, use `getSample(cf)`", :getSample)
   error("`getSample(cf, N)` is deprecated, use `getSample(cf)`")

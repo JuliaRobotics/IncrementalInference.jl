@@ -51,7 +51,7 @@ addFactor!(fg,[:x3;:x4], LinearRelative( Normal(200.0,4.0)))
 addFactor!(fg,[:x4], doorPrior)
 
 # solve over all data
-tree, smt, hists = solveTree!(fg)
+tree = solveTree!(fg)
 
 ##
 

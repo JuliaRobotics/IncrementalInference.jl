@@ -134,6 +134,7 @@ function addEntropyOnManifold!( M::ManifoldsBase.AbstractManifold,
     get_vector!(M, X, points[idx], Xc, DefaultOrthogonalBasis())  
     #update point
     exp!(M, points[idx], points[idx], X)
+    # points[idx] = exp(M, points[idx], X)
     
   end
   #
@@ -185,7 +186,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       # consider duplicate convolution approximations for inflation off-zero
       # ultimately set by dfg.params.inflateCycles
       for iflc in 1:inflateCycles
-        addEntropyOnManifold!(mani, addEntr, 1:getDimension(mani), spreadDist, cpt_.p)
+        addEntropyOnManifold!(mani, addEntr, 1:getDimension(mani), spreadDist, ccwl.partialDims)
         # no calculate new proposal belief on kernels `allelements[count]`
         skipSolve ? @warn("skipping numerical solve operation") : approxConvOnElements!(ccwl, allelements[count], _slack)
       end
@@ -301,7 +302,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
                                 T_::Type{<:AbstractRelative},
-                                measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
+                                measurement::AbstractVector=Tuple[];
                                 needFreshMeasurements::Bool=true,
                                 solveKey::Symbol=:default,
                                 N::Int= 0<length(measurement) ? length(measurement) : maximum(Npts.(getBelief.(Xi, solveKey))),
@@ -354,7 +355,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
                                 T_::Type{<:AbstractPrior},
-                                measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
+                                measurement::AbstractVector=Tuple[];
                                 needFreshMeasurements::Bool=true,
                                 solveKey::Symbol=:default,
                                 N::Int=length(measurement),
@@ -418,7 +419,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
     for m in (1:length(addEntr))[ahmask]
       # FIXME, selection for all measurement::Tuple elements
       # @info "check broadcast" ccwl.usrfnc! addEntr[m] ccwl.measurement[1][m]
-      setPointsMani!(addEntr[m], ccwl.measurement[m][1])
+      setPointsMani!(addEntr[m], ccwl.measurement[m])
+      # addEntr[m] = ccwl.measurement[m][1]
     end
     # ongoing part of RoME.jl #244
     addEntropyOnManifold!(mani, addEntrNH, 1:getDimension(mani), spreadDist)
@@ -427,14 +429,26 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   else
     # FIXME but how to add partial factor info only on affected dimensions fro general manifold points?
     pvec = [fnc.partial...]
+
+    if !hasmethod(getManifold, (typeof(fnc),)) 
+      @debug "No method getManifold for $(typeof(fnc)), using getManifoldPartial"
+    end
+
     # active hypo that receives the regular measurement information
     for m in (1:length(addEntr))[ahmask]
       # addEntr is no longer in coordinates, these are now general manifold points!!
       # for (i,dimnum) in enumerate(fnc.partial)
         # FIXME, need ability to replace partial points
         partialCoords = ccwl.partialDims
-        Msrc, = getManifoldPartial(mani,partialCoords)
-        setPointsManiPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m][1], partialCoords)
+
+        #FIXME check if getManifold is defined otherwise fall back to getManifoldPartial, JT: I would like to standardize to getManifold
+        if hasmethod(getManifold, (typeof(fnc),))
+          Msrc = getManifold(fnc)
+          setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m], partialCoords, false)
+        else
+          Msrc, = getManifoldPartial(mani, partialCoords)
+          setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m], partialCoords)
+        end
         # addEntr[m][dimnum] = ccwl.measurement[1][m][i]
       # end
     end
@@ -456,7 +470,7 @@ end
 function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
                                 solvefor::Symbol,
-                                measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
+                                measurement::AbstractVector=Tuple[];
                                 kw... ) where {N_,F<:AbstractFactor,S,T}
   #
   evalPotentialSpecific(Xi,
@@ -470,7 +484,7 @@ end
 function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{F},
                                 solvefor::Symbol,
-                                measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
+                                measurement::AbstractVector=Tuple[];
                                 kw... ) where {F <: AbstractFactor}
   #
   evalPotentialSpecific(Xi,
@@ -490,7 +504,7 @@ Single entry point for evaluating factors from factor graph, using multiple disp
 function evalFactor(dfg::AbstractDFG,
                     fct::DFGFactor,
                     solvefor::Symbol,
-                    measurement::AbstractVector{<:Tuple}=Tuple[];#FIXME
+                    measurement::AbstractVector=Tuple[];
                     needFreshMeasurements::Bool=true,
                     solveKey::Symbol=:default,
                     N::Int=length(measurement),
@@ -543,7 +557,7 @@ Related
 function _evalFactorTemporary!( fct::AbstractFactor,
                                 varTypes::Tuple,
                                 sfidx::Int,  # solve for index, assuming variable order for fct
-                                measurement::AbstractVector{<:Tuple},
+                                measurement::AbstractVector,
                                 pts::Tuple;
                                 tfg::AbstractDFG=initfg(),
                                 solveKey::Symbol=:default,

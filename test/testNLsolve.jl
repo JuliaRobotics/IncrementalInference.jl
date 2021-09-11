@@ -5,7 +5,6 @@ using Distributions
 
 using IncrementalInference
 
-# import IncrementalInference: getSample
 
 
 ##

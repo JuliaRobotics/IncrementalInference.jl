@@ -20,7 +20,7 @@ fg = generateCanonicalFG_lineStep(3;
 # getSolverParams(fg).showtree = true
 
 smtasks = Task[]
-oldtree, smt, hists = solveTree!(fg; smtasks=smtasks, verbose=false, recordcliqs=ls(fg));
+oldtree = solveTree!(fg; smtasks=smtasks, verbose=false, recordcliqs=ls(fg));
 
 @test IIF.isRoot(oldtree, IIF.CliqueId(1))
 @test IIF.isRoot(oldtree, IIF.getClique(oldtree,1))
@@ -37,7 +37,7 @@ IIF.deleteClique!(oldtree, IIF.CliqueId(1))
  
 # drawTree(oldtree, show=true)
 
-tree, smt, hists = solveTree!(fg, oldtree; smtasks=smtasks, verbose=false, recordcliqs=ls(fg));
+tree = solveTree!(fg, oldtree; smtasks=smtasks, verbose=false, recordcliqs=ls(fg));
 
 # csmAnimate(tree, hists, frames=1)
 

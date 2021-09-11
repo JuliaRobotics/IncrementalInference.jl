@@ -15,7 +15,7 @@ import IncrementalInference: getSample, getManifold
 ##
 
 pp = LinearRelative(MvNormal([10;0],[1 0; 0 1]))
-measurement = ([10.0;0.0],)
+measurement = [10.0;0.0]
 varTypes = (ContinuousEuclid{2}, ContinuousEuclid{2})
 pts = ([0;0.0], [9.5;0])
 
@@ -50,7 +50,7 @@ J_c = gradFct()
 
 ##
 
-J = gradFct(measurement..., pts...)
+J = gradFct(measurement, pts...)
 
 
 ##
@@ -83,7 +83,7 @@ TestPartialRelative2D(z::SamplableBelief) = TestPartialRelative2D(z, (2,))
 
 # imported earlier for overload
 getManifold(fnc::TestPartialRelative2D) = TranslationGroup(2)
-getSample(cf::CalcFactor{<:TestPartialRelative2D}) = (rand(cf.factor.Z, 1), )
+getSample(cf::CalcFactor{<:TestPartialRelative2D}) = rand(cf.factor.Z, 1)
 
 # currently requires residual to be returned as a tangent vector element
 (cf::CalcFactor{<:TestPartialRelative2D})(z, x1, x2) = x2[2:2] - (x1[2:2] + z[1:1])
@@ -96,7 +96,7 @@ getSample(cf::CalcFactor{<:TestPartialRelative2D}) = (rand(cf.factor.Z, 1), )
 
 tpr = TestPartialRelative2D(Normal(10,1))
 
-measurement = ([10.0;], )
+measurement = [10.0;]
 pts = ([0;0.0], [0;10.0])
 varTypes = (ContinuousEuclid{2}, ContinuousEuclid{2})
 
@@ -104,7 +104,7 @@ varTypes = (ContinuousEuclid{2}, ContinuousEuclid{2})
 gradients = FactorGradientsCached!(tpr, varTypes, measurement, pts);
 
 ## calculate new gradients
-J = gradients(measurement..., pts...)
+J = gradients(measurement, pts...)
 
 
 ## check on transmitted info per coords

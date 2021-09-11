@@ -43,6 +43,7 @@ function getLevelSetSigma(  data::AbstractMatrix{<:Real},
 end
 
 # TODO make n-dimensional, and later on-manifold
+# TODO better standardize for heatmaps on manifolds
 function fitKDE(support,
                 weights,
                 x_grid::AbstractVector{<:Real}, 
@@ -58,6 +59,10 @@ function fitKDE(support,
   kde!(support, kernel_bw, weights)
 end
 
+
+global allthres = Dict{Int, Any}()
+
+
 function HeatmapDensityRegular( data::AbstractMatrix{<:Real}, 
                                 domain::Tuple{<:AbstractVector{<:Real},<:AbstractVector{<:Real}},
                                 level::Real,
@@ -67,8 +72,12 @@ function HeatmapDensityRegular( data::AbstractMatrix{<:Real},
                                 bw_factor::Real=0.7,  # kde spread between domain points 
                                 N::Int=10000  )
   #
+  global allthres
+
   # select the support from raw data
   support_, weights_, roi = getLevelSetSigma(data, level, sigma, domain...; sigma_scale=sigma_scale)
+  allthres[length(allthres)+1] = roi
+  
   # constuct a pre-density from which to draw intermediate samples
   density_ = fitKDE(support_, weights_, domain...; bw_factor=bw_factor)
   pts_preIS, = sample(density_, N)
@@ -94,6 +103,7 @@ function HeatmapDensityRegular( data::AbstractMatrix{<:Real},
   weights ./= sum(weights)  # normalized
   
   # final samplable density object
+  # TODO better standardize for heatmaps on manifolds
   bw = getBW(density_)[:,1]
   @cast pts[i,j] := vec_preIS[j][i]
   bel = kde!(collect(pts), bw, weights)

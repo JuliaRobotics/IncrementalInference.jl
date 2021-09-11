@@ -25,7 +25,7 @@ addFactor!(fg, [:d;:e], LinearRelative(Normal(10, 1)))
 
 ensureAllInitialized!(fg)
 
-tree, smt, hist = solveTree!(fg)
+tree = solveTree!(fg)
 
 
 @test (Statistics.mean(getPoints(getKDE(fg, :a)))- 0 |> abs) < 3

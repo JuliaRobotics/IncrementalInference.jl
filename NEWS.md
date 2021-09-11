@@ -24,6 +24,7 @@ The list below highlights major breaking changes, and please note that significa
 - Deprecating `approxConvBinary`, use `approxConvBelief` instead.
 - Removing obsolete `approxConvCircular`, use `approxConvBelief` instead.
 - `getSample` should return a single sample and no longer takes the N(number of samples) parameter.
+- `solveTree!` / `solveGraph!` now returns just one value `tree<:AbstractBayesTree`.  Previous version returned three values, `tree, smt, hist` (#1379).
 
 # Major changes in v0.24
 

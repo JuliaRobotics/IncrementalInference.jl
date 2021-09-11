@@ -5,7 +5,9 @@ using IncrementalInference
 @testset "basic per clique stopping criteria" begin
 
 fg = generateCanonicalFG_lineStep(1)
-tree, smt, hist = solveTree!(fg, recordcliqs=[:x0;], limititercliqs=[(:x0=>2);])
+smtasks = Task[]
+tree = solveTree!(fg, smtasks=smtasks, recordcliqs=[:x0;], limititercliqs=[(:x0=>2);])
+hist = fetchCliqHistoryAll!(smtasks)
 
 @test haskey(hist, 1)
 
@@ -13,7 +15,9 @@ tree, smt, hist = solveTree!(fg, recordcliqs=[:x0;], limititercliqs=[(:x0=>2);])
 
 #normal solve should have 11 states, update when more are added.
 fg = generateCanonicalFG_lineStep(1)
-tree, smt, hist = solveTree!(fg, recordcliqs=[:x0;]);
+smtasks = Task[]
+tree = solveTree!(fg, smtasks=smtasks, recordcliqs=[:x0;]);
+hist = fetchCliqHistoryAll!(smtasks)
 
 @test haskey(hist, 1)
 
@@ -37,7 +41,7 @@ getSolverParams(fg).graphinit = false
 getSolverParams(fg).treeinit = true
 getSolverParams(fg).limititers = 50
 smtasks = Task[]
-tree, smt, hist = solveTree!(fg; smtasks=smtasks, verbose=true, timeout=50, recordcliqs=ls(fg));
+tree = solveTree!(fg; smtasks=smtasks, verbose=true, timeout=50, recordcliqs=ls(fg));
 
 end
 
@@ -60,7 +64,7 @@ getSolverParams(fg).treeinit = true
 # mkpath(getLogPath(fg))
 # verbosefid = open(joinLogPath(fg, "csmVerbose.log"),"w")
 
-tree, smt, hist = solveTree!(fg, timeout=70) # , verbose=true, verbosefid=verbosefid)
+tree = solveTree!(fg, timeout=70) # , verbose=true, verbosefid=verbosefid)
 
 # flush(verbosefid)
 # close(verbosefid)

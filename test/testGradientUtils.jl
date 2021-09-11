@@ -20,7 +20,7 @@ dfg, _dfgfct = IIF._buildGraphByFactorAndTypes!(fct, varTypes, varPts)
 
 ## test  the evaluation of factor without
 
-B = IIF._evalFactorTemporary!(EuclidDistance(Normal(10,1)), varTypes, 2, [([10;],)], varPts );
+B = IIF._evalFactorTemporary!(EuclidDistance(Normal(10,1)), varTypes, 2, [[10;]], varPts );
 
 @test_broken B isa Vector{Vector{Float64}}
 @test isapprox( B[1], [10.0;], atol=1e-6)
@@ -33,13 +33,13 @@ end
 ##
 
 fct = EuclidDistance(Normal(10,1))
-measurement = [([10;],)]
+measurement = [[10;]]
 varTypes = (ContinuousScalar,ContinuousScalar)
 pts = ([0;],[9.5;])
 
 ##
 
-slack_resid = calcFactorResidualTemporary(fct, varTypes, measurement, pts)
+slack_resid = calcFactorResidualTemporary(fct, varTypes, measurement[1], pts)
 
 ##
 
@@ -70,7 +70,7 @@ end
 ##
 
 fct = LinearRelative(MvNormal([10;0],[1 0; 0 1]))
-measurement = [([10.0;0.0],)]
+measurement = [[10.0;0.0]]
 varTypes = (ContinuousEuclid{2},ContinuousEuclid{2})
 pts = ([0;0.0] ,[9.5;0])
 
@@ -89,7 +89,7 @@ _fg,_ = IIF._buildGraphByFactorAndTypes!(fct, varTypes, pts);
 
 _fg = initfg()
 
-slack_resid = calcFactorResidualTemporary(fct, varTypes, measurement, pts, tfg=_fg)
+slack_resid = calcFactorResidualTemporary(fct, varTypes, measurement[1], pts, tfg=_fg)
 
 @test length(getVal(_fg[:x1])) == 1
 @test length(getVal(_fg[:x1])[1]) == 2
