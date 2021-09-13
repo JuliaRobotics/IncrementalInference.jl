@@ -102,16 +102,18 @@ function localProduct(dfg::AbstractDFG,
   # vector of all neighbors as Symbols
   lb = getNeighbors(dfg, sym)
 
-  # # get proposal beliefs
+  # store proposal beliefs
   dens = Array{ManifoldKernelDensity,1}()
-  # partials = Dict{Any, Vector{ManifoldKernelDensity}}()
-  pGM, sinfd = predictbelief(dfg, sym, lb, solveKey=solveKey, logger=logger, dens=dens, N=N )
+  
+  mkd, sinfd = propagateBelief(dfg, getVariable(dfg, sym), map(x->getFactor(dfg, x), lb); solveKey=solveKey, logger=logger, dens=dens, N=N )
 
-  # make manifold belief from product
-  vari = getVariable(dfg, sym)
-  pp = AMP.manikde!(getManifold(getVariableType(vari)), pGM )
+  # # partials = Dict{Any, Vector{ManifoldKernelDensity}}()
+  # pGM, sinfd = predictbelief(dfg, sym, lb, solveKey=solveKey, logger=logger, dens=dens, N=N )
+  # # make manifold belief from product
+  # vari = getVariable(dfg, sym)
+  # mkd = AMP.manikde!(getManifold(getVariableType(vari)), pGM )
 
-  return pp, dens, lb, sinfd
+  return mkd, dens, lb, sinfd
 end
 localProduct(dfg::AbstractDFG, lbl::AbstractString; kw...) = localProduct(dfg, Symbol(lbl); kw...)
 
