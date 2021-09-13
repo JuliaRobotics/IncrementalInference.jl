@@ -11,7 +11,7 @@ export addLikelihoodsDifferentialCHILD!
 
 
 
-convert(::Type{<:ManifoldKernelDensity}, src::TreeBelief) = manikde!(src.val, src.bw[:,1], getManifold(src.variableType))
+convert(::Type{<:ManifoldKernelDensity}, src::TreeBelief) = manikde!(getManifold(src.variableType), src.val, bw=src.bw[:,1])
 
 """
     $(SIGNATURES)
@@ -311,8 +311,10 @@ function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
           # assume default helper function # buildFactorDefault(nfactype)
           afc = addFactor!(tfg, [sym1_;sym2_], sft, graphinit=false, tags=[:DUMMY;])
           # calculate the general deconvolution between variables
-          pts, = approxDeconv(tfg, afc.label, solveKey)  # solveFactorMeasurements
-          # @show sft
+          pred_X, = approxDeconv(tfg, afc.label, solveKey)  # solveFactorMeasurements
+          M = getManifold(_sft)
+          e0 = identity_element(M)
+          pts = exp.(Ref(M), Ref(e0), pred_X)
           newBel = manikde!(pts, sft)
           # replace dummy factor with real deconv factor using manikde approx belief measurement
           fullFct = _sft(newBel)

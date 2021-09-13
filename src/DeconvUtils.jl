@@ -11,12 +11,11 @@ export approxDeconv, deconvSolveKey
 """
     $SIGNATURES
 
-Inverse solve of predicted noise value and returns tuple of (newly predicted, and known "measured" 
-noise) values.
+Inverse solve of predicted noise value and returns tuple of (newly calculated-predicted, and known measurements) values.
 
 Notes
 - Only works for first value in measurement::Tuple at this stage.
-- "measured" is used as starting point for the "predicted" values solve.
+- "measured" is used as starting point for the "calculated-predicted" values solve.
 - Not all factor evaluation cases are support yet.
 - NOTE only works on `.threadid()==1` at present, see #1094
 - This function is still part of the initial implementation and needs a lot of generalization improvements.
