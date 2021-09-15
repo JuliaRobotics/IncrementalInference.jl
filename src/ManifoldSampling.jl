@@ -28,7 +28,7 @@ function sampleTangent(M::AbstractManifold, z::Distribution, p, basis::AbstractB
 end
 
 function sampleTangent(M::AbstractGroupManifold, z::Distribution, p=identity_element(M)) 
-  return hat(M, p, rand(z))
+  return hat(M, p, rand(z,1)[:]) #TODO find something better than (z,1)[:]
 end
 
 
@@ -40,7 +40,7 @@ Return a random sample point on a manifold from a belief represented by coordina
 Notes
 
 """
-function samplePoint(M::AbstractManifold, sbelief, p, basis, retraction_method::AbstractRetractionMethod=ExponentialRetraction())
+function samplePoint(M::AbstractManifold, sbelief, p, basis::AbstractBasis, retraction_method::AbstractRetractionMethod=ExponentialRetraction())
   X = sampleTangent(M, sbelief, p, basis)
   return retract(M, p, X, retraction_method)
 end
@@ -48,7 +48,14 @@ function samplePoint(M::AbstractGroupManifold, sbelief, p=identity_element(M), r
   X = sampleTangent(M, sbelief, p)
   return retract(M, p, X, retraction_method)
 end
+
+function samplePoint(M::AbstractGroupManifold, sbelief::ManifoldKernelDensity, p=mean(sbelief), retraction_method::AbstractRetractionMethod=ExponentialRetraction())
+  X = sampleTangent(M, sbelief, p)
+  return retract(M, p, X, retraction_method)
+end
+
 function samplePoint(x::ManifoldKernelDensity, p=mean(x)) 
+  @warn "MKD" p
   return samplePoint(x.manifold, x, p)
 end
 

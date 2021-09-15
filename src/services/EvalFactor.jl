@@ -69,7 +69,8 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
                                                 kappa::Real=3.0  )
   #
   if sfidx in certainidx
-    msst_ = sqrt(calcCovarianceBasic(getManifold(ccwl.vartypes[sfidx]), ccwl.params[sfidx]))
+    # msst_ = sqrt(calcCovarianceBasic(getManifold(ccwl.vartypes[sfidx]), ccwl.params[sfidx]))
+    msst_ = calcStdBasicSpread(ccwl.vartypes[sfidx](), ccwl.params[sfidx])
     return kappa*msst_
   end
   # @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
@@ -411,7 +412,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
 
   # view on elements marked for nullhypo
   addEntrNH = view(addEntr, nhmask)
-  spreadDist = spreadNH*sqrt(calcCovarianceBasic(mani, addEntr))
+  # spreadDist = spreadNH*sqrt(calcCovarianceBasic(mani, addEntr))
+  spreadDist = spreadNH*calcStdBasicSpread(getVariableType(Xi[sfidx]), addEntr)
   # partials are treated differently
   ipc = if !isPartial(ccwl) #ccwl.partial
     # TODO for now require measurements to be coordinates too

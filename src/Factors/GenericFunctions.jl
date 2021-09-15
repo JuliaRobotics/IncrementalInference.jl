@@ -138,3 +138,37 @@ function mahalanobus_distance2(M, X, inv_Σ)
     Xc = vee(M, p, X)
     return Xc' * inv_Σ * Xc
 end
+
+
+## ======================================================================================
+## Generic Manifold Partial Prior
+## ======================================================================================
+
+function samplePointPartial(M::AbstractGroupManifold,
+                            z::Distribution,
+                            partial::Vector{Int}, 
+                            p=identity_element(M), 
+                            retraction_method::AbstractRetractionMethod=ExponentialRetraction())
+  dim = manifold_dimension(M)
+  Xc = zeros(dim)
+  Xc[partial] .= rand(z)
+  X =  hat(M, p, Xc)
+  return retract(M, p, X, retraction_method)
+end
+
+struct ManifoldPriorPartial{M <: AbstractManifold, T <: SamplableBelief, P <: Tuple} <: AbstractPrior
+    M::M
+    Z::T
+    partial::P
+end 
+  
+DFG.getManifold(f::ManifoldPriorPartial) = f.M
+
+function getSample(cf::CalcFactor{<:ManifoldPriorPartial}) 
+    Z = cf.factor.Z
+    M = getManifold(cf.factor)
+    partial = collect(cf.factor.partial)
+
+    return (samplePointPartial(M, Z, partial), )
+end
+
