@@ -49,13 +49,12 @@ function samplePoint(M::AbstractGroupManifold, sbelief, p=identity_element(M), r
   return retract(M, p, X, retraction_method)
 end
 
-function samplePoint(M::AbstractGroupManifold, sbelief::ManifoldKernelDensity, p=mean(sbelief), retraction_method::AbstractRetractionMethod=ExponentialRetraction())
+function samplePoint(M::AbstractGroupManifold, sbelief::ManifoldKernelDensity, p=identity_element(M, mean(sbelief)), retraction_method::AbstractRetractionMethod=ExponentialRetraction())
   X = sampleTangent(M, sbelief, p)
   return retract(M, p, X, retraction_method)
 end
 
 function samplePoint(x::ManifoldKernelDensity, p=mean(x)) 
-  @warn "MKD" p
   return samplePoint(x.manifold, x, p)
 end
 
