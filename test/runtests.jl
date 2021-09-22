@@ -68,7 +68,7 @@ include("testMultihypoAndChain.jl")
 include("testMultithreaded.jl")
 include("testmultihypothesisapi.jl")
 include("fourdoortest.jl")
-@test_skip include("testCircular.jl") #FIXME change to CircleGroup
+include("testCircular.jl")
 include("testMixtureLinearConditional.jl")
 include("testFluxModelsDistribution.jl")
 include("testAnalysisTools.jl")

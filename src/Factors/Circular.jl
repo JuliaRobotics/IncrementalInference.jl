@@ -11,7 +11,7 @@ Related
 
 [`Sphere1`](@ref), [`PriorSphere1`](@ref), [`Polar`](@ref), [`ContinuousEuclid`](@ref)
 """
-mutable struct CircularCircular{T<: SamplableBelief} <: AbstractRelativeRoots
+mutable struct CircularCircular{T<: SamplableBelief} <: AbstractManifoldMinimize
   Z::T
   # Sphere1Sphere1(z::T=Normal()) where {T <: SamplableBelief} = new{T}(z)
 end
@@ -20,22 +20,23 @@ const Sphere1Sphere1 = CircularCircular
 
 CircularCircular(::UniformScaling) = CircularCircular(Normal())
 
+DFG.getManifold(::CircularCircular) = RealCircleGroup()
 
 function getSample(cf::CalcFactor{<:CircularCircular})
-  return rand(cf.factor.Z, 1)
+  # return (sampleTangent(getManifold(cf.factor), cf.factor.Z), )
+  # FIXME workaround for issue #TBD with manifolds CircularGroup
+  return sampleTangent(getManifold(cf.factor), cf.factor.Z, [0.0])
+
 end
 
-function (cf::CalcFactor{<:CircularCircular})(meas,
-                                            wxi,
-                                            wxj  ) # where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
+function (cf::CalcFactor{<:CircularCircular})(X, p, q)
   #
-  wXjhat = addtheta(wxi[1], meas[1])
-  res = difftheta(wxj[1], wXjhat)  # jXjhat =
-  return res
+  M = getManifold(cf.factor)
+  return distanceTangent2Point(M, X, p, q)
 end
 
 
-Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{CircularCircular}) = Manifolds.Circle()
+Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{CircularCircular}) = Manifolds.RealCircleGroup()
 
 
 """
@@ -59,13 +60,15 @@ end
 
 PriorCircular(::UniformScaling) = PriorCircular(Normal())
 
+DFG.getManifold(::PriorCircular) = RealCircleGroup()
 
 function getSample(cf::CalcFactor{<:PriorCircular})
-  return rand(cf.factor.Z, 1)
+  # FIXME workaround for issue #TBD with manifolds CircularGroup
+  return samplePoint(getManifold(cf.factor), cf.factor.Z, [0.0])
 end
 
 
-Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{PriorCircular}) = Manifolds.Circle()
+Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{PriorCircular}) = Manifolds.RealCircleGroup()
 
 
 
