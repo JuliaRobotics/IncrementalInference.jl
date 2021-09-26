@@ -203,9 +203,7 @@ end
 # the point is that only the (0,20) values in newFactor are needed, all calculations are abstracted away.
 ```
 
-Related
-
-[`RoME.generateCanonicalFG_Honeycomb!`](@ref), [`accumulateFactorMeans`](@ref), [`getPPE`](@ref)
+See also: [`RoME.generateCanonicalFG_Honeycomb!`](@ref), [`accumulateFactorMeans`](@ref), [`getPPE`](@ref)
 """
 function _checkVariableByReference( fg::AbstractDFG,
                                     srcLabel::Symbol,
@@ -215,7 +213,7 @@ function _checkVariableByReference( fg::AbstractDFG,
                                     srcType::Type{<:InferenceVariable} = getVariableType(fg, srcLabel) |> typeof,
                                     refKey::Symbol=:simulated,
                                     prior = DFG._getPriorType(srcType)( MvNormal(getPPE(fg[srcLabel], refKey).suggested, diagm(ones(getDimension(srcType)))) ),
-                                    atol::Real = 1e-3,
+                                    atol::Real = 1e-2,
                                     destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
                                     srcNumber = match(r"\d+", string(srcLabel)).match |> x->parse(Int,x),
                                     overridePPE=nothing  )
@@ -241,12 +239,13 @@ function _checkVariableByReference( fg::AbstractDFG,
   # now check if we already have a landmark at this location
   varLms = ls(fg, destRegex) |> sortDFG
   ppeLms = getPPE.(getVariable.(fg, varLms), refKey) .|> x->x.suggested
-  errmask = ppeLms .|> x -> norm(x - ppe.suggested) < atol
+  errmask = ppeLms .|> ( x -> isapprox(x, refVal; atol=atol) )
   already = any(errmask)
 
   if already
     # does exist, ppe, variableLabel
     alrLm = varLms[findfirst(errmask)]
+    # @info "Variable on :$refKey does exists at" srcLabel alrLm
     return true, ppe, alrLm
   end
   
