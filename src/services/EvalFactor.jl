@@ -341,9 +341,16 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                             inflateCycles=inflateCycles, skipSolve=skipSolve,
                             _slack=_slack )
   #
-  # ## do info per coord
+  # FIXME do info per coord
   # ipc_ = _calcIPCRelative(Xi, ccwl, hyporecipe, sfidx)
   ipc = ones(getDimension(Xi[sfidx]))
+  if isPartial(ccwl)
+    # FIXME this is a workaround until better _calcIPCRelative can be used
+    msk_ = setdiff(1:length(ipc), ccwl.usrfnc!.partial)
+    for _i in msk_
+      ipc[_i] = 0.0
+    end
+  end
 
   # return the found points, and info per coord
   return ccwl.params[ccwl.varidx], ipc
