@@ -165,6 +165,7 @@ function calcProposalBelief(dfg::AbstractDFG,
 end
 
 
+# specifically the PartialPriorPassThrough dispatch
 function calcProposalBelief(dfg::AbstractDFG,
                             fct::DFGFactor{<:CommonConvWrapper{<:PartialPriorPassThrough}},
                             target::Symbol,

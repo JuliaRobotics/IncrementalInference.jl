@@ -42,7 +42,7 @@ function propagateBelief( dfg::AbstractDFG,
   # few more data requirements
   varType = getVariableType(destvar)
   M = getManifold(varType)
-  # @info "BUILDING MKD" varType M
+  # @info "BUILDING MKD" varType M isPartial.(dens)
   
   # take the product
   mkd = AMP.manifoldProduct(dens, M, Niter=1, oldPoints=oldpts, N=N)
