@@ -15,8 +15,9 @@ using Reexport
 using Manifolds
 
 export ℝ, AbstractManifold
+export ProductRepr
 # common groups -- preferred defaults at this time.
-export TranslationGroup, CircleGroup
+export TranslationGroup, RealCircleGroup
 # common non-groups -- TODO still teething problems to sort out in IIF v0.25-v0.26.
 export Euclidean, Circle
 
@@ -422,6 +423,9 @@ include("entities/FactorGradients.jl")
 include("entities/AliasScalarSampling.jl")
 
 include("entities/BeliefTypes.jl")
+
+# Statistics helpers on manifolds
+include("VariableStatistics.jl")
 
 # factors needed for belief propagation on the tree
 include("Factors/MsgPrior.jl")

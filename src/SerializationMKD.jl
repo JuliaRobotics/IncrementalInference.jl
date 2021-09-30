@@ -15,7 +15,9 @@ export PackedManifoldKernelDensity
 # relies on later use of getManifold to give back the same <:AbstractManifold
 getVariableType(M::Euclidean{Tuple{N}}) where N = ContinuousEuclid(N)
 getVariableType(M::TranslationGroup{Tuple{N}}) where N = ContinuousEuclid(N)
-getVariableType(M::Circle) = Circular()
+getVariableType(M::RealCircleGroup) = Circular()
+
+getVariableType(M::Circle) = error("Circle manifold is deprecated use RealCircleGroup, will come back when we generalize to non-group Riemannian")
 
 
 

@@ -166,7 +166,7 @@ prtb = calcPerturbationFromVariable(gradients, [1=>[1;1]])
 
 # add relative IPC calculation inside evalFactor
 bel = approxConvBelief(fg, getLabel(f3), :x2)
-@test_broken isPartial(bel)
+@test isPartial(bel)
 
 ##
 end
@@ -212,13 +212,15 @@ X2lpts_ = getVal(getVariable(fg, :x2))
 @cast X2lpts[i,j] := X2lpts_[j][i]
 keepaside, = findRelatedFromPotential(fg, thefac, :x2, N=N)
 @test Ndim(keepaside) == 2
-lpts_ = getPoints(keepaside)
+lpts_ = getPoints(keepaside, false)
 @cast lpts[i,j] := lpts_[j][i]
 @test length(lpts_) == N
 
 @show X2lpts[2,95:100]
 @show lpts[2,95:100]
 @show getPoints(keepaside)
+
+##
 
 # DevelopPartialPairwise must only modify the second dimension of proposal distribution on X2
 @test norm(X2lpts[1,:] - lpts[1,:]) < 1e-10
@@ -232,7 +234,7 @@ X2lpts_ = getVal(v2)
 @cast X2lpts[i,j] := X2lpts_[j][i]
 p4, = findRelatedFromPotential(fg, f4, v2.label, N=N)
 @test Ndim(p4) == 2
-lpts_ = getPoints(keepaside)
+lpts_ = getPoints(keepaside, false)
 @cast lpts[i,j] := lpts_[j][i]
 @test length(lpts_) == N
 

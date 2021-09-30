@@ -60,7 +60,6 @@ function fitKDE(support,
 end
 
 
-global allthres = Dict{Int, Any}()
 
 
 function HeatmapDensityRegular( data::AbstractMatrix{<:Real}, 
@@ -72,16 +71,13 @@ function HeatmapDensityRegular( data::AbstractMatrix{<:Real},
                                 bw_factor::Real=0.7,  # kde spread between domain points 
                                 N::Int=10000  )
   #
-  global allthres
 
   # select the support from raw data
   support_, weights_, roi = getLevelSetSigma(data, level, sigma, domain...; sigma_scale=sigma_scale)
-  allthres[length(allthres)+1] = roi
   
   # constuct a pre-density from which to draw intermediate samples
   density_ = fitKDE(support_, weights_, domain...; bw_factor=bw_factor)
   pts_preIS, = sample(density_, N)
-  # @show size(pts_preIS)
   
   @cast vec_preIS[j][i] := pts_preIS[i,j]
   

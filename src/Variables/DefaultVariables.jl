@@ -5,7 +5,8 @@ export Circular, Circle
 
 
 Base.convert(::Type{<:Tuple}, ::InstanceType{Manifolds.Euclidean{Tuple{N}, ℝ}} ) where N = tuple([:Euclid for i in 1:N]...)
-Base.convert(::Type{<:Tuple}, ::InstanceType{Manifolds.Circle{ℝ}})  = (:Circular,)
+Base.convert(::Type{<:Tuple}, ::InstanceType{Manifolds.Circle{ℝ}})  = error("#FIXME")#(:Circular,)
+Base.convert(::Type{<:Tuple}, ::InstanceType{Manifolds.RealCircleGroup})  = (:Circular,)
 
 
 
@@ -52,7 +53,7 @@ $(TYPEDEF)
 
 Circular is a `Manifolds.Circle{ℝ}` mechanization of one rotation, with `theta in [-pi,pi)`.
 """
-@defVariable Circular Circle() [0.0;]
+@defVariable Circular RealCircleGroup() [0.0;]
 
 
 

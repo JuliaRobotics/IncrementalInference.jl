@@ -4,12 +4,17 @@
 
 Stable v0.23 | Stable v0.24 | Dev | Coverage | Documentation
 --------------|-------------|-------------|-----|---------
-[![build-0-23]][travis-url] | [![build-0-24]][travis-url] | [![build-master]][travis-url] <br> [![commits-url]][contributors-url] <br> [![issues-time]][issues-url] | [![doi-img]][doi-url] <br> [![codecov-io]][codecov-url] <br> [![issues-open]][issues-url] | [![cjl-slack-badge]][cjl-slack] <br> [![caesar-docs]][cjl-docs-url] <br> [![dfg-docs]][dfg-docs-url]
+[![build-0-23]][travis-url] | [![build-0-24]][travis-url] | [![ci-dev-img]][ci-dev-url] <br> [![commits-url]][contributors-url] <br> [![issues-time]][issues-url] | [![doi-img]][doi-url] <br> [![codecov-io]][codecov-url] <br> [![issues-open]][issues-url] | [![cjl-slack-badge]][cjl-slack] <br> [![caesar-docs]][cjl-docs-url] <br> [![dfg-docs]][dfg-docs-url]
 
 
+[deps-img]: https://juliahub.com/docs/IncrementalInference/deps.svg
+[deps-url]: https://juliahub.com/ui/Packages/IncrementalInference/NrVw2?t=2
 
 [doi-img]: https://zenodo.org/badge/55802838.svg
 [doi-url]: https://zenodo.org/badge/latestdoi/55802838
+
+[ci-dev-img]: https://github.com/JuliaRobotics/IncrementalInference.jl/actions/workflows/ci.yml/badge.svg
+[ci-dev-url]: https://github.com/JuliaRobotics/IncrementalInference.jl/actions/workflows/ci.yml
 
 [travis-url]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl
 [build-master]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=master
@@ -38,11 +43,13 @@ Optimization routines for incremental non-parametric and parametric solutions ba
 Introduction
 ============
 
-This package implements Multi-Modal iSAM (MM-iSAM) algorithm ([see references](http://www.juliarobotics.org/Caesar.jl/latest/refs/literature/)) which does hybrid non-parametric and parametric inference/state-estimation over large factor graphs.  Inference is performed via the Bayes (junction) tree where non-parametric and parametric solutions are based on marginal-joint belief propagation (an approximate sum-product algorithm).  Many benefits such as clique recycling is available.  See the common Caesar.jl documenation for more details.  Note, that IncrementalInference.jl **does not** have to be used with Caesar.jl, and aims to only implement the inference operations against mathematical abstractions such as Manifolds.jl. 
+This package implements Multi-Modal iSAM (MM-iSAM) algorithm ([see references](http://www.juliarobotics.org/Caesar.jl/latest/refs/literature/)) which does hybrid non-parametric and parametric inference/state-estimation over large factor graphs.  Inference is performed via the Bayes (junction) tree where non-parametric and parametric solutions are based on marginal-joint belief propagation (an approximate sum-product algorithm).  Many benefits such as clique recycling is available.  See the common Caesar.jl documenation for more details.  [![caesar-docs]][cjl-docs-url]
 
-This package forms a cardinal piece of the [Caesar.jl](https://github.com/JuliaRobotics/Caesar.jl) robotics toolkit, including 3D visualization and database interaction, which can serve as a base station for a robotic platform. A standalone [Robot Motion Estimate](https://github.com/JuliaRobotics/RoME.jl) package extends the available variables, factors, and utilities for use in robotic navigation.
+This package forms a cardinal piece of the [Caesar.jl](https://github.com/JuliaRobotics/Caesar.jl) robotics toolkit, including 3D visualization and database interaction, which can serve as a base station for a robotic platform. A standalone Robot Motion Estimate ([RoME.jl](https://github.com/JuliaRobotics/RoME.jl)) package extends the available variables, factors, and utilities for use in robotic navigation.  [![deps-img]][deps-url]  
 
-Please contact info@navability.io for further support on this package, [NavAbility](https://www.navability.io). 
+Note, that IncrementalInference.jl **does not** have to be used with RoME.jl / Caesar.jl -- IncrementalInference.jl only implements the algebraic inference operations against mathematical abstractions such as Manifolds.jl. 
+
+Furthermore, please contact info@navability.io for more formal support on this package, [NavAbility.io](https://www.navability.io). 
 
 Installation
 ------------

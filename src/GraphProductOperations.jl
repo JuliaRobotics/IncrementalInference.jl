@@ -42,7 +42,7 @@ function propagateBelief( dfg::AbstractDFG,
   # few more data requirements
   varType = getVariableType(destvar)
   M = getManifold(varType)
-  # @info "BUILDING MKD" varType M
+  # @info "BUILDING MKD" varType M isPartial.(dens)
   
   # take the product
   mkd = AMP.manifoldProduct(dens, M, Niter=1, oldPoints=oldpts, N=N)
@@ -102,16 +102,12 @@ function localProduct(dfg::AbstractDFG,
   # vector of all neighbors as Symbols
   lb = getNeighbors(dfg, sym)
 
-  # # get proposal beliefs
-  dens = Array{ManifoldKernelDensity,1}()
-  # partials = Dict{Any, Vector{ManifoldKernelDensity}}()
-  pGM, sinfd = predictbelief(dfg, sym, lb, solveKey=solveKey, logger=logger, dens=dens, N=N )
-
-  # make manifold belief from product
-  vari = getVariable(dfg, sym)
-  pp = AMP.manikde!(getManifold(getVariableType(vari)), pGM )
-
-  return pp, dens, lb, sinfd
+  # store proposal beliefs, TODO replace Abstract with concrete type
+  dens = Vector{ManifoldKernelDensity}()
+  
+  mkd, sinfd = propagateBelief(dfg, getVariable(dfg, sym), map(x->getFactor(dfg, x), lb); solveKey=solveKey, logger=logger, dens=dens, N=N )
+  
+  return mkd, dens, lb, sinfd
 end
 localProduct(dfg::AbstractDFG, lbl::AbstractString; kw...) = localProduct(dfg, Symbol(lbl); kw...)
 
