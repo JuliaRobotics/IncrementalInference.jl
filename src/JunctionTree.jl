@@ -421,9 +421,11 @@ end
 
 Build the whole tree in batch format.
 """
-function buildTree!(tree::AbstractBayesTree, dfg::AbstractDFG, elimorder::Array{Symbol,1})
-  revorder = reverse(elimorder,dims=1) # flipdim(p, 1), fixing #499
-  # prevVar = 0
+function buildTree!(tree::AbstractBayesTree, 
+                    dfg::AbstractDFG, 
+                    elimorder::AbstractVector{Symbol}  )
+  #
+  revorder = reverse(elimorder,dims=1) # fixing #499
   for var in revorder
     @debug "Adding $var to tree..."
     newPotential(tree, dfg, var, elimorder)
@@ -701,7 +703,7 @@ Related
 [`buildTreeReset!`](@ref)
 """
 function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
-                                p::Vector{Symbol};
+                                elimOrder::Vector{Symbol};
                                 drawbayesnet::Bool=false,
                                 solvable::Int=1  )
   #
@@ -714,11 +716,11 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
   DFG.deepcopyGraph!(fge, dfg)
 
   println("Building Bayes net...")
-  buildBayesNet!(fge, p, solvable=solvable)
+  buildBayesNet!(fge, elimOrder, solvable=solvable)
 
   tree = BayesTree()
-  tree.eliminationOrder = p
-  buildTree!(tree, fge, p)
+  tree.eliminationOrder = elimOrder
+  buildTree!(tree, fge, elimOrder)
 
   if drawbayesnet
     println("Bayes Net")
