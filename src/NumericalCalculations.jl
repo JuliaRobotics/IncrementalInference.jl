@@ -90,6 +90,14 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   # X0c = get_coordinates(M, u0, log(M, ϵ, u0), DefaultOrthogonalBasis()) 
   X0c = vee(M, u0, log(M, ϵ, u0)) 
 
+  # #FIXME begin
+  # just as a test
+  if hasfield(typeof(fcttype), :u0)
+    fcttype.u0[] = deepcopy(u0)
+  end
+  # #FIXME end
+
+
   # objResX(p) returns tangent vector at p, X=log(M, p, ...)
   # norm(M, p, X) == distance(M, p, X)
   #TODO fix closure for performance
@@ -115,7 +123,7 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   p0 = exp(M, ϵ, X0)
   r = Optim.optimize(Xc->cost(p0, X0, Xc), X0c, alg)
   if !Optim.converged(r)
-    @debug "Optim did not converge:" r
+    @warn "Optim did not converge:" r
   end
   return exp(M, ϵ, hat(M, ϵ, r.minimizer)) 
 
