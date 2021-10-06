@@ -36,7 +36,7 @@ function __doCliqUpSolveInitialized!(csmc::CliqStateMachineContainer)
   updateFGBT!(csmc.cliqSubFg, csmc.cliq, retdict, dbg=getSolverParams(csmc.cliqSubFg).dbg, logger=csmc.logger) # urt
 
   # set clique color accordingly, using local memory
-  setCliqueDrawColor!(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
+  # setCliqueDrawColor!(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
 
   # notify of results (part of #459 consolidation effort)
   getCliqueData(csmc.cliq).upsolved = true

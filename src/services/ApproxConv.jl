@@ -221,7 +221,8 @@ function proposalbeliefs!(dfg::AbstractDFG,
     ccwl = _getCCW(fct)
     # need way to convey partial information
     # determine if evaluation is "dimension-deficient" solvable dimension
-    inferd = getFactorSolvableDim(dfg, fct, destlbl, solveKey)
+    # FIXME, update to infoPerCoord
+    inferd = 1.0 # getFactorSolvableDim(dfg, fct, destlbl, solveKey)
     # convolve or passthrough to get a new proposal
     propBel_ = calcProposalBelief(dfg, fct, destlbl, measurement, N=N, dbg=dbg, solveKey=solveKey)
     # partial density

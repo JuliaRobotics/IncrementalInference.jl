@@ -610,7 +610,7 @@ function _buildTreeBeliefDict!( msgdict::Dict{Symbol, TreeBelief},
                                 subfg::AbstractDFG,
                                 cliq::TreeClique,
                                 solveKey::Symbol=:default,
-                                sdims=getCliqVariableMoreInitDims(subfg, cliq, solveKey);
+                                sdims=nothing;    #getCliqVariableMoreInitDims(subfg, cliq, solveKey);
                                 duplicate::Bool=true )
   #
   # TODO better logging
@@ -623,7 +623,7 @@ function _buildTreeBeliefDict!( msgdict::Dict{Symbol, TreeBelief},
     var = DFG.getVariable(subfg, vid)
     var = duplicate ? deepcopy(var) : var
     if isInitialized(var)
-      msgdict[var.label] = TreeBelief(var, solvableDim=sdims[var.label])
+      msgdict[var.label] = TreeBelief(var, solvableDim=1.0) #sdims[var.label])
     end
   end
   nothing
@@ -650,7 +650,7 @@ function prepCliqueMsgUp( subfg::AbstractDFG,
                           sender=(;id=0,step=0) )
   #
   # get the current clique status
-  sdims = getCliqVariableMoreInitDims(subfg, cliq, solveKey)
+  # sdims = getCliqVariableMoreInitDims(subfg, cliq, solveKey)
 
   # construct init's up msg to place in parent from initialized separator variables
   hasPriors = 0 < (lsfPriors(subfg) |> length)
