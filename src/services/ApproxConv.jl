@@ -215,13 +215,16 @@ function proposalbeliefs!(dfg::AbstractDFG,
   #
 
   # populate the full and partial dim containers
-  inferddimproposal = Vector{Float64}(undef, length(factors))
+  ipcs = Vector{Vector{Float64}}(undef, length(factors))
+  
+  vardim = getDimension(getVariable(dfg, destlbl))
   # get a proposal belief from each factor connected to destlbl
   for (count,fct) in enumerate(factors)
     ccwl = _getCCW(fct)
     # need way to convey partial information
     # determine if evaluation is "dimension-deficient" solvable dimension
-    inferd = getFactorSolvableDim(dfg, fct, destlbl, solveKey)
+    # FIXME, update to infoPerCoord
+    fct_ipc = ones(vardim) # getFactorSolvableDim(dfg, fct, destlbl, solveKey)
     # convolve or passthrough to get a new proposal
     propBel_ = calcProposalBelief(dfg, fct, destlbl, measurement, N=N, dbg=dbg, solveKey=solveKey)
     # partial density
@@ -233,9 +236,15 @@ function proposalbeliefs!(dfg::AbstractDFG,
       propBel_
     end
     push!(dens, propBel)
-    inferddimproposal[count] = inferd
+    ipcs[count] = fct_ipc
   end
-  inferddimproposal
+  # len = maximum(length.(ipcs))
+  ipc = zeros(vardim)
+  for _ipc in ipcs
+    ipc .+= _ipc
+  end
+
+  ipc
 end
 # group partial dimension factors by selected dimensions -- i.e. [(1,)], [(1,2),(1,2)], [(2,);(2;)]
 

@@ -2,28 +2,28 @@
 
 > Click on badges to follow links:
 
-Stable v0.23 | Stable v0.24 | Dev | Coverage | Documentation
---------------|-------------|-------------|-----|---------
-[![build-0-23]][travis-url] | [![build-0-24]][travis-url] | [![ci-dev-img]][ci-dev-url] <br> [![commits-url]][contributors-url] <br> [![issues-time]][issues-url] | [![doi-img]][doi-url] <br> [![codecov-io]][codecov-url] <br> [![issues-open]][issues-url] | [![cjl-slack-badge]][cjl-slack] <br> [![caesar-docs]][cjl-docs-url] <br> [![dfg-docs]][dfg-docs-url]
+| Stable Release | Dev branch | Coverage | Documentation |
+|----------------|------------|----------|---------------|
+| [![iif-ci-stb][iif-ci-stb-img]][iif-ci-stb-url] <br> [![version][iif-ver-img]][iif-rel-url] | [![iif-ci-dev-img]][iif-ci-dev-url] <br> [![iif-commits-url]][contributors-url] <br> [![issues-time]][issues-url] | [![doi-img]][doi-url] <br> [![iif-cov-img]][iif-cov-url] <br> [![issues-open]][issues-url] | [![cjl-slack-badge]][cjl-slack] <br> [![caesar-docs]][cjl-docs-url] <br> [![dfg-docs]][dfg-docs-url] |
 
 
-[deps-img]: https://juliahub.com/docs/IncrementalInference/deps.svg
-[deps-url]: https://juliahub.com/ui/Packages/IncrementalInference/NrVw2?t=2
-
+[iif-deps-img]: https://juliahub.com/docs/IncrementalInference/deps.svg
+[iif-deps-jlh]: https://juliahub.com/ui/Packages/IncrementalInference/NrVw2?t=2
 [doi-img]: https://zenodo.org/badge/55802838.svg
 [doi-url]: https://zenodo.org/badge/latestdoi/55802838
 
-[ci-dev-img]: https://github.com/JuliaRobotics/IncrementalInference.jl/actions/workflows/ci.yml/badge.svg
-[ci-dev-url]: https://github.com/JuliaRobotics/IncrementalInference.jl/actions/workflows/ci.yml
+<!-- replicated in Caesar.jl README -->
+[iif-ci-dev-img]: https://github.com/JuliaRobotics/IncrementalInference.jl/actions/workflows/ci.yml/badge.svg
+[iif-ci-dev-url]: https://github.com/JuliaRobotics/IncrementalInference.jl/actions/workflows/ci.yml
+[iif-ci-stb-img]: https://github.com/JuliaRobotics/IncrementalInference.jl/actions/workflows/ci.yml/badge.svg?branch=release%2Fv0.25
+[iif-ci-stb-url]: https://github.com/JuliaRobotics/IncrementalInference.jl/actions/workflows/ci.yml
+[iif-ver-img]: https://juliahub.com/docs/IncrementalInference/version.svg
+[iif-rel-url]: https://github.com/JuliaRobotics/IncrementalInference.jl/releases
+[iif-milestones]: https://github.com/JuliaRobotics/IncrementalInference.jl/milestones
+[iif-cov-img]: https://codecov.io/github/JuliaRobotics/IncrementalInference.jl/coverage.svg?branch=master
+[iif-cov-url]: https://codecov.io/github/JuliaRobotics/IncrementalInference.jl?branch=master
 
-[travis-url]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl
-[build-master]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=master
-[build-0-23]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.23
-[build-0-24]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.24
-
-[codecov-io]: https://codecov.io/github/JuliaRobotics/IncrementalInference.jl/coverage.svg?branch=master
-[codecov-url]: https://codecov.io/github/JuliaRobotics/IncrementalInference.jl?branch=master
-[commits-url]: https://img.shields.io/github/commit-activity/y/JuliaRobotics/IncrementalInference.jl.svg?color=dark-green
+[iif-commits-url]: https://img.shields.io/github/commit-activity/y/JuliaRobotics/IncrementalInference.jl.svg?color=dark-green
 [contributors-url]: https://github.com/JuliaRobotics/IncrementalInference.jl/graphs/contributors
 [issues-time]: https://isitmaintained.com/badge/resolution/JuliaRobotics/IncrementalInference.jl.svg
 [issues-open]: https://isitmaintained.com/badge/open/JuliaRobotics/IncrementalInference.jl.svg
@@ -43,9 +43,15 @@ Optimization routines for incremental non-parametric and parametric solutions ba
 Introduction
 ============
 
-This package implements Multi-Modal iSAM (MM-iSAM) algorithm ([see references](http://www.juliarobotics.org/Caesar.jl/latest/refs/literature/)) which does hybrid non-parametric and parametric inference/state-estimation over large factor graphs.  Inference is performed via the Bayes (junction) tree where non-parametric and parametric solutions are based on marginal-joint belief propagation (an approximate sum-product algorithm).  Many benefits such as clique recycling is available.  See the common Caesar.jl documenation for more details.  [![caesar-docs]][cjl-docs-url]
+This package implements a few different non-Gaussian factor graph inference algorithms, primarily 
+- Multi-Modal iSAM (MM-iSAM) ([see references](http://www.juliarobotics.org/Caesar.jl/latest/refs/literature/)) which does hybrid non-parametric and parametric inference/state-estimation over large factor graphs.  
+- Batch Parametric (akin to conventional "non-linear least squares"),
+- Max-mixtures parametric,
+- Other multiparametric and non-Gaussian algorithms are in the works and will be announced in due course.
 
-This package forms a cardinal piece of the [Caesar.jl](https://github.com/JuliaRobotics/Caesar.jl) robotics toolkit, including 3D visualization and database interaction, which can serve as a base station for a robotic platform. A standalone Robot Motion Estimate ([RoME.jl](https://github.com/JuliaRobotics/RoME.jl)) package extends the available variables, factors, and utilities for use in robotic navigation.  [![deps-img]][deps-url]  
+Fundamentally, inference is performed via the Bayes (junction) tree where Chapman-Kolmogorov transit integral solutions are based on marginal-joint belief estimation (a sum-product / belief-propagation approximation algorithm).  Many benefits such as clique recycling are also available.  See the common Caesar.jl documenation for more details.  [![caesar-docs]][cjl-docs-url]
+
+This package forms a cardinal piece of the [Caesar.jl](https://github.com/JuliaRobotics/Caesar.jl) robotics toolkit, including 3D visualization and database interaction, which can serve as a base station for a robotic platform. A standalone Robot Motion Estimate ([RoME.jl](https://github.com/JuliaRobotics/RoME.jl)) package extends the available variables, factors, and utilities for use in robotic navigation.  [![iif-deps-img]][iif-deps-jlh]  
 
 Note, that IncrementalInference.jl **does not** have to be used with RoME.jl / Caesar.jl -- IncrementalInference.jl only implements the algebraic inference operations against mathematical abstractions such as Manifolds.jl. 
 
@@ -68,11 +74,7 @@ sudo apt-get install graphviz xdot # optional
 Examples
 ========
 
-This library is built as a back-end solver which is closer to the mathetical operations can be easily modified and extended for a variety of uses. Specific emphasis is placed on allowing outside user defined variables and factor definitions to be used. The current major use case is through [RoME.jl](http://github.com/JuliaRobotics/RoME.jl) and [Caesar.jl](http:///www.github.com/JuliaRobotics/Caesar.jl) which introduces various sensor measurement and motion manifold functions for use in Robot Motion Estimate (a.k.a SLAM).  See these and related packages for documentation and examples.
-
-<p align="center">
-<a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/JuliaRobotics/IncrementalInference.jl/master/doc/images/mmfgbt.gif" alt="IMAGE ALT TEXT HERE" width="480" height="320" /></a>
-</p>
+See the common Caesar.jl documenation for more details [![caesar-docs]][cjl-docs-url].  Further examples can be found in the examples and test folders.
 
 Cite and Contributors
 =====================

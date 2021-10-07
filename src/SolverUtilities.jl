@@ -100,7 +100,7 @@ function updateFGBT!( fg::AbstractDFG,
   end
   for (id,dat) in IDvals
     with_logger(logger) do
-      @info "updateFGBT! up -- update $id, inferdim=$(dat.inferdim)"
+      @info "updateFGBT! up -- update $id, infoPerCoord=$(dat.infoPerCoord)"
     end
     updvert = DFG.getVariable(fg, id)
     setValKDE!(updvert, deepcopy(dat), true) ## TODO -- not sure if deepcopy is required

@@ -79,7 +79,7 @@ DFG.getFactorType(ccw::CommonConvWrapper) = ccw.usrfnc!
 
 _getZDim(ccw::CommonConvWrapper) = ccw.zDim
 # TODO is MsgPrior piggy backing zdim on inferdim???
-_getZDim(ccw::CommonConvWrapper{<:MsgPrior}) = ccw.usrfnc!.inferdim
+_getZDim(ccw::CommonConvWrapper{<:MsgPrior}) = length(ccw.usrfnc!.infoPerCoord) # ccw.usrfnc!.inferdim
 
 _getZDim(fcd::GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
 _getZDim(fct::DFGFactor) = _getCCW(fct) |> _getZDim

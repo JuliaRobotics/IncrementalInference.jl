@@ -125,9 +125,8 @@ veeCategorical(val::Union{Nothing, Vector{Float64}}) = val
 
 function convert( ::Type{Tuple{ManifoldKernelDensity,Float64}},
                   p::TreeBelief )
-  # @show size(p.val), size(p.bw), p.manifolds
-  # (AMP.manikde!(p.val, p.bw[:,1], p.manifolds), p.inferdim)
-  (convert(ManifoldKernelDensity, p), p.inferdim)
+  # 
+  (convert(ManifoldKernelDensity, p), p.infoPerCoord)
 end
 
 

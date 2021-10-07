@@ -96,7 +96,7 @@ function updateSubFgFromDownMsgs!(sfg::G,
   for (key,beldim) in dwnmsgs.belief
     if key in seps
       newBel = manikde!(getManifold(beldim.variableType), beldim.val, bw=beldim.bw[:,1] )
-      setValKDE!(sfg, key, newBel, false, beldim.inferdim)
+      setValKDE!(sfg, key, newBel, false, beldim.infoPerCoord)
     end
   end
 
@@ -107,16 +107,16 @@ end
 
 function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
   kdePr = manikde!(getManifold(belief_.variableType), belief_.val, bw=belief_.bw[:,1])
-  MsgPrior(kdePr, belief_.inferdim)
+  MsgPrior(kdePr, belief_.infoPerCoord)
 end
 
 function generateMsgPrior(belief_::TreeBelief, ::ParametricMessage)
   msgPrior = if length(belief_.val[1]) == 1 && length(belief_.val) == 1
-    MsgPrior(Normal(belief_.val[1][1], sqrt(belief_.bw[1])), belief_.inferdim)
+    MsgPrior(Normal(belief_.val[1][1], sqrt(belief_.bw[1])), belief_.infoPerCoord)
   elseif length(belief_.val) == 1 && 1 != length(belief_.val[1])
     mvnorm = createMvNormal(belief_.val[1], belief_.bw)
     mvnorm !== nothing ? nothing : (return DFGFactor[])
-    MsgPrior(mvnorm, belief_.inferdim)
+    MsgPrior(mvnorm, belief_.infoPerCoord)
   end
   return msgPrior
 end
@@ -610,7 +610,7 @@ function _buildTreeBeliefDict!( msgdict::Dict{Symbol, TreeBelief},
                                 subfg::AbstractDFG,
                                 cliq::TreeClique,
                                 solveKey::Symbol=:default,
-                                sdims=getCliqVariableMoreInitDims(subfg, cliq, solveKey);
+                                sdims=nothing;    #getCliqVariableMoreInitDims(subfg, cliq, solveKey);
                                 duplicate::Bool=true )
   #
   # TODO better logging
@@ -623,7 +623,7 @@ function _buildTreeBeliefDict!( msgdict::Dict{Symbol, TreeBelief},
     var = DFG.getVariable(subfg, vid)
     var = duplicate ? deepcopy(var) : var
     if isInitialized(var)
-      msgdict[var.label] = TreeBelief(var, solvableDim=sdims[var.label])
+      msgdict[var.label] = TreeBelief(var, solvableDim=1.0) #sdims[var.label])
     end
   end
   nothing
@@ -650,7 +650,7 @@ function prepCliqueMsgUp( subfg::AbstractDFG,
                           sender=(;id=0,step=0) )
   #
   # get the current clique status
-  sdims = getCliqVariableMoreInitDims(subfg, cliq, solveKey)
+  # sdims = getCliqVariableMoreInitDims(subfg, cliq, solveKey)
 
   # construct init's up msg to place in parent from initialized separator variables
   hasPriors = 0 < (lsfPriors(subfg) |> length)

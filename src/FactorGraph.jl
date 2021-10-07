@@ -128,24 +128,24 @@ function setValKDE!(vd::VariableNodeData,
                     pts::AbstractVector{P},
                     bws::Vector{Float64},
                     setinit::Bool=true,
-                    inferdim::Float64=0.0 ) where P
+                    ipc::AbstractVector{<:Real}=[0.0;] ) where P
   #
 
   
   setVal!(vd, pts, bws) # BUG ...al!(., val, . ) ## TODO -- this can be a little faster
   setinit ? (vd.initialized = true) : nothing
-  vd.inferdim = inferdim
+  vd.infoPerCoord = ipc
   nothing
 end
 
 function setValKDE!(vd::VariableNodeData,
                     val::AbstractVector{P},
                     setinit::Bool=true,
-                    inferdim::Real=0.0  ) where P
+                    ipc::AbstractVector{<:Real}=[0.0;]  ) where P
   # recover variableType information
   varType = getVariableType(vd)
   p = AMP.manikde!(val, varType)
-  setValKDE!(vd, p, setinit, inferdim)
+  setValKDE!(vd, p, setinit, ipc)
   nothing
 end
 
@@ -153,10 +153,10 @@ function setValKDE!(v::DFGVariable,
                     val::AbstractVector{P},
                     bws::Array{<:Real,2},
                     setinit::Bool=true,
-                    inferdim::Float64=0;
+                    ipc::AbstractVector{<:Real}=[0.0;];
                     solveKey::Symbol=:default) where P
   # recover variableType information
-  setValKDE!(getSolverData(v, solveKey), val, bws[:,1], setinit, inferdim )
+  setValKDE!(getSolverData(v, solveKey), val, bws[:,1], setinit, ipc )
 
   nothing
 end
@@ -164,10 +164,10 @@ end
 function setValKDE!(v::DFGVariable,
                     val::AbstractVector{P},
                     setinit::Bool=true,
-                    inferdim::Float64=0.0;
+                    ipc::AbstractVector{<:Real}=[0.0;];
                     solveKey::Symbol=:default) where P
   # recover variableType information
-  setValKDE!(getSolverData(v, solveKey),val, setinit, inferdim )
+  setValKDE!(getSolverData(v, solveKey),val, setinit, ipc )
   nothing
 end
 function setValKDE!(v::DFGVariable,
@@ -176,27 +176,27 @@ function setValKDE!(v::DFGVariable,
                     # inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  )
   #
-  setValKDE!(v, em.val, em.bw, setinit, em.inferdim, solveKey=solveKey)
+  setValKDE!(v, em.val, em.bw, setinit, em.infoPerCoord, solveKey=solveKey)
   nothing
 end
 function setValKDE!(v::DFGVariable,
                     mkd::ManifoldKernelDensity,
                     setinit::Bool=true,
-                    inferdim::Real=0;
+                    ipc::AbstractVector{<:Real}=[0.0;];
                     solveKey::Symbol=:default  )
   #
   # @error("TESTING setValKDE! ", solveKey, string(listSolveKeys(v)))
-  setValKDE!(getSolverData(v,solveKey),mkd,setinit, Float64(inferdim))
+  setValKDE!(getSolverData(v,solveKey),mkd,setinit, Float64.(ipc))
   nothing
 end
 function setValKDE!(dfg::AbstractDFG,
                     sym::Symbol,
                     mkd::ManifoldKernelDensity,
                     setinit::Bool=true,
-                    inferdim::Real=0;
+                    ipc::AbstractVector{<:Real}=[0.0;];
                     solveKey::Symbol=:default  )
   #
-  setValKDE!(getVariable(dfg, sym), mkd, setinit, inferdim, solveKey=solveKey)
+  setValKDE!(getVariable(dfg, sym), mkd, setinit, ipc, solveKey=solveKey)
   nothing
 end
 
@@ -205,13 +205,13 @@ end
 function setValKDE!(vnd::VariableNodeData,
                     mkd::ManifoldKernelDensity{M,B,Nothing},
                     setinit::Bool=true,
-                    inferdim::Union{Float32, Float64, Int32, Int64}=0 ) where {M,B}
+                    ipc::AbstractVector{<:Real}=[0.0;] ) where {M,B}
   #
   # L==Nothing means no partials
   ptsArr = AMP.getPoints(mkd) # , false) # for not partial
   # also set the bandwidth
   bws = getBW(mkd)[:,1]
-  setValKDE!(vnd,ptsArr,bws,setinit,inferdim )
+  setValKDE!(vnd,ptsArr,bws,setinit,ipc )
   nothing
 end
 
@@ -219,7 +219,7 @@ end
 function setValKDE!(vnd::VariableNodeData,
                     mkd::ManifoldKernelDensity{M,B,L},
                     setinit::Bool=true,
-                    inferdim::Union{Float32, Float64, Int32, Int64}=0 ) where {M,B,L<:AbstractVector}
+                    ipc::AbstractVector{<:Real}=[0.0;] ) where {M,B,L<:AbstractVector}
   #
   oldBel = getBelief(vnd)
 
@@ -233,7 +233,7 @@ function setValKDE!(vnd::VariableNodeData,
   bws = getBandwidth(newBel, false)
 
   # update values in graph
-  setValKDE!(vnd,ptsArr,bws,setinit,inferdim )
+  setValKDE!(vnd,ptsArr,bws,setinit,ipc )
   nothing
 end
 
@@ -257,8 +257,9 @@ setVariableInitialized!(vari::DFGVariable, status::Bool) = setVariableInitialize
 
 Set method for the inferred dimension value in a variable.
 """
-setVariableInferDim!(varid::VariableNodeData, val::Real) = varid.inferdim = convert(Float64,val)
-setVariableInferDim!(vari::DFGVariable, val::Real) = setVariableInferDim!(getSolverData(vari), val)
+setIPC!(varid::VariableNodeData, val::AbstractVector{<:Real}) = varid.infoPerCoord = val
+setIPC!(vari::DFGVariable, val::AbstractVector{<:Real}, solveKey::Symbol=:default) = setVariableIPC!(getSolverData(vari, solveKey), val)
+
 
 ## ==============================================================================================
 ## ==============================================================================================
@@ -289,7 +290,7 @@ function resetVariable!(varid::VariableNodeData;
     fill!(pt, 0.0)
   end
   pn = manikde!(getManifold(varid), pts, bw=zeros(Ndim(val)))
-  setValKDE!(varid, pn, false, 0.0)
+  setValKDE!(varid, pn, false, [0.0;])
   # setVariableInferDim!(varid, 0)
   # setVariableInitialized!(vari, false)
   nothing
