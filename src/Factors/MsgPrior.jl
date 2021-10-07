@@ -9,7 +9,7 @@ Notes
 """
 struct MsgPrior{T <: SamplableBelief} <: AbstractPrior
   Z::T
-  inferdim::Float64
+  infoPerCoord::Vector{Float64}
 end
 
 # MsgPrior{T}() where {T} = new{T}()
@@ -37,13 +37,13 @@ getManifold(mp::MsgPrior{<:ManifoldKernelDensity}) = mp.Z.manifold
 
 struct PackedMsgPrior <: PackedInferenceType
   Z::String
-  inferdim::Float64
+  infoPerCoord::Vector{Float64}
 end
 
 function convert(::Type{PackedMsgPrior}, d::MsgPrior)
-  PackedMsgPrior(convert(PackedSamplableBelief, d.Z), d.inferdim)
+  PackedMsgPrior(convert(PackedSamplableBelief, d.Z), d.infoPerCoord)
 end
 function convert(::Type{<:MsgPrior}, d::PackedMsgPrior)
-  MsgPrior(convert(SamplableBelief, d.Z), d.inferdim)
+  MsgPrior(convert(SamplableBelief, d.Z), d.infoPerCoord)
 end
 

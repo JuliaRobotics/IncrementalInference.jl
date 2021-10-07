@@ -111,7 +111,7 @@ function printCliqSummary(dfg::G,
   fcts = getCliqFactorIdsAll(cliq)
 
   isinit = map(x->isInitialized(dfg,x), [frtl;seps])
-  infdim = map(x->getVariableInferredDim(dfg, x), [frtl;seps])
+  # infdim = map(x->getVariableInferredDim(dfg, x), [frtl;seps])
 
   with_logger(logger) do
     @info "Clique $(getId(cliq)) summary:"
@@ -124,7 +124,7 @@ function printCliqSummary(dfg::G,
     @info "  separator: $(seps)"
     @info "  factors:   $(fcts)"
     @info "  init'ed:   $(Int.(isinit))"
-    @info "  infr'dims: $(infdim)"
+    # @info "  infr'dims: $(infdim)"
   end
   nothing
 end

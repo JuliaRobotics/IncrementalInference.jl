@@ -2,9 +2,9 @@
 
 > Click on badges to follow links:
 
-Stable v0.23 | Stable v0.24 | Dev | Coverage | Documentation
---------------|-------------|-------------|-----|---------
-[![build-0-23]][travis-url] | [![build-0-24]][travis-url] | [![ci-dev-img]][ci-dev-url] <br> [![commits-url]][contributors-url] <br> [![issues-time]][issues-url] | [![doi-img]][doi-url] <br> [![codecov-io]][codecov-url] <br> [![issues-open]][issues-url] | [![cjl-slack-badge]][cjl-slack] <br> [![caesar-docs]][cjl-docs-url] <br> [![dfg-docs]][dfg-docs-url]
+| Stable Release | Dev branch | Coverage | Documentation |
+|----------------|------------|----------|---------------|
+| [![ci-stable][ci-stable-img]][ci-stable-url] <br> [![version][version-img]][release-url] | [![ci-dev-img]][ci-dev-url] <br> [![commits-url]][contributors-url] <br> [![issues-time]][issues-url] | [![doi-img]][doi-url] <br> [![codecov-io]][codecov-url] <br> [![issues-open]][issues-url] | [![cjl-slack-badge]][cjl-slack] <br> [![caesar-docs]][cjl-docs-url] <br> [![dfg-docs]][dfg-docs-url] |
 
 
 [deps-img]: https://juliahub.com/docs/IncrementalInference/deps.svg
@@ -18,8 +18,11 @@ Stable v0.23 | Stable v0.24 | Dev | Coverage | Documentation
 
 [travis-url]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl
 [build-master]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=master
-[build-0-23]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.23
-[build-0-24]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.24
+[ci-stable-img]: https://github.com/JuliaRobotics/IncrementalInference.jl/actions/workflows/ci.yml/badge.svg?branch=release%2Fv0.25
+[ci-stable-url]: https://github.com/JuliaRobotics/IncrementalInference.jl/actions/workflows/ci.yml
+
+[version-img]: https://juliahub.com/docs/IncrementalInference/version.svg
+[release-url]: https://github.com/JuliaRobotics/IncrementalInference.jl/releases
 
 [codecov-io]: https://codecov.io/github/JuliaRobotics/IncrementalInference.jl/coverage.svg?branch=master
 [codecov-url]: https://codecov.io/github/JuliaRobotics/IncrementalInference.jl?branch=master

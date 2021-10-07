@@ -236,12 +236,6 @@ export
   getFactor,
   getFactorDim,
   getVariableDim,
-  getVariableInferredDim,
-  getVariableInferredDimFraction,
-  getVariableSolvableDim,
-  getFactorSolvableDim,
-  getFactorInferFraction,
-  isCliqFullDim,
   getVariable,
   getCliqueData,
   setCliqueData!,
@@ -479,7 +473,7 @@ include("SolverUtilities.jl")
 include("NumericalCalculations.jl")
 include("DeconvUtils.jl")
 include("ExplicitDiscreteMarginalizations.jl")
-include("InferDimensionUtils.jl")
+# include("InferDimensionUtils.jl")
 include("services/EvalFactor.jl")
 include("services/ApproxConv.jl")
 
