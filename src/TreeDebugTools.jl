@@ -58,22 +58,6 @@ function treeProductUp(fg::AbstractDFG,
   cliq = getClique(tree, cliq)
   cliqdata = getCliqueData(cliq)
 
-  # get all the incoming (upward) messages from the tree cliques
-  # convert incoming messages to Int indexed format (semi-legacy format)
-  # upmsgssym = LikelihoodMessage[]
-  # for cl in childCliqs(tree, cliq)
-  #   msgdict = getUpMsgs(cl)
-  #   dict = Dict{Symbol, TreeBelief}()
-  #   for (dsy, btd) in msgdict.belief
-  #     vari = getVariable(fg, dsy)
-  #     # manis = getVariableType(vari).manifolds
-  #     dict[dsy] = TreeBelief(btd.val, btd.bw, btd.inferdim, getVariableType(vari))
-  #   end
-  #   push!( upmsgssym, LikelihoodMessage(beliefDict=dict) )
-  # end
-  
-  # upmsgssym = fetchMsgsUpChildren(tree, cliq, TreeBelief)
-
   # perform the actual computation
   pGM, fulldim = predictbelief(fg, sym, :, N=N, dbg=dbg )
 
@@ -108,7 +92,7 @@ function treeProductDwn(fg::G,
   msgdict = getDwnMsgs(cl[1])
   dict = Dict{Int, TreeBelief}()
   for (dsy, btd) in msgdict
-      dict[fg.IDs[dsy]] = TreeBelief(btd.val, btd.bw, btd.inferdim, getVariableType(getVariable(fg,sym)) )
+      dict[fg.IDs[dsy]] = TreeBelief(btd.val, btd.bw, btd.infoPerCoord, getVariableType(getVariable(fg,sym)) )
   end
   dwnmsgssym = LikelihoodMessage[LikelihoodMessage(dict);]
 
