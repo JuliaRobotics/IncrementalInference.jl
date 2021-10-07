@@ -163,7 +163,6 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   for fi in cliqFrontalVarIds
     vnd = getSolverData(getVariable(csmc.cliqSubFg, fi), :parametric)
     beliefMsg.belief[fi] = TreeBelief(vnd)
-    # beliefMsg.belief[fi] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim, vnd.variableType.manifolds)
     logCSM(csmc, "$(csmc.cliq.id): down message $fi : $beliefMsg"; loglevel=Logging.Info)
   end
 

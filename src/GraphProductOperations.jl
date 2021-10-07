@@ -27,7 +27,7 @@ function propagateBelief( dfg::AbstractDFG,
   
   # get proposal beliefs
   destlbl = getLabel(destvar)
-  inferdim = proposalbeliefs!(dfg, destlbl, factors, dens, solveKey=solveKey, N=N, dbg=dbg)
+  ipc = proposalbeliefs!(dfg, destlbl, factors, dens, solveKey=solveKey, N=N, dbg=dbg)
   
   # @show dens[1].manifold
 
@@ -49,7 +49,7 @@ function propagateBelief( dfg::AbstractDFG,
   
   # @info "GOT" mkd.manifold
   
-  return mkd, sum(inferdim)
+  return mkd, ipc
 end
 
 """
@@ -132,11 +132,11 @@ function localProductAndUpdate!(dfg::AbstractDFG,
                                 solveKey::Symbol=:default )
   #
   # calculate new points for sym using existing structure around sym in dfg
-  newPts, dens, lbl, infdim = localProduct(dfg, sym, solveKey=solveKey, N=getSolverParams(dfg).N, logger=logger)
+  newPts, dens, lbl, ipc = localProduct(dfg, sym, solveKey=solveKey, N=getSolverParams(dfg).N, logger=logger)
   # maybe update dfg sym with newly calculated points
-  setkde && 0 < length(getPoints(newPts)) ? setValKDE!(dfg, sym, newPts, false, infdim, solveKey=solveKey) : nothing
+  setkde && 0 < length(getPoints(newPts)) ? setValKDE!(dfg, sym, newPts, false, ipc, solveKey=solveKey) : nothing
 
-  return newPts, infdim, lbl
+  return newPts, ipc, lbl
 end
 
 

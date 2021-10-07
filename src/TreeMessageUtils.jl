@@ -96,7 +96,7 @@ function updateSubFgFromDownMsgs!(sfg::G,
   for (key,beldim) in dwnmsgs.belief
     if key in seps
       newBel = manikde!(getManifold(beldim.variableType), beldim.val, bw=beldim.bw[:,1] )
-      setValKDE!(sfg, key, newBel, false, beldim.inferdim)
+      setValKDE!(sfg, key, newBel, false, beldim.infoPerCoord)
     end
   end
 
@@ -107,16 +107,16 @@ end
 
 function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
   kdePr = manikde!(getManifold(belief_.variableType), belief_.val, bw=belief_.bw[:,1])
-  MsgPrior(kdePr, belief_.inferdim)
+  MsgPrior(kdePr, belief_.infoPerCoord)
 end
 
 function generateMsgPrior(belief_::TreeBelief, ::ParametricMessage)
   msgPrior = if length(belief_.val[1]) == 1 && length(belief_.val) == 1
-    MsgPrior(Normal(belief_.val[1][1], sqrt(belief_.bw[1])), belief_.inferdim)
+    MsgPrior(Normal(belief_.val[1][1], sqrt(belief_.bw[1])), belief_.infoPerCoord)
   elseif length(belief_.val) == 1 && 1 != length(belief_.val[1])
     mvnorm = createMvNormal(belief_.val[1], belief_.bw)
     mvnorm !== nothing ? nothing : (return DFGFactor[])
-    MsgPrior(mvnorm, belief_.inferdim)
+    MsgPrior(mvnorm, belief_.infoPerCoord)
   end
   return msgPrior
 end

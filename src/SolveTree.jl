@@ -68,12 +68,12 @@ function doFMCIteration(fgl::AbstractDFG,
   vert = DFG.getVariable(fgl, vsym)
   if !getSolverData(vert, solveKey).ismargin
     # potprod = nothing
-    densPts, inferdim = predictbelief(fgl, vsym, :, needFreshMeasurements=needFreshMeasurements, N=N, dbg=dbg, logger=logger)
+    densPts, ipc = predictbelief(fgl, vsym, :, needFreshMeasurements=needFreshMeasurements, N=N, dbg=dbg, logger=logger)
 
     if 0 < length(densPts)
       # TODO --  can we remove this duplicate getVert?
       # updvert = DFG.getVariable(fgl, vsym)  
-      setValKDE!(vert, densPts, true, inferdim)
+      setValKDE!(vert, densPts, true, ipc)
       # TODO perhaps more debugging inside `predictbelief`?
     end
   end

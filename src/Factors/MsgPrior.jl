@@ -9,7 +9,7 @@ Notes
 """
 struct MsgPrior{T <: SamplableBelief} <: AbstractPrior
   Z::T
-  inferdim::Float64
+  infoPerCoord::Vector{Float64}
 end
 
 # MsgPrior{T}() where {T} = new{T}()

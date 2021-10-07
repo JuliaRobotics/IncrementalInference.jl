@@ -172,7 +172,7 @@ function printCliqInitPartialInfo(subfg, cliq, solveKey::Symbol=:default, logger
   initpartial = Vector{Float64}(undef, length(varids))
   for i in 1:length(varids)
     initstatus[i] = isInitialized(subfg, varids[i], solveKey) # getSolverData(getVariable(subfg, varids[i]), solveKey).initialized
-    initpartial[i] = getSolverData(getVariable(subfg, varids[i]), solveKey).inferdim
+    initpartial[i] = -1 # getSolverData(getVariable(subfg, varids[i]), solveKey).inferdim
   end
   with_logger(logger) do
     tt = split(string(now()),'T')[end]
