@@ -25,7 +25,7 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
-@deprecate setVariableInferDim!(w...;kw...) setIPC(w...;kw...)
+@deprecate setVariableInferDim!(w...;kw...) setIPC!(w...;kw...)
 
 # moved to IncrementalInference/attic
 # include("CSMOccuranceUtils.jl")
