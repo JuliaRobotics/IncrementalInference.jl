@@ -257,8 +257,9 @@ setVariableInitialized!(vari::DFGVariable, status::Bool) = setVariableInitialize
 
 Set method for the inferred dimension value in a variable.
 """
-setVariableInferDim!(varid::VariableNodeData, val::Real) = varid.inferdim = convert(Float64,val)
-setVariableInferDim!(vari::DFGVariable, val::Real) = setVariableInferDim!(getSolverData(vari), val)
+setIPC!(varid::VariableNodeData, val::AbstractVector{<:Real}) = varid.infoPerCoord = val
+setIPC!(vari::DFGVariable, val::AbstractVector{<:Real}, solveKey::Symbol=:default) = setVariableIPC!(getSolverData(vari, solveKey), val)
+
 
 ## ==============================================================================================
 ## ==============================================================================================
