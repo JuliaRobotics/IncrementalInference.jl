@@ -403,7 +403,7 @@ function setDefaultNodeData!( v::DFGVariable,
   setSolverData!(v, VariableNodeData( valpts, bws,
                                       Symbol[], sp,
                                       dims, false, :_null, Symbol[], 
-                                      varType, isinit, 0.0, false, dontmargin,0,0,solveKey), solveKey)
+                                      varType, isinit, zeros(getDimension(v)), false, dontmargin,0,0,solveKey), solveKey)
   return nothing
 end
 # if size(initval,2) < N && size(initval, 1) == dims
