@@ -216,7 +216,7 @@ function initManual!( variable::DFGVariable,
                       dontmargin::Bool=false,
                       N::Int=length(getPoints(ptsArr)) )
   #
-  @debug "initManual! $label"
+  @debug "initManual! $(getLabel(variable))"
   if !(solveKey in listSolveKeys(variable))
     @debug "$(getLabel(variable)) needs new VND solveKey=$(solveKey)"
     varType = getVariableType(variable)
