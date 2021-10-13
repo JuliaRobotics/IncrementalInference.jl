@@ -8,7 +8,7 @@
 
 
 [iif-deps-img]: https://juliahub.com/docs/IncrementalInference/deps.svg
-[iif-deps-jlh]: https://juliahub.com/ui/Packages/IncrementalInference/NrVw2?t=2
+[iif-deps-jlh]: https://juliahub.com/ui/Packages/IncrementalInference/NrVw2??page=2
 [doi-img]: https://zenodo.org/badge/55802838.svg
 [doi-url]: https://zenodo.org/badge/latestdoi/55802838
 
