@@ -1,5 +1,5 @@
 
-@info "Including InteractiveUtils related functions in IncrementalInference."
+@info "IncrementalInference.jl is loading tools related to InteractiveUtils.jl."
 
 # this requires InteractiveUtils
 

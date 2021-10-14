@@ -7,8 +7,8 @@ using TensorCast
 # using Statistics
 # using Manifolds # should be done within regular exports
 
-using Pkg
-Pkg.resolve()
+# using Pkg
+# Pkg.resolve()
 
 ##
 
