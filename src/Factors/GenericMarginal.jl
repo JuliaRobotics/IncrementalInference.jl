@@ -14,6 +14,8 @@ end
 
 getSample(::CalcFactor{<:GenericMarginal}) = [0]
 
+getManifold(::GenericMarginal) = Euclidean(1)
+
 mutable struct PackedGenericMarginal <: PackedInferenceType
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}

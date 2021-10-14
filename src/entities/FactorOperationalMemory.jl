@@ -161,7 +161,9 @@ mutable struct CommonConvWrapper{ T<:AbstractFactor,
                                   C<:Union{Nothing, Vector{Int}},
                                   NTP <: NamedTuple,
                                   G,
-                                  MT} <: FactorOperationalMemory
+                                  MT,
+                                  M <: AbstractManifold,
+                                  P} <: FactorOperationalMemory
   #
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function
@@ -195,6 +197,10 @@ mutable struct CommonConvWrapper{ T<:AbstractFactor,
   vartypes::Vector{DataType}
   # experimental feature to embed gradient calcs with ccw
   _gradients::G
+  # cache factor manifold in common location
+  manifold::M
+  # cache identity element if manifold is also in a group
+  _identity::P
 end
 
 

@@ -14,6 +14,7 @@ struct PartialPrior{T <: SamplableBelief,P <: Tuple} <: AbstractPrior
   partial::P
 end
 
+getManifold(pp::PartialPrior{<:SamplableBelief}) = TranslationGroup(getDimension(pp.Z))
 getManifold(pp::PartialPrior{<:PackedManifoldKernelDensity}) = pp.Z.manifold
 
 getSample(cf::CalcFactor{<:PartialPrior}) = samplePoint(cf.factor.Z)

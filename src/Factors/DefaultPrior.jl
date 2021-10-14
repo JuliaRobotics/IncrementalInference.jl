@@ -14,6 +14,7 @@ Prior(::UniformScaling) = Prior(Normal())
 
 getSample(cf::CalcFactor{<:Prior}) = rand(cf.factor.Z, 1)
 
+getManifold(pr::Prior) = TranslationGroup( getDimension(pr.Z) )
 
 # basic default
 (s::CalcFactor{<:Prior})(z, x1) = z .- x1

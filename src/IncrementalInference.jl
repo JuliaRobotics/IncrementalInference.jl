@@ -108,6 +108,9 @@ include("ExportAPI.jl")
 ## =============================
 # Source code
 
+# wrap upstream functions with different API
+include("WrapUpstream.jl")
+
 # regular
 include("entities/SolverParams.jl")
 

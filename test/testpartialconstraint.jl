@@ -15,12 +15,14 @@ mutable struct DevelopPartial{P <: Tuple} <: AbstractPrior
   partial::P 
 end
 getSample(cf::CalcFactor{<:DevelopPartial}) = rand(cf.factor.x, 1)
+getManifold(dp::DevelopPartial) = TranslationGroup(length(dp.partial))
 
 #
 mutable struct DevelopDim2 <: AbstractPrior
   x::Distribution
 end
 getSample(cf::CalcFactor{<:DevelopDim2}) = rand(cf.factor.x, 1)
+getManifold(dp::DevelopDim2) = TranslationGroup(getDimension(dp.x))
 
 
 mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
@@ -28,7 +30,7 @@ mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
   partial::Tuple
   DevelopPartialPairwise(x::Distribution) = new(x, (2,))
 end
-getManifold(::IIF.InstanceType{DevelopPartialPairwise}) = TranslationGroup(1)
+getManifold(dp::IIF.InstanceType{DevelopPartialPairwise}) = TranslationGroup(length(dp.partial))
 
 getSample(cf::CalcFactor{<:DevelopPartialPairwise}) = rand(cf.factor.x, 1)
 

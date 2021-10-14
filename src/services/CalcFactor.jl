@@ -186,13 +186,22 @@ function CommonConvWrapper( fnc::T,
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
                             inflation::Real=3.0,
                             vartypes=typeof.(getVariableType.(factormetadata.fullvariables)),
-                            gradients=nothing) where {T<:AbstractFactor,P,H,Q}
+                            gradients=nothing,
+                            manifold::AbstractManifold=getManifold(fnc),
+                            _identity=nothing ) where {T<:AbstractFactor,P,H,Q}
   #
   # FIXME, deprecate params::Vector throughout codebase
   tup = tuple(params...)
   nms = tuple(factormetadata.variablelist...)
   p_ntup = NamedTuple{nms,typeof(tup)}(tup)
 
+  # manifolds that belong to a group can also have an identity element
+  __iden = if _identity isa Nothing && manifold isa AbstractGroupManifold
+      identity_element(manifold)
+    else
+      _identity
+    end
+  
   return  CommonConvWrapper(fnc,
                             xDim,
                             zDim,
@@ -210,7 +219,9 @@ function CommonConvWrapper( fnc::T,
                             inflation,
                             partialDims,
                             DataType[vartypes...],
-                            gradients)
+                            gradients,
+                            manifold, 
+                            __iden )
 end
 
 
