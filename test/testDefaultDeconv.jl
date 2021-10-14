@@ -3,6 +3,7 @@
 using Test
 using IncrementalInference
 using TensorCast
+using Manifolds: Euclidean
 
 ##
 
@@ -29,6 +30,12 @@ doautoinit!.(fg, [:x0; :x2])
 pred, meas = approxDeconv(fg, :x0x2f1)
 
 @test mmd(Euclidean(1), pred, meas) < 1e-3
+
+##
+
+P_ = approxDeconvBelief(fg, :x0x2f1, LinearRelative)
+
+@test isapprox( mean(Euclidean(1), meas), mean(P_), atol=0.2 )
 
 ##
 
