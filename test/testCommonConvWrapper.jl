@@ -161,7 +161,6 @@ push!(t,p1)
 push!(t,p2)
 
 fg = initfg()
-# fg.registeredModuleFunctions[:Main] = getSample
 
 v1=addVariable!(fg, :x1, ContinuousScalar, N=N)
 v2=addVariable!(fg, :x2, ContinuousScalar, N=N)
