@@ -164,7 +164,6 @@ export
   ensureSolvable!,
   initAll!,
   cycleInitByVarOrder!,
-  getOutNeighbors,
   BayesTree, MetaBayesTree,
   TreeBelief,
   LikelihoodMessage,
