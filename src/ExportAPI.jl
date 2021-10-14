@@ -292,7 +292,7 @@ export
   reshapeVec2Mat
 
 # more optional exports
-export HeatmapDensityRegular
+export HeatmapDensityRegular, PackedHeatmapDensityRegular
 
 
 export  buildCliqSubgraph_StateMachine

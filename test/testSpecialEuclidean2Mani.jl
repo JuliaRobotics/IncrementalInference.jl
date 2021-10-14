@@ -309,7 +309,22 @@ x_,y_ = ([-9:2.0:9;],[-9:2.0:9;])
 hmd = HeatmapDensityRegular(img_, (x_,y_), 5.5, 0.1, N=120)
 pthru = PartialPriorPassThrough(hmd, (1,2))
 
-# test without nullhyp
+## quick 
+
+pf = convert( AbstractPackedFactor, pthru )
+upf = convert( AbstractFactor, pf )
+
+@test pthru.partial == upf.partial
+@test isapprox( pthru.Z.data, upf.Z.data )
+@test isapprox( pthru.Z.domain[1], upf.Z.domain[1] )
+@test isapprox( pthru.Z.domain[2], upf.Z.domain[2] )
+@test isapprox( pthru.Z.level, upf.Z.level )
+@test isapprox( pthru.Z.sigma, upf.Z.sigma )
+@test isapprox( pthru.Z.sigma_scale, upf.Z.sigma_scale )
+
+
+## test without nullhyp
+
 f0 = addFactor!(fg, [:x0], pthru, graphinit=false)
 
 ## test the inference functions
@@ -370,6 +385,12 @@ solveGraph!(fg);
 # this number should drop down to usual, 100 at time of writing
 @test getSolverParams(fg).N == length(getPoints(fg, :x0))
 
+
+## check saveDFG (check consistency of packing converters above)
+
+saveDFG("/tmp/passthru", fg)
+fg_ = loadDFG("/tmp/passthru.tar.gz")
+Base.rm("/tmp/passthru.tar.gz")
 
 ##
 end

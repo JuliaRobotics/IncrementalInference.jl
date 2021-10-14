@@ -129,5 +129,66 @@ end
 
 
 
+## ===========================================================================================
+## Serialization
+## ===========================================================================================
+
+
+mutable struct PackedHeatmapDensityRegular <: PackedSamplableBelief
+  data::Vector{Vector{Float64}}
+  domain::Tuple{Vector{Float64}, Vector{Float64}}
+  hint_callback::String
+  level::Float64
+  sigma::Float64
+  sigma_scale::Float64
+  bw_factor::Float64
+  densityFnc::String
+end
+
+
+function convert( ::Union{Type{<:SamplableBelief},Type{<:HeatmapDensityRegular}}, 
+                  obj::PackedHeatmapDensityRegular)
+  #
+
+  # do intermediate conversions
+  data_ = obj.data
+  data__ = map(x->collect(x), data_)
+  @cast data[i,j] := data__[j][i]
+  data__ = collect(data)
+  densFnc = convert(SamplableBelief, obj.densityFnc)
+  # build the final object
+  HeatmapDensityRegular(data__,
+                        obj.domain,
+                        obj.hint_callback == "" ? nothing : nothing,
+                        obj.level,
+                        obj.sigma,
+                        obj.sigma_scale,
+                        obj.bw_factor,
+                        densFnc )
+end
+
+function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedHeatmapDensityRegular}}, 
+                  obj::HeatmapDensityRegular )
+  #
+
+  data_ = obj.data
+
+  @cast data[j][i] := data_[i,j]
+  
+  str = convert(SamplableBelief, obj.densityFnc)
+
+  PackedHeatmapDensityRegular(data,
+                              obj.domain,
+                              "",
+                              obj.level,
+                              obj.sigma,
+                              obj.sigma_scale,
+                              obj.bw_factor,
+                              str )
+end
+
+
+
+
 
 #

@@ -93,4 +93,9 @@ Base.show(io::IO, ::MIME"text/plain", x::HeatmapDensityRegular) = show(io, x)
 
 Base.show(io::IO, ::MIME"application/prs.juno.inline", x::HeatmapDensityRegular) = show(io,x)
 
+
+
+
+
+
 #
