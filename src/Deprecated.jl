@@ -25,6 +25,22 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+
+getOutNeighbors(w...;kw...) = error("Obsolete, use DFG.getNeighbors instead.")
+
+# # TODO -- there should be a better way, without retrieving full vertex
+# # TODO -- Deprecated for DFG -- must update
+# function getOutNeighbors(dfg::T, v::V; needdata::Bool=false, ready::Union{Nothing, Int}=nothing, backendset::Union{Nothing, Int}=nothing)::Vector{Symbol} where {T <: AbstractDFG, V <: DFGNode}
+#   @warn "TODO: needdata is currently ignored. Symbols are returned."
+#   nodes = getNeighbors(dfg, v, ready=ready, backendset=backendset)
+#   return nodes
+# end
+# function getOutNeighbors(dfg::T, vertSym::Symbol; needdata::Bool=false, ready::Int=1, backendset::Int=1 )::Vector{Symbol} where {T <: AbstractDFG, V <: DFGNode}
+#   @warn "TODO: needdata is currently ignored. Symbols are returned."
+#   nodes = getNeighbors(dfg, vertSym, ready=ready, backendset=backendset)
+#   return nodes
+# end
+
 # SolverParams(;dimID::Int=0,
 #               registeredModuleFunctions=nothing,
 #               reference=nothing,
