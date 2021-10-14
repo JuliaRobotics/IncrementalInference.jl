@@ -3,6 +3,7 @@
 
 export selectFactorType
 export approxDeconv, deconvSolveKey
+export approxDeconvBelief
 
 
 ## Initial version of selecting the dimension of a factor -- will be consolidated with existing infrastructure later
@@ -138,6 +139,41 @@ function approxDeconv(dfg::AbstractDFG,
   pts = approxDeconv(fct, N=N, retries=retries )
   return pts
 end
+
+function approxDeconv(dfg::AbstractDFG,
+                      fctlbl::Symbol,
+                      factorType::AbstractRelative,
+                      solveKey::Symbol=:default;
+                      tfg::AbstractDFG=initfg(), 
+                      retries::Int=3 )
+  #
+
+  # build a local temporary graph copy containing the same values but user requested factor type.
+  fct = getFactor(dfg, fctlbl)
+  fctT = getFactorType(fct)
+  lbls = getVariableOrder(fct)
+  for lb in lbls
+    exists(tfg, lb) ? nothing : addVariable!(tfg, lb, getVariableType(dfg, lb))
+    initManual!(tfg, lb, getBelief(dfg, lb, solveKey))
+  end
+
+  # add factor type requested by user
+  f_ = addFactor!(tfg, lbls, factorType, graphinit=false)
+
+  # peform the deconvolution operation on the temporary graph with user desired factor instead.
+  approxDeconv(tfg, getLabel(f_); retries=retries)
+end
+
+# try default constructor
+approxDeconv( dfg::AbstractDFG,
+              fctlbl::Symbol,
+              factorType::Type{<:AbstractRelative},
+              w...;
+              kw... ) = approxDeconv(dfg, fctlbl, factorType(), w...; kw...)
+#
+
+
+approxDeconvBelief(dfg::AbstractDFG, lb::Symbol, w...;kw...) = manikde!(approxDeconv(dfg, lb, w...;kw...)[1], getManifold(getFactorType(dfg, lb)))
 
 
 """
