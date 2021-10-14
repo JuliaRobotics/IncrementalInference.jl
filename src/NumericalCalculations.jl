@@ -162,21 +162,11 @@ end
 
 
 # internal function to dispatch view on either vector or matrix, rows are dims and samples are columns
-# _viewdim1or2(other, ind...) = other
 _getindextuple(tup::Tuple, ind1::Int) = [getindex(t, ind1) for t in tup]
-# _getindextuple(tup::NamedTuple, ind1::Int) = [getindex(t, ind1) for t in tup]
-# _viewdim1or2(arr::AbstractMatrix, ind1, ind2) = view(arr, ind1, ind2)
-
 
 # TODO, likely a shortlived function, and should be replaced with ccw.hypoParams::Tuple(hypo1, hypo2,...), made at construction and allows direct hypo lookup
 # DevNotes, also see new `hyporecipe` approach (towards consolidation CCW CPT FMd CF...)
-function _view(nt::NamedTuple{S,T}, idx::AbstractVector{<:Integer}) where {S,T}
-  # nms = tuple([S[i] for i in idx]...)
-  tup = tuple([nt[i] for i in idx]...)
-  # return that particular hypo
-  # NamedTuple{nms, typeof(tup)}(tup)
-  tup
-end
+_view(nt::NamedTuple, idx::AbstractVector{<:Integer}) = tuple([nt[i] for i in idx]...)
 
 function _buildCalcFactorMixture( ccwl::CommonConvWrapper,
                                   _fmd_,
@@ -193,7 +183,7 @@ function _buildCalcFactorMixture( ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
                                   _fmd_,
                                   smpid,
                                   measurement_,
-                                  varParams ) where {N_,F <: FunctorInferenceType,S,T}
+                                  varParams ) where {N_,F <: AbstractFactor,S,T}
   #
   # just a passthrough similar to pre-v0.20
   CalcFactor( ccwl.usrfnc!.mechanics, _fmd_, smpid, 

@@ -1,6 +1,6 @@
 # heatmap sampler (experimental)
 
-@info "Including Interpolations related functions in IncrementalInference."
+@info "IncrementalInference.jl is loading tools related to Interpolations.jl."
 
 using .Interpolations 
 

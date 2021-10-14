@@ -25,6 +25,92 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+
+getOutNeighbors(w...;kw...) = error("Obsolete, use DFG.getNeighbors instead.")
+
+# # TODO -- there should be a better way, without retrieving full vertex
+# # TODO -- Deprecated for DFG -- must update
+# function getOutNeighbors(dfg::T, v::V; needdata::Bool=false, ready::Union{Nothing, Int}=nothing, backendset::Union{Nothing, Int}=nothing)::Vector{Symbol} where {T <: AbstractDFG, V <: DFGNode}
+#   @warn "TODO: needdata is currently ignored. Symbols are returned."
+#   nodes = getNeighbors(dfg, v, ready=ready, backendset=backendset)
+#   return nodes
+# end
+# function getOutNeighbors(dfg::T, vertSym::Symbol; needdata::Bool=false, ready::Int=1, backendset::Int=1 )::Vector{Symbol} where {T <: AbstractDFG, V <: DFGNode}
+#   @warn "TODO: needdata is currently ignored. Symbols are returned."
+#   nodes = getNeighbors(dfg, vertSym, ready=ready, backendset=backendset)
+#   return nodes
+# end
+
+# SolverParams(;dimID::Int=0,
+#               registeredModuleFunctions=nothing,
+#               reference=nothing,
+#               stateless::Bool=false,
+#               qfl::Int=99999999999,
+#               isfixedlag::Bool=false,
+#               limitfixeddown::Bool=false,
+#               incremental::Bool=true,
+#               useMsgLikelihoods::Bool=false,
+#               upsolve::Bool=true,
+#               downsolve::Bool=true,
+#               drawtree::Bool=false,
+#               drawCSMIters::Bool=true,
+#               showtree::Bool=false,
+#               drawtreerate::Float64=0.5,
+#               dbg::Bool=false,
+#               async::Bool=false,
+#               limititers::Int=500,
+#               N::Int=100,
+#               multiproc::Bool=1 < nprocs(),
+#               logpath::String="/tmp/caesar/$(now())",
+#               graphinit::Bool=true,
+#               treeinit::Bool=false,
+#               limittreeinit_iters::Int=10,
+#               algorithms::Vector{Symbol}=[:default],
+#               spreadNH::Real=3.0,
+#               inflation::Real=5.0,
+#               inflateCycles::Int=3,
+#               gibbsIters::Int=3,
+#               maxincidence::Int=500,
+#               alwaysFreshMeasurements::Bool=true,
+#               attemptGradients::Bool=true,
+#               devParams::Dict{Symbol,String}=Dict{Symbol,String}()
+#             ) = begin useMsgLikelihoods==true && @warn "useMsgLikelihoods is under development, use with care, see #1010"
+#                 SolverParams( dimID,
+#                               registeredModuleFunctions,
+#                               reference,
+#                               stateless,
+#                               qfl,
+#                               isfixedlag,
+#                               limitfixeddown,
+#                               incremental,
+#                               useMsgLikelihoods,
+#                               upsolve,
+#                               downsolve,
+#                               drawtree,
+#                               drawCSMIters,
+#                               showtree,
+#                               drawtreerate,
+#                               dbg,
+#                               async,
+#                               limititers,
+#                               N,
+#                               multiproc,
+#                               logpath,
+#                               graphinit,
+#                               treeinit,
+#                               limittreeinit_iters,
+#                               algorithms,
+#                               spreadNH,
+#                               inflation,
+#                               inflateCycles,
+#                               gibbsIters,
+#                               maxincidence,
+#                               alwaysFreshMeasurements,
+#                               attemptGradients,
+#                               devParams )
+#             end
+#
+
 @deprecate setVariableInferDim!(w...;kw...) setIPC!(w...;kw...)
 
 # moved to IncrementalInference/attic
