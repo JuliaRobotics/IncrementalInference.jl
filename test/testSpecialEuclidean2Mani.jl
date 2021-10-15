@@ -365,7 +365,7 @@ solveGraph!(fg);
 
 ##
 
-mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01],[1 0 0;0 1 0;0 0 1.]))
 f1 = addFactor!(fg, [:x0], mp, graphinit=false)
 
 @test length(ls(fg, :x0)) == 2

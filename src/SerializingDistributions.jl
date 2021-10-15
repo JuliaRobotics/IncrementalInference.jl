@@ -18,8 +18,15 @@ function convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedUniform}},
   return JSON2.write(packed)
 end
 
-
 convert(::Type{<:SamplableBelief}, obj::PackedUniform) = return Uniform(obj.a, obj.b)
+
+# FIXME complete v0.X.0
+mutable struct PackedMvNormal <: PackedSamplableBelief
+  _type::String
+  mu::Vector{Float64}
+  cov::Vector{Float64}
+end
+
 
 
 # NOTE SEE EXAMPLE IN src/Flux/FluxModelsSerialization.jl
@@ -38,7 +45,7 @@ end
 
 # NOTE part of new effort to overhaul the SamplableBelief serialization approach
 # maybe it all becomes a JSON struct sort of thing in the long run.
-StringThemSamplableBeliefs = Union{Normal, MvNormal, Categorical, DiscreteNonParametric, BallTreeDensity, ManifoldKernelDensity, AliasingScalarSampler}
+StringThemSamplableBeliefs = Union{Normal, MvNormal, ZeroMeanDiagNormal, Categorical, DiscreteNonParametric, BallTreeDensity, ManifoldKernelDensity, AliasingScalarSampler}
 convert(::Type{<:PackedSamplableBelief}, obj::StringThemSamplableBeliefs) = string(obj)
 
 
@@ -59,6 +66,8 @@ function convert(::Type{<:SamplableBelief}, str::Union{<:PackedSamplableBelief,<
   elseif startswith(str, "DiagNormal")
     # Diags are internally squared, so only option here is to sqrt on input.
     return mvnormalfromstring(str)
+  elseif startswith(str, "ZeroMeanDiagNormal")
+    error("ZeroMeanDiagNormal not yet supported, deferring to full JSON serialization of all Distribution objects.")
   elseif occursin(r"FullNormal", str)
     return mvnormalfromstring(str)
   elseif (occursin(r"Normal", str) )# && !occursin(r"FullNormal", str))
