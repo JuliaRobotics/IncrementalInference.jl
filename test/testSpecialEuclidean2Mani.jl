@@ -388,9 +388,11 @@ solveGraph!(fg);
 
 ## check saveDFG (check consistency of packing converters above)
 
+
 saveDFG("/tmp/passthru", fg)
 fg_ = loadDFG("/tmp/passthru.tar.gz")
 Base.rm("/tmp/passthru.tar.gz")
+
 
 ##
 end

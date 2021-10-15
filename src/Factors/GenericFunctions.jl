@@ -142,7 +142,7 @@ end
 
 mutable struct PackedManifoldPrior <: AbstractPackedFactor
   varType::String 
-  p::Vector{Float64}  #NOTE This is a fixed point from where the measurement `Z` is made in coordinates on tangent TpM
+  p::Vector{Float64}  #NOTE This is a fixed point from where the measurement `Z` likely stored as a coordinate
   Z::String
 end
 
@@ -152,8 +152,12 @@ function convert(::Union{Type{<:AbstractPackedFactor}, Type{<:PackedManifoldPrio
   #
   
   varT = DFG.typeModuleName(getVariableType(obj.M))
+
   c = AMP.makeCoordsFromPoint(obj.M, obj.p)
-  Zst = convert(String, obj.Z)
+  
+  # TODO convert all distributions to JSON
+  # Zst = convert(String, obj.Z)
+  Zst = string(obj.Z)
   
   PackedManifoldPrior(varT, c, Zst)
 end
@@ -165,7 +169,11 @@ function convert(::Union{Type{<:AbstractFactor}, Type{<:ManifoldPrior}},
   
   # piggy back on serialization of InferenceVariable rather than try serialize anything Manifolds.jl
   M = DFG.getTypeFromSerializationModule(obj.varType) |> getManifold
-  p = AMP.makePointFromCoords(M, obj.c)
+  
+  # TODO this is too excesssive
+  e0 = identity_element(M)
+  p = AMP.makePointFromCoords(M, obj.p, e0)
+
   Z = convert(SamplableBelief, obj.Z)
 
   ManifoldPrior(M, p, Z)
