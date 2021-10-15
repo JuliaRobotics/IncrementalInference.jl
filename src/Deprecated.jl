@@ -25,6 +25,7 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+@deprecate getLevelSetSigma(data::AbstractMatrix{<:Real}, level::Real, w...; kw...) sampleLevelSetGaussian!(data.-level, w...; kw...)
 
 getOutNeighbors(w...;kw...) = error("Obsolete, use DFG.getNeighbors instead.")
 

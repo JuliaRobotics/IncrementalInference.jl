@@ -6,6 +6,7 @@ using .Interpolations
 
 # only export on Requires.jl
 export HeatmapDensityRegular
+export sampleHeatmap, sampleLevelSetGaussian!
 
 ##
 
@@ -14,23 +15,20 @@ export HeatmapDensityRegular
     $SIGNATURES
 
 Get the grid positions at the specified height (within the provided spreads)
+
+DevNotes
+- Recheck again that `thres` works right, as a way to discard beyond 3*sigma 
 """
-function getLevelSetSigma(  data::AbstractMatrix{<:Real},
-                            level::Real,
-                            sigma::Real,
-                            x_grid::AbstractVector{<:Real}, 
-                            y_grid::AbstractVector{<:Real};
-                            sigma_scale::Real=3  )
+function sampleHeatmap( roi::AbstractMatrix{<:Real},
+                        x_grid::AbstractVector{<:Real}, 
+                        y_grid::AbstractVector{<:Real};
+                        sigma_scale::Real=3,
+                        thres = (sigma_scale^2)  )
   #
-  # make Gaussian
-  roi = data .- level
-  roi .^= 2
-  roi .*= 0.5/(sigma^2)
-  thres = (sigma_scale^2) # IS THIS RIGHT ???? TODO, maybe 1/????????
 
   # truncate at sigma_scale*sigma
-  mask = roi .<= thres
   _roi = thres .- roi
+  mask = 0 .<= _roi
 
   idx2d = findall(mask)  # 2D indices
   pos = (v->[x_grid[v[1]],y_grid[v[2]]]).(idx2d)
@@ -39,8 +37,31 @@ function getLevelSetSigma(  data::AbstractMatrix{<:Real},
 
   # recast to the appropriate shape
   @cast kp[i,j] := pos[j][i]
-  collect(kp), weights, roi
+  kp, weights
 end
+
+
+"""
+    $SIGNATURES
+
+Sample points from a regular grid scalar field level set.
+
+Notes
+- modifies first argument roi to save on memory allocations
+- user should duplicate if with a deepcopy if needed
+"""
+function sampleLevelSetGaussian!( roi::AbstractMatrix{<:Real},
+                                  sigma::Real,
+                                  x_grid::AbstractVector{<:Real}, 
+                                  y_grid::AbstractVector{<:Real};
+                                  sigma_scale::Real=3  )
+  #
+  # make Gaussian
+  roi .^= 2
+  roi .*= 0.5/(sigma^2)
+  sampleHeatmap(roi, x_grid, y_grid; sigma_scale=sigma_scale)
+end
+
 
 # TODO make n-dimensional, and later on-manifold
 # TODO better standardize for heatmaps on manifolds
@@ -73,7 +94,8 @@ function HeatmapDensityRegular( data::AbstractMatrix{<:Real},
   #
 
   # select the support from raw data
-  support_, weights_, roi = getLevelSetSigma(data, level, sigma, domain...; sigma_scale=sigma_scale)
+  roi = data.-level
+  support_, weights_ = sampleLevelSetGaussian!(roi, sigma, domain...; sigma_scale=sigma_scale)
   
   # constuct a pre-density from which to draw intermediate samples
   density_ = fitKDE(support_, weights_, domain...; bw_factor=bw_factor)
