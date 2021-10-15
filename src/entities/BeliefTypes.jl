@@ -17,10 +17,10 @@ abstract type MessageType end
 struct NonparametricMessage <: MessageType end
 struct ParametricMessage <: MessageType end
 
+abstract type PackedSamplableBelief end
 
 const SamplableBelief = Union{Distributions.Distribution, KDE.BallTreeDensity, AMP.ManifoldKernelDensity, AliasingScalarSampler, FluxModelsDistribution, HeatmapDensityRegular}
 
-abstract type PackedSamplableBelief end
 
 #Supported types for parametric
 const ParametricTypes = Union{Normal, MvNormal}

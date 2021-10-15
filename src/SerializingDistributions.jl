@@ -18,8 +18,15 @@ function convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedUniform}},
   return JSON2.write(packed)
 end
 
-
 convert(::Type{<:SamplableBelief}, obj::PackedUniform) = return Uniform(obj.a, obj.b)
+
+# FIXME complete v0.X.0
+mutable struct PackedMvNormal <: PackedSamplableBelief
+  _type::String
+  mu::Vector{Float64}
+  cov::Vector{Float64}
+end
+
 
 
 # NOTE SEE EXAMPLE IN src/Flux/FluxModelsSerialization.jl
@@ -38,7 +45,7 @@ end
 
 # NOTE part of new effort to overhaul the SamplableBelief serialization approach
 # maybe it all becomes a JSON struct sort of thing in the long run.
-StringThemSamplableBeliefs = Union{Normal, MvNormal, Categorical, DiscreteNonParametric, BallTreeDensity, ManifoldKernelDensity, AliasingScalarSampler}
+StringThemSamplableBeliefs = Union{Normal, MvNormal, ZeroMeanDiagNormal, Categorical, DiscreteNonParametric, BallTreeDensity, ManifoldKernelDensity, AliasingScalarSampler}
 convert(::Type{<:PackedSamplableBelief}, obj::StringThemSamplableBeliefs) = string(obj)
 
 
@@ -59,6 +66,8 @@ function convert(::Type{<:SamplableBelief}, str::Union{<:PackedSamplableBelief,<
   elseif startswith(str, "DiagNormal")
     # Diags are internally squared, so only option here is to sqrt on input.
     return mvnormalfromstring(str)
+  elseif startswith(str, "ZeroMeanDiagNormal")
+    error("ZeroMeanDiagNormal not yet supported, deferring to full JSON serialization of all Distribution objects.")
   elseif occursin(r"FullNormal", str)
     return mvnormalfromstring(str)
   elseif (occursin(r"Normal", str) )# && !occursin(r"FullNormal", str))
@@ -126,6 +135,67 @@ function categoricalfromstring(str::AbstractString)
   p = parse.(Float64, pw)
   return Categorical(p ./ sum(p))
 end
+
+
+
+## ===========================================================================================
+## Serialization
+## ===========================================================================================
+
+
+mutable struct PackedHeatmapDensityRegular <: PackedSamplableBelief
+  data::Vector{Vector{Float64}}
+  domain::Tuple{Vector{Float64}, Vector{Float64}}
+  hint_callback::String
+  level::Float64
+  sigma::Float64
+  sigma_scale::Float64
+  bw_factor::Float64
+  densityFnc::String
+end
+
+
+function convert( ::Union{Type{<:SamplableBelief},Type{<:HeatmapDensityRegular}}, 
+                  obj::PackedHeatmapDensityRegular)
+  #
+
+  # do intermediate conversions
+  data_ = obj.data
+  data__ = map(x->collect(x), data_)
+  @cast data[i,j] := data__[j][i]
+  data__ = collect(data)
+  densFnc = convert(SamplableBelief, obj.densityFnc)
+  # build the final object
+  HeatmapDensityRegular(data__,
+                        obj.domain,
+                        obj.hint_callback == "" ? nothing : nothing,
+                        obj.level,
+                        obj.sigma,
+                        obj.sigma_scale,
+                        obj.bw_factor,
+                        densFnc )
+end
+
+function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedHeatmapDensityRegular}}, 
+                  obj::HeatmapDensityRegular )
+  #
+
+  data_ = obj.data
+
+  @cast data[j][i] := data_[i,j]
+  
+  str = convert(SamplableBelief, obj.densityFnc)
+
+  PackedHeatmapDensityRegular(data,
+                              obj.domain,
+                              "",
+                              obj.level,
+                              obj.sigma,
+                              obj.sigma_scale,
+                              obj.bw_factor,
+                              str )
+end
+
 
 
 

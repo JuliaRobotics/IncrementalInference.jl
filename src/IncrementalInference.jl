@@ -117,13 +117,12 @@ const InMemDFGType = DFG.LightDFG{SolverParams}
 include("entities/FactorOperationalMemory.jl")
 
 include("Factors/GenericMarginal.jl")
-include("entities/OptionalDensities.jl")
-include("entities/FactorGradients.jl")
-
 # Special belief types for sampling as a distribution
 include("entities/AliasScalarSampling.jl")
-
+include("entities/OptionalDensities.jl")
 include("entities/BeliefTypes.jl")
+include("entities/FactorGradients.jl")
+
 
 # Statistics helpers on manifolds
 include("VariableStatistics.jl")
