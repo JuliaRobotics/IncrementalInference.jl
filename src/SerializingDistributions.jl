@@ -170,10 +170,10 @@ function convert( ::Union{Type{<:SamplableBelief},Type{<:HeatmapGridDensity}},
   data_ = obj.data
   data__ = map(x->collect(x), data_)
   @cast data[i,j] := data__[j][i]
-  data__ = collect(data)
+  _data__ = collect(data)
   densFnc = convert(SamplableBelief, obj.densityFnc)
   # build the final object, misses the hint...
-  HeatmapGridDensity( data__,
+  HeatmapGridDensity( _data__,
                       obj.domain,
                       obj.hint_callback == "" ? nothing : nothing,
                       obj.bw_factor,
@@ -219,11 +219,11 @@ end
 function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedLevelSetGridNormal}}, 
                   obj::LevelSetGridNormal)
   #
-  LevelSetGridNormal( "IncrementalInference.PackedLevelSetGridNormal",
-                      obj.level,
-                      obj.sigma,
-                      obj.sigma_scale,
-                      convert(PackedHeatmapGridDensity, obj.heatmap) )
+  PackedLevelSetGridNormal( "IncrementalInference.PackedLevelSetGridNormal",
+                            obj.level,
+                            obj.sigma,
+                            obj.sigma_scale,
+                            convert(PackedHeatmapGridDensity, obj.heatmap) )
 end
 
 

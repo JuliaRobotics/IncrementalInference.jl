@@ -177,7 +177,7 @@ function calcProposalBelief(dfg::AbstractDFG,
 
   # density passed through directly from PartialPriorPassThrough.Z
   fctFnc = getFactorType(fct)
-  proposal = fctFnc.Z.densityFnc
+  proposal = fctFnc.Z.heatmap.densityFnc
 
   # in case of partial, place the proposal into larger marginal/partial MKD
   proposal_ = if isPartial(fctFnc)

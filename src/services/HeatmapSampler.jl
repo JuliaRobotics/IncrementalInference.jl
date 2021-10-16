@@ -21,12 +21,11 @@ getManifold(lsg::LevelSetGridNormal) = getManifold(lsg.heatmap)
 Get the grid positions at the specified height (within the provided spreads)
 
 DevNotes
-- Recheck again that `thres` works right, as a way to discard beyond 3*sigma 
+- TODO Should this be consolidated with AliasingScalarSampler?
 """
 function sampleHeatmap( roi::AbstractMatrix{<:Real},
                         x_grid::AbstractVector{<:Real}, 
                         y_grid::AbstractVector{<:Real},
-                        # sigma_scale::Real=3,
                         thres::Real = 0  )
   #
 
@@ -35,12 +34,10 @@ function sampleHeatmap( roi::AbstractMatrix{<:Real},
 
   idx2d = findall(mask)  # 2D indices
   pos = (v->[x_grid[v[1]],y_grid[v[2]]]).(idx2d)
-  weights = (v->_roi[v[1],v[2]]).(idx2d)
+  weights = (v->roi[v[1],v[2]]).(idx2d)
   weights ./= sum(weights)
 
-  # recast to the appropriate shape
-  @cast kp[i,j] := pos[j][i]
-  kp, weights
+  pos, weights
 end
 
 
@@ -68,7 +65,9 @@ function HeatmapGridDensity(data::AbstractMatrix{<:Real},
                             bw_factor::Real=0.7,  # kde spread between domain points 
                             N::Int=10000  )
   #
-  support_, weights_ = sampleHeatmap(data, domain..., 0)
+  pos, weights_ = sampleHeatmap(data, domain..., 0)
+  # recast to the appropriate shape
+  @cast support_[i,j] := pos[j][i]
 
   # constuct a pre-density from which to draw intermediate samples
   # TODO remove extraneous collect()
@@ -78,7 +77,7 @@ function HeatmapGridDensity(data::AbstractMatrix{<:Real},
   @cast vec_preIS[j][i] := pts_preIS[i,j]
   
   # weight the intermediate samples according to interpolation of raw data
-  hm = Interpolations.LinearInterpolation( domain, roi ) # interpolated heatmap
+  hm = Interpolations.LinearInterpolation( domain, data ) # interpolated heatmap
   d_scalar = Vector{Float64}( undef, length(vec_preIS) )
   
   # interpolate d_scalar for intermediate test points
@@ -106,6 +105,7 @@ function HeatmapGridDensity(data::AbstractMatrix{<:Real},
 end
 
 
+# legacy construct helper
 function LevelSetGridNormal(data::AbstractMatrix{<:Real}, 
                             domain::Tuple{<:AbstractVector{<:Real},<:AbstractVector{<:Real}},
                             level::Real,

@@ -9,7 +9,6 @@ struct PartialPriorPassThrough{B <: Union{<:HeatmapGridDensity,<:LevelSetGridNor
 end
 
 getManifold(pppt::PartialPriorPassThrough) = getManifold(pppt.Z)
-getManifold(pppt::PartialPriorPassThrough) = getManifold(pppt.Z)
 
 # this step is skipped during main inference process
 getSample(cf::CalcFactor{<:PartialPriorPassThrough}) = sampleTangent(getManifold(cf.factor), cf.factor.Z)
@@ -35,7 +34,8 @@ function convert( ::Union{Type{<:AbstractPackedFactor}, Type{<:PackedPartialPrio
                   obj::PartialPriorPassThrough )
   #
 
-  str = JSON2.write(obj.Z)
+  po = convert(PackedSamplableBelief, obj.Z)
+  str = JSON2.write(po)
   PackedPartialPriorPassThrough(str, Int[obj.partial...])
 end
 
@@ -43,10 +43,13 @@ end
 function convert( ::Union{Type{<:AbstractFactor}, Type{<:PartialPriorPassThrough}},
                   obj::PackedPartialPriorPassThrough )
   #
-  
-  _typ = DFG.getTypeFromSerializationModule(obj.Z._type)
-  dens = JSON2.read(obj.Z, _typ)
-  
+
+  # get as bland obj to extract type
+  _up = JSON2.read(obj.Z)
+  _typ = DFG.getTypeFromSerializationModule(_up._type)
+  # now redo with type
+  pdens = JSON2.read(obj.Z, _typ)
+  dens = convert(SamplableBelief, pdens)
   PartialPriorPassThrough(dens, tuple(obj.partial...))
 end
 

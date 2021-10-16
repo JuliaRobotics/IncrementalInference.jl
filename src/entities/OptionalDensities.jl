@@ -117,6 +117,12 @@ struct LevelSetGridNormal{T <: Real, H <: HeatmapGridDensity}
   heatmap::H
 end
 
+(lsg::LevelSetGridNormal)(w...;kw...) = lsg.densityFnc(w...;kw...)
+
+function sampleTangent(M::AbstractManifold, lsg::LevelSetGridNormal)
+  sampleTangent(M, lsg.heatmap.densityFnc)
+end
+
 
 function Base.show(io::IO, x::LevelSetGridNormal{T,H}) where {T,H}
   printstyled(io, "LevelSetGridNormal{", bold=true, color=:blue)
