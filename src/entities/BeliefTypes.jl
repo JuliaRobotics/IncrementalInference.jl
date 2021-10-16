@@ -19,7 +19,7 @@ struct ParametricMessage <: MessageType end
 
 abstract type PackedSamplableBelief end
 
-const SamplableBelief = Union{Distributions.Distribution, KDE.BallTreeDensity, AMP.ManifoldKernelDensity, AliasingScalarSampler, FluxModelsDistribution, HeatmapDensityRegular}
+const SamplableBelief = Union{Distributions.Distribution, KDE.BallTreeDensity, AMP.ManifoldKernelDensity, AliasingScalarSampler, FluxModelsDistribution, HeatmapGridDensity, LevelSetGridNormal}
 
 
 #Supported types for parametric

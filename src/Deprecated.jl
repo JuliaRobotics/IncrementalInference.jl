@@ -3,32 +3,54 @@
 ## LEGACY SUPPORT FOR ZMQ IN CAESAR
 ##==============================================================================
 
-export listSolvekeys
-
-export _evalType
-
-# not sure if and where this is still being used
-function _evalType(pt::String)::Type
-  @error "_evalType has been deprecated, use DFG serialization methods instead."
-  try
-    getfield(Main, Symbol(pt))
-  catch ex
-    io = IOBuffer()
-    showerror(io, ex, catch_backtrace())
-    err = String(take!(io))
-    error("_evalType: Unable to locate factor/distribution type '$pt' in main context (e.g. do a using on all your factor libraries). Please check that this factor type is loaded into main. Stack trace = $err")
-  end
-end
+@deprecate _evalType(pt::String) DFG.getTypeFromSerializationModule(pt)
+# # FIXME, replace with T = DFG.getTypeFromSerializationModule(obj._type)
+# export _evalType
+# # not sure if and where this is still being used
+# function _evalType(pt::String)::Type
+#   @error "_evalType has been deprecated, use DFG serialization methods instead."
+#   try
+#     getfield(Main, Symbol(pt))
+#   catch ex
+#     io = IOBuffer()
+#     showerror(io, ex, catch_backtrace())
+#     err = String(take!(io))
+#     error("_evalType: Unable to locate factor/distribution type '$pt' in main context (e.g. do a using on all your factor libraries). Please check that this factor type is loaded into main. Stack trace = $err")
+#   end
+# end
 
 
 ##==============================================================================
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+# """
+#     $SIGNATURES
 
-@deprecate HeatmapDensity_Regular(w...;kw...) LevelSetGridDensity(w...;kw...)
+# Sample points from a regular grid scalar field level set.
 
-@deprecate getLevelSetSigma(data::AbstractMatrix{<:Real}, level::Real, w...; kw...) sampleLevelSetGaussian!(data.-level, w...; kw...)
+# Notes
+# - modifies first argument roi to save on memory allocations
+# - user should duplicate if with a deepcopy if needed
+# """
+# function sampleLevelSetGaussian!( roi::AbstractMatrix{<:Real},
+#                                   sigma::Real,
+#                                   x_grid::AbstractVector{<:Real}, 
+#                                   y_grid::AbstractVector{<:Real};
+#                                   sigma_scale::Real=3  )
+#   #
+#   # make Gaussian
+#   roi .^= 2
+#   roi .*= 0.5/(sigma^2)
+#     # truncate at sigma_scale*sigma
+#     _roi = thres .- roi
+
+#   sampleHeatmap(roi, x_grid, y_grid, sigma_scale^2)
+# end
+
+@deprecate HeatmapDensityRegular(w...;kw...) LevelSetGridNormal(w...;kw...)
+
+# @deprecate getLevelSetSigma(data::AbstractMatrix{<:Real}, level::Real, w...; kw...) sampleLevelSetGaussian!(data.-level, w...; kw...)
 
 getOutNeighbors(w...;kw...) = error("Obsolete, use DFG.getNeighbors instead.")
 
@@ -419,6 +441,8 @@ end
 ##==============================================================================
 ## Deprecate code below before v0.26
 ##==============================================================================
+
+export listSolvekeys
 
 # wow, that was quite far off -- needs testing
 # function factorCanInitFromOtherVars(dfg::T,

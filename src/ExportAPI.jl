@@ -291,9 +291,6 @@ export
   setVariableRefence!,
   reshapeVec2Mat
 
-# more optional exports
-export HeatmapDensityRegular, PackedHeatmapDensityRegular
-
 
 export  buildCliqSubgraph_StateMachine
 

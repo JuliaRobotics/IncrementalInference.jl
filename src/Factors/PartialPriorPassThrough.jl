@@ -3,12 +3,13 @@
 export PartialPriorPassThrough, PackedPartialPriorPassThrough
 
 
-struct PartialPriorPassThrough{B <: HeatmapDensityRegular, T <:Tuple} <: AbstractPrior
+struct PartialPriorPassThrough{B <: Union{<:HeatmapGridDensity,<:LevelSetGridNormal}, T <:Tuple} <: AbstractPrior
   Z::B
   partial::T
 end
 
-getManifold(pppt::PartialPriorPassThrough{<:HeatmapDensityRegular{T,H,<:ManifoldKernelDensity}}) where {T,H} = (pppt.Z.densityFnc.manifold)
+getManifold(pppt::PartialPriorPassThrough) = getManifold(pppt.Z)
+getManifold(pppt::PartialPriorPassThrough) = getManifold(pppt.Z)
 
 # this step is skipped during main inference process
 getSample(cf::CalcFactor{<:PartialPriorPassThrough}) = sampleTangent(getManifold(cf.factor), cf.factor.Z)
@@ -19,8 +20,13 @@ getSample(cf::CalcFactor{<:PartialPriorPassThrough}) = sampleTangent(getManifold
 ## ====================================================================================================
 
 
+"""
+    $TYPEDEF
+
+Required internal density to store its type
+"""
 mutable struct PackedPartialPriorPassThrough <: AbstractPackedFactor
-  Z::PackedHeatmapDensityRegular
+  Z::String # PackedHeatmapGridDensity
   partial::Vector{Int}
 end
 
@@ -28,10 +34,9 @@ end
 function convert( ::Union{Type{<:AbstractPackedFactor}, Type{<:PackedPartialPriorPassThrough}},
                   obj::PartialPriorPassThrough )
   #
-  
-  st = convert(PackedHeatmapDensityRegular, obj.Z)
-  
-  PackedPartialPriorPassThrough(st, Int[obj.partial...])
+
+  str = JSON2.write(obj.Z)
+  PackedPartialPriorPassThrough(str, Int[obj.partial...])
 end
 
 
@@ -39,9 +44,10 @@ function convert( ::Union{Type{<:AbstractFactor}, Type{<:PartialPriorPassThrough
                   obj::PackedPartialPriorPassThrough )
   #
   
-  st = convert(HeatmapDensityRegular, obj.Z)
+  _typ = DFG.getTypeFromSerializationModule(obj.Z._type)
+  dens = JSON2.read(obj.Z, _typ)
   
-  PartialPriorPassThrough(st, tuple(obj.partial...))
+  PartialPriorPassThrough(dens, tuple(obj.partial...))
 end
 
 

@@ -32,6 +32,7 @@ Notes
   - Mostly aimed at limiting compute when faced with massive heatmaps, e.g. nav units are 10's but map is ~1e6.
 - Density approximation is constructed on Guassian measurement assumption of level set and sigma variation.
 - Assume data is on a regular grid on TranslationGroup(2)
+  - Assume on early implementation `x_grid, y_grid = domain`
 
 DevNotes:
 - Generalize to scalar fields on any Manifold.
@@ -45,12 +46,6 @@ struct HeatmapGridDensity{T <: Real, H <: Union{<:Function, Nothing}, B <: Union
   """use location hint to focus sampling to specific area of data, requires additional info at `getSample`
       assumed the callback will return _____ NOT ACTIVE YET"""
   hint_callback::H
-  # """level at which to extract the set of interest"""
-  # level::T
-  # """one sigma value associated with measurement noise of `level` against `data`"""
-  # sigma::T
-  # """make samplible region of interest from data be `sigma_scale` from `level`, e.g. 3*sigma."""
-  # sigma_scale::T
   """general rule for kernel bandwidths used in construction of density, e.g. 0.7 of domain grid spacing"""
   bw_factor::T 
   """density function as samplable representation of the data over the domain"""
@@ -97,10 +92,10 @@ Base.show(io::IO, ::MIME"application/prs.juno.inline", x::HeatmapGridDensity) = 
 """
     $TYPEDEF
 
-Generate a `<:SamplableBelief` from a heatmap, e.g. a digital elevation model.
+Generate a `<:SamplableBelief` by selecing normal (Gaussian) deviation from a Level Set of a heatmap, e.g. known altitude on a digital elevation model (DEM).
 
 Notes
-- Give in heatmap and grid, and object becomes a density function that can also be sampled.
+- Give in heatmap and grid, a level set gets generated, and the object becomes a density function for sampling.
 - Sampling can be more nuanced by injecting a hint, or location of interest:
   - Mostly aimed at limiting compute when faced with massive heatmaps, e.g. nav units are 10's but map is ~1e6.
 - Density approximation is constructed on Guassian measurement assumption of level set and sigma variation.
@@ -110,9 +105,9 @@ DevNotes:
 - Generalize to scalar fields on any Manifold.
 - Generalize to vector fields if interpolation is sensible.
 
-See also: [`HeatmapDensityGrid`](@ref)
+See also: [`HeatmapGridDensity`](@ref), [`ManifoldKernelDensity`](@ref)
 """
-struct LevelSetGridDensity{T <: Real, H <: HeatmapGridDensity}
+struct LevelSetGridNormal{T <: Real, H <: HeatmapGridDensity}
   level::T
   """one sigma value associated with measurement noise of `level` against `data`"""
   sigma::T
@@ -123,8 +118,8 @@ struct LevelSetGridDensity{T <: Real, H <: HeatmapGridDensity}
 end
 
 
-function Base.show(io::IO, x::LevelSetGridDensity{T,H}) where {T,H}
-  printstyled(io, "LevelSetGridDensity{", bold=true, color=:blue)
+function Base.show(io::IO, x::LevelSetGridNormal{T,H}) where {T,H}
+  printstyled(io, "LevelSetGridNormal{", bold=true, color=:blue)
   println(io)
   printstyled(io, "    T", color=:magenta, bold=true )
   println(io, "      = ", T)
@@ -140,8 +135,8 @@ function Base.show(io::IO, x::LevelSetGridDensity{T,H}) where {T,H}
   nothing
 end
 
-Base.show(io::IO, ::MIME"text/plain", x::LevelSetGridDensity) = show(io, x)
-Base.show(io::IO, ::MIME"application/prs.juno.inline", x::LevelSetGridDensity) = show(io,x)
+Base.show(io::IO, ::MIME"text/plain", x::LevelSetGridNormal) = show(io, x)
+Base.show(io::IO, ::MIME"application/prs.juno.inline", x::LevelSetGridNormal) = show(io,x)
 
 
 
