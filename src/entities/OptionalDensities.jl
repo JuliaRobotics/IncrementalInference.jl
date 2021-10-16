@@ -38,9 +38,9 @@ DevNotes:
 - Generalize to vector fields if interpolation is sensible.
 """
 struct HeatmapDensityRegular{T <: Real, H <: Union{<:Function, Nothing}, B <: Union{ManifoldKernelDensity, BallTreeDensity}}
-  """intensity data, assume regular grid for now"""
+  """intensity data, on regular grid"""
   data::Matrix{T}
-  """domain as grid or locations at which intensity elements exist"""
+  """domain as grid or locations at which scalar intensity elements exist"""
   domain::Tuple{<:AbstractVector{T},<:AbstractVector{T}}
   """use location hint to focus sampling to specific area of data, requires additional info at `getSample`
       assumed the callback will return _____ NOT ACTIVE YET"""

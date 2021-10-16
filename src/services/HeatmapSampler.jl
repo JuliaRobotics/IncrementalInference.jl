@@ -98,7 +98,8 @@ function HeatmapDensityRegular( data::AbstractMatrix{<:Real},
   support_, weights_ = sampleLevelSetGaussian!(roi, sigma, domain...; sigma_scale=sigma_scale)
   
   # constuct a pre-density from which to draw intermediate samples
-  density_ = fitKDE(support_, weights_, domain...; bw_factor=bw_factor)
+  # TODO remove extraneous collect()
+  density_ = fitKDE(collect(support_), weights_, domain...; bw_factor=bw_factor)
   pts_preIS, = sample(density_, N)
   
   @cast vec_preIS[j][i] := pts_preIS[i,j]
