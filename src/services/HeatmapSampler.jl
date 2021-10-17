@@ -62,7 +62,7 @@ end
 function HeatmapGridDensity(data::AbstractMatrix{<:Real}, 
                             domain::Tuple{<:AbstractVector{<:Real},<:AbstractVector{<:Real}},
                             hist_callback::Union{<:Function, Nothing}=nothing,
-                            bw_factor::Real=0.7,  # kde spread between domain points 
+                            bw_factor::Real=0.7;  # kde spread between domain points 
                             N::Int=10000  )
   #
   pos, weights_ = sampleHeatmap(data, domain..., 0)
@@ -128,7 +128,7 @@ function LevelSetGridNormal(data::AbstractMatrix{<:Real},
   #   l = 1/2 (h-z/σ)^2
   #   masked_roi = 0 .< κ^2 - l
   
-  hgd = HeatmapGridDensity(data, domain, hist_callback, bw_factor, N)
+  hgd = HeatmapGridDensity(data, domain, hist_callback, bw_factor; N=N)
 
   LevelSetGridNormal(level, sigma, float(sigma_scale), hgd)
 end
