@@ -170,7 +170,7 @@ function convert(::Union{Type{<:AbstractFactor}, Type{<:ManifoldPrior}},
   # piggy back on serialization of InferenceVariable rather than try serialize anything Manifolds.jl
   M = DFG.getTypeFromSerializationModule(obj.varType) |> getManifold
   
-  # TODO this is too excesssive
+  # TODO this is too excessive
   e0 = identity_element(M)
   p = AMP.makePointFromCoords(M, obj.p, e0)
 
