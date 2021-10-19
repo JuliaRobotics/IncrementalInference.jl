@@ -484,7 +484,7 @@ function addVariable!(dfg::AbstractDFG,
   if :ut in fieldnames(T)	
     Base.depwarn("Field `ut` (microseconds) for variable type ($T) has been deprecated please use DFGVariable.nstime, kwarg: nanosecondtime", :addVariable!)	
     if isnothing(nanosecondtime)
-      varType.ut == -9999999999 && error("please define a time for type $(T), use FGVariable.nstime, kwarg: nanosecondtime")
+      varType.ut == -(2^Sys.WORD_SIZE-1) && error("please define a time for type $(T), use FGVariable.nstime, kwarg: nanosecondtime")
       nanosecondtime = Nanosecond(varType.ut*1000)	
     else 	
       @warn "Nanosecond time has been specified as $nanosecondtime, ignoring `ut` field value: $(varType.ut)."	

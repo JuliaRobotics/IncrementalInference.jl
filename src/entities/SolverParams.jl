@@ -14,7 +14,7 @@ Base.@kwdef mutable struct SolverParams <: DFG.AbstractParams
   dimID::Int = 0
   reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}} = nothing
   stateless::Bool = false
-  qfl::Int = 99999999999            # Quasi fixed length
+  qfl::Int = (2^Sys.WORD_SIZE-1)    # Quasi fixed length
   isfixedlag::Bool = false          # true when adhering to qfl window size for solves
   limitfixeddown::Bool = false      # if true, then fixed lag will also not update marginalized during down (default false)
   incremental::Bool = true          # use incremental tree updates, TODO consolidate with recycling

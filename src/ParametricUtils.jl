@@ -88,7 +88,7 @@ function getMeasurementParametric(s::AbstractFactor)
     Z = s.z
     @info "getMeasurementParametric falls back to using field `.z` by default. Extend it for more complex factors." maxlog=1
   else
-    error("$(typeof(s)) not supported, please use non-parametric or open an issue if it should be")
+    error("getMeasurementParametric(::$(typeof(s))) not defined, please add it, or use non-parametric, or open an issue for help.")
   end
   
   return getMeasurementParametric(Z)
