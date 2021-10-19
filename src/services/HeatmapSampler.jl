@@ -21,7 +21,7 @@ getManifold(lsg::LevelSetGridNormal) = getManifold(lsg.heatmap)
 Get the grid positions at the specified height (within the provided spreads)
 
 DevNotes
-- TODO Should this be consolidated with AliasingScalarSampler?
+- TODO Should this be consolidated with AliasingScalarSampler? See IIF #1341
 """
 function sampleHeatmap( roi::AbstractMatrix{<:Real},
                         x_grid::AbstractVector{<:Real}, 
