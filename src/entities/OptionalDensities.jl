@@ -37,6 +37,7 @@ Notes
 DevNotes:
 - Generalize to scalar fields on any Manifold.
 - Generalize to vector fields if interpolation is sensible.
+- TODO standardize with AliasingScalarSampler see IIF #1341
 """
 struct HeatmapGridDensity{T <: Real, H <: Union{<:Function, Nothing}, B <: Union{ManifoldKernelDensity, BallTreeDensity}}
   """intensity data, on regular grid"""

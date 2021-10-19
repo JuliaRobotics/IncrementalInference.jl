@@ -354,7 +354,7 @@ function identifyFirstEliminatedSeparator(dfg::AbstractDFG,
                                           firvert::DFGVariable,
                                           Sj=getSolverData(firvert).separator)::DFGVariable
   #
-  firstelim = 99999999999
+  firstelim = (2^(Sys.WORD_SIZE-1)-1)
   for s in Sj
     temp = something(findfirst(isequal(s), elimorder), 0) # findfirst(p, s)
     if (temp < firstelim)

@@ -211,12 +211,13 @@ function _checkVariableByReference( fg::AbstractDFG,
                                     destType::Type{<:InferenceVariable},
                                     factor::AbstractRelative;
                                     srcType::Type{<:InferenceVariable} = getVariableType(fg, srcLabel) |> typeof,
+                                    doRef::Bool = true,
                                     refKey::Symbol=:simulated,
-                                    prior = DFG._getPriorType(srcType)( MvNormal(getPPE(fg[srcLabel], refKey).suggested, diagm(ones(getDimension(srcType)))) ),
+                                    prior = !doRef ? nothing : DFG._getPriorType(srcType)( MvNormal(getPPE(fg[srcLabel], refKey).suggested, diagm(ones(getDimension(srcType)))) ),
                                     atol::Real = 1e-2,
                                     destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
                                     srcNumber = match(r"\d+", string(srcLabel)).match |> x->parse(Int,x),
-                                    overridePPE=nothing  )
+                                    overridePPE = doRef ? nothing : zeros(getDimension(destType))  )
   #
   
   refVal = if overridePPE !== nothing
@@ -238,9 +239,13 @@ function _checkVariableByReference( fg::AbstractDFG,
 
   # now check if we already have a landmark at this location
   varLms = ls(fg, destRegex) |> sortDFG
-  ppeLms = getPPE.(getVariable.(fg, varLms), refKey) .|> x->x.suggested
-  errmask = ppeLms .|> ( x -> isapprox(x, refVal; atol=atol) )
-  already = any(errmask)
+  already = if doRef
+    ppeLms = getPPE.(getVariable.(fg, varLms), refKey) .|> x->x.suggested
+    errmask = ppeLms .|> ( x -> isapprox(x, refVal; atol=atol) )
+    any(errmask)
+  else
+    false
+  end
 
   if already
     # does exist, ppe, variableLabel
@@ -260,12 +265,13 @@ function _checkVariableByReference( fg::AbstractDFG,
                                     destType::Type{<:InferenceVariable},
                                     factor::AbstractPrior;
                                     srcType::Type{<:InferenceVariable} = getVariableType(fg, srcLabel) |> typeof,
+                                    doRef::Bool = true,
                                     refKey::Symbol=:simulated,
                                     prior = typeof(factor)( MvNormal(getMeasurementParametric(factor)...) ),
                                     atol::Real = 1e-3,
                                     destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
                                     srcNumber = match(r"\d+", string(srcLabel)).match |> x->parse(Int,x),
-                                    overridePPE=nothing  )
+                                    overridePPE = doRef ? nothing : zeros(getDimension(destType))  )
   #
 
   refVal = if overridePPE !== nothing
