@@ -121,7 +121,8 @@ function calcFactorResidualTemporary( fct::AbstractRelative,
                                       measurement,
                                       pts::Tuple;
                                       tfg::AbstractDFG = initfg(),
-                                      _blockRecursion::Bool=false )
+                                      _blockRecursion::Bool=false,
+                                      doTime::Bool=true  )
   #
 
   # build a new temporary graph
@@ -135,9 +136,14 @@ function calcFactorResidualTemporary( fct::AbstractRelative,
     cfo = CalcFactor(_getCCW(_dfgfct))
     sampleFactor(cfo, 1)[1]
   end
-
+  
   # assume a single sample point is being run
-  return calcFactorResidual(_dfgfct, _measurement, pts...) 
+  return if doTime
+    @time res = calcFactorResidual(_dfgfct, _measurement, pts...)
+    res
+  else
+    calcFactorResidual(_dfgfct, _measurement, pts...)
+  end
 end
 
 
