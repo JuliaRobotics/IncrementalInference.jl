@@ -25,6 +25,7 @@ The list below highlights major breaking changes, and please note that significa
 - Removing obsolete `approxConvCircular`, use `approxConvBelief` instead.
 - `getSample` should return a single sample and no longer takes the N(number of samples) parameter.
 - `solveTree!` / `solveGraph!` now returns just one value `tree<:AbstractBayesTree`.  Previous version returned three values, `tree, smt, hist` (#1379).
+- **Note for v0.25.5** Serialization of newly introduced type `PackedHeatmapGridDensity` changed from v0.25.4, unlikely have yet been used publically, therefore emphasizing fastest possible standardization in this case (even though this particular event does not strictly follow semver).  General usage and operation is effectively unchanged,see #1435.
 
 # Major changes in v0.24
 
