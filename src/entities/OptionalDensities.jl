@@ -33,11 +33,14 @@ Notes
 - Density approximation is constructed on Guassian measurement assumption of level set and sigma variation.
 - Assume data is on a regular grid on TranslationGroup(2)
   - Assume on early implementation `x_grid, y_grid = domain`
+- Serialization currently does not store the hint callback.
+- To save space, serialization does not store the internal density, but rather reconstructs at unpacking.
 
 DevNotes:
 - Generalize to scalar fields on any Manifold.
 - Generalize to vector fields if interpolation is sensible.
 - TODO standardize with AliasingScalarSampler see IIF #1341
+- TODO store the hint function (at least any easy cases)
 """
 struct HeatmapGridDensity{T <: Real, H <: Union{<:Function, Nothing}, B <: Union{ManifoldKernelDensity, BallTreeDensity}}
   """intensity data, on regular grid"""

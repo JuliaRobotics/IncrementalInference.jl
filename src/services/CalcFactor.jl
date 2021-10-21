@@ -122,7 +122,7 @@ function calcFactorResidualTemporary( fct::AbstractRelative,
                                       pts::Tuple;
                                       tfg::AbstractDFG = initfg(),
                                       _blockRecursion::Bool=false,
-                                      doTime::Bool=true  )
+                                      doTime::Bool=false  )
   #
 
   # build a new temporary graph

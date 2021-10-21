@@ -61,7 +61,7 @@ end
 # Helper function to construct HGD
 function HeatmapGridDensity(data::AbstractMatrix{<:Real}, 
                             domain::Tuple{<:AbstractVector{<:Real},<:AbstractVector{<:Real}},
-                            hist_callback::Union{<:Function, Nothing}=nothing,
+                            hint_callback::Union{<:Function, Nothing}=nothing,
                             bw_factor::Real=0.7;  # kde spread between domain points 
                             N::Int=10000  )
   #
@@ -101,7 +101,7 @@ function HeatmapGridDensity(data::AbstractMatrix{<:Real},
   density = ManifoldKernelDensity(TranslationGroup(Ndim(bel)), bel)
 
   # return `<:SamplableBelief` object
-  HeatmapGridDensity(data, domain, hist_callback, bw_factor, density)
+  HeatmapGridDensity(data, domain, hint_callback, bw_factor, density)
 end
 
 
@@ -111,7 +111,7 @@ function LevelSetGridNormal(data::AbstractMatrix{<:Real},
                             level::Real,
                             sigma::Real;
                             sigma_scale::Real=3,
-                            hist_callback::Union{<:Function, Nothing}=nothing,
+                            hint_callback::Union{<:Function, Nothing}=nothing,
                             bw_factor::Real=0.7,  # kde spread between domain points 
                             N::Int=10000  )
   #
@@ -128,7 +128,7 @@ function LevelSetGridNormal(data::AbstractMatrix{<:Real},
   #   l = 1/2 (h-z/σ)^2
   #   masked_roi = 0 .< κ^2 - l
   
-  hgd = HeatmapGridDensity(data, domain, hist_callback, bw_factor; N=N)
+  hgd = HeatmapGridDensity(data, domain, hint_callback, bw_factor; N=N)
 
   LevelSetGridNormal(level, sigma, float(sigma_scale), hgd)
 end

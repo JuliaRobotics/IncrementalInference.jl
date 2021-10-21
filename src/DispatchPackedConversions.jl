@@ -29,7 +29,7 @@ end
 
 ## unpack converters------------------------------------------------------------
 
-
+# FIXME see #1424
 function convert(
             ::Type{GenericFunctionNodeData{CommonConvWrapper{F}}},
             packed::GenericFunctionNodeData{P} ) where {F <: AbstractFactor, P <: PackedInferenceType}
