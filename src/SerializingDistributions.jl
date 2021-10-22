@@ -158,7 +158,8 @@ mutable struct PackedHeatmapGridDensity <: PackedSamplableBelief
   domain::Tuple{Vector{Float64}, Vector{Float64}}
   hint_callback::String
   bw_factor::Float64
-  densityFnc::String
+  N::Int
+  # densityFnc::String # TODO rather rebuild at unpack
 end
 
 
@@ -171,13 +172,13 @@ function convert( ::Union{Type{<:SamplableBelief},Type{<:HeatmapGridDensity}},
   data__ = map(x->collect(x), data_)
   @cast data[i,j] := data__[j][i]
   _data__ = collect(data)
-  densFnc = convert(SamplableBelief, obj.densityFnc)
+  # densFnc = convert(SamplableBelief, obj.densityFnc)
   # build the final object, misses the hint...
   HeatmapGridDensity( _data__,
                       obj.domain,
                       obj.hint_callback == "" ? nothing : nothing,
-                      obj.bw_factor,
-                      densFnc )
+                      obj.bw_factor;
+                      N=obj.N )
 end
 
 function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedHeatmapGridDensity}}, 
@@ -185,14 +186,15 @@ function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedHeatmapGrid
   #
   data_ = obj.data
   @cast data[j][i] := data_[i,j]
-  str = convert(SamplableBelief, obj.densityFnc)
+  # str = convert(SamplableBelief, obj.densityFnc)
+  N = Npts(obj.densityFnc)
   # TODO misses the hint...
   PackedHeatmapGridDensity( "IncrementalInference.PackedHeatmapGridDensity",
                             data,
                             obj.domain,
                             "", 
                             obj.bw_factor,
-                            str )
+                            N )
 end
 
 
