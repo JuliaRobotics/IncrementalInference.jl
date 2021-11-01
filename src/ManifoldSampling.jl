@@ -65,5 +65,15 @@ function samplePoint(distr::SamplableBelief)
 end
 
 ## default getSample
-# getSample(cf::CalcFactor{<:AbstractPrior}, N::Int=1) = ([samplePoint(getManifold(cf.factor), cf.factor.Z, ) for _=1:N], )
-# getSample(cf::CalcFactor{<:AbstractRelative}, N::Int=1) = ([sampleTangent(getManifold(cf.factor), cf.factor.Z) for _=1:N], )
+
+function getSample(cf::CalcFactor{<:AbstractPrior}) 
+  M = getManifold(cf.factor)
+  X = samplePoint(M, cf.factor.Z)
+  return X
+end
+
+function getSample(cf::CalcFactor{<:AbstractManifoldMinimize}) 
+  M = getManifold(cf.factor)
+  X = sampleTangent(M, cf.factor.Z)
+  return X
+end
