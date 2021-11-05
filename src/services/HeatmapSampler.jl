@@ -110,11 +110,11 @@ function Base.isapprox( a::HeatmapGridDensity, b::HeatmapGridDensity;
                         atol::Real=1e-10, mmd_tol::Real=1e-2)
   #
   isapprox( Npts(a.densityFnc), Npts(b.densityFnc) ; atol) ? nothing : (return false)
-  isapprox( a.densityFnc, b.densityFnc; atol=mmd_tol) ? nothing : (return false)
-  isapprox( a.data, b.data ; atol) ? nothing : (return false)
-  isapprox( a.domain[1], b.domain[1] ; atol) ? nothing : (return false)
-  isapprox( a.domain[2], b.domain[2] ; atol) ? nothing : (return false)
-
+  isapprox( a.densityFnc, b.densityFnc; atol=mmd_tol) ?      nothing : (return false)
+  isapprox( a.data, b.data ; atol) ?                         nothing : (return false)
+  isapprox( a.domain[1], b.domain[1] ; atol) ?               nothing : (return false)
+  isapprox( a.domain[2], b.domain[2] ; atol) ?               nothing : (return false)
+  
   return true
 end
 
@@ -130,7 +130,7 @@ function LevelSetGridNormal(data::AbstractMatrix{<:Real},
                             bw_factor::Real=0.7,  # kde spread between domain points 
                             N::Int=10000  )
   #
-
+  
   # select the support from raw data
   roi = data.-level
   # make Gaussian
@@ -144,7 +144,7 @@ function LevelSetGridNormal(data::AbstractMatrix{<:Real},
   #   masked_roi = 0 .< κ^2 - l
   
   hgd = HeatmapGridDensity(data, domain, hint_callback, bw_factor; N=N)
-
+  
   LevelSetGridNormal(level, sigma, float(sigma_scale), hgd)
 end
 
