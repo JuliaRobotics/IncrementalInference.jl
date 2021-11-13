@@ -65,5 +65,46 @@ function samplePoint(distr::SamplableBelief)
 end
 
 ## default getSample
-# getSample(cf::CalcFactor{<:AbstractPrior}, N::Int=1) = ([samplePoint(getManifold(cf.factor), cf.factor.Z, ) for _=1:N], )
-# getSample(cf::CalcFactor{<:AbstractRelative}, N::Int=1) = ([sampleTangent(getManifold(cf.factor), cf.factor.Z) for _=1:N], )
+"""
+    $SIGNATURES
+
+Sample the factor in `CalcFactor`. A default `getSample` method is provided that should cover most use cases, 
+if more advanced sampling is required, the `getSample` function should be extended.
+
+The default behavior for `getSample` is as follows:
+- The `SamplableBelief`` shall be in the field `Z` and that shall be enough to fully define the factor, i.e. `Z<:SamplableBelief` should be the only field.
+- Sampling on `<:AbstractManifoldMinimize` factors defined on Group Manifolds: 
+  - `getSample` normally returns a tangent vector at the identity element, however it should just match the custom factor definition.
+- Sampling on prior (`<:AbstractPrior`) factors : 
+  - `getSample` must return a point on the manifold that matches the point representation of the variable.
+
+Notes
+- Users should overload this method should their factor not only use field `Z` for the `SamplableBelief`.
+- See the Custom Factors section in the Caesar.jl documentation for more examples and details.
+- Also see issue https://github.com/JuliaRobotics/IncrementalInference.jl/issues/1441
+
+See also: [`getMeasurementParametric`](@ref)
+"""
+function getSample end
+
+function getSample(cf::CalcFactor{<:AbstractPrior}) 
+  M = getManifold(cf.factor)
+  if hasfield(typeof(cf.factor), :Z)
+    X = samplePoint(M, cf.factor.Z)
+  else
+    error("""Factor $(typeof(cf.factor)) does not have a field `Z`, to use the default `getSample` method, use `Z` for the measurement. 
+             Alternatively, provide a `getSample` method. See IIF issue #1441 and Custom Factors in the Caesar documentation.""")
+  end
+  return X
+end
+
+function getSample(cf::CalcFactor{<:AbstractManifoldMinimize}) 
+  M = getManifold(cf.factor)
+  if hasfield(typeof(cf.factor), :Z)
+    X = sampleTangent(M, cf.factor.Z)
+  else
+    error("""Factor $(typeof(cf.factor)) does not have a field `Z`, to use the default `getSample` method, use `Z` for the measurement. 
+             Alternatively, provide a `getSample` method. See IIF issue #1441 and Custom Factors in the Caesar documentation.""")
+  end
+  return X
+end
