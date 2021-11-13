@@ -14,9 +14,14 @@ struct PartialPrior{T <: SamplableBelief,P <: Tuple} <: AbstractPrior
   partial::P
 end
 
+# TODO, standardize, but shows error on testPartialNH.jl
+getSample(cf::CalcFactor{<:PartialPrior}) = samplePoint(cf.factor.Z)   # remove in favor of ManifoldSampling.jl
+# getManifold(pp::PartialPrior) = TranslationGroup(length(pp.partial)) # uncomment
+
+
 getManifold(pp::PartialPrior{<:PackedManifoldKernelDensity}) = pp.Z.manifold
 
-getSample(cf::CalcFactor{<:PartialPrior}) = samplePoint(cf.factor.Z)
+
 
 
 """

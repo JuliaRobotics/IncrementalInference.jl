@@ -108,6 +108,9 @@ include("ExportAPI.jl")
 ## =============================
 # Source code
 
+# FIXME, move up to DFG
+abstract type AbstractManifoldMinimize <: AbstractRelative end
+
 # regular
 include("entities/SolverParams.jl")
 

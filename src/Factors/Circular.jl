@@ -22,12 +22,11 @@ CircularCircular(::UniformScaling) = CircularCircular(Normal())
 
 DFG.getManifold(::CircularCircular) = RealCircleGroup()
 
-function getSample(cf::CalcFactor{<:CircularCircular})
-  # return (sampleTangent(getManifold(cf.factor), cf.factor.Z), )
-  # FIXME workaround for issue #TBD with manifolds CircularGroup
-  return sampleTangent(getManifold(cf.factor), cf.factor.Z, [0.0])
-
-end
+# function getSample(cf::CalcFactor{<:CircularCircular})
+#   # return (sampleTangent(getManifold(cf.factor), cf.factor.Z), )
+#   # FIXME workaround for issue #TBD with manifolds CircularGroup
+#   return sampleTangent(getManifold(cf.factor), cf.factor.Z, [0.0])
+# end
 
 function (cf::CalcFactor{<:CircularCircular})(X, p, q)
   #
