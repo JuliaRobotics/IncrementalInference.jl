@@ -41,7 +41,6 @@ end
 ## ======================================================================================
 ## ManifoldFactor
 ## ======================================================================================
-abstract type AbstractManifoldMinimize <: AbstractRelative end
 
 export ManifoldFactor
 # DEV NOTES

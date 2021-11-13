@@ -291,6 +291,8 @@ export
   setVariableRefence!,
   reshapeVec2Mat
 
+export sampleTangent
+export samplePoint
 
 export  buildCliqSubgraph_StateMachine
 
