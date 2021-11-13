@@ -61,10 +61,10 @@ PriorCircular(::UniformScaling) = PriorCircular(Normal())
 
 DFG.getManifold(::PriorCircular) = RealCircleGroup()
 
-# function getSample(cf::CalcFactor{<:PriorCircular})
-#   # FIXME workaround for issue #TBD with manifolds CircularGroup
-#   return samplePoint(getManifold(cf.factor), cf.factor.Z, [0.0])
-# end
+function getSample(cf::CalcFactor{<:PriorCircular})
+  # FIXME workaround for issue #TBD with manifolds CircularGroup
+  return samplePoint(getManifold(cf.factor), cf.factor.Z, [0.0])
+end
 
 
 Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{PriorCircular}) = Manifolds.RealCircleGroup()
