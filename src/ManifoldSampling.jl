@@ -107,13 +107,3 @@ function getSample(cf::CalcFactor{<:AbstractRelative})
   end
   return X
 end
-
-# function getSample(cf::CalcFactor{<:AbstractRelativeRoots})
-#   M = getManifold(cf.factor)
-#   if hasfield(typeof(cf.factor), :Z)
-#     return sampleTangent(M, cf.factor.Z)
-#   else
-#     error("""Factor $(typeof(cf.factor)) does not have a field `Z`, to use the default `getSample` method, use `Z` for the measurement. 
-#               Alternatively, provide a `getSample` method. See IIF issue #1441 and Custom Factors in the Caesar documentation.""")
-#   end
-# end
