@@ -175,7 +175,7 @@ function _buildCalcFactorMixture( ccwl::CommonConvWrapper,
                                   varParams )
   #
   CalcFactor( ccwl.usrfnc!, _fmd_, smpid, 
-              length(measurement_), measurement_, varParams)
+              length(measurement_), measurement_, varParams, true)
 end
 
 
@@ -187,7 +187,7 @@ function _buildCalcFactorMixture( ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
   #
   # just a passthrough similar to pre-v0.20
   CalcFactor( ccwl.usrfnc!.mechanics, _fmd_, smpid, 
-              length(measurement_), measurement_, varParams)
+              length(measurement_), measurement_, varParams, true)
 end
 
 

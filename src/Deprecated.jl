@@ -24,6 +24,10 @@
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+@deprecate CalcFactor(x1,x2,x3,x4,x5,x6) CalcFactor(x1,x2,x3,x4,x5,x6, true)
+
+@deprecate ensureAllInitialized!(w...;kw...) initAll!(w...;kw...)
+
 # """
 #     $SIGNATURES
 
@@ -502,8 +506,6 @@ end
 # DFG.getDimension(vartype::InferenceVariable) = vartype.dims #TODO Deprecate
 # DFG.getDimension(vartype::Type{<:InferenceVariable}) = getDimension(vartype())
 
-
-@deprecate ensureAllInitialized!(w...;kw...) initAll!(w...;kw...)
 
 @deprecate getFactorMean(w...) IIF.getMeasurementParametric(w...)[1]
 
