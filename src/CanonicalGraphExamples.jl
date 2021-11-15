@@ -1,7 +1,7 @@
 
-export generateCanonicalFG_Kaess, generateCanonicalFG_TestSymbolic, generateCanonicalFG_CaesarRing1D, generateCanonicalFG_lineStep
+export generateGraph_Kaess, generateGraph_TestSymbolic, generateGraph_CaesarRing1D, generateGraph_LineStep
 export calcHelix_T
-export generateCanonicalFG_EuclidDistance
+export generateGraph_EuclidDistance
 
 
 """
@@ -12,7 +12,7 @@ Canonical example from literature, Kaess, et al.: ISAM2, IJRR, 2011.
 Notes
 - Paper variable ordering: p = [:l1;:l2;:x1;:x2;:x3]
 """
-function generateCanonicalFG_Kaess(;graphinit::Bool=false)
+function generateGraph_Kaess(;graphinit::Bool=false)
   fg = initfg()
 
   addVariable!(fg,:x1, ContinuousScalar)
@@ -44,7 +44,7 @@ Canonical example introduced by Borglab.
 Notes
 - Known variable ordering: p = [:x1; :l3; :l1; :x5; :x2; :l2; :x4; :x3]
 """
-function generateCanonicalFG_TestSymbolic(;graphinit::Bool=false)
+function generateGraph_TestSymbolic(;graphinit::Bool=false)
   fg = initfg()
 
   addVariable!(fg, :x1, ContinuousScalar)
@@ -89,7 +89,7 @@ Notes
 
 Related
 
-[`RoME.generateCanonicalFG_Helix2D!`](@ref)
+[`RoME.generateGraph_Helix2D!`](@ref)
 """
 function calcHelix_T( t_start::Real=0,
                       t_stop::Real=1,
@@ -122,7 +122,7 @@ Canonical example introduced originally as Caesar Hex Example.
 Notes
 - Paper variable ordering: p = [:x0;:x2;:x4;:x6;:x1;:l1;:x5;:x3;]
 """
-function generateCanonicalFG_CaesarRing1D(;graphinit::Bool=false)
+function generateGraph_CaesarRing1D(;graphinit::Bool=false)
 
   fg = initfg()
 
@@ -156,7 +156,7 @@ end
 Continuous, linear scalar and multivariate test graph generation. Follows a line
 with the pose id equal to the ground truth.
 """
-function generateCanonicalFG_lineStep(  lineLength::Int;
+function generateGraph_LineStep(  lineLength::Int;
                                         poseEvery::Int=2,
                                         landmarkEvery::Int=4,
                                         posePriorsAt = Int[0],
@@ -220,7 +220,7 @@ end
     $SIGNATURES
 Generate a EuclidDistance test graph where 1 landmark position is unknown. 
 """
-function generateCanonicalFG_EuclidDistance(points::Vector{Vector{Float64}} = [[100.,0],[0.,100]];
+function generateGraph_EuclidDistance(points::Vector{Vector{Float64}} = [[100.,0],[0.,100]];
                                             dist = 100.0, 
                                             σ_prior=1.0, σ_dist=1.0,
                                             N=100,

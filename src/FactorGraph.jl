@@ -484,7 +484,7 @@ function addVariable!(dfg::AbstractDFG,
   if :ut in fieldnames(T)	
     Base.depwarn("Field `ut` (microseconds) for variable type ($T) has been deprecated please use DFGVariable.nstime, kwarg: nanosecondtime", :addVariable!)	
     if isnothing(nanosecondtime)
-      varType.ut == -9999999999 && error("please define a time for type $(T), use FGVariable.nstime, kwarg: nanosecondtime")
+      varType.ut == -(2^(Sys.WORD_SIZE-1)-1) && error("please define a time for type $(T), use FGVariable.nstime, kwarg: nanosecondtime")
       nanosecondtime = Nanosecond(varType.ut*1000)	
     else 	
       @warn "Nanosecond time has been specified as $nanosecondtime, ignoring `ut` field value: $(varType.ut)."	
@@ -552,103 +552,7 @@ end
 
 _selectHypoVariables(allVars::Union{<:Tuple, <:AbstractVector},mh::Nothing,sel::Integer=0 ) = collect(1:length(allVars))
 
-"""
-    $SIGNATURES
 
-Notes
-- Can be called with `length(Xi)==0`
-"""
-function _prepCCW(Xi::Vector{<:DFGVariable},
-                  usrfnc::T;
-                  multihypo::Union{Nothing, Distributions.Categorical}=nothing,
-                  nullhypo::Real=0.0,
-                  threadmodel=MultiThreaded,
-                  inflation::Real=0.0,
-                  _blockRecursion::Bool=false  ) where {T <: AbstractFactor}
-  #
-  length(Xi) !== 0 ? nothing : @debug("cannot prep ccw.param list with length(Xi)==0, see DFG #590")
-
-  pttypes = getVariableType.(Xi) .|> getPointType
-  PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
-  # FIXME stop using Any, see #1321
-  # varParamsAll = Vector{Vector{Any}}()
-  varParamsAll, maxlen, sfidx, mani = prepareparamsarray( Xi, nothing, 0) # Nothing for init.
-
-  # standard factor metadata
-  sflbl = 0==length(Xi) ? :null : getLabel(Xi[end])
-  lbs = getLabel.(Xi)
-  fmd = FactorMetadata(Xi, lbs, varParamsAll, sflbl, nothing)
-
-  # create a temporary CalcFactor object for extracting the first sample
-  # TODO, deprecate this:  guess measurement points type
-  # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
-  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, varParamsAll) # (Vector{MeasType}(),)
-  
-  # get a measurement sample
-  meas_single = sampleFactor(_cf, 1)[1]
-
-  #TODO preallocate measurement?
-  measurement = Vector{typeof(meas_single)}()
-
-  # get the measurement dimension
-  zdim = calcZDim(_cf)
-  # some hypo resolution
-  certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
-  
-  # partialDims are sensitive to both which solvefor variable index and whether the factor is partial
-  ispartl = hasfield(T, :partial)
-  partialDims = if ispartl
-    Int[usrfnc.partial...]
-  else
-    Int[]
-  end
-
-  # as per struct CommonConvWrapper
-  varTypes::Vector{DataType} = typeof.(getVariableType.(Xi))
-  gradients = nothing
-  # prepare new cached gradient lambdas (attempt)
-  try
-    # https://github.com/JuliaRobotics/IncrementalInference.jl/blob/db7ff84225cc848c325e57b5fb9d0d85cb6c79b8/src/DispatchPackedConversions.jl#L46
-    # also https://github.com/JuliaRobotics/DistributedFactorGraphs.jl/issues/590#issuecomment-891450762
-    # FIXME, suppressing nested gradient propagation on GenericMarginals for the time being, see #1010
-    if (!_blockRecursion) && usrfnc isa AbstractRelative && !(usrfnc isa GenericMarginal)
-      # take first value from each measurement-tuple-element
-      measurement_ = meas_single
-      # compensate if no info available during deserialization
-      # take the first value from each variable param
-      pts_ = map(x->x[1], varParamsAll)
-      # FIXME, only using first meas and params values at this time...
-      # NOTE, must block recurions here, since FGC uses this function to calculate numerical gradients on a temp fg.
-      # assume for now fractional-var in multihypo have same varType
-      hypoidxs = _selectHypoVariables(pts_, multihypo)
-      gradients = FactorGradientsCached!(usrfnc, tuple(varTypes[hypoidxs]...), measurement_, tuple(pts_[hypoidxs]...), _blockRecursion=true);
-    end
-  catch e
-    @warn "Unable to create measurements and gradients for $usrfnc during prep of CCW, falling back on no-partial information assumption.  Enable ENV[\"JULIA_DEBUG\"] = \"IncrementalInference\" for @debug printing to see the error."
-    # rethrow(e)
-    @debug(e)
-  end
-
-  ccw = CommonConvWrapper(
-          usrfnc,
-          PointType[],
-          zdim,
-          varParamsAll,
-          fmd;
-          partial = ispartl,
-          measurement,
-          hypotheses=multihypo,
-          certainhypo=certainhypo,
-          nullhypo=nullhypo,
-          threadmodel=threadmodel,
-          inflation=inflation,
-          partialDims=partialDims,
-          vartypes = varTypes,
-          gradients=gradients
-        )
-  #
-  return ccw
-end
 
 # TODO perhaps consolidate with constructor?
 """

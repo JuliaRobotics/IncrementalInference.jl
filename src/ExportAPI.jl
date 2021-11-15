@@ -25,7 +25,7 @@ export AbstractDFG,
 
 # Inference types
 export FunctorInferenceType, PackedInferenceType
-export AbstractPrior, AbstractRelative, AbstractRelativeRoots, AbstractRelativeMinimize
+export AbstractPrior, AbstractRelative, AbstractRelativeRoots, AbstractRelativeMinimize, AbstractManifoldMinimize
 
 # not sure if this is necessary
 export convert, *
@@ -291,9 +291,8 @@ export
   setVariableRefence!,
   reshapeVec2Mat
 
-# more optional exports
-export HeatmapDensityRegular
-
+export sampleTangent
+export samplePoint
 
 export  buildCliqSubgraph_StateMachine
 

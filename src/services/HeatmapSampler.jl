@@ -5,45 +5,46 @@
 using .Interpolations 
 
 # only export on Requires.jl
-export HeatmapDensityRegular
+export HeatmapGridDensity, PackedHeatmapGridDensity
+export LevelSetGridNormal, PackedLevelSetGridNormal
+
+export sampleHeatmap
 
 ##
 
+getManifold(hgd::HeatmapGridDensity) = getManifold(hgd.densityFnc)
+getManifold(lsg::LevelSetGridNormal) = getManifold(lsg.heatmap)
+
+AMP.sample(hgd::HeatmapGridDensity,w...;kw...) = sample(hgd.densityFnc, w...;kw...)
 
 """
     $SIGNATURES
 
 Get the grid positions at the specified height (within the provided spreads)
-"""
-function getLevelSetSigma(  data::AbstractMatrix{<:Real},
-                            level::Real,
-                            sigma::Real,
-                            x_grid::AbstractVector{<:Real}, 
-                            y_grid::AbstractVector{<:Real};
-                            sigma_scale::Real=3  )
-  #
-  # make Gaussian
-  roi = data .- level
-  roi .^= 2
-  roi .*= 0.5/(sigma^2)
-  thres = (sigma_scale^2) # IS THIS RIGHT ???? TODO, maybe 1/????????
 
-  # truncate at sigma_scale*sigma
-  mask = roi .<= thres
-  _roi = thres .- roi
+DevNotes
+- TODO Should this be consolidated with AliasingScalarSampler? See IIF #1341
+"""
+function sampleHeatmap( roi::AbstractMatrix{<:Real},
+                        x_grid::AbstractVector{<:Real}, 
+                        y_grid::AbstractVector{<:Real},
+                        thres::Real = 0  )
+  #
+
+  # mask the region of interest above the sampling threshold value
+  mask = thres .<= roi
 
   idx2d = findall(mask)  # 2D indices
   pos = (v->[x_grid[v[1]],y_grid[v[2]]]).(idx2d)
-  weights = (v->_roi[v[1],v[2]]).(idx2d)
+  weights = (v->roi[v[1],v[2]]).(idx2d)
   weights ./= sum(weights)
 
-  # recast to the appropriate shape
-  @cast kp[i,j] := pos[j][i]
-  collect(kp), weights, roi
+  pos, weights
 end
 
+
 # TODO make n-dimensional, and later on-manifold
-# TODO better standardize for heatmaps on manifolds
+# TODO better standardize for heatmaps on manifolds w MKD
 function fitKDE(support,
                 weights,
                 x_grid::AbstractVector{<:Real}, 
@@ -59,30 +60,26 @@ function fitKDE(support,
   kde!(support, kernel_bw, weights)
 end
 
-
-
-
-function HeatmapDensityRegular( data::AbstractMatrix{<:Real}, 
-                                domain::Tuple{<:AbstractVector{<:Real},<:AbstractVector{<:Real}},
-                                level::Real,
-                                sigma::Real;
-                                sigma_scale::Real=3,
-                                hist_callback::Union{<:Function, Nothing}=nothing,
-                                bw_factor::Real=0.7,  # kde spread between domain points 
-                                N::Int=10000  )
+# Helper function to construct HGD
+function HeatmapGridDensity(data::AbstractMatrix{<:Real}, 
+                            domain::Tuple{<:AbstractVector{<:Real},<:AbstractVector{<:Real}},
+                            hint_callback::Union{<:Function, Nothing}=nothing,
+                            bw_factor::Real=0.7;  # kde spread between domain points 
+                            N::Int=10000  )
   #
+  pos, weights_ = sampleHeatmap(data, domain..., 0)
+  # recast to the appropriate shape
+  @cast support_[i,j] := pos[j][i]
 
-  # select the support from raw data
-  support_, weights_, roi = getLevelSetSigma(data, level, sigma, domain...; sigma_scale=sigma_scale)
-  
   # constuct a pre-density from which to draw intermediate samples
-  density_ = fitKDE(support_, weights_, domain...; bw_factor=bw_factor)
+  # TODO remove extraneous collect()
+  density_ = fitKDE(collect(support_), weights_, domain...; bw_factor=bw_factor)
   pts_preIS, = sample(density_, N)
   
   @cast vec_preIS[j][i] := pts_preIS[i,j]
   
   # weight the intermediate samples according to interpolation of raw data
-  hm = Interpolations.LinearInterpolation( domain, roi ) # interpolated heatmap
+  hm = Interpolations.LinearInterpolation( domain, data ) # interpolated heatmap
   d_scalar = Vector{Float64}( undef, length(vec_preIS) )
   
   # interpolate d_scalar for intermediate test points
@@ -106,7 +103,49 @@ function HeatmapDensityRegular( data::AbstractMatrix{<:Real},
   density = ManifoldKernelDensity(TranslationGroup(Ndim(bel)), bel)
 
   # return `<:SamplableBelief` object
-  HeatmapDensityRegular(data, domain, hist_callback, level, sigma, float(sigma_scale), bw_factor, density)
+  HeatmapGridDensity(data, domain, hint_callback, bw_factor, density)
+end
+
+function Base.isapprox( a::HeatmapGridDensity, b::HeatmapGridDensity; 
+                        atol::Real=1e-10, mmd_tol::Real=1e-2)
+  #
+  isapprox( Npts(a.densityFnc), Npts(b.densityFnc) ; atol) ? nothing : (return false)
+  isapprox( a.densityFnc, b.densityFnc; atol=mmd_tol) ?      nothing : (return false)
+  isapprox( a.data, b.data ; atol) ?                         nothing : (return false)
+  isapprox( a.domain[1], b.domain[1] ; atol) ?               nothing : (return false)
+  isapprox( a.domain[2], b.domain[2] ; atol) ?               nothing : (return false)
+  
+  return true
+end
+
+
+
+# legacy construct helper
+function LevelSetGridNormal(data::AbstractMatrix{<:Real}, 
+                            domain::Tuple{<:AbstractVector{<:Real},<:AbstractVector{<:Real}},
+                            level::Real,
+                            sigma::Real;
+                            sigma_scale::Real=3,
+                            hint_callback::Union{<:Function, Nothing}=nothing,
+                            bw_factor::Real=0.7,  # kde spread between domain points 
+                            N::Int=10000  )
+  #
+  
+  # select the support from raw data
+  roi = data.-level
+  # make Gaussian
+  roi .^= 2
+  roi .*= 0.5/(sigma^2)
+  roi .-= sigma_scale^2
+  roi .*= -1
+  # truncate sigma_scale*sigma below zero
+  #   h = heatmap;  z = measurement
+  #   l = 1/2 (h-z/σ)^2
+  #   masked_roi = 0 .< κ^2 - l
+  
+  hgd = HeatmapGridDensity(data, domain, hint_callback, bw_factor; N=N)
+  
+  LevelSetGridNormal(level, sigma, float(sigma_scale), hgd)
 end
 
 

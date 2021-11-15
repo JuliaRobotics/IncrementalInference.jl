@@ -11,6 +11,11 @@ Alternatively, either use the Github Blame, or the Github `/compare/v0.18.0...v0
 
 The list below highlights major breaking changes, and please note that significant efforts are made to properly deprecate old code/APIs according to normal semver workflow -- i.e. breaking changes go through at least one deprecatation (via warnings) on the dominant number in the version number.  E.g. v0.18 -> v0.19 (warnings) -> v0.20 (breaking).
 
+# Major changes in v0.26
+
+- Standarding (non-binding) easy factor dipatch cases so measurement field is under `.Z` (#1441).
+- `CalcFactor._allowThreads` can now be used as workaround for `Threads` yield blocking issue during first run.
+
 # Major changes in v0.25
 
 - Changed API to `testFactorResidualBinary(fct, meas::Tuple, (T_i, param_i),...)` to grow beyond binary.
@@ -25,6 +30,7 @@ The list below highlights major breaking changes, and please note that significa
 - Removing obsolete `approxConvCircular`, use `approxConvBelief` instead.
 - `getSample` should return a single sample and no longer takes the N(number of samples) parameter.
 - `solveTree!` / `solveGraph!` now returns just one value `tree<:AbstractBayesTree`.  Previous version returned three values, `tree, smt, hist` (#1379).
+- **Note for v0.25.5** Serialization of newly introduced type `PackedHeatmapGridDensity` changed from v0.25.4, unlikely have yet been used publically, therefore emphasizing fastest possible standardization in this case (even though this particular event does not strictly follow semver).  General usage and operation is effectively unchanged,see #1435.
 
 # Major changes in v0.24
 

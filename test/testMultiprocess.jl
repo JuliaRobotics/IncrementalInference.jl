@@ -7,7 +7,7 @@ using IncrementalInference
 
 @testset "test multiprocess solveTree!" begin
 
-fg = generateCanonicalFG_Kaess()
+fg = generateGraph_Kaess()
 
 solveTree!(fg)
 

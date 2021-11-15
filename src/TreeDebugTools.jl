@@ -469,7 +469,7 @@ Example
 using IncrementalInference
 
 # generate a factor graph
-fg = generateCanonicalFG_Kaess()
+fg = generateGraph_Kaess()
 
 # solve and record everything
 smtasks = Task[]

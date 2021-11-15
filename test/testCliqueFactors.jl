@@ -166,7 +166,7 @@ end
 
 @testset "Test cliqueSubgraph frontals, seperators, potentials" begin
 # clique subfg test
-fg = generateCanonicalFG_lineStep(4, landmarkPriorsAt=[0,4])
+fg = generateGraph_LineStep(4, landmarkPriorsAt=[0,4])
 # dfgplot(fg)
 tree = buildTreeReset!(fg)
 

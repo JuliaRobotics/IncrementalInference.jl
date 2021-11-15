@@ -11,46 +11,39 @@ end
 
 
 
-"""
-    $TYPEDSIGNATURES
+# """
+#     $TYPEDSIGNATURES
 
-Calculate the Kernel Embedding MMD 'distance' between sample points (or kernel density estimates).
+# Calculate the Kernel Embedding MMD 'distance' between sample points (or kernel density estimates).
 
-Notes
-- `bw::Vector=[0.001;]` controls the mmd kernel bandwidths.
-- Overloading from ApproxManifoldProducts
+# Notes
+# - `bw::Vector=[0.001;]` controls the mmd kernel bandwidths.
+# - Overloading from ApproxManifoldProducts
 
-Related
+# Related
 
-`AMP.kld`
-"""
+# `AMP.kld`
+# """
 function mmd( p1::AbstractVector{P1}, 
               p2::AbstractVector{P2}, 
-              varType::Union{InstanceType{<:InferenceVariable},InstanceType{<:AbstractFactor}};
-              bw::AbstractVector{<:Real}=[0.001;] ) where {P1 <: AbstractVector, P2 <: AbstractVector}
+              varType::Union{InstanceType{<:InferenceVariable},InstanceType{<:AbstractFactor}},
+              threads::Bool=true;
+              bw::AbstractVector{<:Real}=SA[0.001;] ) where {P1 <: AbstractVector, P2 <: AbstractVector}
   #
   mani = getManifold(varType)
-  mmd(p1, p2, mani, bw=bw)  
+  mmd(mani, p1, p2, length(p1), length(p2), threads; bw)  
 end
 
-# TODO move to AMP?
+
 function mmd( p1::ManifoldKernelDensity, 
               p2::ManifoldKernelDensity, 
-              nodeType::Union{InstanceType{<:InferenceVariable},InstanceType{<:AbstractFactor}};
-              bw::AbstractVector{<:Real}=[0.001;])
+              nodeType::Union{InstanceType{<:InferenceVariable},InstanceType{<:AbstractFactor}},
+              threads::Bool=true;
+              bw::AbstractVector{<:Real}=SA[0.001;])
   #
-  mmd(getPoints(p1), getPoints(p2), nodeType, bw=bw)
+  mmd(getPoints(p1), getPoints(p2), nodeType, threads; bw)
 end
 
-# moved to CalcFactor.jl
-
-
-function sampleFactor(ccwl::CommonConvWrapper,
-                      N::Int  )
-  #
-  cf = CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
-  sampleFactor(cf, N)
-end
 
 # part of consolidation, see #927
 function sampleFactor!( ccwl::CommonConvWrapper, 
@@ -61,13 +54,22 @@ function sampleFactor!( ccwl::CommonConvWrapper,
   # depr warning added before IIF v0.20
   vnd !== nothing ? @warn("sampleFactor! no longer accepts vnd::Vector as meaningful input.") : nothing
   
-  # build a CalcFactor object and get fresh samples.
-  cf = CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
-  # TODO make this an in-place operation as far possible
-  ccwl.measurement = sampleFactor(cf, N)    
+  ccwl.measurement = sampleFactor(ccwl, N)
+  # # build a CalcFactor object and get fresh samples.
+  # cf = CalcFactor(ccwl) # CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+  # # TODO make this an in-place operation as far possible
+  # ccwl.measurement = sampleFactor(cf, N)    
 
   nothing
 end
+
+function sampleFactor(ccwl::CommonConvWrapper,
+                      N::Int  )
+  #
+  cf = CalcFactor(ccwl) # CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+  sampleFactor(cf, N)
+end
+
 
 sampleFactor(fct::DFGFactor, N::Int=1) = sampleFactor(_getCCW(fct), N)
 
@@ -211,12 +213,13 @@ function _checkVariableByReference( fg::AbstractDFG,
                                     destType::Type{<:InferenceVariable},
                                     factor::AbstractRelative;
                                     srcType::Type{<:InferenceVariable} = getVariableType(fg, srcLabel) |> typeof,
+                                    doRef::Bool = true,
                                     refKey::Symbol=:simulated,
-                                    prior = DFG._getPriorType(srcType)( MvNormal(getPPE(fg[srcLabel], refKey).suggested, diagm(ones(getDimension(srcType)))) ),
+                                    prior = !doRef ? nothing : DFG._getPriorType(srcType)( MvNormal(getPPE(fg[srcLabel], refKey).suggested, diagm(ones(getDimension(srcType)))) ),
                                     atol::Real = 1e-2,
                                     destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
                                     srcNumber = match(r"\d+", string(srcLabel)).match |> x->parse(Int,x),
-                                    overridePPE=nothing  )
+                                    overridePPE = doRef ? nothing : zeros(getDimension(destType))  )
   #
   
   refVal = if overridePPE !== nothing
@@ -238,9 +241,13 @@ function _checkVariableByReference( fg::AbstractDFG,
 
   # now check if we already have a landmark at this location
   varLms = ls(fg, destRegex) |> sortDFG
-  ppeLms = getPPE.(getVariable.(fg, varLms), refKey) .|> x->x.suggested
-  errmask = ppeLms .|> ( x -> isapprox(x, refVal; atol=atol) )
-  already = any(errmask)
+  already = if doRef
+    ppeLms = getPPE.(getVariable.(fg, varLms), refKey) .|> x->x.suggested
+    errmask = ppeLms .|> ( x -> isapprox(x, refVal; atol=atol) )
+    any(errmask)
+  else
+    false
+  end
 
   if already
     # does exist, ppe, variableLabel
@@ -260,12 +267,13 @@ function _checkVariableByReference( fg::AbstractDFG,
                                     destType::Type{<:InferenceVariable},
                                     factor::AbstractPrior;
                                     srcType::Type{<:InferenceVariable} = getVariableType(fg, srcLabel) |> typeof,
+                                    doRef::Bool = true,
                                     refKey::Symbol=:simulated,
                                     prior = typeof(factor)( MvNormal(getMeasurementParametric(factor)...) ),
                                     atol::Real = 1e-3,
                                     destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
                                     srcNumber = match(r"\d+", string(srcLabel)).match |> x->parse(Int,x),
-                                    overridePPE=nothing  )
+                                    overridePPE = doRef ? nothing : zeros(getDimension(destType))  )
   #
 
   refVal = if overridePPE !== nothing

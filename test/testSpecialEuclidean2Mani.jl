@@ -4,7 +4,7 @@ using Interpolations
 using Manifolds
 using StaticArrays
 using Test
-import IncrementalInference: HeatmapDensityRegular
+import IncrementalInference: LevelSetGridNormal
 
 ## define new local variable types for testing
 
@@ -109,6 +109,7 @@ pbel_ = approxConvBelief(fg, :x0f1, :x0)
 ##
 end
 
+##
 struct ManifoldFactorSE2{T <: SamplableBelief} <: IIF.AbstractManifoldMinimize
     Z::T
 end
@@ -133,6 +134,7 @@ function (cf::CalcFactor{<:ManifoldFactorSE2})(X, p, q)
     return Xc
 end
   
+##
 
 @testset "Test Pose2 like hex as SpecialEuclidean2" begin
 ##
@@ -182,12 +184,11 @@ solveTree!(fg; smtasks);
 fg.solverParams.useMsgLikelihoods = true
 @test_broken solveTree!(fg; smtasks) isa AbstractBayesTree
 
-
+##
 end
 
 
 @testset "test deconv on <:AbstractManifoldMinimize" begin
-
 ##
 
 fg = initfg()
@@ -228,13 +229,14 @@ m_θ = map(x->x.parts[2][2], meas)
 @test isapprox(mean(p_t), mean(m_t), atol=0.3)
 @test isapprox(std(p_t), std(m_t), atol=0.3)
 
-
+##
 end
 
 
 ## ======================================================================================
 ##
 ## ======================================================================================
+
 struct ManiPose2Point2{T <: SamplableBelief} <: IIF.AbstractManifoldMinimize
     Z::T
 end
@@ -257,11 +259,12 @@ function (cfo::CalcFactor{<:ManiPose2Point2})(measX, p, q)
     return measX - X 
 end
 
-
+##
 @testset "Test SpecialEuclidean(2)" begin
+##
 
-Base.convert(::Type{<:Tuple}, M::TranslationGroup{Tuple{2},ℝ}) = (:Euclid, :Euclid)
-Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{TranslationGroup{Tuple{2},ℝ}})  = (:Euclid, :Euclid)
+# Base.convert(::Type{<:Tuple}, M::TranslationGroup{Tuple{2},ℝ}) = (:Euclid, :Euclid)
+# Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{TranslationGroup{Tuple{2},ℝ}})  = (:Euclid, :Euclid)
 
 ##
 fg = initfg()
@@ -293,6 +296,7 @@ vnd = getVariableSolverData(fg, :x0)
 vnd = getVariableSolverData(fg, :x1)
 @test all(isapprox.(mean(vnd.val), [1.0,2.0], atol=0.1))
 
+##
 end
 
 
@@ -306,10 +310,25 @@ v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 img_ = rand(10,10).+5.0
 x_,y_ = ([-9:2.0:9;],[-9:2.0:9;])
 
-hmd = HeatmapDensityRegular(img_, (x_,y_), 5.5, 0.1, N=120)
+hmd = LevelSetGridNormal(img_, (x_,y_), 5.5, 0.1, N=120)
 pthru = PartialPriorPassThrough(hmd, (1,2))
 
-# test without nullhyp
+## quick 
+
+pf = convert( AbstractPackedFactor, pthru )
+upf = convert( AbstractFactor, pf )
+
+@test pthru.partial == upf.partial
+@test isapprox( pthru.Z.heatmap.data, upf.Z.heatmap.data )
+@test isapprox( pthru.Z.heatmap.domain[1], upf.Z.heatmap.domain[1] )
+@test isapprox( pthru.Z.heatmap.domain[2], upf.Z.heatmap.domain[2] )
+@test isapprox( pthru.Z.level, upf.Z.level )
+@test isapprox( pthru.Z.sigma, upf.Z.sigma )
+@test isapprox( pthru.Z.sigma_scale, upf.Z.sigma_scale )
+
+
+## test without nullhyp
+
 f0 = addFactor!(fg, [:x0], pthru, graphinit=false)
 
 ## test the inference functions
@@ -350,7 +369,7 @@ solveGraph!(fg);
 
 ##
 
-mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+mp = ManifoldPrior(SpecialEuclidean(2), ProductRepr(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01],[1 0 0;0 1 0;0 0 1.]))
 f1 = addFactor!(fg, [:x0], mp, graphinit=false)
 
 @test length(ls(fg, :x0)) == 2
@@ -371,6 +390,14 @@ solveGraph!(fg);
 @test getSolverParams(fg).N == length(getPoints(fg, :x0))
 
 
+## check saveDFG (check consistency of packing converters above)
+
+
+saveDFG("/tmp/passthru", fg)
+fg_ = loadDFG("/tmp/passthru.tar.gz")
+Base.rm("/tmp/passthru.tar.gz")
+
+
 ##
 end
 
@@ -387,7 +414,7 @@ v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 img_ = rand(10,10).+5.0
 x_,y_ = ([-9:2.0:9;],[-9:2.0:9;])
 
-hmd = HeatmapDensityRegular(img_, (x_,y_), 5.5, 0.1, N=120)
+hmd = LevelSetGridNormal(img_, (x_,y_), 5.5, 0.1, N=120)
 pthru = PartialPriorPassThrough(hmd, (1,2))
 
 # test without nullhyp
@@ -426,7 +453,7 @@ fg = initfg()
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 img_ = rand(10,10).+5.0
 x_,y_ = ([-9:2.0:9;],[-9:2.0:9;])
-hmd = HeatmapDensityRegular(img_, (x_,y_), 5.5, 0.1, N=120)
+hmd = LevelSetGridNormal(img_, (x_,y_), 5.5, 0.1, N=120)
 pthru = PartialPriorPassThrough(hmd, (1,2))
 f0 = addFactor!(fg, [:x0], pthru, graphinit=false)
 addVariable!(fg, :x1, SpecialEuclidean2)
