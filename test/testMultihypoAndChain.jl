@@ -123,11 +123,11 @@ tree = solveTree!(fg)
 
 # expect x1 x2 to have at least one mode at 0
 
-@test getPPE(fg, :x1).suggested[1] - x1 |> abs < 1
-@test getPPE(fg, :x2).suggested[1] - x2 |> abs < 1
+@test getPPE(fg, :x1).suggested[1] - x1 |> abs < 1.2
+@test getPPE(fg, :x2).suggested[1] - x2 |> abs < 1.2
 
-@test getPPE(fg, :l1).suggested[1] - l1 |> abs < 1
-@test getPPE(fg, :l2).suggested[1] - l2 |> abs < 1
+@test getPPE(fg, :l1).suggested[1] - l1 |> abs < 1.2
+@test getPPE(fg, :l2).suggested[1] - l2 |> abs < 1.2
 
 # l1_0, l2_0 should be nearby around l1 and l2, but cannot confirm 100%
 @test getPPE(fg, :l1_0).suggested[1] - l1 |> abs < 10
