@@ -10,6 +10,7 @@ Notes
   - Future TBD, consider using `AMP.getManifoldPartial` for more general abstraction.
 """
 struct PartialPrior{T <: SamplableBelief,P <: Tuple} <: AbstractPrior
+  varType::Type{<:InferenceVariable}
   Z::T
   partial::P
 end
@@ -17,8 +18,9 @@ end
 # TODO, standardize, but shows error on testPartialNH.jl
 getSample(cf::CalcFactor{<:PartialPrior}) = samplePoint(cf.factor.Z)   # remove in favor of ManifoldSampling.jl
 
-getManifold(pp::PartialPrior{<:PackedManifoldKernelDensity}) = pp.Z.manifold
-getManifold(pp::PartialPrior{<:SamplableBelief}) = TranslationGroup(getDimension(pp.Z))
+getManifold(pp::PartialPrior) = getManifold(pp.varType)
+# getManifold(pp::PartialPrior{<:PackedManifoldKernelDensity}) = pp.Z.manifold
+# getManifold(pp::PartialPrior{<:SamplableBelief}) = TranslationGroup(getDimension(pp.Z))
 # getManifold(pp::PartialPrior) = TranslationGroup(length(pp.partial)) # uncomment
 
 
@@ -30,15 +32,16 @@ $(TYPEDEF)
 Serialization type for `PartialPrior`.
 """
 mutable struct PackedPartialPrior <: PackedInferenceType
+  varType::String
   Z::String
   partials::Vector{Int}
 end
 
 function convert(::Type{PackedPartialPrior}, d::PartialPrior)
-  PackedPartialPrior(convert(PackedSamplableBelief, d.Z), [d.partial...;])
+  PackedPartialPrior(DFG.typeModuleName(d.varType), convert(PackedSamplableBelief, d.Z), [d.partial...;])
 end
 function convert(::Type{PartialPrior}, d::PackedPartialPrior)
-  PartialPrior(convert(SamplableBelief, d.Z),(d.partials...,))
+  PartialPrior(DFG.getTypeFromSerializationModule(d.varType), convert(SamplableBelief, d.Z),(d.partials...,))
 end
 
 
