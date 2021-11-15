@@ -3,13 +3,13 @@ using Test
 
 @testset "Test delete tree clique" begin
 
-fg = generateCanonicalFG_lineStep(3; 
-                                   poseEvery=1, 
-                                   landmarkEvery=3, 
-                                   posePriorsAt=[],
-                                   landmarkPriorsAt=[0], 
-                                   sightDistance=2,
-                                   solverParams=SolverParams(algorithms=[:default, :parametric]))
+fg = generateGraph_LineStep(3; 
+                            poseEvery=1, 
+                            landmarkEvery=3, 
+                            posePriorsAt=[],
+                            landmarkPriorsAt=[0], 
+                            sightDistance=2,
+                            solverParams=SolverParams(algorithms=[:default, :parametric]))
 
 # getSolverParams(fg).graphinit = false
 # getSolverParams(fg).treeinit = true
@@ -48,7 +48,7 @@ end
   
 ##
 
-fg = generateCanonicalFG_Kaess(graphinit=false)
+fg = generateGraph_Kaess(graphinit=false)
 
 eo = [:l2; :l1; :x1; :x2; :x3]
 

@@ -41,7 +41,7 @@ end
 
 ##
 
-fg = generateCanonicalFG_Kaess()
+fg = generateGraph_Kaess()
 
 # from a prior to neighbor
 pts_ = approxConv(fg, :x1f1, :x1)

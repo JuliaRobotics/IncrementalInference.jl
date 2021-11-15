@@ -24,6 +24,11 @@
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+@deprecate generateCanonicalFG_Kaess(w...;kw...) generateGraph_Kaess(w...;kw...)
+@deprecate generateCanonicalFG_EuclideDistance(w...;kw...) generateGraph_EuclideDistance(w...;kw...)
+@deprecate generateCanonicalFG_lineStep(w...;kw...) generateGraph_LineStep(w...;kw...)
+@deprecate generateCanonicalFG_CaesarRing1D(w...;kw...) generateGraph_CaesarRing1D(w...;kw...)
+@deprecate generateCanonicalFG_TestSymbolic(w...;kw...) generateGraph_TestSymbolic(w...;kw...)
 
 # function getSample(cf::CalcFactor{<:AbstractRelativeRoots})
 #   M = getManifold(cf.factor)

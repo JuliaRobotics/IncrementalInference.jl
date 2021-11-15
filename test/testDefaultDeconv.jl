@@ -11,7 +11,7 @@ using Manifolds: Euclidean
 
 ##
 
-fg = generateCanonicalFG_lineStep(2)
+fg = generateGraph_LineStep(2)
 
 # drawGraph(fg, show=true)
 
@@ -90,7 +90,7 @@ end
 
 ##
 
-fg = generateCanonicalFG_CaesarRing1D()
+fg = generateGraph_CaesarRing1D()
 getSolverParams(fg).useMsgLikelihoods = true
 
 # # TEMPORARY MUST COMMENT ON TRAVIS

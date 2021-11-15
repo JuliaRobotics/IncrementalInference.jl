@@ -3,12 +3,12 @@ using IncrementalInference
 
 @testset "Testing getCliqVarInitOrderUp" begin
   
-fg = generateCanonicalFG_lineStep(3; 
-                                  poseEvery=1, 
-                                  landmarkEvery=5, 
-                                  posePriorsAt=[0],
-                                  landmarkPriorsAt=[0,2], 
-                                  sightDistance=3)                                  
+fg = generateGraph_LineStep(3; 
+                            poseEvery=1, 
+                            landmarkEvery=5, 
+                            posePriorsAt=[0],
+                            landmarkPriorsAt=[0,2], 
+                            sightDistance=3)                                  
 
 fg.solverParams.useMsgLikelihoods = true
 # addVariable!(subfg, :x0, Con)

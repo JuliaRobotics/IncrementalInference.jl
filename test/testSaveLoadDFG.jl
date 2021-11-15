@@ -7,7 +7,7 @@ using Test
 @testset "saving to and loading from FileDFG" begin
 ##
 
-fg = generateCanonicalFG_Kaess()
+fg = generateGraph_Kaess()
 addVariable!(fg, :x4, ContinuousScalar)
 addFactor!(fg, [:x2;:x3;:x4], LinearRelative(Normal()), multihypo=[1.0;0.6;0.4])
 
@@ -36,7 +36,7 @@ end
 @testset "saving to and loading from FileDFG with nullhypo, eliminated, solveInProgress" begin
 ##
 
-fg = generateCanonicalFG_Kaess()
+fg = generateGraph_Kaess()
 getSolverParams(fg).attemptGradients = true
 
 addVariable!(fg, :x4, ContinuousScalar)
