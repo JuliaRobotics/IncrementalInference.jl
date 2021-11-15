@@ -24,6 +24,33 @@
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+
+# function getSample(cf::CalcFactor{<:AbstractRelativeRoots})
+#   M = getManifold(cf.factor)
+#   if hasfield(typeof(cf.factor), :Z)
+#     return sampleTangent(M, cf.factor.Z)
+#   else
+#     error("""Factor $(typeof(cf.factor)) does not have a field `Z`, to use the default `getSample` method, use `Z` for the measurement. 
+#               Alternatively, provide a `getSample` method. See IIF issue #1441 and Custom Factors in the Caesar documentation.""")
+#   end
+# end
+
+# function getSample(cf::CalcFactor{<:CircularCircular})
+#   # return (sampleTangent(getManifold(cf.factor), cf.factor.Z), )
+#   # FIXME workaround for issue #TBD with manifolds CircularGroup
+#   return sampleTangent(getManifold(cf.factor), cf.factor.Z, [0.0])
+# end
+
+# function getSample(cf::CalcFactor{<:LinearRelative})
+#   # _samplemakevec(z::Real) = [z;]
+#   # _samplemakevec(z::AbstractVector{<:Real}) = z
+#   return sampleTangent(getManifold(cf.factor), cf.factor.Z)
+# end
+
+# function getSample(cf::CalcFactor{<:EuclidDistance})
+#   rand(cf.factor.Z, 1)
+# end
+
 @deprecate CalcFactor(x1,x2,x3,x4,x5,x6) CalcFactor(x1,x2,x3,x4,x5,x6, true)
 
 @deprecate ensureAllInitialized!(w...;kw...) initAll!(w...;kw...)
@@ -440,107 +467,6 @@ end
 #   @cast arr[i,j] = ptsArr[j][i]
 #   manikde!(arr, manis)
 # end
-
-
-##==============================================================================
-## Deprecate code below before v0.26
-##==============================================================================
-
-export listSolvekeys
-
-# wow, that was quite far off -- needs testing
-# function factorCanInitFromOtherVars(dfg::T,
-#                                     fct::Symbol,
-#                                     loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}} where T <: AbstractDFG
-#   #
-#   # all variables attached to this factor
-#   varsyms = getNeighbors(dfg, fct)
-#
-#   # list of factors to use in init operation
-#   useinitfct = Symbol[]
-#   faillist = Symbol[]
-#   for vsym in varsyms
-#     xi = DFG.getVariable(dfg, vsym)
-#     if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
-#       push!(useinitfct, fct)
-#     end
-#   end
-#
-#   return (length(useinitfct)==length(varsyms)&&length(faillist)==0,
-#           useinitfct,
-#           faillist   )
-# end
-
-@deprecate calcPerturbationFromVariable( fgc::FactorGradientsCached!, fromVar::Int, infoPerCoord::AbstractVector;tol::Real=0.02*fgc._h ) calcPerturbationFromVariable(fgc, [fromVar => infoPerCoord;], tol=tol )
-
-function getVal(vA::Vector{<:DFGVariable}, solveKey::Symbol=:default)
-  @error "getVal(::Vector{DFGVariable}) is obsolete, use getVal.(DFGVariable) instead."
-  # len = length(vA)
-  # vals = Array{Array{Float64,2},1}()
-  # cols = Array{Int,1}()
-  # push!(cols,0)
-  # rows = Array{Int,1}()
-  # for v in vA
-  #     push!(vals, getVal(v, solveKey=solveKey))
-  #     c = size(vals[end],2)
-  #     r = size(vals[end],1)
-  #     push!(cols, floor(Int,c))
-  #     push!(rows, floor(Int,r))
-  # end
-  # cols = cumsum(cols)
-  # sc = cols[end]
-  # rw = floor(Int,rows[1])
-  # val = Array{Float64,2}(undef,rw, sc)
-  # for i in 1:(len-1)
-  #     val[:,(cols[i]+1):cols[i+1]] = vals[i]
-  # end
-  # val[:,(cols[len]+1):cols[len+1]] = vals[len] # and the last one
-  # return val
-end
-
-# """
-#     $SIGNATURES
-
-# Get graph node (variable or factor) dimension.
-# """
-# DFG.getDimension(vartype::InferenceVariable) = vartype.dims #TODO Deprecate
-# DFG.getDimension(vartype::Type{<:InferenceVariable}) = getDimension(vartype())
-
-
-@deprecate getFactorMean(w...) IIF.getMeasurementParametric(w...)[1]
-
-# """
-#     $SIGNATURES
-
-# Recover the mean (Gaussian) or estimate stochastic mean (non-Gaussian) value stored in a factor measurement.
-
-# Related
-
-# accumulateFactorMeans, solveBinaryFactorParameteric
-# """
-# function getFactorMean(fct::FunctorInferenceType)
-#   fctt = typeof(fct)
-#   error("no getFactorMean defined for $(fctt.name), has fields $(fieldnames(fctt))")
-# end
-
-# getFactorMean(fct::Normal) = [fct.μ]
-# getFactorMean(fct::MvNormal) = fct.μ
-# getFactorMean(fct::Union{<:BallTreeDensity,<:ManifoldKernelDensity}) = getKDEMean(fct)
-# getFactorMean(fct::AliasingScalarSampler) = Statistics.mean(rand(fct,1000))
-
-# getFactorMean(fct::DFGFactor) = getFactorMean(getFactorType(fct))
-
-# getFactorMean(dfg::AbstractDFG, fctsym::Symbol) = getFactorMean(getFactor(dfg, fctsym))
-
-
-# AMP.getManifolds(::T) where {T <: InferenceVariable} = getManifolds(getManifold(T))
-# AMP.getManifolds(::Type{T}) where {T <: InferenceVariable} = getManifolds(getManifold(T))
-
-
-# getManifolds(getManifold(T))
-getManifolds(::InstanceType{T}) where {T <: Union{InferenceVariable, AbstractFactor}} = error("getManifolds is obsolete, use getManifold(...)::MB.AbstactManifold instead.")
-
-
 
 
 
