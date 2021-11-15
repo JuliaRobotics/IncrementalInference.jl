@@ -9,7 +9,7 @@ getFactorOperationalMemoryType(dfg::NoSolverParams) = CommonConvWrapper
 
 
 # Helper function to construct CF from a CCW
-CalcFactor(ccwl::CommonConvWrapper) = CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+CalcFactor(ccwl::CommonConvWrapper) = CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params, true)
 
 
 

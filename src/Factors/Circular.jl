@@ -62,7 +62,9 @@ PriorCircular(::UniformScaling) = PriorCircular(Normal())
 DFG.getManifold(::PriorCircular) = RealCircleGroup()
 
 function getSample(cf::CalcFactor{<:PriorCircular})
-  # FIXME workaround for issue #TBD with manifolds CircularGroup
+  # FIXME workaround for issue #TBD with manifolds CircularGroup, 
+  # JuliaManifolds/Manifolds.jl#415
+  # no method similar(::Float64, ::Type{Float64})
   return samplePoint(getManifold(cf.factor), cf.factor.Z, [0.0])
 end
 
