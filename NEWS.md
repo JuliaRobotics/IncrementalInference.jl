@@ -14,7 +14,8 @@ The list below highlights major breaking changes, and please note that significa
 # Major changes in v0.26
 
 - Standarding (non-binding) easy factor dipatch cases so measurement field is under `.Z` (#1441).
-- `CalcFactor._allowThreads` can now be used as workaround for `Threads` yield blocking issue during first run.
+- `CalcFactor._allowThreads` can now be used as workaround for `Threads` yield blocking issue during first run (#1451).
+- Canonical graph generator API change to `generateGraph_ABC` (#1454).
 
 # Major changes in v0.25
 
