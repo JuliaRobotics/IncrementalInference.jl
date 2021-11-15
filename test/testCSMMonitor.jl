@@ -31,12 +31,12 @@ end
 ##
 
 # create a factor graph
-fg = generateCanonicalFG_lineStep(10; 
-                                  poseEvery=1, 
-                                  landmarkEvery=5, 
-                                  posePriorsAt=[0], 
-                                  sightDistance=4,
-                                  solverParams=SolverParams(algorithms=[:default, :parametric]))
+fg = generateGraph_LineStep(10; 
+                            poseEvery=1, 
+                            landmarkEvery=5, 
+                            posePriorsAt=[0], 
+                            sightDistance=4,
+                            solverParams=SolverParams(algorithms=[:default, :parametric]))
 #
 
 initAll!(fg)
@@ -85,11 +85,11 @@ end
 
 ## create a factor graph
 
-fg = generateCanonicalFG_lineStep(10; 
-                                  poseEvery=1, 
-                                  landmarkEvery=5, 
-                                  posePriorsAt=[0], 
-                                  sightDistance=4 )
+fg = generateGraph_LineStep(10; 
+                            poseEvery=1, 
+                            landmarkEvery=5, 
+                            posePriorsAt=[0], 
+                            sightDistance=4 )
 #                            
 
 smtasks = Task[];

@@ -85,7 +85,7 @@ Notes
 
 Example
 ```julia
-fg = generateCanonicalFG_Kaess()
+fg = generateGraph_Kaess()
 
 residual = calcFactorResidual(fg, :x1x2f1, [1.0], [0.0], [0.0])
 ```

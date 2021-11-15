@@ -6,7 +6,7 @@ using IncrementalInference
 ##
 
 @testset "Test consolidation of factors #467" begin
-  fg = generateCanonicalFG_lineStep(20, poseEvery=1, landmarkEvery=4, posePriorsAt=collect(0:7), sightDistance=2, solverParams=SolverParams(algorithms=[:default, :parametric]))
+  fg = generateGraph_LineStep(20, poseEvery=1, landmarkEvery=4, posePriorsAt=collect(0:7), sightDistance=2, solverParams=SolverParams(algorithms=[:default, :parametric]))
 
   d,st = IIF.solveGraphParametric(fg)
   for i in 0:10
@@ -27,7 +27,7 @@ end
 @testset "Parametric Tests" begin
 
 ##
-fg = generateCanonicalFG_lineStep(7, poseEvery=1, landmarkEvery=0, posePriorsAt=collect(0:7), sightDistance=2, solverParams=SolverParams(algorithms=[:default, :parametric]))
+fg = generateGraph_LineStep(7, poseEvery=1, landmarkEvery=0, posePriorsAt=collect(0:7), sightDistance=2, solverParams=SolverParams(algorithms=[:default, :parametric]))
 
 d, result = IIF.solveGraphParametric(fg)
 
@@ -39,7 +39,7 @@ end
 
 ##
 
-fg = generateCanonicalFG_lineStep(2, graphinit=true, vardims=1, poseEvery=1, landmarkEvery=0, posePriorsAt=Int[0], sightDistance=3, solverParams=SolverParams(algorithms=[:default, :parametric]))
+fg = generateGraph_LineStep(2, graphinit=true, vardims=1, poseEvery=1, landmarkEvery=0, posePriorsAt=Int[0], sightDistance=3, solverParams=SolverParams(algorithms=[:default, :parametric]))
 
 IIF.initParametricFrom!(fg)
 
@@ -52,7 +52,7 @@ v1 = getVariable(fg,:x1)
 
 ##
 
-fg = generateCanonicalFG_lineStep(10, vardims=2, poseEvery=1, landmarkEvery=3, posePriorsAt=Int[0,5,10], sightDistance=3, solverParams=SolverParams(algorithms=[:default, :parametric]))
+fg = generateGraph_LineStep(10, vardims=2, poseEvery=1, landmarkEvery=3, posePriorsAt=Int[0,5,10], sightDistance=3, solverParams=SolverParams(algorithms=[:default, :parametric]))
     # addFactor!(fg, [:x5; :x15], LinearRelative(Normal(10, 0.1)))
     # addFactor!(fg, [:x15; :x25], LinearRelative(Normal(10, 0.1)))
 
@@ -164,7 +164,7 @@ end
 ## ##############################################################################
 ## multiple sections
 
-fg = generateCanonicalFG_lineStep(10, poseEvery=1, landmarkEvery=10, posePriorsAt=Int[0,10], sightDistance=5, solverParams=SolverParams(algorithms=[:default, :parametric]))
+fg = generateGraph_LineStep(10, poseEvery=1, landmarkEvery=10, posePriorsAt=Int[0,10], sightDistance=5, solverParams=SolverParams(algorithms=[:default, :parametric]))
 # break fg in 2
 deleteFactor!(fg, :x5x6f1)
 # dfgplot(fg)

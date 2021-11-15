@@ -4,13 +4,13 @@ using IncrementalInference
 
 @testset "Skip downsolve" begin
 N=6
-fg = generateCanonicalFG_lineStep(N; 
-                                  graphinit=false,
-                                  poseEvery=1, 
-                                  landmarkEvery=N+1, 
-                                  posePriorsAt=[0],
-                                  landmarkPriorsAt=[], 
-                                  sightDistance=N+1)
+fg = generateGraph_LineStep(N; 
+                            graphinit=false,
+                            poseEvery=1, 
+                            landmarkEvery=N+1, 
+                            posePriorsAt=[0],
+                            landmarkPriorsAt=[], 
+                            sightDistance=N+1)
 
 deleteFactor!.(fg, [Symbol("x$(i)lm0f1") for i=1:(N-1)])
 
