@@ -31,18 +31,20 @@ Related
 [`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref), [`FactorMetadata`](@ref), [`ConvPerThread`](@ref)
 """
 struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,AbstractVector}, X}
-  # the interface compliant user object functor containing the data and logic
+  """ the interface compliant user object functor containing the data and logic """
   factor::T
-  # the metadata to be passed to the user residual function
+  """ the metadata to be passed to the user residual function """
   metadata::M
-  # what is the sample (particle) id for which the residual is being calculated
+  """ what is the sample (particle) id for which the residual is being calculated """
   _sampleIdx::Int
-  # legacy support when concerned with how many measurement tuple elements are used by user 
+  """ legacy support when concerned with how many measurement tuple elements are used by user  """
   _measCount::Int
-  # legacy suport for measurement sample values of old functor residual functions
+  """ legacy suport for measurement sample values of old functor residual functions """
   _legacyMeas::P
-  # legacy support for variable values old functor residual functions
+  """ legacy support for variable values old functor residual functions """
   _legacyParams::X
+  """ allow threading for either sampling or residual calculations (workaround for thread yield issue) """
+  _allowThreads::Bool
 end
 
 

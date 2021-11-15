@@ -29,7 +29,7 @@ end
 
 ## unpack converters------------------------------------------------------------
 
-
+# FIXME see #1424
 function convert(
             ::Type{GenericFunctionNodeData{CommonConvWrapper{F}}},
             packed::GenericFunctionNodeData{P} ) where {F <: AbstractFactor, P <: PackedInferenceType}
@@ -62,6 +62,8 @@ end
   $(SIGNATURES)
 After deserializing a factor using decodePackedType, use this to
 completely rebuild the factor's CCW and user data.
+Dev Notes:
+- TODO: We should only really do this in-memory if we can by without it (review this).
 """
 function rebuildFactorMetadata!(dfg::AbstractDFG{SolverParams}, 
                                 factor::DFGFactor,
@@ -97,12 +99,16 @@ function rebuildFactorMetadata!(dfg::AbstractDFG{SolverParams},
     #
 
     # replace old factor in dfg with a new one
-    deleteFactor!(dfg, factor)
+    deleteFactor!(dfg, factor, suppressGetFactor=true)
     addFactor!(dfg, factor__)
 
     factor__
   else
     setSolverData!(factor, fnd_new)
+    # We're not updating here because we don't want
+    # to solve cloud in loop, we want to make sure this flow works:
+    # Pull big cloud graph into local -> solve local -> push back into cloud.
+    # updateFactor!(dfg, factor)
     factor
   end
 

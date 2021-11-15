@@ -10,7 +10,7 @@ include("testPartialNH.jl")
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
 
-
+include("testHeatmapGridDensity.jl")
 include("testCliqSolveDbgUtils.jl")
 include("TestModuleFunctions.jl")
 include("testApproxConv.jl")

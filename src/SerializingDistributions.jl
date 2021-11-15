@@ -18,8 +18,15 @@ function convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedUniform}},
   return JSON2.write(packed)
 end
 
-
 convert(::Type{<:SamplableBelief}, obj::PackedUniform) = return Uniform(obj.a, obj.b)
+
+# FIXME complete v0.X.0
+mutable struct PackedMvNormal <: PackedSamplableBelief
+  _type::String
+  mu::Vector{Float64}
+  cov::Vector{Float64}
+end
+
 
 
 # NOTE SEE EXAMPLE IN src/Flux/FluxModelsSerialization.jl
@@ -38,7 +45,7 @@ end
 
 # NOTE part of new effort to overhaul the SamplableBelief serialization approach
 # maybe it all becomes a JSON struct sort of thing in the long run.
-StringThemSamplableBeliefs = Union{Normal, MvNormal, Categorical, DiscreteNonParametric, BallTreeDensity, ManifoldKernelDensity, AliasingScalarSampler}
+StringThemSamplableBeliefs = Union{Normal, MvNormal, ZeroMeanDiagNormal, Categorical, DiscreteNonParametric, BallTreeDensity, ManifoldKernelDensity, AliasingScalarSampler}
 convert(::Type{<:PackedSamplableBelief}, obj::StringThemSamplableBeliefs) = string(obj)
 
 
@@ -59,6 +66,8 @@ function convert(::Type{<:SamplableBelief}, str::Union{<:PackedSamplableBelief,<
   elseif startswith(str, "DiagNormal")
     # Diags are internally squared, so only option here is to sqrt on input.
     return mvnormalfromstring(str)
+  elseif startswith(str, "ZeroMeanDiagNormal")
+    error("ZeroMeanDiagNormal not yet supported, deferring to full JSON serialization of all Distribution objects.")
   elseif occursin(r"FullNormal", str)
     return mvnormalfromstring(str)
   elseif (occursin(r"Normal", str) )# && !occursin(r"FullNormal", str))
@@ -77,12 +86,21 @@ function convert(::Type{<:SamplableBelief}, str::Union{<:PackedSamplableBelief,<
 end
 
 
+# FIXME DEPRECATE TO BETTER JSON with ._type field STANDARD
 function convert(::Type{<:PackedSamplableBelief}, obj::SamplableBelief)
   # FIXME must use string, because unpacking templated e.g. PackedType{T} has problems, see DFG #668
   string(obj)
 end
 
 
+# New features towards standardizing distribution serialization
+# # Assumes DFG/IIF serialized distributions have a `PackedType._type::String = "MyModule.MyPackedDistributionDensityType"`
+# # also see DFG #590
+# function convert( ::Type{String}, 
+#                   obj::PackedSamplableBelief )
+#   #
+#   _typ = DFG.getTypeFromSerializationModule(obj._type)
+# end
 
 
 ## DEPRECATE BELOW ========================================================================
@@ -128,6 +146,87 @@ function categoricalfromstring(str::AbstractString)
 end
 
 
+
+## ===========================================================================================
+## Serialization
+## ===========================================================================================
+
+
+mutable struct PackedHeatmapGridDensity <: PackedSamplableBelief
+  _type::String
+  data::Vector{Vector{Float64}}
+  domain::Tuple{Vector{Float64}, Vector{Float64}}
+  hint_callback::String
+  bw_factor::Float64
+  N::Int
+  # densityFnc::String # TODO rather rebuild at unpack
+end
+
+
+function convert( ::Union{Type{<:SamplableBelief},Type{<:HeatmapGridDensity}}, 
+                  obj::PackedHeatmapGridDensity)
+  #
+
+  # do intermediate conversions
+  data_ = obj.data
+  data__ = map(x->collect(x), data_)
+  @cast data[i,j] := data__[j][i]
+  _data__ = collect(data)
+  # densFnc = convert(SamplableBelief, obj.densityFnc)
+  # build the final object, misses the hint...
+  HeatmapGridDensity( _data__,
+                      obj.domain,
+                      obj.hint_callback == "" ? nothing : nothing,
+                      obj.bw_factor;
+                      N=obj.N )
+end
+
+function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedHeatmapGridDensity}}, 
+                  obj::HeatmapGridDensity )
+  #
+  data_ = obj.data
+  @cast data[j][i] := data_[i,j]
+  # str = convert(SamplableBelief, obj.densityFnc)
+  N = Npts(obj.densityFnc)
+  # TODO misses the hint...
+  PackedHeatmapGridDensity( "IncrementalInference.PackedHeatmapGridDensity",
+                            data,
+                            obj.domain,
+                            "", 
+                            obj.bw_factor,
+                            N )
+end
+
+
+mutable struct PackedLevelSetGridNormal <: PackedSamplableBelief
+  _type::String
+  level::Float64
+  sigma::Float64
+  sigma_scale::Float64
+  # make sure the JSON nested packing works with the serialization overlords
+  heatmap::PackedHeatmapGridDensity
+end
+
+
+function convert( ::Union{Type{<:SamplableBelief},Type{<:LevelSetGridNormal}}, 
+                  obj::PackedLevelSetGridNormal)
+  #
+  LevelSetGridNormal( obj.level,
+                      obj.sigma,
+                      obj.sigma_scale,
+                      convert(HeatmapGridDensity, obj.heatmap) )
+end
+
+
+function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedLevelSetGridNormal}}, 
+                  obj::LevelSetGridNormal)
+  #
+  PackedLevelSetGridNormal( "IncrementalInference.PackedLevelSetGridNormal",
+                            obj.level,
+                            obj.sigma,
+                            obj.sigma_scale,
+                            convert(PackedHeatmapGridDensity, obj.heatmap) )
+end
 
 
 #

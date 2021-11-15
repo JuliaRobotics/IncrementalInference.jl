@@ -352,7 +352,7 @@ Free all variables from marginalization.
 """
 function dontMarginalizeVariablesAll!(fgl::AbstractDFG)
   fgl.solverParams.isfixedlag = false
-  fgl.solverParams.qfl = 9999999999
+  fgl.solverParams.qfl = (2^(Sys.WORD_SIZE-1)-1)
   fgl.solverParams.limitfixeddown = false
   for sym in ls(fgl)
     setMarginalized!(fgl, sym, false)
