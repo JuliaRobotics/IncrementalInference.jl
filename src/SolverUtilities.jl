@@ -205,7 +205,7 @@ end
 # the point is that only the (0,20) values in newFactor are needed, all calculations are abstracted away.
 ```
 
-See also: [`RoME.generateCanonicalFG_Honeycomb!`](@ref), [`accumulateFactorMeans`](@ref), [`getPPE`](@ref)
+See also: [`RoME.generateGraph_Honeycomb!`](@ref), [`accumulateFactorMeans`](@ref), [`getPPE`](@ref)
 """
 function _checkVariableByReference( fg::AbstractDFG,
                                     srcLabel::Symbol,
