@@ -68,7 +68,7 @@ end
 
 @testset "Test tree formation and consistent APIs" begin
 
-fg = generateCanonicalFG_TestSymbolic()
+fg = generateGraph_TestSymbolic()
 
 #writeGraphPdf(fg, show=true)
 
