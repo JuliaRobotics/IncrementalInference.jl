@@ -27,8 +27,7 @@ include("testBayesTreeiSAM2Example.jl")
 include("testTreeFunctions.jl")
 
 #FIXME fails on MetaBayesTree
-@warn "#FIXME Skipping testTreeSaveLoad"
-# include("testTreeSaveLoad.jl")
+include("testTreeSaveLoad.jl")
 
 include("testSpecialSampler.jl")
 include("saveconvertertypes.jl")
