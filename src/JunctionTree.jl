@@ -1621,10 +1621,10 @@ Notes
 
 Related
 
-IIF.loadTree, DFG.saveDFG, DFG.loadDFG, JLD2.@save, JLD2.@load
+IIF.loadTree, DFG.saveDFG, DFG.loadDFG, BSON.@save, BSON.@load
 """
 function saveTree(treel::AbstractBayesTree,
-                  filepath=joinpath("/tmp","caesar","savetree.jld2") )
+                  filepath=joinpath("/tmp","caesar","savetree.bson") )
   #
   savetree = deepcopy(treel)
   for i in 1:length(getCliques(savetree))
@@ -1633,12 +1633,12 @@ function saveTree(treel::AbstractBayesTree,
     end
   end
 
-  JLD2.@save filepath savetree
+  BSON.@save(filepath, savetree)
   return filepath
 end
 
 function saveTree(treeArr::Vector{T},
-                  filepath=joinpath("/tmp","caesar","savetrees.jld2") ) where T <: AbstractBayesTree
+                  filepath=joinpath("/tmp","caesar","savetrees.bson") ) where T <: AbstractBayesTree
   #
   savetree = deepcopy(treeArr)
   for savtre in savetree, i in 1:length(getCliques(savtre))
@@ -1647,7 +1647,7 @@ function saveTree(treeArr::Vector{T},
     end
   end
 
-  JLD2.@save filepath savetree
+  BSON.@save(filepath, savetree)
   return filepath
 end
 
@@ -1662,10 +1662,10 @@ Notes
 
 Related
 
-IIF.saveTree, DFG.saveDFG, DFG.loadDFG, JLD2.@save, JLD2.@load
+[`saveTree`](@ref), [`saveDFG`](@ref), [`loadDFG`](@ref), `BSON.@save`, `BSON.@load`
 """
-function loadTree(filepath=joinpath("/tmp","caesar","savetree.jld2"))
-  data = @load filepath savetree
+function loadTree(filepath=joinpath("/tmp","caesar","savetree.bson"))
+  data = BSON.@load(filepath, savetree)
 
   # convert back to a type that which could not be serialized by JLD2
   if savetree isa Vector
