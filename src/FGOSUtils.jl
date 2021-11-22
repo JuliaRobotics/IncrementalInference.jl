@@ -112,52 +112,51 @@ getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid)
 
 
 
-function _getDimensionsPartial(ccw::CommonConvWrapper)
-  # @warn "_getDimensionsPartial not ready for use yet"
-  ccw.partialDims
-end
-_getDimensionsPartial(data::GenericFunctionNodeData) = _getCCW(data) |> _getDimensionsPartial
-_getDimensionsPartial(fct::DFGFactor) = _getDimensionsPartial(_getCCW(fct))
-_getDimensionsPartial(fg::AbstractDFG, lbl::Symbol) = _getDimensionsPartial(getFactor(fg, lbl))
+# function _getDimensionsPartial(ccw::CommonConvWrapper)
+#   # @warn "_getDimensionsPartial not ready for use yet"
+#   ccw.partialDims
+# end
+# _getDimensionsPartial(data::GenericFunctionNodeData) = _getCCW(data) |> _getDimensionsPartial
+# _getDimensionsPartial(fct::DFGFactor) = _getDimensionsPartial(_getCCW(fct))
+# _getDimensionsPartial(fg::AbstractDFG, lbl::Symbol) = _getDimensionsPartial(getFactor(fg, lbl))
 
 
-"""
-    $SIGNATURES
-Get `.factormetadata` for each CPT in CCW for a specific factor in `fg`. 
-"""
-_getFMdThread(ccw::CommonConvWrapper, 
-              thrid::Int=Threads.threadid()) = ccw.cpt[thrid].factormetadata
-#
-_getFMdThread(fc::Union{GenericFunctionNodeData,DFGFactor}, 
-              thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(fc), thrid)
-#
-_getFMdThread(dfg::AbstractDFG,
-              lbl::Symbol,
-              thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(dfg, lbl), thrid)
-#
+# """
+#     $SIGNATURES
+# Get `.factormetadata` for each CPT in CCW for a specific factor in `fg`. 
+# """
+# _getFMdThread(ccw::CommonConvWrapper, 
+#               thrid::Int=Threads.threadid()) = ccw.cpt[thrid].factormetadata
+# #
+# _getFMdThread(fc::Union{GenericFunctionNodeData,DFGFactor}, 
+#               thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(fc), thrid)
+# #
+# _getFMdThread(dfg::AbstractDFG,
+#               lbl::Symbol,
+#               thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(dfg, lbl), thrid)
+# #
 
 
 
 # extend convenience function (Matrix or Vector{P})
-function manikde!(pts::AbstractVector{P},
-                  bws::Vector{<:Real},
-                  variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}  ) where P
+function manikde!(variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
+                  pts::AbstractVector{P},
+                  bws::Vector{<:Real} ) where {P <: Union{<:AbstractArray,<:Number,<:ProductRepr,<:Manifolds.ArrayPartition} }
   #
   M = getManifold(variableType)
   infoPerCoord=ones(AMP.getNumberCoords(M, pts[1]))
   return AMP.manikde!(M, pts, bw=bws, infoPerCoord=infoPerCoord)
 end
 
-function manikde!(pts::AbstractVector{P}, 
-                  vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}) where P
+
+function manikde!(vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
+                  pts::AbstractVector{P} ) where {P <: Union{<:AbstractArray,<:Number,<:ProductRepr,<:Manifolds.ArrayPartition} }
   #
   M = getManifold(vartype)
-  # @info "WHAT" vartype, M
-  # @show pts[1]
-  # @show manifold_dimension(M)
   infoPerCoord=ones(manifold_dimension(M))
   return AMP.manikde!(M, pts, infoPerCoord=infoPerCoord)
 end
+
 
 
 """

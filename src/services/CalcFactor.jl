@@ -8,9 +8,53 @@ getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 getFactorOperationalMemoryType(dfg::NoSolverParams) = CommonConvWrapper
 
 
-# Helper function to construct CF from a CCW
-CalcFactor(ccwl::CommonConvWrapper) = CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params, true)
 
+
+function _getDimensionsPartial(ccw::CommonConvWrapper)
+  # @warn "_getDimensionsPartial not ready for use yet"
+  ccw.partialDims
+end
+_getDimensionsPartial(data::GenericFunctionNodeData) = _getCCW(data) |> _getDimensionsPartial
+_getDimensionsPartial(fct::DFGFactor) = _getDimensionsPartial(_getCCW(fct))
+_getDimensionsPartial(fg::AbstractDFG, lbl::Symbol) = _getDimensionsPartial(getFactor(fg, lbl))
+
+
+"""
+    $SIGNATURES
+Get `.factormetadata` for each CPT in CCW for a specific factor in `fg`. 
+"""
+_getFMdThread(ccw::CommonConvWrapper, 
+              thrid::Int=Threads.threadid()) = ccw.cpt[thrid].factormetadata
+#
+_getFMdThread(fc::Union{GenericFunctionNodeData,DFGFactor}, 
+              thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(fc), thrid)
+#
+_getFMdThread(dfg::AbstractDFG,
+              lbl::Symbol,
+              thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(dfg, lbl), thrid)
+#
+
+
+
+
+# Helper function to construct CF from a CCW
+function CalcFactor(ccwl::CommonConvWrapper;
+                    factor = ccwl.usrfnc!, 
+                    metadata = _getFMdThread(ccwl), 
+                    _sampleIdx = 0, 
+                    _measCount = length(ccwl.measurement),
+                    _legacyMeas = ccwl.measurement, 
+                    _legacyParams = ccwl.params, 
+                    _allowThreads = true )
+  #
+  CalcFactor( factor,
+              metadata,
+              _sampleIdx,
+              _measCount,
+              _legacyMeas,
+              _legacyParams,
+              _allowThreads )
+end
 
 
 """
@@ -517,6 +561,9 @@ function prepareCommonConvWrapper!( ccwl::Union{CommonConvWrapper{F},
   #
   prepareCommonConvWrapper!(F, ccwl, Xi, solvefor, N; kw...)
 end
+
+
+
 
 
 
