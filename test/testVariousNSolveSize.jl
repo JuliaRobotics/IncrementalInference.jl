@@ -11,7 +11,7 @@ using Test
 
 ##
 
-fg = generateCanonicalFG_CaesarRing1D(graphinit=true)
+fg = generateGraph_CaesarRing1D(graphinit=true)
 
 pts_ = approxConv(fg, :x0x1f1, :x1, N=101)
 @test length(pts_) == 101

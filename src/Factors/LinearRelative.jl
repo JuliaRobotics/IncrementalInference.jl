@@ -34,13 +34,6 @@ getManifold(::InstanceType{LinearRelative{N}}) where N = getManifold(ContinuousE
 getDimension(::InstanceType{LinearRelative{N}}) where {N} = N
 
 
-function getSample(cf::CalcFactor{<:LinearRelative})
-  # _samplemakevec(z::Real) = [z;]
-  # _samplemakevec(z::AbstractVector{<:Real}) = z
-  return sampleTangent(getManifold(cf.factor), cf.factor.Z)
-end
-
-
 # new and simplified interface for both nonparametric and parametric
 function (s::CalcFactor{<:LinearRelative})(z, x1, x2) 
   # TODO convert to distance(distance(x2,x1),z) # or use dispatch on `-` -- what to do about `.-`

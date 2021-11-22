@@ -11,46 +11,39 @@ end
 
 
 
-"""
-    $TYPEDSIGNATURES
+# """
+#     $TYPEDSIGNATURES
 
-Calculate the Kernel Embedding MMD 'distance' between sample points (or kernel density estimates).
+# Calculate the Kernel Embedding MMD 'distance' between sample points (or kernel density estimates).
 
-Notes
-- `bw::Vector=[0.001;]` controls the mmd kernel bandwidths.
-- Overloading from ApproxManifoldProducts
+# Notes
+# - `bw::Vector=[0.001;]` controls the mmd kernel bandwidths.
+# - Overloading from ApproxManifoldProducts
 
-Related
+# Related
 
-`AMP.kld`
-"""
+# `AMP.kld`
+# """
 function mmd( p1::AbstractVector{P1}, 
               p2::AbstractVector{P2}, 
-              varType::Union{InstanceType{<:InferenceVariable},InstanceType{<:AbstractFactor}};
-              bw::AbstractVector{<:Real}=[0.001;] ) where {P1 <: AbstractVector, P2 <: AbstractVector}
+              varType::Union{InstanceType{<:InferenceVariable},InstanceType{<:AbstractFactor}},
+              threads::Bool=true;
+              bw::AbstractVector{<:Real}=SA[0.001;] ) where {P1 <: AbstractVector, P2 <: AbstractVector}
   #
   mani = getManifold(varType)
-  mmd(p1, p2, mani, bw=bw)  
+  mmd(mani, p1, p2, length(p1), length(p2), threads; bw)  
 end
 
-# TODO move to AMP?
+
 function mmd( p1::ManifoldKernelDensity, 
               p2::ManifoldKernelDensity, 
-              nodeType::Union{InstanceType{<:InferenceVariable},InstanceType{<:AbstractFactor}};
-              bw::AbstractVector{<:Real}=[0.001;])
+              nodeType::Union{InstanceType{<:InferenceVariable},InstanceType{<:AbstractFactor}},
+              threads::Bool=true;
+              bw::AbstractVector{<:Real}=SA[0.001;])
   #
-  mmd(getPoints(p1), getPoints(p2), nodeType, bw=bw)
+  mmd(getPoints(p1), getPoints(p2), nodeType, threads; bw)
 end
 
-# moved to CalcFactor.jl
-
-
-function sampleFactor(ccwl::CommonConvWrapper,
-                      N::Int  )
-  #
-  cf = CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
-  sampleFactor(cf, N)
-end
 
 # part of consolidation, see #927
 function sampleFactor!( ccwl::CommonConvWrapper, 
@@ -61,13 +54,22 @@ function sampleFactor!( ccwl::CommonConvWrapper,
   # depr warning added before IIF v0.20
   vnd !== nothing ? @warn("sampleFactor! no longer accepts vnd::Vector as meaningful input.") : nothing
   
-  # build a CalcFactor object and get fresh samples.
-  cf = CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
-  # TODO make this an in-place operation as far possible
-  ccwl.measurement = sampleFactor(cf, N)    
+  ccwl.measurement = sampleFactor(ccwl, N)
+  # # build a CalcFactor object and get fresh samples.
+  # cf = CalcFactor(ccwl) # CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+  # # TODO make this an in-place operation as far possible
+  # ccwl.measurement = sampleFactor(cf, N)    
 
   nothing
 end
+
+function sampleFactor(ccwl::CommonConvWrapper,
+                      N::Int  )
+  #
+  cf = CalcFactor(ccwl) # CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+  sampleFactor(cf, N)
+end
+
 
 sampleFactor(fct::DFGFactor, N::Int=1) = sampleFactor(_getCCW(fct), N)
 
@@ -203,7 +205,7 @@ end
 # the point is that only the (0,20) values in newFactor are needed, all calculations are abstracted away.
 ```
 
-See also: [`RoME.generateCanonicalFG_Honeycomb!`](@ref), [`accumulateFactorMeans`](@ref), [`getPPE`](@ref)
+See also: [`RoME.generateGraph_Honeycomb!`](@ref), [`accumulateFactorMeans`](@ref), [`getPPE`](@ref)
 """
 function _checkVariableByReference( fg::AbstractDFG,
                                     srcLabel::Symbol,

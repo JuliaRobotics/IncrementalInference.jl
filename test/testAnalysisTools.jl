@@ -12,7 +12,7 @@ using IncrementalInference
 end
 
 @testset "Number of non-zero calculation for full cliques." begin
-    fg = generateCanonicalFG_Kaess()
+    fg = generateGraph_Kaess()
     vo = [:l1, :l2, :x1, :x2, :x3]
     tree = buildTreeReset!(fg, vo)
     # Must agree with hand-calculated values, iSAM2 paper.
@@ -22,7 +22,7 @@ end
 end
 
 @testset "Number of non-zero calculation for full trees." begin
-    fg = generateCanonicalFG_Kaess()
+    fg = generateGraph_Kaess()
     vo = [:l1, :l2, :x1, :x2, :x3]
     tree = buildTreeReset!(fg, vo)
     # Must agree with hand-calculated values, iSAM2 paper.
@@ -30,7 +30,7 @@ end
 end
 
 @testset "Test drawTree" begin
-    fg = generateCanonicalFG_Kaess(graphinit=false)
+    fg = generateGraph_Kaess(graphinit=false)
     vo = [:l1, :l2, :x1, :x2, :x3]
     tree = buildTreeReset!(fg, vo)
 

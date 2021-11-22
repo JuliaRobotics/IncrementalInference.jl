@@ -184,7 +184,7 @@ Calculate the relative difference between two variables and across solveKeys.
 Example
 
 ```julia
-fg = generateCanonicalFG_Kaess()
+fg = generateGraph_Kaess()
 solveTree!(fg, storeOld=true)
 # calculate the relative motion induced by the solver from init to solve.
 pts = deconvSolveKey(fg, :x1, :default, :x1, :graphinit)

@@ -79,7 +79,7 @@ end
 
 N=100
 points = [[100.0;0.0],[0.0;100.0]]
-fg = IIF.generateCanonicalFG_EuclidDistance(points)
+fg = IIF.generateGraph_EuclidDistance(points)
 
 eo = [:x2; :x1; :l1]
 
@@ -110,7 +110,7 @@ L1_[2,:] .-= 100
 
 N=100
 points = [[100.0;0.0],[0.0;100.0]]
-fg = IIF.generateCanonicalFG_EuclidDistance(points)
+fg = IIF.generateGraph_EuclidDistance(points)
 
 # initManual!(fg, :l1, [1000.0.*randn(2) for _ in 1:100])
 
@@ -149,7 +149,7 @@ end
 # N=100
 ##
 points = [[100.0],]
-fg = IIF.generateCanonicalFG_EuclidDistance(points)
+fg = IIF.generateGraph_EuclidDistance(points)
 solveTree!(fg)
 
 @test isapprox(getPPE(fg, :x1).suggested[1], 100, atol=1)
@@ -182,28 +182,28 @@ initManual!(fg, :l1, pts_)
 
 ## Test zero with x-axis
 points = [[100.0;0.0],]
-fg = IIF.generateCanonicalFG_EuclidDistance(points)
+fg = IIF.generateGraph_EuclidDistance(points)
 solveTree!(fg)
 
 ## Test zero with y-axis
 points = [[0.0;100.0],]
-fg = IIF.generateCanonicalFG_EuclidDistance(points)
+fg = IIF.generateGraph_EuclidDistance(points)
 solveTree!(fg)
 
 ## Test zero with xy-axis 2 points
 points = [[0.0;100.0],[100.0;0.0]]
-fg = IIF.generateCanonicalFG_EuclidDistance(points)
+fg = IIF.generateGraph_EuclidDistance(points)
 solveTree!(fg)
 
 ## Test offsett with xy-axis 2 points
 points = [[50.0;100.0],[100.0;50.0]]
-fg = IIF.generateCanonicalFG_EuclidDistance(points; dist=50.0)
+fg = IIF.generateGraph_EuclidDistance(points; dist=50.0)
 solveTree!(fg)
 # plotKDE(fg, ls(fg))
 
 ## Manual init
 points = [[0.0;100.0],[100.0;0.0]]
-fg = IIF.generateCanonicalFG_EuclidDistance(points)
+fg = IIF.generateGraph_EuclidDistance(points)
 getSolverParams(fg).inflation=3.0
 
 initManual!(fg, :x1, [rand(MvNormal([100.,0], [1.,1])) for _ in 1:N])

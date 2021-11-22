@@ -5,6 +5,7 @@ using IncrementalInference
 using MetaGraphs
 using Graphs
 
+
 ##
 
 @testset "Test loading and saving of Bayes (Junction) tree" begin
@@ -37,7 +38,6 @@ end
 
 @testset "Test loading and saving of Bayes (Junction) tree" begin
 ##
-
 
 fg = generateCanonicalFG_Kaess(graphinit=false)
 tree = buildTreeReset!(fg)

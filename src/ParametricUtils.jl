@@ -40,10 +40,10 @@ end
     $SIGNATURES
 
 Returns the parametric measurement for a factor as a tuple (measurement, inverse covariance) for parametric inference (assuming Gaussian).
-Defaults to find the parametric measurement at field `Zij`, `Z`, or `z`.
+Defaults to find the parametric measurement at field `Z`, fields `Zij` and `z` will be deprecated for standardization.
 
 Notes
-- Users should overload this method should their factor not default to `.Z<:ParametricType` or `.z<:ParametricType`
+- Users should overload this method should their factor not default to `.Z<:ParametricType`.
 - First design choice was to restrict this function to returning coordinates
   - See https://github.com/JuliaRobotics/RoME.jl/issues/465
   - Pay attention to which tangent space point is used for converting points on a manifold to coordinates,
@@ -78,15 +78,15 @@ function getMeasurementParametric(s::ManifoldPrior)
 end
 
 function getMeasurementParametric(s::AbstractFactor)
-  if hasfield(typeof(s), :Zij)
-    Z = s.Zij
-    @info "getMeasurementParametric falls back to using field `.Zij` by default. Extend it for more complex factors." maxlog=1
-  elseif hasfield(typeof(s), :Z)
+  if hasfield(typeof(s), :Z)
     Z = s.Z
     @info "getMeasurementParametric falls back to using field `.Z` by default. Extend it for more complex factors." maxlog=1
+  elseif hasfield(typeof(s), :Zij)
+    Z = s.Zij
+    @warn "getMeasurementParametric fallback to using field `.Zij` by default will be deprecated, use field `Z` or extend it for more complex factors." maxlog=1
   elseif hasfield(typeof(s), :z)
     Z = s.z
-    @info "getMeasurementParametric falls back to using field `.z` by default. Extend it for more complex factors." maxlog=1
+    @info "getMeasurementParametric fallback to using field `.Zij` by default will be deprecated, use field `Z` or extend it for more complex factors." maxlog=1
   else
     error("getMeasurementParametric(::$(typeof(s))) not defined, please add it, or use non-parametric, or open an issue for help.")
   end
@@ -113,7 +113,7 @@ function CalcFactorMahalanobis(fct::DFGFactor)
   meas = typeof(_meas) <: Tuple ? _meas : (_meas,)
   iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
 
-  calcf = CalcFactor(getFactorMechanics(cf), _getFMdThread(fct), 0, 0, (), [])
+  calcf = CalcFactor(getFactorMechanics(cf), _getFMdThread(fct), 0, 0, (), [], true)
   
   multihypo = getSolverData(fct).multihypo
   nullhypo = getSolverData(fct).nullhypo

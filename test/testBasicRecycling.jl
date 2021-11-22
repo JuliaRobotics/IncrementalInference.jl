@@ -7,13 +7,13 @@ using IncrementalInference
 
 ## linear 6 
 N=6
-fg = generateCanonicalFG_lineStep(N; 
-                                  graphinit=false,
-                                  poseEvery=1, 
-                                  landmarkEvery=N+1, 
-                                  posePriorsAt=[0],
-                                  landmarkPriorsAt=[], 
-                                  sightDistance=N+1)
+fg = generateGraph_LineStep(N; 
+                            graphinit=false,
+                            poseEvery=1, 
+                            landmarkEvery=N+1, 
+                            posePriorsAt=[0],
+                            landmarkPriorsAt=[], 
+                            sightDistance=N+1)
 
 deleteFactor!.(fg, [Symbol("x$(i)lm0f1") for i=1:(N-1)])
 
@@ -133,7 +133,7 @@ end
 
 @testset "Testing basic incremental recycle" begin
 
-fg = generateCanonicalFG_lineStep(3; 
+fg = generateGraph_LineStep(3; 
                                    poseEvery=1, 
                                    landmarkEvery=3, 
                                    posePriorsAt=[],
@@ -169,7 +169,7 @@ end
 @testset "Testing incremental hex" begin
     
 N=6
-sfg = generateCanonicalFG_lineStep(N; 
+sfg = generateGraph_LineStep(N; 
                                    graphinit=false,
                                    poseEvery=1, 
                                    landmarkEvery=N+1, 

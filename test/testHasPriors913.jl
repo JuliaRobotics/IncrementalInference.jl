@@ -9,13 +9,13 @@ using Test
 ##
 
 
-fg = generateCanonicalFG_lineStep(4; 
-                                  poseEvery=1, 
-                                  landmarkEvery=5, 
-                                  posePriorsAt=[],
-                                  landmarkPriorsAt=[], 
-                                  sightDistance=5,
-                                  solverParams=SolverParams(algorithms=[:default, :parametric]))
+fg = generateGraph_LineStep(4; 
+                            poseEvery=1, 
+                            landmarkEvery=5, 
+                            posePriorsAt=[],
+                            landmarkPriorsAt=[], 
+                            sightDistance=5,
+                            solverParams=SolverParams(algorithms=[:default, :parametric]))
 
 deleteFactor!.(fg, [Symbol("x$(i)lm0f1") for i=1:3])
 

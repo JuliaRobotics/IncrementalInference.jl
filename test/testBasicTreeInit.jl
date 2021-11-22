@@ -4,7 +4,7 @@ using IncrementalInference
 
 @testset "basic per clique stopping criteria" begin
 
-fg = generateCanonicalFG_lineStep(1)
+fg = generateGraph_LineStep(1)
 smtasks = Task[]
 tree = solveTree!(fg, smtasks=smtasks, recordcliqs=[:x0;], limititercliqs=[(:x0=>2);])
 hist = fetchCliqHistoryAll!(smtasks)
@@ -14,7 +14,7 @@ hist = fetchCliqHistoryAll!(smtasks)
 @test hist[1] |> length == 2
 
 #normal solve should have 11 states, update when more are added.
-fg = generateCanonicalFG_lineStep(1)
+fg = generateGraph_LineStep(1)
 smtasks = Task[]
 tree = solveTree!(fg, smtasks=smtasks, recordcliqs=[:x0;]);
 hist = fetchCliqHistoryAll!(smtasks)
@@ -30,13 +30,13 @@ end
 @testset "test endless cycle case, issue #754" begin
 
 
-fg = generateCanonicalFG_lineStep(5; 
-                                  poseEvery=1, 
-                                  landmarkEvery=5, 
-                                  posePriorsAt=[0,2], 
-                                  sightDistance=4,
-                                  solverParams=SolverParams(algorithms=[:default, :parametric]))
-                                  
+fg = generateGraph_LineStep(5; 
+                            poseEvery=1, 
+                            landmarkEvery=5, 
+                            posePriorsAt=[0,2], 
+                            sightDistance=4,
+                            solverParams=SolverParams(algorithms=[:default, :parametric]))
+                            
 getSolverParams(fg).graphinit = false
 getSolverParams(fg).treeinit = true
 getSolverParams(fg).limititers = 50
@@ -50,7 +50,7 @@ end
 @testset "basic test for tree initialization functionality" begin
 
 # small canonical factor graph, without graphinit
-fg = generateCanonicalFG_CaesarRing1D(graphinit=false)
+fg = generateGraph_CaesarRing1D(graphinit=false)
 getSolverParams(fg).graphinit = false
 getSolverParams(fg).treeinit = true
 @show getLogPath(fg)
@@ -78,7 +78,7 @@ end
 @testset "basic tree initialization limittreeinit_iters" begin
 
 # part of fg that can init
-fg = generateCanonicalFG_lineStep(3; poseEvery=1)
+fg = generateGraph_LineStep(3; poseEvery=1)
 
 good_vars = sortDFG(ls(fg))
 # fg.solverParams.showtree = true

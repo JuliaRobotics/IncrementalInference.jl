@@ -11,6 +11,12 @@ Alternatively, either use the Github Blame, or the Github `/compare/v0.18.0...v0
 
 The list below highlights major breaking changes, and please note that significant efforts are made to properly deprecate old code/APIs according to normal semver workflow -- i.e. breaking changes go through at least one deprecatation (via warnings) on the dominant number in the version number.  E.g. v0.18 -> v0.19 (warnings) -> v0.20 (breaking).
 
+# Major changes in v0.26
+
+- Standarding (non-binding) easy factor dipatch cases so measurement field is under `.Z` (#1441).
+- `CalcFactor._allowThreads` can now be used as workaround for `Threads` yield blocking issue during first run (#1451).
+- Canonical graph generator API change to `generateGraph_ABC` (#1454).
+
 # Major changes in v0.25
 
 - Changed API to `testFactorResidualBinary(fct, meas::Tuple, (T_i, param_i),...)` to grow beyond binary.
