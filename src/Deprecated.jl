@@ -25,7 +25,7 @@
 ##==============================================================================
 
 @deprecate manikde!(pts::AbstractVector, bws::Vector{<:Real}, variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}} ) manikde!(variableType,pts,bws)
-@deprecate manikde!(pts::AbstractVector, vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}) manikde!(varType, pts)
+@deprecate manikde!(pts::AbstractVector, varType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}) manikde!(varType, pts)
 
 @deprecate generateCanonicalFG_Kaess(w...;kw...) generateGraph_Kaess(w...;kw...)
 @deprecate generateCanonicalFG_EuclidDistance(w...;kw...) generateGraph_EuclidDistance(w...;kw...)
