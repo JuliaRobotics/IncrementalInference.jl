@@ -7,6 +7,7 @@ using IncrementalInference
 @testset "test generic functions on distributions" begin
 ##
 
+@test getDimension(Uniform(0,1)) == 1
 @test getDimension(Normal()) == 1
 @test getDimension(MvNormal([1;1;0.1])) == 3
 

@@ -26,6 +26,7 @@ mutable struct PackedMvNormal <: PackedSamplableBelief
 end
 
 
+DFG.getDimension(::Uniform) = 1
 DFG.getDimension(::Normal) = 1
 DFG.getDimension(Z::MvNormal) = Z |> cov |> diag |> length
 
