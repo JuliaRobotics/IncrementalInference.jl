@@ -29,6 +29,9 @@ end
 DFG.getDimension(::Normal) = 1
 DFG.getDimension(Z::MvNormal) = Z |> cov |> diag |> length
 
+DFG.getDimension(Z::ManifoldKernelDensity) = getManifold(Z) |> getDimension
+# TODO deprecate
+DFG.getDimension(Z::BallTreeDensity) = Ndim(Z)
 
 
 # NOTE SEE EXAMPLE IN src/Flux/FluxModelsSerialization.jl
