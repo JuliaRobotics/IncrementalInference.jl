@@ -27,6 +27,8 @@ end
 
 
 DFG.getDimension(::Normal) = 1
+DFG.getDimension(Z::MvNormal) = Z |> cov |> diag |> length
+
 
 
 # NOTE SEE EXAMPLE IN src/Flux/FluxModelsSerialization.jl
