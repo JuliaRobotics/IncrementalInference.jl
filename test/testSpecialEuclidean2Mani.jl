@@ -223,8 +223,8 @@ m_θ = map(x->x.parts[2][2], meas)
 @test isapprox(mean(p_t), [10,0], atol=0.3)
 @test isapprox(std(p_t), [0.5,0.5], atol=0.3)
 
-@test isapprox(mean(p_θ), mean(m_θ), atol=0.02)
-@test isapprox(std(p_θ), std(m_θ), atol=0.02)
+@test isapprox(mean(p_θ), mean(m_θ), atol=0.03)
+@test isapprox(std(p_θ), std(m_θ), atol=0.03)
 
 @test isapprox(mean(p_t), mean(m_t), atol=0.3)
 @test isapprox(std(p_t), std(m_t), atol=0.3)
