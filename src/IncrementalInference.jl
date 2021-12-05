@@ -33,7 +33,6 @@ using
   Statistics,
   Random,
   StatsBase,
-  JLD2,
   BSON,
   FileIO,
   ProgressMeter,

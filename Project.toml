@@ -18,7 +18,6 @@ Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
 FunctionalStateMachine = "3e9e306e-7e3c-11e9-12d2-8f8f67a2f951"
-JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 JSON2 = "2535ab7d-5cd8-5a07-80ac-9b1792aadce3"
 KernelDensityEstimate = "2472808a-b354-52ea-a80e-1658a3c6056d"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -52,7 +51,6 @@ Distributions = "0.24, 0.25"
 DocStringExtensions = "0.8"
 FileIO = "1"
 FunctionalStateMachine = "0.2.9"
-JLD2 = "0.3, 0.4"
 JSON2 = "0.3"
 KernelDensityEstimate = "0.5.6"
 Manifolds = "0.6.3, 0.7"
@@ -73,10 +71,11 @@ julia = "1.6"
 [extras]
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["DifferentialEquations", "Flux", "InteractiveUtils", "Interpolations", "Test", "Pkg"]
+test = ["DifferentialEquations", "Flux", "Graphs", "InteractiveUtils", "Interpolations", "Test", "Pkg"]
