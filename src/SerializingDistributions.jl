@@ -1,7 +1,5 @@
 
 
-export PackedUniform
-
 
 mutable struct PackedUniform <: PackedSamplableBelief
   a::Float64
@@ -27,6 +25,8 @@ mutable struct PackedMvNormal <: PackedSamplableBelief
   cov::Vector{Float64}
 end
 
+
+DFG.getDimension(::Normal) = 1
 
 
 # NOTE SEE EXAMPLE IN src/Flux/FluxModelsSerialization.jl

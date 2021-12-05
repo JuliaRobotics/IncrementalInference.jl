@@ -1,15 +1,4 @@
 
-export ContinuousScalar
-export ContinuousEuclid
-export Circular, Circle
-
-
-Base.convert(::Type{<:Tuple}, ::InstanceType{Manifolds.Euclidean{Tuple{N}, ℝ}} ) where N = tuple([:Euclid for i in 1:N]...)
-Base.convert(::Type{<:Tuple}, ::InstanceType{Manifolds.Circle{ℝ}})  = error("#FIXME")#(:Circular,)
-Base.convert(::Type{<:Tuple}, ::InstanceType{Manifolds.RealCircleGroup})  = (:Circular,)
-
-
-
 
 ## Euclid 1
 

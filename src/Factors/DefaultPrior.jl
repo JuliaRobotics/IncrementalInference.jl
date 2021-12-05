@@ -12,7 +12,8 @@ struct Prior{T <: SamplableBelief} <: AbstractPrior
 end
 Prior(::UniformScaling) = Prior(Normal())
 
-getSample(cf::CalcFactor{<:Prior}) = rand(cf.factor.Z, 1)
+getManifold(pr::Prior) = TranslationGroup(getDimension(pr.Z))
+# getSample(cf::CalcFactor{<:Prior}) = rand(cf.factor.Z)
 
 
 # basic default

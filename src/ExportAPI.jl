@@ -291,6 +291,12 @@ export
   setVariableRefence!,
   reshapeVec2Mat
 
+export ContinuousScalar
+export ContinuousEuclid
+export Circular, Circle
+
+export PackedUniform, PackedMvNormal
+
 export sampleTangent
 export samplePoint
 
