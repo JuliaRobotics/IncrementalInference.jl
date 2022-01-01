@@ -9,6 +9,7 @@ DFG.getDimension(::Distributions.Uniform) = 1
 DFG.getDimension(::Normal) = 1
 DFG.getDimension(Z::MvNormal) = Z |> cov |> diag |> length
 
+DFG.getDimension(Z::FluxModelsDistribution) = length(Z.outputDim)==1 ? Z.outputDim[1] : error("can only do single index tensor at this time, please open an issue with Caesar.jl")
 DFG.getDimension(Z::ManifoldKernelDensity) = getManifold(Z) |> getDimension
 # TODO deprecate
 DFG.getDimension(Z::BallTreeDensity) = Ndim(Z)

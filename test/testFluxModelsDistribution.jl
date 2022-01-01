@@ -7,7 +7,6 @@ using TensorCast
 ##
 
 @testset "FluxModelsDistribution serialization" begin
-
 ##
 
 # can a model be serialized
@@ -16,7 +15,7 @@ fxd = FluxModelsDistribution((5,),(3,),mdls,rand(5), false, false)
 
 # check sampler is working
 measd = rand(fxd, 2)
-@test measd |> size == (3,2)
+@test length( measd ) == 2
 
 # convert to flat string
 fxp = convert(PackedSamplableBelief, fxd)
@@ -31,12 +30,10 @@ measu = rand(fxu, 2)
 @test measd[1] - measu[1] |> norm < 1e-6
 
 ##
-
 end
 
 
 @testset "FluxModelsDistribution serialization" begin
-
 ##
 
 mdls = [Chain(Dense(5,2),Dense(2,3)); Chain(Dense(5,4), Dense(4,3))]
@@ -50,11 +47,20 @@ pr = Prior(fxd)
 
 addFactor!(fg, [:x0;], pr)
 
+##
+
+smpls = sampleFactor(fg, :x0f1, 10)
+@test smpls isa Vector{Vector{Float64}}
+@test length( smpls ) == 10
+
+##
+
 # check local product
 localProduct(fg, :x0)
 
 solveTree!(fg)
 
+##
 
 saveDFG("/tmp/fg_test_flux", fg)
 
