@@ -9,9 +9,9 @@ using TensorCast
 N=100
 fg = initfg()
 
-doors = zeros(1,1)
-pd = kde!(doors,[3.0])
-pd = resample(pd,N);
+doors = [[0.0;],]
+pd = manikde!(ContinuousScalar, doors, [3.0;])
+pd = resample(pd, N);
 bws = getBW(pd)[:,1]
 doors2 = getPoints(pd);
 

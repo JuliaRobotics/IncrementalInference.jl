@@ -4,25 +4,21 @@
 ##==============================================================================
 
 @deprecate _evalType(pt::String) DFG.getTypeFromSerializationModule(pt)
-# # FIXME, replace with T = DFG.getTypeFromSerializationModule(obj._type)
-# export _evalType
-# # not sure if and where this is still being used
-# function _evalType(pt::String)::Type
-#   @error "_evalType has been deprecated, use DFG serialization methods instead."
-#   try
-#     getfield(Main, Symbol(pt))
-#   catch ex
-#     io = IOBuffer()
-#     showerror(io, ex, catch_backtrace())
-#     err = String(take!(io))
-#     error("_evalType: Unable to locate factor/distribution type '$pt' in main context (e.g. do a using on all your factor libraries). Please check that this factor type is loaded into main. Stack trace = $err")
-#   end
-# end
+
+##==============================================================================
+## Deprecate code below before v0.28
+##==============================================================================
+
 
 
 ##==============================================================================
 ## Deprecate code below before v0.27
 ##==============================================================================
+
+
+Base.convert(::Type{<:Tuple}, ::InstanceType{Manifolds.Euclidean{Tuple{N}, ℝ}} ) where N = tuple([:Euclid for i in 1:N]...)
+Base.convert(::Type{<:Tuple}, ::InstanceType{Manifolds.Circle{ℝ}})  = error("#FIXME")#(:Circular,)
+Base.convert(::Type{<:Tuple}, ::InstanceType{Manifolds.RealCircleGroup})  = (:Circular,)
 
 @deprecate manikde!(pts::AbstractVector, bws::Vector{<:Real}, variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}} ) manikde!(variableType,pts,bws)
 @deprecate manikde!(pts::AbstractVector, varType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}) manikde!(varType, pts)

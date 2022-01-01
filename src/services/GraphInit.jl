@@ -122,7 +122,8 @@ function doautoinit!( dfg::AbstractDFG,
           @info "do init of $vsym"
         end
         # FIXME ensure a product of only partial densities and returned pts are put to proper dimensions
-        bel,ipc = propagateBelief(dfg, getVariable(dfg,vsym), getFactor.(dfg,useinitfct), solveKey=solveKey, logger=logger, N=N)
+        fcts = map(fx->getFactor(dfg,fx), useinitfct)
+        bel,ipc = propagateBelief(dfg, getVariable(dfg,vsym), fcts, solveKey=solveKey, logger=logger, N=N)
         # while the propagate step might allow large point counts, the graph should stay restricted to N
         bel_ = Npts(bel) == getSolverParams(dfg).N ? bel : resample(bel, getSolverParams(dfg).N)
         # @info "MANIFOLD IS" bel.manifold isPartial(bel) string(bel._partial) string(getPoints(bel, false)[1]) 

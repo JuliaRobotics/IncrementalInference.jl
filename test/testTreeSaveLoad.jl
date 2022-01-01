@@ -5,13 +5,12 @@ using IncrementalInference
 using MetaGraphs
 using Graphs
 
-
 ##
 
 @testset "Test loading and saving of Bayes (Junction) tree" begin
 ##
 
-fg = generateCanonicalFG_Kaess(graphinit=false)
+fg = generateGraph_Kaess(graphinit=false)
 tree = buildTreeReset!(fg)
 
 # save and load tree
@@ -31,7 +30,6 @@ for (clid,cl) in tree.cliques
   @test typeof(cl) == typeof(cl2)
 end
 
-
 ##
 end
 
@@ -39,7 +37,7 @@ end
 @testset "Test loading and saving of Bayes (Junction) tree" begin
 ##
 
-fg = generateCanonicalFG_Kaess(graphinit=false)
+fg = generateGraph_Kaess(graphinit=false)
 tree = buildTreeReset!(fg)
 
 # save and load tree as array

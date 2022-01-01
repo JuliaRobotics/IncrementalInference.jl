@@ -86,7 +86,7 @@ See also: [`getMeasurementParametric`](@ref)
 """
 function getSample end
 
-function getSample(cf::CalcFactor{<:AbstractPrior}) 
+function getSample(cf::CalcFactor{<:AbstractPrior})
   M = getManifold(cf.factor)
   if hasfield(typeof(cf.factor), :Z)
     X = samplePoint(M, cf.factor.Z)
