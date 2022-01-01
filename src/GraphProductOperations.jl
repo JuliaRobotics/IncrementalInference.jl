@@ -16,12 +16,12 @@ Related
 """
 function propagateBelief( dfg::AbstractDFG,
                           destvar::DFGVariable,
-                          factors::AbstractVector{<:DFGFactor};
-                          solveKey::Symbol=:default,
-                          dens = Vector{ManifoldKernelDensity}(),
-                          N::Int=getSolverParams(dfg).N, #maximum([length(getPoints(getBelief(destvar, solveKey))); getSolverParams(dfg).N]),
-                          needFreshMeasurements::Bool=true,
-                          dbg::Bool=false,
+                          factors::AbstractVector; #{<:DFGFactor};
+                          solveKey::Symbol = :default,
+                          dens::AbstractVector{<:ManifoldKernelDensity} = Vector{ManifoldKernelDensity}(), # TODO, abstract is unstable
+                          N::Integer = getSolverParams(dfg).N,
+                          needFreshMeasurements::Bool = true,
+                          dbg::Bool = false,
                           logger=ConsoleLogger()  )
   #
   
@@ -45,10 +45,9 @@ function propagateBelief( dfg::AbstractDFG,
   # @info "BUILDING MKD" varType M isPartial.(dens)
   
   # take the product
-  mkd = AMP.manifoldProduct(dens, M, Niter=1, oldPoints=oldpts, N=N)
+  mkd = AMP.manifoldProduct(dens, M, Niter=1, oldPoints=oldpts, N=N, u0=getPointDefault(varType) )
   
   # @info "GOT" mkd.manifold
-  
   return mkd, ipc
 end
 
@@ -59,7 +58,7 @@ This is an old function name that will be replaced by [`propagateBelief`](@ref).
 """
 function predictbelief( dfg::AbstractDFG,
                         destvert::DFGVariable,
-                        factors::AbstractVector{<:DFGFactor};
+                        factors::AbstractVector; #{<:DFGFactor};
                         asPartial::Bool=false,
                         kw... )
   #
@@ -105,7 +104,8 @@ function localProduct(dfg::AbstractDFG,
   # store proposal beliefs, TODO replace Abstract with concrete type
   dens = Vector{ManifoldKernelDensity}()
   
-  mkd, sinfd = propagateBelief(dfg, getVariable(dfg, sym), map(x->getFactor(dfg, x), lb); solveKey=solveKey, logger=logger, dens=dens, N=N )
+  fcts = map(x->getFactor(dfg, x), lb)
+  mkd, sinfd = propagateBelief(dfg, getVariable(dfg, sym), fcts; solveKey=solveKey, logger=logger, dens=dens, N=N )
   
   return mkd, dens, lb, sinfd
 end

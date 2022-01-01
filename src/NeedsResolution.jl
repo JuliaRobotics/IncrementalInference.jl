@@ -1,4 +1,6 @@
 
+# FIXME move to DFG
+getPointDefault(V::InferenceVariable) = getPointIdentity(V) 
 
 function compare( c1::Channel,
                   c2::Channel;

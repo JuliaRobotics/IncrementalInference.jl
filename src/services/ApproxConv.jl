@@ -206,7 +206,7 @@ Notes
 """
 function proposalbeliefs!(dfg::AbstractDFG,
                           destlbl::Symbol,
-                          factors::AbstractVector{<:DFGFactor},
+                          factors::AbstractVector, #{<:DFGFactor},
                           dens::AbstractVector{<:ManifoldKernelDensity},
                           measurement::AbstractVector=Tuple[];
                           solveKey::Symbol=:default,

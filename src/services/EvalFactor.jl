@@ -391,7 +391,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
     ccwl.measurement = newMeas
   end
 
-  # Check which variables have been initialized, TODO not sure why forcing to Bool vs BitVector
+  # Check which variables have been initialized
+  # TODO not sure why forcing to Bool vs BitVector
   isinit::Vector{Bool} = Xi .|> isInitialized .|> Bool
   hyporecipe = _prepareHypoRecipe!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, ccwl.nullhypo )
   

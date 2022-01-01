@@ -16,12 +16,7 @@ import IncrementalInference: LevelSetGridNormal
 ##
 
 @testset "Test SpecialEuclidean(2)" begin
-
 ##
-
-Base.convert(::Type{<:Tuple}, M::SpecialEuclidean{2}) = (:Euclid, :Euclid, :Circular)
-Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialEuclidean{2}})  = (:Euclid, :Euclid, :Circular)
-
 
 M = getManifold(SpecialEuclidean2)
 @test M == SpecialEuclidean(2)
@@ -84,8 +79,9 @@ f = addFactor!(fg, [:x1, :x2], mf)
 ##
 
 #test new error from solvetree
-# smtasks = Task[]
-@test solveTree!(fg; smtasks, verbose=true) isa AbstractBayesTree
+smtasks = Task[]
+result = solveTree!(fg; smtasks, verbose=true)
+@test result isa AbstractBayesTree
 
 
 ## test partial prior issue
@@ -182,10 +178,13 @@ solveTree!(fg; smtasks);
 
 #FIXME this may show some bug in propagateBelief caused by empty factors
 fg.solverParams.useMsgLikelihoods = true
-@test_broken solveTree!(fg; smtasks) isa AbstractBayesTree
+smtasks = Task[]
+result = solveTree!(fg; smtasks); #, recordcliqs=ls(fg))
+@test result isa AbstractBayesTree
 
 ##
 end
+
 
 
 @testset "test deconv on <:AbstractManifoldMinimize" begin
