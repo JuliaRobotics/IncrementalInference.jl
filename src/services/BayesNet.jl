@@ -39,7 +39,7 @@ function getEliminationOrder( dfg::G;
     # hack for dense matrix....
     A = Array(adjMat)
     # this is the default
-    q,r,p = qr(A, Val(true))
+    q,r,p = qr(A, (v"1.7"<=VERSION ? ColumnNorm() : Val(true)) )
     p .= p |> reverse
   elseif ordering==:ccolamd
     cons = zeros(SuiteSparse_long, length(adjMat.colptr) - 1)
