@@ -46,7 +46,11 @@ function assembleConvType(dfgvrs::Vector{<:DFGVariable},
 
   fmd = FactorMetadata(dfgvrs, getLabel.(dfgvrs), vars, :null, nothing)
 
-  CommonConvWrapper(functor,vars[1],zDim,vars, fmd, measurement=([zeros(zDim) for i in 1:N],))
+  tup = tuple(vars...)
+  nms = tuple(factormetadata.variablelist...)
+  p_ntup = NamedTuple{nms,typeof(tup)}(tup)
+
+  CommonConvWrapper(functor,vars[1],zDim, p_ntup, fmd, measurement=([zeros(zDim) for i in 1:N],))
 end
 
 

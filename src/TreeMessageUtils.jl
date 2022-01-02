@@ -315,7 +315,7 @@ function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
           M = getManifold(_sft)
           e0 = identity_element(M)
           pts = exp.(Ref(M), Ref(e0), pred_X)
-          newBel = manikde!(pts, sft)
+          newBel = manikde!(sft, pts)
           # replace dummy factor with real deconv factor using manikde approx belief measurement
           fullFct = _sft(newBel)
           deleteFactor!(tfg, afc.label)

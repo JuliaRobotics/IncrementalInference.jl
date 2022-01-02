@@ -160,6 +160,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
                                   spreadNH::Real=5.0,
                                   inflateCycles::Int=3,
                                   skipSolve::Bool=false,
+                                  testshuffle::Bool=false,
                                   _slack=nothing ) where {N_,F<:AbstractRelative,S,T}
   #
   count = 0
@@ -189,6 +190,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       for iflc in 1:inflateCycles
         addEntropyOnManifold!(mani, addEntr, 1:getDimension(mani), spreadDist, ccwl.partialDims)
         # no calculate new proposal belief on kernels `allelements[count]`
+          _checkErrorCCWNumerics(ccwl, testshuffle)
         skipSolve ? @warn("skipping numerical solve operation") : approxConvOnElements!(ccwl, allelements[count], _slack)
       end
     elseif hypoidx != sfidx && hypoidx != 0
@@ -316,7 +318,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
 
   # Prep computation variables
   # NOTE #1025, should FMD be built here...
-  sfidx, maxlen, mani = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N, needFreshMeasurements=needFreshMeasurements, solveKey=solveKey)
+  sfidx, maxlen, mani = _updateCCW!(ccwl, Xi, solvefor, N, needFreshMeasurements=needFreshMeasurements, solveKey=solveKey)
   # check for user desired measurement values
   if 0 < length(measurement)
     ccwl.measurement = measurement

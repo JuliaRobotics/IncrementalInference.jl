@@ -144,7 +144,7 @@ function setValKDE!(vd::VariableNodeData,
                     ipc::AbstractVector{<:Real}=[0.0;]  ) where P
   # recover variableType information
   varType = getVariableType(vd)
-  p = AMP.manikde!(val, varType)
+  p = AMP.manikde!(varType, val)
   setValKDE!(vd, p, setinit, ipc)
   nothing
 end

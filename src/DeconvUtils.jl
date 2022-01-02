@@ -173,7 +173,7 @@ approxDeconv( dfg::AbstractDFG,
 #
 
 
-approxDeconvBelief(dfg::AbstractDFG, lb::Symbol, w...;kw...) = manikde!(approxDeconv(dfg, lb, w...;kw...)[1], getManifold(getFactorType(dfg, lb)))
+approxDeconvBelief(dfg::AbstractDFG, lb::Symbol, w...;kw...) = manikde!(getManifold(getFactorType(dfg, lb)), approxDeconv(dfg, lb, w...;kw...)[1] )
 
 
 """

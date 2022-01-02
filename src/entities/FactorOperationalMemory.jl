@@ -95,16 +95,16 @@ DevNotes
 """
 mutable struct FactorMetadata{FV<:AbstractVector{<:DFGVariable}, 
                               VL<:AbstractVector{Symbol}, 
-                              AR, # <:AbstractVector{<:AbstractArray} 
+                              AR<:NamedTuple, 
                               CD}
   # full list of Vector{DFGVariable} connected to the factor
   fullvariables::FV # Vector{<:DFGVariable}
   #TODO full variable can perhaps replace this
   variablelist::VL # Vector{Symbol} 
-  # TODO consolidate, same as ARR used in CCW,
-  arrRef::AR # Vector{Matrix{Float64}}
+  # TODO rename/consolidate field in CCW,
+  arrRef::AR
   # label of which variable is being solved for
-  solvefor::Symbol       
+  solvefor::Symbol 
   # for type specific user data, see (? #784)
   cachedata::CD
 end
