@@ -29,7 +29,8 @@ end
 
 ## unpack converters------------------------------------------------------------
 
-# FIXME see #1424
+# FIXME see #1424, this should not be a convert, suggest:
+#  - `reconstituteFactorMemory(dfg::AbstractDFG, vars::AbstractVector{<:DFGVariable}, packed::GenericFunctionNodeData{P})  where {P <: PackedInferenceType}`
 function convert(
             ::Type{GenericFunctionNodeData{CommonConvWrapper{F}}},
             packed::GenericFunctionNodeData{P} ) where {F <: AbstractFactor, P <: PackedInferenceType}
@@ -38,18 +39,23 @@ function convert(
   usrfnc = convert(F, packed.fnc)
   mhcat, nh = parseusermultihypo(packed.multihypo, packed.nullhypo)
 
+  # FIXME, better to do with actual list of variables, not empty, DFG #590, IIF #1424
+  vars = DFG.DFGVariable[]
+  dfg = initfg()
+  userCache = preambleCache(dfg, vars, usrfnc)
+
   # TODO -- improve _prepCCW for hypotheses and certainhypo field recovery when deserializing
   # reconstitute from stored data
   # FIXME, add threadmodel=threadmodel
   # FIXME https://github.com/JuliaRobotics/DistributedFactorGraphs.jl/issues/590#issuecomment-776838053
   # FIXME dont know what manifolds to use in ccw
-  ccw = _prepCCW(DFG.DFGVariable[], usrfnc, multihypo=mhcat, nullhypo=nh, inflation=packed.inflation)
+  ccw = _prepCCW(vars, usrfnc; multihypo=mhcat, nullhypo=nh, inflation=packed.inflation, userCache)
   ccw.certainhypo = packed.certainhypo
-
+  
   # CommonConvWrapper{typeof(usrfnc)}
   ret = FunctionNodeData{typeof(ccw)}(packed.eliminated, packed.potentialused, packed.edgeIDs, ccw,
-                                                            packed.multihypo, packed.certainhypo, packed.nullhypo, 
-                                                            packed.solveInProgress, packed.inflation )
+                                      packed.multihypo, packed.certainhypo, packed.nullhypo, 
+                                      packed.solveInProgress, packed.inflation )
   #
   return ret
 end

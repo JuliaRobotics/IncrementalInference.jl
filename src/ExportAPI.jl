@@ -194,6 +194,7 @@ export
   fifoFreeze!,
 
   #functors need
+  preambleCache,
   getSample,
   sampleFactor!,
   sampleFactor,
