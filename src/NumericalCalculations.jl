@@ -166,7 +166,13 @@ _getindextuple(tup::Tuple, ind1::Int) = [getindex(t, ind1) for t in tup]
 
 # TODO, likely a shortlived function, and should be replaced with ccw.hypoParams::Tuple(hypo1, hypo2,...), made at construction and allows direct hypo lookup
 # DevNotes, also see new `hyporecipe` approach (towards consolidation CCW CPT FMd CF...)
-_view(nt::NamedTuple, idx::AbstractVector{<:Integer}) = tuple([nt[i] for i in idx]...)
+function _view(nt::NamedTuple, idxs::AbstractVector{<:Integer})
+  varParams = tuple([nt[i] for i in idxs]...)
+  tup = tuple(varParams...)
+  nms = keys(nt)[idxs]
+  return NamedTuple{nms,typeof(tup)}(tup)
+  # tuple([nt[i] for i in idxs]...)
+end
 
 function _buildCalcFactorMixture( ccwl::CommonConvWrapper,
                                   _fmd_,
@@ -214,26 +220,29 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
                                       target = view(ccwl.params[ccwl.varidx][smpid], ccwl.partialDims),
                                       measurement_ = ccwl.measurement,
                                       fmd_::FactorMetadata = cpt_.factormetadata;
-                                      _slack=nothing  )
+                                      _slack = nothing  )
   #
 
   # build a view to the decision variable memory
-  varParams = _view(ccwl.params, cpt_.activehypo)
-  
+  varValsHypo = _view(ccwl.params, cpt_.activehypo)
+  # tup = tuple(varParams...)
+  # nms = keys(ccwl.params)[cpt_.activehypo]
+  # varValsHypo = NamedTuple{nms,typeof(tup)}(tup)
+
   # prepare fmd according to hypo selection
   # FIXME must refactor (memory waste) and consolidate with CCW CPT FMd CF
   # FIXME move up out of smpid loop and only update bare minimal fields
   _fmd_ = FactorMetadata( view(fmd_.fullvariables, cpt_.activehypo), 
                           view(fmd_.variablelist, cpt_.activehypo),
-                          varParams, # view(fmd_.arrRef, cpt_.activehypo),
+                          varValsHypo, #varParams, # view(fmd_.arrRef, cpt_.activehypo),
                           fmd_.solvefor,
                           fmd_.cachedata  )
   #
   # get the operational CalcFactor object
-  cf = _buildCalcFactorMixture(ccwl, _fmd_, smpid, measurement_, varParams)
+  cf = _buildCalcFactorMixture(ccwl, _fmd_, smpid, measurement_, varValsHypo)
   # new dev work on CalcFactor
   # cf = CalcFactor(ccwl.usrfnc!, _fmd_, smpid, 
-  #                 length(measurement_), measurement_, varParams)
+  #                 length(measurement_), measurement_, varValsHypo)
   #
 
   # reset the residual vector
@@ -241,13 +250,13 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
 
   # build static lambda
   unrollHypo! = if _slack === nothing
-    () -> cf( measurement_[smpid], (getindex.(varParams, smpid))... )
+    () -> cf( measurement_[smpid], map(vvh->getindex(vvh, smpid), varValsHypo)... )
   else
     # slack is used to shift the residual away from the natural "zero" tension position of a factor, 
     # this is useful when calculating factor gradients at a variety of param locations resulting in "non-zero slack" of the residual.
     # see `IIF.calcFactorResidualTemporary`
     # NOTE this minus operation assumes _slack is either coordinate or tangent vector element (not a manifold or group element)
-    () -> cf( measurement_[smpid], (getindex.(varParams, smpid))... ) .- _slack
+    () -> cf( measurement_[smpid], map(vvh->getindex(vvh, smpid), varValsHypo)... ) .- _slack
   end
 
   return unrollHypo!, target
@@ -366,7 +375,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
     # return nothing
   # end
 
-  # insert result back at the correct variable element location
+  # FIXME insert result back at the correct variable element location
   cpt_.X[smpid] .= retval
   
   nothing

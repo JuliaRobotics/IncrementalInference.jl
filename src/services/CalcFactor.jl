@@ -5,6 +5,7 @@ export calcFactorResidualTemporary
 
 
 getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
+# difficult type piracy case needing both types NoSolverParams and CommonConvWrapper.
 getFactorOperationalMemoryType(dfg::NoSolverParams) = CommonConvWrapper
 
 
@@ -219,7 +220,7 @@ end
 function CommonConvWrapper( fnc::T,
                             X::AbstractVector{P},
                             zDim::Int,
-                            params::AbstractVector{<:AbstractVector{Q}},
+                            params::NamedTuple, #AbstractVector{<:AbstractVector{Q}},
                             factormetadata::FactorMetadata;
                             partial::Bool=false,
                             hypotheses::H=nothing,
@@ -238,10 +239,11 @@ function CommonConvWrapper( fnc::T,
                             vartypes=typeof.(getVariableType.(factormetadata.fullvariables)),
                             gradients=nothing) where {T<:AbstractFactor,P,H,Q}
   #
-  # FIXME, deprecate params::Vector throughout codebase
-  tup = tuple(params...)
-  nms = tuple(factormetadata.variablelist...)
-  p_ntup = NamedTuple{nms,typeof(tup)}(tup)
+  p_ntup = params
+  # # FIXME, deprecate params::Vector throughout codebase
+  # tup = tuple(params...)
+  # nms = tuple(factormetadata.variablelist...)
+  # p_ntup = NamedTuple{nms,typeof(tup)}(tup)
 
   return  CommonConvWrapper(fnc,
                             xDim,
@@ -341,9 +343,13 @@ function _prepParamVec( Xi::Vector{<:DFGVariable},
 
   varTypes = typeof.(getVariableType.(Xi)) # previous need to force unstable, ::Vector{DataType}
 
+  tup = tuple(varParamsAll...)
+  nms = tuple(getLabel.(Xi)...)
+  ntp = NamedTuple{nms,typeof(tup)}(tup)
+
   # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
   # maxlen = N == 0 ? maxlen : N
-  return varParamsAll, maxlen, sfidx, mani, varTypes
+  return ntp, maxlen, sfidx, mani, varTypes
 end
 
 """
@@ -361,6 +367,19 @@ function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
     Int[1:ccwl.xDim...]
   end
   
+  nothing
+end
+
+
+function _updateCPTs!(ccwl, sfidx)
+  for thrid in 1:Threads.nthreads()
+    cpt_ = ccwl.cpt[thrid] 
+    cpt_.X = ccwl.params[sfidx]
+    # used in ccw functor for AbstractRelativeMinimize
+    # TODO JT - Confirm it should be updated here. Testing in _prepCCW
+    resize!(cpt_.res, ccwl.zDim) 
+    fill!(cpt_.res, 0.0)
+  end
   nothing
 end
 
@@ -401,28 +420,27 @@ Notes
 """
 function _prepCCW(Xi::Vector{<:DFGVariable},
                   usrfnc::T;
-                  multihypo::Union{Nothing, Distributions.Categorical}=nothing,
+                  multihypo::Union{Nothing, <:Distributions.Categorical}=nothing,
                   nullhypo::Real=0.0,
-                  threadmodel=MultiThreaded,
                   inflation::Real=0.0,
+                  solveKey::Symbol=:default,
+                  threadmodel=MultiThreaded,
                   _blockRecursion::Bool=false  ) where {T <: AbstractFactor}
   #
   length(Xi) !== 0 ? nothing : @debug("cannot prep ccw.param list with length(Xi)==0, see DFG #590")
   
-  # FIXME stop using Any, see #1321
-  vecPtsArr, maxlen, sfidx, mani, varTypes = _prepParamVec( Xi, nothing, 0 ) # Nothing for init.
-  
-  # varTypes::Vector{DataType} = typeof.(getVariableType.(Xi))
-  
+  # TODO check no Anys, see #1321
+  _varValsQuick, maxlen, sfidx, mani, varTypes = _prepParamVec( Xi, nothing, 0; solveKey ) # Nothing for init.
+
   # standard factor metadata
   sflbl = 0 == length(Xi) ? :null : getLabel(Xi[end])
   lbs = getLabel.(Xi)
-  fmd = FactorMetadata(Xi, lbs, vecPtsArr, sflbl, nothing)
+  fmd = FactorMetadata(Xi, lbs, _varValsQuick, sflbl, nothing)
   
   # create a temporary CalcFactor object for extracting the first sample
   # TODO, deprecate this:  guess measurement points type
   # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
-  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, vecPtsArr, false)
+  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, _varValsQuick, false)
   
   # get a measurement sample
   meas_single = sampleFactor(_cf, 1)[1]
@@ -431,56 +449,43 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
   measurement = Vector{typeof(meas_single)}()
   
   # get the measurement dimension
-  zdim = calcZDim(_cf)
   # some hypo resolution
   certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   
   # partialDims are sensitive to both which solvefor variable index and whether the factor is partial
-  ispartl = hasfield(T, :partial)
-  partialDims = if ispartl
+  partial = hasfield(T, :partial)
+  partialDims = if partial
     Int[usrfnc.partial...]
   else
     Int[]
   end
 
   # as per struct CommonConvWrapper
-  gradients = attemptGradientPrep( varTypes, usrfnc, vecPtsArr, multihypo, meas_single, _blockRecursion )
+  gradients = attemptGradientPrep( varTypes, usrfnc, _varValsQuick, multihypo, meas_single, _blockRecursion )
 
+  # variable Types
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
 
-  ccw = CommonConvWrapper(
+  return CommonConvWrapper(
           usrfnc,
           PointType[],
-          zdim,
-          vecPtsArr,
+          calcZDim(_cf),
+          _varValsQuick,
           fmd;
-          partial = ispartl,
+          partial,
           measurement,
           hypotheses = multihypo,
-          certainhypo = certainhypo,
-          nullhypo = nullhypo,
-          threadmodel = threadmodel,
-          inflation = inflation,
-          partialDims = partialDims,
+          certainhypo,
+          nullhypo,
+          threadmodel,
+          inflation,
+          partialDims,
           vartypes = varTypes,
-          gradients = gradients
+          gradients,
         )
-  #
-  return ccw
 end
 
-function _updateCPTs!(ccwl, sfidx)
-  for thrid in 1:Threads.nthreads()
-    cpt_ = ccwl.cpt[thrid] 
-    cpt_.X = ccwl.params[sfidx]
-    # used in ccw functor for AbstractRelativeMinimize
-    # TODO JT - Confirm it should be updated here. Testing in _prepCCW
-    resize!(cpt_.res, ccwl.zDim) 
-    fill!(cpt_.res, 0.0)
-  end
-  nothing
-end
 
 """
     $(SIGNATURES)
@@ -504,7 +509,7 @@ function _updateCCW!( F_::Type{<:AbstractRelative},
   
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
-  vecPtsArr, maxlen, sfidx, mani, varTypes = _prepParamVec( Xi, solvefor, N, solveKey=solveKey)
+  _varValsQuick, maxlen, sfidx, mani, varTypes = _prepParamVec( Xi, solvefor, N; solveKey)
   
   # some better consolidate is needed
   ccwl.vartypes = varTypes
@@ -514,9 +519,10 @@ function _updateCCW!( F_::Type{<:AbstractRelative},
   
   # SHOULD WE SLICE ARR DOWN BY PARTIAL DIMS HERE (OR LATER)?
   # FIXME refactor new type higher up.
-  tup = tuple(vecPtsArr...)
-  nms = tuple(getLabel.(Xi)...)
-  ccwl.params = NamedTuple{nms,typeof(tup)}(tup)
+  # tup = tuple(_varValsQuick...)
+  # nms = tuple(getLabel.(Xi)...)
+  # ntp = NamedTuple{nms,typeof(tup)}(tup)
+  ccwl.params = _varValsQuick
   
   # setup the partial or complete decision variable dimensions for this ccwl object
   # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
@@ -527,8 +533,11 @@ function _updateCCW!( F_::Type{<:AbstractRelative},
   # TODO consolidate with ccwl??
   # FIXME do not divert Mixture for sampling
   cf = CalcFactor(ccwl; _allowThreads=true)
+  
   # cache the measurement dimension
-  ccwl.zDim = calcZDim( cf )  # CalcFactor(ccwl) )
+  @assert ccwl.zDim == calcZDim( cf ) "refactoring in progress, cannot drop assignment ccwl.zDim:$(ccwl.zDim) = calcZDim( cf ):$(calcZDim( cf ))"
+  # ccwl.zDim = calcZDim( cf )  # CalcFactor(ccwl) )
+
   # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
   ccwl.varidx = sfidx
   
