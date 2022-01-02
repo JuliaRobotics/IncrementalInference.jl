@@ -8,7 +8,7 @@ function _checkErrorCCWNumerics(ccwl::Union{CommonConvWrapper{F},CommonConvWrapp
                                 testshuffle::Bool=false)  where {N_,F<:AbstractRelativeRoots,S,T}
   #
   # @info "ccwl zDim and xDim" ccwl.zDim ccwl.xDim
-  if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle || ccwl.partial
+  if testshuffle || ccwl.partial || (!ccwl.partial && ccwl.zDim < ccwl.xDim)
     error("<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.")
   elseif !( ccwl.zDim >= ccwl.xDim && !ccwl.partial )
     error("Unresolved numeric <:AbstractRelativeRoots solve case")
@@ -277,11 +277,9 @@ DevNotes
 function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
                                         CommonConvWrapper{Mixture{N_,F,S,T}}};
                             perturb::Real=1e-10,
-                            testshuffle::Bool=false,
+                            # testshuffle::Bool=false,
                             _slack=nothing  ) where {N_,F<:AbstractRelative,S,T}
   #
-    # FIXME, move this check higher and out of smpid loop
-  _checkErrorCCWNumerics(ccwl, testshuffle)
 
   #
   thrid = Threads.threadid()
@@ -327,11 +325,11 @@ end
 function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
                                         CommonConvWrapper{Mixture{N_,F,S,T}}};
                             perturb::Real=1e-10,
-                            testshuffle::Bool=false,
+                            # testshuffle::Bool=false,
                             _slack=nothing  ) where {N_,F<:AbstractManifoldMinimize,S,T}
   #
-    # FIXME, move this check higher and out of smpid loop
-  _checkErrorCCWNumerics(ccwl, testshuffle)
+  #   # FIXME, move this check higher and out of smpid loop
+  # _checkErrorCCWNumerics(ccwl, testshuffle)
 
   #
   thrid = Threads.threadid()
