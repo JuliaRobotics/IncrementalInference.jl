@@ -31,9 +31,11 @@ end
 
 # FIXME see #1424, this should not be a convert, suggest:
 #  - `reconstituteFactorMemory(dfg::AbstractDFG, vars::AbstractVector{<:DFGVariable}, packed::GenericFunctionNodeData{P})  where {P <: PackedInferenceType}`
-function convert(
+function reconstFactorData(
+            dfg::AbstractDFG,
+            varOrder::AbstractVector{Symbol},
             ::Type{GenericFunctionNodeData{CommonConvWrapper{F}}},
-            packed::GenericFunctionNodeData{P} ) where {F <: AbstractFactor, P <: PackedInferenceType}
+            packed::GenericFunctionNodeData{P}  ) where {F <: AbstractFactor, P <: PackedInferenceType}
   #
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
   usrfnc = convert(F, packed.fnc)
@@ -43,7 +45,7 @@ function convert(
   vars = DFG.DFGVariable[]
   dfg = initfg()
   userCache = preambleCache(dfg, vars, usrfnc)
-
+  
   # TODO -- improve _prepCCW for hypotheses and certainhypo field recovery when deserializing
   # reconstitute from stored data
   # FIXME, add threadmodel=threadmodel
