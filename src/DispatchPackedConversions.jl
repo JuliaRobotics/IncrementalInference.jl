@@ -42,8 +42,8 @@ function reconstFactorData(
   mhcat, nh = parseusermultihypo(packed.multihypo, packed.nullhypo)
 
   # FIXME, better to do with actual list of variables, not empty, DFG #590, IIF #1424
-  vars = DFG.DFGVariable[]
-  dfg = initfg()
+  vars = map(f->getVariable(dfg, f), varOrder) # DFG.DFGVariable[]
+  # dfg = initfg()
   userCache = preambleCache(dfg, vars, usrfnc)
   
   # TODO -- improve _prepCCW for hypotheses and certainhypo field recovery when deserializing

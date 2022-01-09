@@ -146,7 +146,7 @@ end
 
 topack = getSolverData(getFactor(fg,:x1f1))
 dd = convert(PackedFunctionNodeData{PackedDevelopPrior},topack)
-unpacked = convert(FunctionNodeData{CommonConvWrapper{DevelopPrior}},dd)
+unpacked = reconstFactorData(fg, [:x1;], FunctionNodeData{CommonConvWrapper{DevelopPrior}},dd)
 
 @test abs(IIF._getCCW(unpacked).usrfnc!.x.μ - 10.0) < 1e-10
 @test abs(IIF._getCCW(unpacked).usrfnc!.x.σ - 1.0) < 1e-10
@@ -156,7 +156,7 @@ fct = getFactor(fg, :x2x3x4f1)
 # @show typeof(fct)
 topack = getSolverData(fct) # f3
 dd = convert(PackedFunctionNodeData{PackedDevelopLikelihood},topack)
-unpacked = convert(FunctionNodeData{CommonConvWrapper{DevelopLikelihood}},dd)
+unpacked = reconstFactorData(fg, [:x2;:x3;:x4], FunctionNodeData{CommonConvWrapper{DevelopLikelihood}},dd)
 
 # @test IIF._getCCW(unpacked).hypoverts == Symbol[:x3; :x4]
 @test sum(abs.(IIF._getCCW(unpacked).hypotheses.p[1] .- 0.0)) < 0.1
