@@ -117,6 +117,27 @@ end
 
 
 
+@testset "Packing for AliasingScalarSampler" begin
+##
+
+bss = AliasingScalarSampler([1.0;2.0], [0.6;0.4])
+packed = packDistribution(bss)
+
+@test packed isa PackedSamplableBelief
+@test packed isa IncrementalInference.PackedAliasingScalarSampler
+
+upck = unpackDistribution(packed)
+
+@test upck isa AliasingScalarSampler
+@test isapprox( bss.domain, upck.domain )
+@test isapprox( bss.weights.values, upck.weights.values )
+@test isapprox( bss.weights.sum, upck.weights.sum )
+
+##
+end
+
+
+
 
 
 #

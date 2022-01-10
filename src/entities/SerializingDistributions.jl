@@ -56,7 +56,9 @@ end
 
 
 Base.@kwdef struct PackedAliasingScalarSampler <: PackedSamplableBelief
-  _type::String        = "IncrementalInference.PackedAliasingScalarSampler"
+  _type::String           = "IncrementalInference.PackedAliasingScalarSampler"
+  domain::Vector{Float64} = [0;1.0;]
+  weights::Vector{Float64}= [0.5;0.5;]
 end
 
 

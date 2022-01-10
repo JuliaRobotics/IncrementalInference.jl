@@ -9,6 +9,9 @@ packDistribution(dtr::ZeroMeanFullNormal) = PackedZeroMeanFullNormal(; cov=dtr.�
 packDistribution(dtr::DiagNormal) = PackedDiagNormal(; mu=dtr.μ, diag=dtr.Σ.diag )
 packDistribution(dtr::FullNormal) = PackedFullNormal(; mu=dtr.μ, cov=dtr.Σ.mat )
 
+packDistribution(dtr::AliasingScalarSampler) = PackedAliasingScalarSampler(; domain=dtr.domain, weights=dtr.weights.values )
+
+
 unpackDistribution(dtr::PackedCategorical) = Categorical( dtr.p ./ sum(dtr.p) )
 unpackDistribution(dtr::PackedUniform) = Uniform(dtr.a, dtr.b )
 unpackDistribution(dtr::PackedNormal) = Normal( dtr.mu, dtr.sigma )
@@ -16,6 +19,8 @@ unpackDistribution(dtr::PackedZeroMeanDiagNormal) = MvNormal( sqrt.(dtr.diag) )
 unpackDistribution(dtr::PackedZeroMeanFullNormal) = MvNormal( dtr.cov )
 unpackDistribution(dtr::PackedDiagNormal) = MvNormal( dtr.mu, sqrt.(dtr.diag) )
 unpackDistribution(dtr::PackedFullNormal) = MvNormal( dtr.mu, dtr.cov )
+
+unpackDistribution(dtr::PackedAliasingScalarSampler) = AliasingScalarSampler( dtr.domain, dtr.weights ./ sum(dtr.weights) )
 
 
 
