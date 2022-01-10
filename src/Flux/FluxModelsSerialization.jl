@@ -61,8 +61,7 @@ function _deserializeFluxDataBase64(sdata::AbstractString)
 end
 
 
-function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedFluxModelsDistribution}}, 
-                  obj::FluxModelsDistribution)
+function packDistribution(obj::FluxModelsDistribution)
   #
 
     # and the specialSampler function -- likely to be deprecated
@@ -89,17 +88,25 @@ function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedFluxModelsD
   mimeTypeModel = "application/bson/octet-stream/base64"
   
   # and build the JSON-able object
-  packed = PackedFluxModelsDistribution(inputDim, 
-                                        outputDim, 
-                                        mimeTypeModel,
-                                        models, 
-                                        mimeTypeData,
-                                        sdata, 
-                                        obj.shuffle[], 
-                                        obj.serializeHollow[], 
-                                        # specialSampler,
-                                        "IncrementalInference.PackedFluxModelsDistribution" )
+  return PackedFluxModelsDistribution(inputDim, 
+                                      outputDim, 
+                                      mimeTypeModel,
+                                      models, 
+                                      mimeTypeData,
+                                      sdata, 
+                                      obj.shuffle[], 
+                                      obj.serializeHollow[], 
+                                      "IncrementalInference.PackedFluxModelsDistribution" )
   #
+end
+
+
+function Base.convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedFluxModelsDistribution}}, 
+                      obj::FluxModelsDistribution)
+  #
+  packed = packDistribution(obj)
+
+  # FIXME ON FIRE, should not return a string!!!!
   return JSON2.write(packed)
 end
 

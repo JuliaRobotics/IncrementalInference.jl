@@ -298,7 +298,7 @@ export Circular, Circle
 
 # serializing distributions
 export packDistribution, unpackDistribution
-export PackedCategorical, PackedDiscreteNonParametric
+export PackedCategorical #, PackedDiscreteNonParametric
 export PackedUniform, PackedNormal
 export PackedZeroMeanDiagNormal, PackedZeroMeanFullNormal, PackedDiagNormal, PackedFullNormal
 # export MvNormal

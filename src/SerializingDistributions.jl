@@ -1,7 +1,7 @@
 
 
 
-
+packDistribution(dtr::Categorical) = PackedCategorical(; p=dtr.p )
 packDistribution(dtr::Uniform) = PackedUniform(; a=dtr.a, b=dtr.b )
 packDistribution(dtr::Normal) = PackedNormal(; mu=dtr.μ, sigma=dtr.σ )
 packDistribution(dtr::ZeroMeanDiagNormal) = PackedZeroMeanDiagNormal(; diag=dtr.Σ.diag )
@@ -9,7 +9,7 @@ packDistribution(dtr::ZeroMeanFullNormal) = PackedZeroMeanFullNormal(; cov=dtr.�
 packDistribution(dtr::DiagNormal) = PackedDiagNormal(; mu=dtr.μ, diag=dtr.Σ.diag )
 packDistribution(dtr::FullNormal) = PackedFullNormal(; mu=dtr.μ, cov=dtr.Σ.mat )
 
-
+unpackDistribution(dtr::PackedCategorical) = Categorical( dtr.p ./ sum(dtr.p) )
 unpackDistribution(dtr::PackedUniform) = Uniform(dtr.a, dtr.b )
 unpackDistribution(dtr::PackedNormal) = Normal( dtr.mu, dtr.sigma )
 unpackDistribution(dtr::PackedZeroMeanDiagNormal) = MvNormal( sqrt.(dtr.diag) )
@@ -24,15 +24,14 @@ unpackDistribution(dtr::PackedFullNormal) = MvNormal( dtr.mu, dtr.cov )
 # end
 
 function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedUniform}},
-                  obj::Distributions.Uniform)
+                  obj::Distributions.Uniform )
   #
-  packed = PackedUniform(obj.a, obj.b, 
-                        "IncrementalInference.PackedUniform")
+  packed = PackedUniform(; a=obj.a, b=obj.b )
   #
   return JSON2.write(packed)
 end
 
-convert(::Type{<:SamplableBelief}, obj::PackedUniform) = return Uniform(obj.a, obj.b)
+convert(::Type{<:SamplableBelief}, obj::PackedUniform) = Uniform(obj.a, obj.b)
 
 
 # NOTE SEE EXAMPLE IN src/Flux/FluxModelsSerialization.jl
@@ -93,6 +92,9 @@ end
 
 # FIXME DEPRECATE TO BETTER JSON with ._type field STANDARD
 function convert(::Type{<:PackedSamplableBelief}, obj::SamplableBelief)
+  # FIXME, prep for switch
+  packDistribution(obj)
+  
   # FIXME must use string, because unpacking templated e.g. PackedType{T} has problems, see DFG #668
   string(obj)
 end

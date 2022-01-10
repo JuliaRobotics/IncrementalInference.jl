@@ -6,6 +6,25 @@ using Test
 
 ##
 
+@testset "Packing Categorical" begin
+##
+
+ctg = Categorical(5)
+
+packed = packDistribution(ctg)
+
+@test packed isa PackedSamplableBelief
+@test packed isa IncrementalInference.PackedCategorical
+
+upck = unpackDistribution(packed)
+
+@test upck isa Categorical
+@test isapprox(ctg, upck)
+
+##
+end
+
+
 @testset "Packing Normal" begin
 ##
 

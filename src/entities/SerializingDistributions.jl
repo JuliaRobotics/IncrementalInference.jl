@@ -5,12 +5,13 @@ StringThemSamplableBeliefs = Union{Normal, MvNormal, ZeroMeanDiagNormal, Categor
 
 Base.@kwdef struct PackedCategorical <: PackedSamplableBelief
   _type::String        = "IncrementalInference.PackedCategorical"
+  p::Vector{Float64}   = [1.0;]
 end
 
 
-Base.@kwdef struct PackedDiscreteNonParametric <: PackedSamplableBelief
-  _type::String        = "IncrementalInference.PackedDiscreteNonParametric"
-end
+# Base.@kwdef struct PackedDiscreteNonParametric <: PackedSamplableBelief
+#   _type::String        = "IncrementalInference.PackedDiscreteNonParametric"
+# end
 
 
 Base.@kwdef mutable struct PackedUniform <: PackedSamplableBelief
