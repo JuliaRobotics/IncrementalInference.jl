@@ -300,7 +300,7 @@ export Circular, Circle
 export packDistribution, unpackDistribution
 export PackedCategorical, PackedDiscreteNonParametric
 export PackedUniform, PackedNormal
-export ZeroMeanDiagNormal, ZeroMeanFullNormal, DiagNormal, FullNormal
+export PackedZeroMeanDiagNormal, PackedZeroMeanFullNormal, PackedDiagNormal, PackedFullNormal
 # export MvNormal
 
 export sampleTangent

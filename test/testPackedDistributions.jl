@@ -18,28 +18,86 @@ packed = packDistribution(nor)
 
 upck = unpackDistribution(packed)
 
+@test upck isa Normal
 @test isapprox(nor, upck)
 
 ##
 end
 
 
-@testset "Packing for MvNormal" begin
+@testset "Packing for FullNormal" begin
 ##
 
-
 mv = MvNormal([0.0;1.0], [1 0.1; 0.1 1])
-# FullNormal(
-#   dim: 2
-#   μ: [0.0, 1.0]
-#   Σ: [1.0 0.1; 0.1 1.0]
-# )
+packed = packDistribution(mv)
 
+@test packed isa PackedSamplableBelief
+@test packed isa PackedFullNormal
 
+upck = unpackDistribution(packed)
 
+@test upck isa FullNormal
+@test isapprox(mv, upck)
 
 ##
 end
+
+
+@testset "Packing for DiagNormal" begin
+##
+
+mv = MvNormal([0.0; 1.0], [4.0; 4.0])
+packed = packDistribution(mv)
+
+@test packed isa PackedSamplableBelief
+@test packed isa PackedDiagNormal
+
+upck = unpackDistribution(packed)
+
+@test upck isa DiagNormal
+@test isapprox(mv, upck)
+
+##
+end
+
+@testset "Packing for ZeroMeanFullNormal" begin
+##
+
+mv = MvNormal([1 0.1; 0.1 1])
+packed = packDistribution(mv)
+
+@test packed isa PackedSamplableBelief
+@test packed isa PackedZeroMeanFullNormal
+
+upck = unpackDistribution(packed)
+
+@test upck isa ZeroMeanFullNormal
+@test isapprox(mv, upck)
+
+##
+end
+
+
+@testset "Packing for ZeroMeanDiagNormal" begin
+##
+
+mv = MvNormal([4.0;4.0])
+packed = packDistribution(mv)
+
+@test packed isa PackedSamplableBelief
+@test packed isa PackedZeroMeanDiagNormal
+
+upck = unpackDistribution(packed)
+
+@test upck isa ZeroMeanDiagNormal
+@test isapprox( mv.Σ.diag, upck.Σ.diag )
+# @test isapprox(mv, upck)
+
+##
+end
+
+
+
 
 
 #

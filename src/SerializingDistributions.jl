@@ -12,9 +12,9 @@ packDistribution(dtr::FullNormal) = PackedFullNormal(; mu=dtr.μ, cov=dtr.Σ.mat
 
 unpackDistribution(dtr::PackedUniform) = Uniform(dtr.a, dtr.b )
 unpackDistribution(dtr::PackedNormal) = Normal( dtr.mu, dtr.sigma )
-unpackDistribution(dtr::PackedZeroMeanDiagNormal) = MvNormal( dtr.diag )
+unpackDistribution(dtr::PackedZeroMeanDiagNormal) = MvNormal( sqrt.(dtr.diag) )
 unpackDistribution(dtr::PackedZeroMeanFullNormal) = MvNormal( dtr.cov )
-unpackDistribution(dtr::PackedDiagNormal) = MvNormal( dtr.mu, dtr.diag )
+unpackDistribution(dtr::PackedDiagNormal) = MvNormal( dtr.mu, sqrt.(dtr.diag) )
 unpackDistribution(dtr::PackedFullNormal) = MvNormal( dtr.mu, dtr.cov )
 
 
