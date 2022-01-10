@@ -296,7 +296,12 @@ export ContinuousScalar
 export ContinuousEuclid
 export Circular, Circle
 
-export PackedUniform, PackedMvNormal
+# serializing distributions
+export packDistribution, unpackDistribution
+export PackedCategorical, PackedDiscreteNonParametric
+export PackedUniform, PackedNormal
+export ZeroMeanDiagNormal, ZeroMeanFullNormal, DiagNormal, FullNormal
+# export MvNormal
 
 export sampleTangent
 export samplePoint

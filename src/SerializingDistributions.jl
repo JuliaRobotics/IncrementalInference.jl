@@ -1,13 +1,29 @@
 
 
 
-mutable struct PackedUniform <: PackedSamplableBelief
-  a::Float64
-  b::Float64
-  PackedSamplableTypeJSON::String
-end
 
-function convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedUniform}},
+packDistribution(dtr::Uniform) = PackedUniform(; a=dtr.a, b=dtr.b )
+packDistribution(dtr::Normal) = PackedNormal(; mu=dtr.μ, sigma=dtr.σ )
+packDistribution(dtr::ZeroMeanDiagNormal) = PackedZeroMeanDiagNormal(; diag=dtr.Σ.diag )
+packDistribution(dtr::ZeroMeanFullNormal) = PackedZeroMeanFullNormal(; cov=dtr.Σ.mat )
+packDistribution(dtr::DiagNormal) = PackedDiagNormal(; mu=dtr.μ, diag=dtr.Σ.diag )
+packDistribution(dtr::FullNormal) = PackedFullNormal(; mu=dtr.μ, cov=dtr.Σ.mat )
+
+
+unpackDistribution(dtr::PackedUniform) = Uniform(dtr.a, dtr.b )
+unpackDistribution(dtr::PackedNormal) = Normal( dtr.mu, dtr.sigma )
+unpackDistribution(dtr::PackedZeroMeanDiagNormal) = MvNormal( dtr.diag )
+unpackDistribution(dtr::PackedZeroMeanFullNormal) = MvNormal( dtr.cov )
+unpackDistribution(dtr::PackedDiagNormal) = MvNormal( dtr.mu, dtr.diag )
+unpackDistribution(dtr::PackedFullNormal) = MvNormal( dtr.mu, dtr.cov )
+
+
+
+# function convert(::Type{<:PackedSamplableBelief}, obj::Distributions.Distribution)
+  
+# end
+
+function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedUniform}},
                   obj::Distributions.Uniform)
   #
   packed = PackedUniform(obj.a, obj.b, 
@@ -17,13 +33,6 @@ function convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedUniform}},
 end
 
 convert(::Type{<:SamplableBelief}, obj::PackedUniform) = return Uniform(obj.a, obj.b)
-
-# FIXME complete v0.X.0
-mutable struct PackedMvNormal <: PackedSamplableBelief
-  _type::String
-  mu::Vector{Float64}
-  cov::Vector{Float64}
-end
 
 
 # NOTE SEE EXAMPLE IN src/Flux/FluxModelsSerialization.jl
@@ -42,7 +51,6 @@ end
 
 # NOTE part of new effort to overhaul the SamplableBelief serialization approach
 # maybe it all becomes a JSON struct sort of thing in the long run.
-StringThemSamplableBeliefs = Union{Normal, MvNormal, ZeroMeanDiagNormal, Categorical, DiscreteNonParametric, BallTreeDensity, ManifoldKernelDensity, AliasingScalarSampler}
 convert(::Type{<:PackedSamplableBelief}, obj::StringThemSamplableBeliefs) = string(obj)
 
 

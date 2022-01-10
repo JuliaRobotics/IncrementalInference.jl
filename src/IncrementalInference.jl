@@ -139,6 +139,9 @@ include("entities/JunctionTreeTypes.jl")
 include("services/GraphInit.jl")
 include("FactorGraph.jl")
 include("services/BayesNet.jl")
+
+# Serialization helpers
+include("entities/SerializingDistributions.jl")
 include("SerializingDistributions.jl")
 include("SerializationMKD.jl")
 include("DispatchPackedConversions.jl")
