@@ -68,13 +68,13 @@ f2 = addFactor!(fg, [:x1; :x2], lc)
 
 topack = getSolverData(f1)
 dd = convert(PackedFunctionNodeData{PackedPrior},topack)
-upd = convert(FunctionNodeData{CommonConvWrapper{Prior}}, dd)
+upd = reconstFactorData(fg, [:x1;], FunctionNodeData{CommonConvWrapper{Prior}}, dd)
 
 @test compare(topack, upd)
 
 topack = getSolverData(f2)
 dd =  convert(IncrementalInference.PackedFunctionNodeData{PackedLinearRelative},topack)
-upd = convert(IncrementalInference.FunctionNodeData{CommonConvWrapper{LinearRelative}}, dd)
+upd = reconstFactorData(fg, [:x1;:x2], IncrementalInference.FunctionNodeData{CommonConvWrapper{LinearRelative}}, dd)
 
 @test compare(topack, upd)
 

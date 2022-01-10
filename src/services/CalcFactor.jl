@@ -216,16 +216,15 @@ function ConvPerThread( X::AbstractVector{P},
 end
 
 
-
-function CommonConvWrapper( fnc::T,
+function CommonConvWrapper( usrfnc::T,
                             X::AbstractVector{P},
                             zDim::Int,
-                            params::NamedTuple, #AbstractVector{<:AbstractVector{Q}},
+                            varValsLink::NamedTuple,
                             factormetadata::FactorMetadata;
                             partial::Bool=false,
                             hypotheses::H=nothing,
                             certainhypo=nothing,
-                            activehypo= 1:length(params),
+                            activehypo= 1:length(varValsLink),
                             nullhypo::Real=0,
                             varidx::Int=1,
                             measurement::AbstractVector=Vector(Vector{Float64}(),),
@@ -237,22 +236,18 @@ function CommonConvWrapper( fnc::T,
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
                             inflation::Real=3.0,
                             vartypes=typeof.(getVariableType.(factormetadata.fullvariables)),
-                            gradients=nothing) where {T<:AbstractFactor,P,H,Q}
+                            gradients=nothing,
+                            userCache::CT = nothing ) where {T<:AbstractFactor,P,H,CT}
   #
-  p_ntup = params
-  # # FIXME, deprecate params::Vector throughout codebase
-  # tup = tuple(params...)
-  # nms = tuple(factormetadata.variablelist...)
-  # p_ntup = NamedTuple{nms,typeof(tup)}(tup)
 
-  return  CommonConvWrapper(fnc,
+  return  CommonConvWrapper(usrfnc,
                             xDim,
                             zDim,
                             partial,
                             hypotheses,
                             certainhypo,
                             Float64(nullhypo),
-                            p_ntup, # params,
+                            varValsLink,
                             varidx,
                             measurement,
                             threadmodel,
@@ -262,7 +257,8 @@ function CommonConvWrapper( fnc::T,
                             inflation,
                             partialDims,
                             DataType[vartypes...],
-                            gradients)
+                            gradients,
+                            userCache )
 end
 
 
@@ -425,7 +421,8 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
                   inflation::Real=0.0,
                   solveKey::Symbol=:default,
                   threadmodel=MultiThreaded,
-                  _blockRecursion::Bool=false  ) where {T <: AbstractFactor}
+                  _blockRecursion::Bool=false,
+                  userCache::CT = nothing  ) where {T <: AbstractFactor, CT}
   #
   length(Xi) !== 0 ? nothing : @debug("cannot prep ccw.param list with length(Xi)==0, see DFG #590")
   
@@ -483,6 +480,7 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
           partialDims,
           vartypes = varTypes,
           gradients,
+          userCache
         )
 end
 
@@ -511,18 +509,13 @@ function _updateCCW!( F_::Type{<:AbstractRelative},
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
   _varValsQuick, maxlen, sfidx, mani, varTypes = _prepParamVec( Xi, solvefor, N; solveKey)
   
+  # NOTE should be selecting for the correct multihypothesis mode
+  ccwl.params = _varValsQuick
   # some better consolidate is needed
   ccwl.vartypes = varTypes
   # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
   ccwl.xDim = getDimension(getVariableType(Xi[sfidx]))
-  # TODO should be selecting for the correct multihypothesis mode
-  
-  # SHOULD WE SLICE ARR DOWN BY PARTIAL DIMS HERE (OR LATER)?
-  # FIXME refactor new type higher up.
-  # tup = tuple(_varValsQuick...)
-  # nms = tuple(getLabel.(Xi)...)
-  # ntp = NamedTuple{nms,typeof(tup)}(tup)
-  ccwl.params = _varValsQuick
+  # TODO maybe refactor new type higher up?
   
   # setup the partial or complete decision variable dimensions for this ccwl object
   # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
