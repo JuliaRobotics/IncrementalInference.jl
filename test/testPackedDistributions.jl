@@ -139,5 +139,28 @@ end
 
 
 
+@testset "Packing for ManifoldKernelDensity" begin
+##
+
+T = ContinuousEuclid{2}
+pts = [randn(2) for _ in 1:50]
+
+mkd = manikde!(T, pts)
+packed = packDistribution(mkd)
+
+@test packed isa PackedSamplableBelief
+@test packed isa IncrementalInference.PackedManifoldKernelDensity
+
+upck = unpackDistribution(packed)
+
+@test upck isa ManifoldKernelDensity
+
+@test isapprox(mkd, upck)
+
+##
+end
+
+
+
 
 #

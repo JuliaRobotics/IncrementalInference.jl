@@ -301,8 +301,8 @@ export packDistribution, unpackDistribution
 export PackedCategorical #, PackedDiscreteNonParametric
 export PackedUniform, PackedNormal
 export PackedZeroMeanDiagNormal, PackedZeroMeanFullNormal, PackedDiagNormal, PackedFullNormal
-export PackedAliasingScalarSampler
-# export MvNormal
+export PackedManifoldKernelDensity
+export PackedAliasingScalarSampler, PackedHeatmapGridDensity, PackedLevelSetGridNormal
 
 export sampleTangent
 export samplePoint

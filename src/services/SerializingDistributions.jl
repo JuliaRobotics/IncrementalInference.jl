@@ -1,5 +1,5 @@
 
-## Pack Distributions to JSON/Packed types
+## Distributions to JSON/Packed types
 
 packDistribution(dtr::Categorical) = PackedCategorical(; p=dtr.p )
 packDistribution(dtr::Uniform) = PackedUniform(; a=dtr.a, b=dtr.b )
@@ -34,7 +34,7 @@ packDistribution(dtr::LevelSetGridNormal) = PackedLevelSetGridNormal( "Increment
 #
 
 
-## Unpack distribution JSON/Packed types
+## Unpack JSON/Packed to Distribution types
 
 unpackDistribution(dtr::PackedCategorical) = Categorical( dtr.p ./ sum(dtr.p) )
 unpackDistribution(dtr::PackedUniform) = Uniform(dtr.a, dtr.b )
@@ -75,53 +75,29 @@ unpackDistribution(dtr::PackedLevelSetGridNormal) = LevelSetGridNormal( dtr.leve
 ## ===========================================================================================
 
 
-# function convert(::Type{<:PackedSamplableBelief}, obj::Distributions.Distribution)
-  
+# NOTE part of new effort to overhaul the SamplableBelief serialization approach
+convert(::Type{<:PackedSamplableBelief}, obj::StringThemSamplableBeliefs) = packDistribution(obj)
+convert(::Type{<:SamplableBelief}, obj::PackedSamplableBelief) = unpackDistribution(obj)
+
+
+# function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedUniform}},
+#                   obj::Distributions.Uniform )
+#   #
+#   packed = packDistribution(obj)
+
+#   # FIXME remove JSON writing here! 
+#   return JSON2.write(packed)
 # end
 
 
-function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedUniform}},
-                  obj::Distributions.Uniform )
-  #
-  packed = packDistribution(obj)
-
-  # FIXME remove JSON writing here! 
-  return JSON2.write(packed)
-end
-
-
-# NOTE part of new effort to overhaul the SamplableBelief serialization approach
-# maybe it all becomes a JSON struct sort of thing in the long run.
-# convert(::Type{<:PackedSamplableBelief}, obj::StringThemSamplableBeliefs) = string(obj)
-
-
-# FIXME DEPRECATE TO BETTER JSON with ._type field STANDARD
-function convert(::Type{<:PackedSamplableBelief}, obj::SamplableBelief)
-  # FIXME, prep for switch
-  packDistribution(obj)
+# # FIXME DEPRECATE TO BETTER JSON with ._type field STANDARD
+# function convert(::Type{<:PackedSamplableBelief}, obj::SamplableBelief)
+#   # FIXME, prep for switch
+#   packDistribution(obj)
   
-  # FIXME must use string, because unpacking templated e.g. PackedType{T} has problems, see DFG #668
-  string(obj)
-end
-
-
-convert(::Union{Type{<:SamplableBelief},Type{<:HeatmapGridDensity}},
-        obj::PackedHeatmapGridDensity) = unpackDistribution(obj)
-
-
-
-convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedHeatmapGridDensity}}, 
-        obj::HeatmapGridDensity ) = packDistribution(obj)
-#
-
-convert(::Union{Type{<:SamplableBelief},Type{<:LevelSetGridNormal}}, 
-        obj::PackedLevelSetGridNormal) = unpackDistribution(obj)
-
-
-convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedLevelSetGridNormal}}, 
-        obj::LevelSetGridNormal) = packDistribution(obj)
-
-
+#   # FIXME must use string, because unpacking templated e.g. PackedType{T} has problems, see DFG #668
+#   string(obj)
+# end
 
 
 # New features towards standardizing distribution serialization

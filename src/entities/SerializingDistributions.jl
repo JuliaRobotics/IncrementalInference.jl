@@ -55,6 +55,16 @@ Base.@kwdef struct PackedFullNormal <: PackedSamplableBelief
 end
 
 
+struct PackedManifoldKernelDensity <: PackedSamplableBelief
+  _type::String
+  varType::String
+  pts::Vector{Vector{Float64}}
+  bw::Vector{Float64}
+  partial::Vector{Int}
+  infoPerCoord::Vector{Float64}
+end
+
+
 Base.@kwdef struct PackedAliasingScalarSampler <: PackedSamplableBelief
   _type::String           = "IncrementalInference.PackedAliasingScalarSampler"
   domain::Vector{Float64} = [0;1.0;]

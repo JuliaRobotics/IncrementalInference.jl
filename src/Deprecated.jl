@@ -6,6 +6,25 @@
 @deprecate _evalType(pt::String) DFG.getTypeFromSerializationModule(pt)
 
 
+
+convert(::Union{Type{<:SamplableBelief},Type{<:HeatmapGridDensity}},
+        obj::PackedHeatmapGridDensity) = unpackDistribution(obj)
+
+
+
+convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedHeatmapGridDensity}}, 
+        obj::HeatmapGridDensity ) = packDistribution(obj)
+#
+
+convert(::Union{Type{<:SamplableBelief},Type{<:LevelSetGridNormal}}, 
+        obj::PackedLevelSetGridNormal) = unpackDistribution(obj)
+
+
+convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedLevelSetGridNormal}}, 
+        obj::LevelSetGridNormal) = packDistribution(obj)
+
+
+
 # TODO stop-gap string storage of Distrubtion types, should be upgraded to more efficient storage
 function normalfromstring(str::AbstractString)
   meanstr = match(r"μ=[+-]?([0-9]*[.])?[0-9]+", str).match
@@ -59,7 +78,7 @@ function _extractDistributionJson(jsonstr::AbstractString, checkJson::AbstractVe
 end
 
 
-function convert(::Type{<:SamplableBelief}, str::Union{<:PackedSamplableBelief,<:AbstractString})
+function _legacyUnpackDistribution(str::Union{<:PackedSamplableBelief,<:AbstractString})
   # TODO improve use of multidispatch and packing of Distribution types
   # extractdistribution(str::AS) where {AS <: AbstractString}
   # TODO improve use of multidispatch and packing of Distribution types
@@ -94,6 +113,8 @@ function convert(::Type{<:SamplableBelief}, str::Union{<:PackedSamplableBelief,<
     error("Don't know how to extract distribution from str=$(str)")
   end
 end
+
+@deprecate convert(::Type{<:SamplableBelief}, str::Union{<:PackedSamplableBelief,<:AbstractString}) _legacyUnpackDistribution(str)
 
 @deprecate HeatmapDensityRegular(w...;kw...) LevelSetGridNormal(w...;kw...)
 

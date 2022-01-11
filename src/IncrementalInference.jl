@@ -75,6 +75,7 @@ import DistributedFactorGraphs: getDimension, getManifold, getPointType, getPoin
 import DistributedFactorGraphs: getPPE, getPPEDict
 import DistributedFactorGraphs: getFactorOperationalMemoryType
 import DistributedFactorGraphs: getPoint, getCoordinates
+import DistributedFactorGraphs: getVariableType
 
 
 # will be deprecated in IIF
