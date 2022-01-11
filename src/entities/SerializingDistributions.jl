@@ -42,7 +42,7 @@ end
 
 
 Base.@kwdef mutable struct PackedDiagNormal <: PackedSamplableBelief
-  _type::String        = "IncrementalInference.PackedMvNormal"
+  _type::String        = "IncrementalInference.PackedDiagNormal"
   mu::Vector{Float64}  = [0.0;]
   diag::Vector{Float64}= ones(1)
 end
