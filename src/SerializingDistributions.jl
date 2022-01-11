@@ -89,8 +89,6 @@ function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedUniform}},
   return JSON2.write(packed)
 end
 
-convert(::Type{<:SamplableBelief}, obj::PackedUniform) = unpackDistribution(obj)
-
 
 # NOTE part of new effort to overhaul the SamplableBelief serialization approach
 # maybe it all becomes a JSON struct sort of thing in the long run.

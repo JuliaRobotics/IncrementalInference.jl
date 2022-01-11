@@ -1,18 +1,9 @@
 
 ##==============================================================================
-## LEGACY SUPPORT FOR ZMQ IN CAESAR
-##==============================================================================
-
-@deprecate _evalType(pt::String) DFG.getTypeFromSerializationModule(pt)
-
-##==============================================================================
 ## Deprecate code below before v0.28
 ##==============================================================================
 
-
-## DEPRECATE BELOW ========================================================================
-
-
+@deprecate _evalType(pt::String) DFG.getTypeFromSerializationModule(pt)
 
 
 # TODO stop-gap string storage of Distrubtion types, should be upgraded to more efficient storage
@@ -104,9 +95,20 @@ function convert(::Type{<:SamplableBelief}, str::Union{<:PackedSamplableBelief,<
   end
 end
 
+@deprecate HeatmapDensityRegular(w...;kw...) LevelSetGridNormal(w...;kw...)
+
+@deprecate generateCanonicalFG_Kaess(w...;kw...) generateGraph_Kaess(w...;kw...)
+@deprecate generateCanonicalFG_EuclidDistance(w...;kw...) generateGraph_EuclidDistance(w...;kw...)
+@deprecate generateCanonicalFG_lineStep(w...;kw...) generateGraph_LineStep(w...;kw...)
+@deprecate generateCanonicalFG_CaesarRing1D(w...;kw...) generateGraph_CaesarRing1D(w...;kw...)
+@deprecate generateCanonicalFG_TestSymbolic(w...;kw...) generateGraph_TestSymbolic(w...;kw...)
+
+
 ##==============================================================================
 ## Deprecate code below before v0.27
 ##==============================================================================
+
+convert(::Type{<:SamplableBelief}, obj::PackedUniform) = unpackDistribution(obj)
 
 
 Base.convert(::Type{<:Tuple}, ::InstanceType{Manifolds.Euclidean{Tuple{N}, ℝ}} ) where N = tuple([:Euclid for i in 1:N]...)
@@ -115,12 +117,6 @@ Base.convert(::Type{<:Tuple}, ::InstanceType{Manifolds.RealCircleGroup})  = (:Ci
 
 @deprecate manikde!(pts::AbstractVector, bws::Vector{<:Real}, variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}} ) manikde!(variableType,pts,bws)
 @deprecate manikde!(pts::AbstractVector, varType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}) manikde!(varType, pts)
-
-@deprecate generateCanonicalFG_Kaess(w...;kw...) generateGraph_Kaess(w...;kw...)
-@deprecate generateCanonicalFG_EuclidDistance(w...;kw...) generateGraph_EuclidDistance(w...;kw...)
-@deprecate generateCanonicalFG_lineStep(w...;kw...) generateGraph_LineStep(w...;kw...)
-@deprecate generateCanonicalFG_CaesarRing1D(w...;kw...) generateGraph_CaesarRing1D(w...;kw...)
-@deprecate generateCanonicalFG_TestSymbolic(w...;kw...) generateGraph_TestSymbolic(w...;kw...)
 
 # function getSample(cf::CalcFactor{<:AbstractRelativeRoots})
 #   M = getManifold(cf.factor)
@@ -176,7 +172,6 @@ Base.convert(::Type{<:Tuple}, ::InstanceType{Manifolds.RealCircleGroup})  = (:Ci
 #   sampleHeatmap(roi, x_grid, y_grid, sigma_scale^2)
 # end
 
-@deprecate HeatmapDensityRegular(w...;kw...) LevelSetGridNormal(w...;kw...)
 
 # @deprecate getLevelSetSigma(data::AbstractMatrix{<:Real}, level::Real, w...; kw...) sampleLevelSetGaussian!(data.-level, w...; kw...)
 
