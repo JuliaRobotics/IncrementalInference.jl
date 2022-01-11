@@ -142,7 +142,7 @@ include("services/BayesNet.jl")
 
 # Serialization helpers
 include("entities/SerializingDistributions.jl")
-include("SerializingDistributions.jl")
+include("services/SerializingDistributions.jl")
 include("SerializationMKD.jl")
 include("DispatchPackedConversions.jl")
 
