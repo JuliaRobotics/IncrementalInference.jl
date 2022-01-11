@@ -116,23 +116,34 @@ mutable struct PackedMixture <: PackedInferenceType
 end
 
 
-function convert(::Type{PackedMixture}, obj::Mixture{N,F,S,T}) where {N,F,S,T}
+function convert(::Type{<:PackedMixture}, obj::Mixture{N,F,S,T}) where {N,F,S,T}
   allcomp = String[]
   for val in obj.components
-    # TODO, likely to be difficult for non-standard "Samplable" types -- e.g. Flux models in RoME
-    push!(allcomp, convert(PackedSamplableBelief, val))
+    # FIXME ON FIRE, likely to be difficult for non-standard "Samplable" types -- e.g. Flux models in RoME
+    dtr_ = JSON2.write(packDistribution(val))
+    push!(allcomp, dtr_)
+    # push!(allcomp, convert(PackedSamplableBelief, val))
   end
   # pm = DFG.convertPackedType(obj.mechanics)
   pm = convert(DFG.convertPackedType(obj.mechanics), obj.mechanics)
   sT = string(typeof(pm))
   PackedMixture( N, sT, string.(collect(S)), allcomp, convert(PackedSamplableBelief, obj.diversity) )
 end
-function convert(::Type{Mixture}, obj::PackedMixture)
+function convert(::Type{<:Mixture}, obj::PackedMixture)
   N = obj.N
   F1 = getfield(Main, Symbol(obj.F_))
   S = (Symbol.(obj.S)...,)
   F2 = DFG.convertStructType(F1)
-  components = convert.(SamplableBelief, obj.components)
+  
+  function _unpack(comp)
+    str = JSON.read(comp)
+    T = DFG.getTypeFromSerializationModule( str["_type"] )
+    JSON2.read(str, T)
+  end
+  
+  components = _unpack.( obj.components )
+  
+  # components = convert.(SamplableBelief, obj.components)
   diversity = convert(SamplableBelief, obj.diversity)
   tupcomp = (components...,)
   ntup = NamedTuple{S,typeof(tupcomp)}(tupcomp)
