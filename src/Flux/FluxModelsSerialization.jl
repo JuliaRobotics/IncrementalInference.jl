@@ -115,7 +115,7 @@ end
 
 
 
-function unpackDistirbution(obj::PackedFluxModelsDistribution)
+function unpackDistribution(obj::PackedFluxModelsDistribution)
   #
   obj.serializeHollow && @warn("Deserialization of FluxModelsDistribution.serializationHollow=true is not yet well developed, please open issues at IncrementalInference.jl accordingly.")
   
