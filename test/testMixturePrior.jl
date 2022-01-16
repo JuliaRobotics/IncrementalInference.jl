@@ -68,7 +68,6 @@ marginalPts_ = getBelief(fg, :x0) |> getPoints
 end
 
 
-
 @testset "Serialization of Mixture(Prior,..) including a AliasingScalarSampler" begin
 
 ##

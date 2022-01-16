@@ -67,7 +67,7 @@ addFactor!(fg, [:x1; :x2], LinearRelative(Normal(x2-x1, odom_noise)))
 
 ## Do some debugging
 
-ensureAllInitialized!(fg)
+initAll!(fg)
 
 drawGraph(fg, show=true)
 
@@ -298,7 +298,7 @@ stuff = treeProductUp(fg, tree, :x2, :x2)
 
 ##
 
-ensureAllInitialized!(fg)
+initAll!(fg)
 
 
 tree = buildTreeReset!(fg, drawpdf=true, show=true)

@@ -38,9 +38,6 @@ pts_ = approxConv(fg, :x1x2f1, :x2)
 @test norm(Statistics.mean(pts,dims=2)-[50.0]) < 15.0
 
 tree = solveTree!(fg)
-# ensureAllInitialized!(fg)
-# tree = buildTreeReset!(fg, drawpdf=false)
-# inferOverTree!(fg, tree)
 
 pts_ = getVal(fg, :x2)
 @cast pts[i,j] := pts_[j][i]
