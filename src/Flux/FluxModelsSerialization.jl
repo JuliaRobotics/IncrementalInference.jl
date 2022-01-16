@@ -10,6 +10,8 @@ import Base: convert
 
 
 mutable struct PackedFluxModelsDistribution <: IIF.PackedSamplableBelief
+  # standardized _type field
+  _type::String
   # shape of the input data
   inputDim::Vector{Int}
   # shape of the output data
@@ -77,7 +79,7 @@ function packDistribution(obj::FluxModelsDistribution)
     models .= _serializeFluxModelBase64.(obj.models)
     # also store data as Base64 String, using BSON
     sdata = _serializeFluxDataBase64(obj.data)
-    mimeTypeData = "application/bson/octet-stream/base64"
+    mimeTypeData = "application/octet-stream/bson/base64"
   else
     # store one just model to preserve the type (allows resizing on immutable Ref after deserialize)
     push!(models,_serializeFluxModelBase64(obj.models[1]))
@@ -85,10 +87,11 @@ function packDistribution(obj::FluxModelsDistribution)
     sdata = string(typeof(obj.data))
     mimeTypeData = "application/text"
   end
-  mimeTypeModel = "application/bson/octet-stream/base64"
+  mimeTypeModel = "application/octet-stream/bson/base64"
   
   # and build the JSON-able object
-  return PackedFluxModelsDistribution(inputDim, 
+  return PackedFluxModelsDistribution("IncrementalInference.PackedFluxModelsDistribution",
+                                      inputDim, 
                                       outputDim, 
                                       mimeTypeModel,
                                       models, 
@@ -101,31 +104,26 @@ function packDistribution(obj::FluxModelsDistribution)
 end
 
 
-function Base.convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedFluxModelsDistribution}}, 
+function Base.convert(::Type{String}, # ::Union{Type{<:PackedSamplableBelief},Type{<:PackedFluxModelsDistribution}}, 
                       obj::FluxModelsDistribution)
   #
+  # convert to packed type first
   packed = packDistribution(obj)
-
-  # FIXME ON FIRE, should not return a string!!!!
+  # FIXME, should not return String for general cases of PackedSamplableBelief 
   return JSON2.write(packed)
 end
 
 
 
-function convert( ::Union{Type{<:SamplableBelief},Type{FluxModelsDistribution}}, 
-                  obj::PackedFluxModelsDistribution)
+function unpackDistirbution(obj::PackedFluxModelsDistribution)
   #
-
   obj.serializeHollow && @warn("Deserialization of FluxModelsDistribution.serializationHollow=true is not yet well developed, please open issues at IncrementalInference.jl accordingly.")
-
-  # specialSampler likely to be deprecated
-  # specialSampler = getfield(Main, obj.specialSampler)
   
   # deserialize
-  # @assert obj.mimeTypeModel == "application/bson/octet-stream/base64"
+  # @assert obj.mimeTypeModel == "application/octet-stream/bson/base64"
   models = _deserializeFluxModelBase64.(obj.models)
   
-  # @assert obj.mimeTypeData == "application/bson/octet-stream/base64"
+  # @assert obj.mimeTypeData == "application/octet-stream/bson/base64"
   data = !obj.serializeHollow ? _deserializeFluxDataBase64.(obj.data) : zeros(0)
 
   return FluxModelsDistribution(models, 
@@ -136,5 +134,12 @@ function convert( ::Union{Type{<:SamplableBelief},Type{FluxModelsDistribution}},
                                 serializeHollow=obj.serializeHollow  )
 end
 
+
+
+function convert( ::Union{Type{<:SamplableBelief},Type{<:FluxModelsDistribution}}, 
+                  obj::PackedFluxModelsDistribution )
+  #
+  return unpackDistirbution(obj)
+end
 
 #

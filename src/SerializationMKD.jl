@@ -47,7 +47,7 @@ end
 
 
 
-function Base.convert(::Type{<:AbstractString}, 
+function Base.convert(::Type{String}, 
                       mkd::ManifoldKernelDensity )
   #
   packedMKD = packDistribution(mkd)

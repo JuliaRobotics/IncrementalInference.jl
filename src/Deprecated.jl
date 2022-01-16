@@ -1,28 +1,100 @@
 
 ##==============================================================================
-## Deprecate code below before v0.28
+## LEGACY, towards Sidecar
+##==============================================================================
+
+"""
+Converter: Prior -> PackedPrior::Dict{String, Any}
+
+FIXME see DFG #590 for consolidation with Serialization and Marshaling
+"""
+function convert(::Type{Dict{String, Any}}, prior::IncrementalInference.Prior)
+    @error("Obsolete, use pack/unpack converters instead")
+    z = convert(Type{Dict{String, Any}}, prior.Z)
+    return Packed_Factor([z], "Prior")
+end
+
+"""
+Converter: PackedPrior::Dict{String, Any} -> Prior
+
+FIXME see DFG #590 for consolidation on Serialization and Marshaling
+"""
+function convert(::Type{<:Prior}, prior::Dict{String, Any})
+    @error("Obsolete, use pack/unpack converters instead")
+    # Genericize to any packed type next.
+    z = prior["measurement"][1]
+    z = convert(DFG.getTypeFromSerializationModule(z["distType"]), z)
+    return Prior(z)
+end
+
+
+##==============================================================================
+## Deprecate code below before v0.29
 ##==============================================================================
 
 @deprecate _evalType(pt::String) DFG.getTypeFromSerializationModule(pt)
 
 
-
-convert(::Union{Type{<:SamplableBelief},Type{<:HeatmapGridDensity}},
-        obj::PackedHeatmapGridDensity) = unpackDistribution(obj)
-
-
-
-convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedHeatmapGridDensity}}, 
-        obj::HeatmapGridDensity ) = packDistribution(obj)
-#
-
-convert(::Union{Type{<:SamplableBelief},Type{<:LevelSetGridNormal}}, 
-        obj::PackedLevelSetGridNormal) = unpackDistribution(obj)
+##==============================================================================
+## Deprecate code below before v0.28
+##==============================================================================
 
 
-convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedLevelSetGridNormal}}, 
-        obj::LevelSetGridNormal) = packDistribution(obj)
+# import IncrementalInference: decodefg, loadjld
 
+function veeCategorical(val::Categorical)
+  @warn "veeCategorical is obsolete and being deprecated."
+  val.p
+end
+function veeCategorical(val::Union{Nothing, Vector{Float64}})
+  @warn "veeCategorical is obsolete and being deprecated."  
+  val
+end
+
+function packmultihypo(fnc::CommonConvWrapper{T}) where {T<:AbstractFactor}
+  @warn "packmultihypo is deprecated in favor of Vector only operations"
+  fnc.hypotheses !== nothing ? string(fnc.hypotheses) : ""
+end
+function parsemultihypostr(str::AS) where {AS <: AbstractString}
+  @warn "parsemultihypostr is deprecated in favor of Vector only operations"
+  mhcat=nothing
+  if length(str) > 0
+    mhcat = convert(SamplableBelief, str)
+  end
+  return mhcat
+end
+
+# # FIXME DEPRECATE TO BETTER JSON with ._type field STANDARD
+# function convert(::Type{<:PackedSamplableBelief}, obj::SamplableBelief)
+#   # FIXME, prep for switch
+#   packDistribution(obj)
+  
+#   # FIXME must use string, because unpacking templated e.g. PackedType{T} has problems, see DFG #668
+#   string(obj)
+# end
+
+
+# New features towards standardizing distribution serialization
+# # Assumes DFG/IIF serialized distributions have a `PackedType._type::String = "MyModule.MyPackedDistributionDensityType"`
+# # also see DFG #590
+# function convert( ::Type{String}, 
+#                   obj::PackedSamplableBelief )
+#   #
+#   _typ = DFG.getTypeFromSerializationModule(obj._type)
+# end
+
+# convert(::Union{Type{<:SamplableBelief},Type{<:HeatmapGridDensity}},
+#         obj::PackedHeatmapGridDensity) = unpackDistribution(obj)
+
+# convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedHeatmapGridDensity}}, 
+#         obj::HeatmapGridDensity ) = packDistribution(obj)
+# #
+
+# convert(::Union{Type{<:SamplableBelief},Type{<:LevelSetGridNormal}}, 
+#         obj::PackedLevelSetGridNormal) = unpackDistribution(obj)
+
+# convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedLevelSetGridNormal}}, 
+#         obj::LevelSetGridNormal) = packDistribution(obj)
 
 
 # TODO stop-gap string storage of Distrubtion types, should be upgraded to more efficient storage

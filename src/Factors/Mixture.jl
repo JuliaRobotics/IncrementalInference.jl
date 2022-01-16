@@ -69,6 +69,7 @@ end
 _lengthOrNothing(val) = length(val)
 _lengthOrNothing(val::Nothing) = 0
 
+getManifold(m::Mixture) = getManifold(m.mechanics)
 
 # TODO make in-place memory version
 function sampleFactor( cf::CalcFactor{<:Mixture}, N::Int=1)
@@ -119,34 +120,28 @@ end
 function convert(::Type{<:PackedMixture}, obj::Mixture{N,F,S,T}) where {N,F,S,T}
   allcomp = String[]
   for val in obj.components
+    dtr_ = convert(String, val) # PackedSamplableBelief
     # FIXME ON FIRE, likely to be difficult for non-standard "Samplable" types -- e.g. Flux models in RoME
-    dtr_ = JSON2.write(packDistribution(val))
+    # dtr_ = JSON2.write(packDistribution(val))
     push!(allcomp, dtr_)
-    # push!(allcomp, convert(PackedSamplableBelief, val))
   end
-  # pm = DFG.convertPackedType(obj.mechanics)
-  pm = convert(DFG.convertPackedType(obj.mechanics), obj.mechanics)
-  sT = string(typeof(pm))
-  PackedMixture( N, sT, string.(collect(S)), allcomp, convert(PackedSamplableBelief, obj.diversity) )
+  pm = DFG.convertPackedType(obj.mechanics)
+  pm_ = convert(pm, obj.mechanics)
+  sT = string(typeof(pm_))
+  dvst = convert(String, obj.diversity) # PackedSamplableBelief
+  PackedMixture( N, sT, string.(collect(S)), allcomp, dvst )
 end
+
 function convert(::Type{<:Mixture}, obj::PackedMixture)
   N = obj.N
   F1 = getfield(Main, Symbol(obj.F_))
   S = (Symbol.(obj.S)...,)
   F2 = DFG.convertStructType(F1)
   
-  function _unpack(comp)
-    str = JSON.read(comp)
-    T = DFG.getTypeFromSerializationModule( str["_type"] )
-    JSON2.read(str, T)
-  end
-  
-  components = _unpack.( obj.components )
-  
-  # components = convert.(SamplableBelief, obj.components)
+  components = map(c->convert(SamplableBelief,c), obj.components)
   diversity = convert(SamplableBelief, obj.diversity)
-  tupcomp = (components...,)
-  ntup = NamedTuple{S,typeof(tupcomp)}(tupcomp)
+  # tupcomp = (components...,)
+  ntup = NamedTuple{S}(components) # ,typeof(tupcomp)
   Mixture(F2, ntup, diversity)
 end
 

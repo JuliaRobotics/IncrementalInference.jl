@@ -1,13 +1,14 @@
 
+
 ## Distributions to JSON/Packed types
 
 packDistribution(dtr::Categorical) = PackedCategorical(; p=dtr.p )
 packDistribution(dtr::Uniform) = PackedUniform(; a=dtr.a, b=dtr.b )
 packDistribution(dtr::Normal) = PackedNormal(; mu=dtr.μ, sigma=dtr.σ )
 packDistribution(dtr::ZeroMeanDiagNormal) = PackedZeroMeanDiagNormal(; diag=dtr.Σ.diag )
-packDistribution(dtr::ZeroMeanFullNormal) = PackedZeroMeanFullNormal(; cov=dtr.Σ.mat )
+packDistribution(dtr::ZeroMeanFullNormal) = PackedZeroMeanFullNormal(; cov=dtr.Σ.mat[:] )
 packDistribution(dtr::DiagNormal) = PackedDiagNormal(; mu=dtr.μ, diag=dtr.Σ.diag )
-packDistribution(dtr::FullNormal) = PackedFullNormal(; mu=dtr.μ, cov=dtr.Σ.mat )
+packDistribution(dtr::FullNormal) = PackedFullNormal(; mu=dtr.μ, cov=dtr.Σ.mat[:] )
 
 packDistribution(dtr::AliasingScalarSampler) = PackedAliasingScalarSampler(; domain=dtr.domain, weights=dtr.weights.values )
 
@@ -40,9 +41,9 @@ unpackDistribution(dtr::PackedCategorical) = Categorical( dtr.p ./ sum(dtr.p) )
 unpackDistribution(dtr::PackedUniform) = Uniform(dtr.a, dtr.b )
 unpackDistribution(dtr::PackedNormal) = Normal( dtr.mu, dtr.sigma )
 unpackDistribution(dtr::PackedZeroMeanDiagNormal) = MvNormal( sqrt.(dtr.diag) )
-unpackDistribution(dtr::PackedZeroMeanFullNormal) = MvNormal( dtr.cov )
+unpackDistribution(dtr::PackedZeroMeanFullNormal) = MvNormal( reshape(dtr.cov, length(dtr.mu), :) )
 unpackDistribution(dtr::PackedDiagNormal) = MvNormal( dtr.mu, sqrt.(dtr.diag) )
-unpackDistribution(dtr::PackedFullNormal) = MvNormal( dtr.mu, dtr.cov )
+unpackDistribution(dtr::PackedFullNormal) = MvNormal( dtr.mu, reshape(dtr.cov, length(dtr.mu), :) )
 
 unpackDistribution(dtr::PackedAliasingScalarSampler) = AliasingScalarSampler( dtr.domain, dtr.weights ./ sum(dtr.weights) )
 
@@ -70,6 +71,27 @@ unpackDistribution(dtr::PackedLevelSetGridNormal) = LevelSetGridNormal( dtr.leve
 
 
 
+# ## strip field from NamedTuple
+
+# function _delete( nt::Union{<:NamedTuple, <:Dict{K,T}}, 
+#                   key::K=:_type ) where {K,T}
+#   #
+#   kys = keys(nt)
+#   # rm index
+#   ridx = findfirst(k->k==key, kys)
+#   # keep indices
+#   idxs = setdiff(1:length(nt), ridx)
+#   # to Dict
+#   dict = OrderedDict{K,Any}()
+#   for id in idxs
+#     ky = kys[id]
+#     dict[ky] = nt[ky]
+#   end
+#   # 
+  
+#   NamedTuple{Tuple(keys(dict))}(values(dict))
+# end
+
 ## ===========================================================================================
 ## Converts still necessary?
 ## ===========================================================================================
@@ -80,33 +102,26 @@ convert(::Type{<:PackedSamplableBelief}, obj::StringThemSamplableBeliefs) = pack
 convert(::Type{<:SamplableBelief}, obj::PackedSamplableBelief) = unpackDistribution(obj)
 
 
-# function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedUniform}},
-#                   obj::Distributions.Uniform )
-#   #
-#   packed = packDistribution(obj)
-
-#   # FIXME remove JSON writing here! 
-#   return JSON2.write(packed)
-# end
+##===================================================================================
 
 
-# # FIXME DEPRECATE TO BETTER JSON with ._type field STANDARD
-# function convert(::Type{<:PackedSamplableBelief}, obj::SamplableBelief)
-#   # FIXME, prep for switch
-#   packDistribution(obj)
-  
-#   # FIXME must use string, because unpacking templated e.g. PackedType{T} has problems, see DFG #668
-#   string(obj)
-# end
+# FIXME ON FIRE, must deprecate nested JSON written fields in all serialization
+# TODO is string necessary, because unpacking templated e.g. PackedType{T} has problems, see DFG #668
+convert(::Type{String}, dtr::StringThemSamplableBeliefs) = JSON2.write(packDistribution(dtr))
 
+function convert(::Type{<:SamplableBelief}, str_obj::AbstractString)
+  #
 
-# New features towards standardizing distribution serialization
-# # Assumes DFG/IIF serialized distributions have a `PackedType._type::String = "MyModule.MyPackedDistributionDensityType"`
-# # also see DFG #590
-# function convert( ::Type{String}, 
-#                   obj::PackedSamplableBelief )
-#   #
-#   _typ = DFG.getTypeFromSerializationModule(obj._type)
-# end
+  # go from stringified to generic packed (no type info)
+  _pck = JSON2.read(str_obj)
+  # NOTE, get the packed type from strong assumption that field `_type` exists in the 
+  T = DFG.getTypeFromSerializationModule( _pck[:_type] )  
+  # unpack again to described packedType
+  pckT = JSON2.read(str_obj, T)
+
+  # unpack to regular <:SamplableBelief
+  return unpackDistribution(pckT)
+end
+
 
 #

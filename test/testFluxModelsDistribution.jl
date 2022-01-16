@@ -18,7 +18,7 @@ measd = rand(fxd, 2)
 @test length( measd ) == 2
 
 # convert to flat string
-fxp = convert(PackedSamplableBelief, fxd)
+fxp = convert(String, fxd) # TODO, PackedSamplableBelief
 @test fxp isa String
 
 # convert back to hydrated object

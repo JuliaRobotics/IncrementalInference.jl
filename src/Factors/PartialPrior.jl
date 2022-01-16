@@ -35,7 +35,7 @@ mutable struct PackedPartialPrior <: PackedInferenceType
 end
 
 function convert(::Type{PackedPartialPrior}, d::PartialPrior)
-  PackedPartialPrior(convert(PackedSamplableBelief, d.Z), [d.partial...;])
+  PackedPartialPrior(convert(String, d.Z), [d.partial...;]) # TODO, PackedSamplableBelief
 end
 function convert(::Type{PartialPrior}, d::PackedPartialPrior)
   PartialPrior(convert(SamplableBelief, d.Z),(d.partials...,))

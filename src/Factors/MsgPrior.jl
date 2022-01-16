@@ -41,7 +41,7 @@ struct PackedMsgPrior <: PackedInferenceType
 end
 
 function convert(::Type{PackedMsgPrior}, d::MsgPrior)
-  PackedMsgPrior(convert(PackedSamplableBelief, d.Z), d.infoPerCoord)
+  PackedMsgPrior(convert(String, d.Z), d.infoPerCoord) # TODO PackedSamplableBelief
 end
 function convert(::Type{<:MsgPrior}, d::PackedMsgPrior)
   MsgPrior(convert(SamplableBelief, d.Z), d.infoPerCoord)
