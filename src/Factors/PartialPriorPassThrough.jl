@@ -34,8 +34,10 @@ function convert( ::Union{Type{<:AbstractPackedFactor}, Type{<:PackedPartialPrio
                   obj::PartialPriorPassThrough )
   #
 
-  po = convert(PackedSamplableBelief, obj.Z)
-  str = JSON2.write(po)
+  # TODO, PackedSamplableBelief
+  str = convert(String, obj.Z)
+  # po = convert(PackedSamplableBelief, obj.Z)
+  # str = JSON2.write(po)
   PackedPartialPriorPassThrough(str, Int[obj.partial...])
 end
 
@@ -45,11 +47,12 @@ function convert( ::Union{Type{<:AbstractFactor}, Type{<:PartialPriorPassThrough
   #
 
   # get as bland obj to extract type
-  _up = JSON2.read(obj.Z)
-  _typ = DFG.getTypeFromSerializationModule(_up._type)
-  # now redo with type
-  pdens = JSON2.read(obj.Z, _typ)
-  dens = convert(SamplableBelief, pdens)
+  dens = convert(SamplableBelief, obj.Z)
+  # _up = JSON2.read(obj.Z)
+  # _typ = DFG.getTypeFromSerializationModule(_up._type)
+  # # now redo with type
+  # pdens = JSON2.read(obj.Z, _typ)
+  # dens = convert(SamplableBelief, pdens)
   PartialPriorPassThrough(dens, tuple(obj.partial...))
 end
 

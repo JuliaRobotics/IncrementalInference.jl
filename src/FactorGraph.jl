@@ -144,7 +144,7 @@ function setValKDE!(vd::VariableNodeData,
                     ipc::AbstractVector{<:Real}=[0.0;]  ) where P
   # recover variableType information
   varType = getVariableType(vd)
-  p = AMP.manikde!(val, varType)
+  p = AMP.manikde!(varType, val)
   setValKDE!(vd, p, setinit, ipc)
   nothing
 end
@@ -552,7 +552,32 @@ end
 
 _selectHypoVariables(allVars::Union{<:Tuple, <:AbstractVector},mh::Nothing,sel::Integer=0 ) = collect(1:length(allVars))
 
+"""
+    $SIGNATURES
 
+Overload for specific factor preamble usage.
+
+Notes:
+- See https://github.com/JuliaRobotics/IncrementalInference.jl/issues/1462
+
+DevNotes
+- Integrate into CalcFactor
+  - Add threading
+
+Example:
+
+```julia
+import IncrementalInference: preableCache
+
+preableCache(dfg::AbstractDFG, vars::AbstractVector{<:DFGVariable}, usrfnc::MyFactor) = MyFactorCache(randn(10))
+
+# continue regular use, e.g.
+mfc = MyFactor(...)
+addFactor!(fg, [:a;:b], mfc)
+# ... 
+```
+"""
+preambleCache(dfg::AbstractDFG, vars::AbstractVector{<:DFGVariable}, usrfnc::AbstractFactor) = nothing
 
 # TODO perhaps consolidate with constructor?
 """
@@ -579,7 +604,8 @@ function getDefaultFactorData(dfg::AbstractDFG,
   mhcat, nh = parseusermultihypo(multihypo, nullhypo)
 
   # allocate temporary state for convolutional operations (not stored)
-  ccw = _prepCCW(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel, inflation=inflation, _blockRecursion=_blockRecursion)
+  userCache = preambleCache(dfg, Xi, usrfnc)
+  ccw = _prepCCW(Xi, usrfnc; multihypo=mhcat, nullhypo=nh, threadmodel, inflation, _blockRecursion, userCache)
 
   # and the factor data itself
   return FunctionNodeData{typeof(ccw)}(eliminated, potentialused, edgeIDs, ccw, multihypo, ccw.certainhypo, nullhypo, solveInProgress, inflation)

@@ -54,7 +54,7 @@ addVariable!(fg,:x4,ContinuousScalar, N=N)
 addFactor!(fg,[:x3;:x4], LinearRelative( Normal(200.0,4.0)))
 
 # lets see the prediction of where pose :x4 might be
-ensureAllInitialized!(fg)
+initAll!(fg)
 plotKDE(fg, :x4)
 
 

@@ -95,16 +95,16 @@ DevNotes
 """
 mutable struct FactorMetadata{FV<:AbstractVector{<:DFGVariable}, 
                               VL<:AbstractVector{Symbol}, 
-                              AR, # <:AbstractVector{<:AbstractArray} 
+                              AR<:NamedTuple, 
                               CD}
   # full list of Vector{DFGVariable} connected to the factor
   fullvariables::FV # Vector{<:DFGVariable}
   #TODO full variable can perhaps replace this
   variablelist::VL # Vector{Symbol} 
-  # TODO consolidate, same as ARR used in CCW,
-  arrRef::AR # Vector{Matrix{Float64}}
+  # TODO rename/consolidate field in CCW,
+  arrRef::AR
   # label of which variable is being solved for
-  solvefor::Symbol       
+  solvefor::Symbol 
   # for type specific user data, see (? #784)
   cachedata::CD
 end
@@ -163,7 +163,8 @@ mutable struct CommonConvWrapper{ T<:AbstractFactor,
                                   C<:Union{Nothing, Vector{Int}},
                                   NTP <: NamedTuple,
                                   G,
-                                  MT} <: FactorOperationalMemory
+                                  MT,
+                                  CT} <: FactorOperationalMemory
   #
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function
@@ -178,7 +179,7 @@ mutable struct CommonConvWrapper{ T<:AbstractFactor,
   certainhypo::C
   nullhypo::Float64
   # parameters passed to each hypothesis evaluation event on user function, #1321
-  params::NTP 
+  params::NTP # TODO rename to varValsLink::NTP
   # which index is being solved for in params?
   varidx::Int 
   # FIXME make type stable, JT should now be type stable if rest works
@@ -197,6 +198,8 @@ mutable struct CommonConvWrapper{ T<:AbstractFactor,
   vartypes::Vector{DataType}
   # experimental feature to embed gradient calcs with ccw
   _gradients::G
+  # type used for cache
+  dummyCache::CT
 end
 
 

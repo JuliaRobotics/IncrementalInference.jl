@@ -65,7 +65,7 @@ addFactor!(fg, [:x1; :x2], LinearRelative(Normal(x2-x1, odom_noise)))
 # addFactor!(fg, [:x3; :l0; :l1; :l2], LinearRelative(Normal(0, meas_noise)), multihypo=[1.0; 1.0/3.0; 1.0/3.0; 1.0/3.0])
 
 ## Do some debugging
-ensureAllInitialized!(fg)
+initAll!(fg)
 
 ##
 
@@ -210,7 +210,7 @@ plotLocalProduct(fg, :l1)
 ##
 
 
-ensureAllInitialized!(fg)
+initAll!(fg)
 
 
 tree = buildTreeReset!(fg, drawpdf=true, show=true)

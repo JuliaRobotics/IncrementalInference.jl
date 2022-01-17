@@ -21,11 +21,10 @@ mutable struct DevelopLikelihood{T <: SamplableBelief} <: AbstractRelativeRoots
   x::T
 end
 
+# keeping to test user case using `.x` rather than default `.Z`
 getSample(cf::CalcFactor{<:DevelopLikelihood}) = rand(cf.factor.x, 1)
-function (cf::CalcFactor{<:DevelopLikelihood})(meas, wXi, wXj)
-  #
-  return meas - (wXj - wXi)
-end
+
+(cf::CalcFactor{<:DevelopLikelihood})(meas, wXi, wXj) = meas - (wXj - wXi)
 
 
 ##
@@ -36,7 +35,6 @@ fg = initfg()
 ##
 
 @testset "test populate factor graph with a multi-hypothesis factor..." begin
-
 ##
 
 v1 = addVariable!(fg, :x1, ContinuousScalar, N=N)
@@ -82,13 +80,10 @@ initManual!(fg, :x3, [2*ones(1) for _ in 1:N])
 initManual!(fg, :x4, [3*ones(1) for _ in 1:N])
 
 ##
-
 end
 
 
-
 @testset "Test multi-hypothesis factor convolution exploration" begin
-
 ##
 
 pts_ = approxConv(fg, :x2x3x4f1, :x2, N=N)
@@ -115,11 +110,11 @@ println("Packing converters")
 
 mutable struct PackedDevelopPrior <: PackedInferenceType
   x::String
-  PackedDevelopPrior() = new()
-  PackedDevelopPrior(x) = new(x)
+  # PackedDevelopPrior() = new()
+  # PackedDevelopPrior(x) = new(x)
 end
 function convert(::Type{PackedDevelopPrior}, d::DevelopPrior)
-  PackedDevelopPrior(convert(PackedSamplableBelief, d.x))
+  PackedDevelopPrior(convert(String, d.x)) # TODO, PackedSamplableBelief
 end
 function convert(::Type{DevelopPrior}, d::PackedDevelopPrior)
   DevelopPrior(convert(SamplableBelief, d.x))
@@ -131,7 +126,7 @@ mutable struct PackedDevelopLikelihood <: AbstractPackedFactor
   # PackedDevelopLikelihood(x) = new(x)
 end
 function convert(::Type{PackedDevelopLikelihood}, d::DevelopLikelihood)
-  PackedDevelopLikelihood(convert(PackedSamplableBelief, d.x))
+  PackedDevelopLikelihood(convert(String, d.x)) # TODO, PackedSamplableBelief
 end
 function convert(::Type{<:DevelopLikelihood}, d::PackedDevelopLikelihood)
   DevelopLikelihood(convert(SamplableBelief, d.x))
@@ -146,7 +141,7 @@ end
 
 topack = getSolverData(getFactor(fg,:x1f1))
 dd = convert(PackedFunctionNodeData{PackedDevelopPrior},topack)
-unpacked = convert(FunctionNodeData{CommonConvWrapper{DevelopPrior}},dd)
+unpacked = reconstFactorData(fg, [:x1;], FunctionNodeData{CommonConvWrapper{DevelopPrior}},dd)
 
 @test abs(IIF._getCCW(unpacked).usrfnc!.x.μ - 10.0) < 1e-10
 @test abs(IIF._getCCW(unpacked).usrfnc!.x.σ - 1.0) < 1e-10
@@ -156,7 +151,7 @@ fct = getFactor(fg, :x2x3x4f1)
 # @show typeof(fct)
 topack = getSolverData(fct) # f3
 dd = convert(PackedFunctionNodeData{PackedDevelopLikelihood},topack)
-unpacked = convert(FunctionNodeData{CommonConvWrapper{DevelopLikelihood}},dd)
+unpacked = reconstFactorData(fg, [:x2;:x3;:x4], FunctionNodeData{CommonConvWrapper{DevelopLikelihood}},dd)
 
 # @test IIF._getCCW(unpacked).hypoverts == Symbol[:x3; :x4]
 @test sum(abs.(IIF._getCCW(unpacked).hypotheses.p[1] .- 0.0)) < 0.1
@@ -268,12 +263,10 @@ pts_ = approxConv(fg, :x2x3x4x5f1, :x5, N=N)
 # @test 0.5*N <= sum(80 .< pts .< 100.0) + sum(pts .== 2.0) + sum(pts .== 3.0)
 
 ##
-
 end
 
 
 @testset "test multihypo api numerical tolerance, #1086" begin
-
 ##
 
 fg = initfg()
@@ -286,7 +279,6 @@ addFactor!(fg, [:x0;:x1a;:x1b], LinearRelative(Normal()), multihypo=[1; 0.5;0.50
 
 
 ##
-
 end
 
 

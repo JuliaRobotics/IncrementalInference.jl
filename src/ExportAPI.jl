@@ -194,6 +194,7 @@ export
   fifoFreeze!,
 
   #functors need
+  preambleCache,
   getSample,
   sampleFactor!,
   sampleFactor,
@@ -290,6 +291,18 @@ export
   getPointIdentity,
   setVariableRefence!,
   reshapeVec2Mat
+
+export ContinuousScalar
+export ContinuousEuclid
+export Circular, Circle
+
+# serializing distributions
+export packDistribution, unpackDistribution
+export PackedCategorical #, PackedDiscreteNonParametric
+export PackedUniform, PackedNormal
+export PackedZeroMeanDiagNormal, PackedZeroMeanFullNormal, PackedDiagNormal, PackedFullNormal
+export PackedManifoldKernelDensity
+export PackedAliasingScalarSampler, PackedHeatmapGridDensity, PackedLevelSetGridNormal
 
 export sampleTangent
 export samplePoint

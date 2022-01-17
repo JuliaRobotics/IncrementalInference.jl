@@ -54,11 +54,9 @@ Serialization type for `LinearRelative` binary factor.
 """
 mutable struct PackedLinearRelative <: PackedInferenceType
   Z::String
-  # PackedLinearRelative() = new()
-  # PackedLinearRelative(z::AS) where {AS <: AbstractString} = new(z)
 end
 function convert(::Type{PackedLinearRelative}, d::LinearRelative)
-  PackedLinearRelative(convert(PackedSamplableBelief, d.Z))
+  PackedLinearRelative(convert(String, d.Z)) # TODO, PackedSamplableBelief
 end
 function convert(::Type{LinearRelative}, d::PackedLinearRelative)
   LinearRelative(convert(SamplableBelief, d.Z))

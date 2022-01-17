@@ -62,7 +62,7 @@ addFactor!(fg, [:x1; :lm1; :lp1], LinearRelative(Normal(-20., meas_noise)), mult
 # addFactor!(fg, [:lp1; :lm1], LinearRelative(Normal(0., 100.)))
 
 
-# ensureAllInitialized!(fg)
+# initAll!(fg)
 
 # drawGraph(fg, show=true)
 # getSolverParams(fg).drawtree = false

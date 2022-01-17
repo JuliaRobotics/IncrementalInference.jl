@@ -9,9 +9,9 @@ using TensorCast
 N=100
 fg = initfg()
 
-doors = zeros(1,1)
-pd = kde!(doors,[3.0])
-pd = resample(pd,N);
+doors = [[0.0;],]
+pd = manikde!(ContinuousScalar, doors, [3.0;])
+pd = resample(pd, N);
 bws = getBW(pd)[:,1]
 doors2 = getPoints(pd);
 
@@ -38,9 +38,6 @@ pts_ = approxConv(fg, :x1x2f1, :x2)
 @test norm(Statistics.mean(pts,dims=2)-[50.0]) < 15.0
 
 tree = solveTree!(fg)
-# ensureAllInitialized!(fg)
-# tree = buildTreeReset!(fg, drawpdf=false)
-# inferOverTree!(fg, tree)
 
 pts_ = getVal(fg, :x2)
 @cast pts[i,j] := pts_[j][i]

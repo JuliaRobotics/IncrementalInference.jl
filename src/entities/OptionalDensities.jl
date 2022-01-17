@@ -20,7 +20,6 @@ struct FluxModelsDistribution{ID,OD,P,D<:AbstractArray}
 end
 
 
-
 """
     $TYPEDEF
 
@@ -58,9 +57,7 @@ end
 
 (hmd::HeatmapGridDensity)(w...;kw...) = hmd.densityFnc(w...;kw...)
 
-function sampleTangent(M::AbstractManifold, hms::HeatmapGridDensity)
-  sampleTangent(M, hms.densityFnc)
-end
+sampleTangent(M::AbstractManifold, hms::HeatmapGridDensity) = sampleTangent(M, hms.densityFnc)
 
 
 function Base.show(io::IO, x::HeatmapGridDensity{T,H,B}) where {T,H,B}

@@ -57,7 +57,7 @@ addFactor!(fg, [:x2; :l2; :l2_0], LinearRelative(Normal(-40., meas_noise)), mult
 
 # drawGraph(fg)
 
-# ensureAllInitialized!(fg)
+# initAll!(fg)
 
 approxConv(fg, :x1l1l1_0f1, :l1_0)
 approxConv(fg, :x1l1l1_0f1, :x1)

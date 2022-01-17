@@ -80,7 +80,7 @@ fcm, = map(x->x[1], IIF._getCCW(fg, :x0x1f1).measurement |> deepcopy)
 pts = approxConv(fg, :x0x1f1, :x0)
 fcm2, = map(x->x[1], IIF._getCCW(fg, :x0x1f1).measurement)
 
-@test 0.08 < norm(fcm - fcm2)
+@test 0.04 < norm(fcm - fcm2)
 
 ##
 

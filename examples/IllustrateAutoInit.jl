@@ -49,7 +49,7 @@ plotKDE(fg, :x0)
 @show isInitialized(fg, :x1)
 
 # we can force all the variable nodes to initialize
-ensureAllInitialized!(fg)
+initAll!(fg)
 
 # now draw both :x0
 plotKDE(fg, [:x0, :x1])
@@ -64,7 +64,7 @@ addFactor!(fg, [:x1, :x2], mmo)
 # writeGraphPdf(fg, file="/home/dehann/Downloads/fgx012.png")
 
 # By again forcing the initialization of :x3 for illustration
-ensureAllInitialized!(fg)
+initAll!(fg)
 
 # the predicted marginal probability densities are
 plotKDE(fg, [:x0, :x1, :x2])
@@ -73,11 +73,11 @@ plotKDE(fg, [:x0, :x1, :x2])
 addVariable!(fg, :x3, ContinuousScalar)
 
 addFactor!(fg, [:x2, :x3], LinearRelative(Normal(-50, 1)))
-# note, this addFactor step relies on :x2 being initialized and would have done so if we didn't call ensureAllInitialized! a few lines earlier.
+# note, this addFactor step relies on :x2 being initialized and would have done so if we didn't call initAll! a few lines earlier.
 
 # writeGraphPdf(fg, file="/home/dehann/Downloads/fgx0123.png")
 
-ensureAllInitialized!(fg)
+initAll!(fg)
 plotKDE(fg, [:x0, :x1, :x2, :x3])
 
 

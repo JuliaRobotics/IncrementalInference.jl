@@ -37,7 +37,7 @@ end
 
 function convert(::Type{PackedEuclidDistance}, d::EuclidDistance)
   PackedEuclidDistance( "/application/JuliaLang/PackedSamplableBelief",
-                        convert(PackedSamplableBelief, d.Z) )
+                        convert(String, d.Z) ) # TODO, PackedSamplableBelief
 end
 
 function convert(::Type{<:EuclidDistance}, d::PackedEuclidDistance)

@@ -5,12 +5,57 @@ export calcFactorResidualTemporary
 
 
 getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
+# difficult type piracy case needing both types NoSolverParams and CommonConvWrapper.
 getFactorOperationalMemoryType(dfg::NoSolverParams) = CommonConvWrapper
 
 
-# Helper function to construct CF from a CCW
-CalcFactor(ccwl::CommonConvWrapper) = CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params, true)
 
+
+function _getDimensionsPartial(ccw::CommonConvWrapper)
+  # @warn "_getDimensionsPartial not ready for use yet"
+  ccw.partialDims
+end
+_getDimensionsPartial(data::GenericFunctionNodeData) = _getCCW(data) |> _getDimensionsPartial
+_getDimensionsPartial(fct::DFGFactor) = _getDimensionsPartial(_getCCW(fct))
+_getDimensionsPartial(fg::AbstractDFG, lbl::Symbol) = _getDimensionsPartial(getFactor(fg, lbl))
+
+
+"""
+    $SIGNATURES
+Get `.factormetadata` for each CPT in CCW for a specific factor in `fg`. 
+"""
+_getFMdThread(ccw::CommonConvWrapper, 
+              thrid::Int=Threads.threadid()) = ccw.cpt[thrid].factormetadata
+#
+_getFMdThread(fc::Union{GenericFunctionNodeData,DFGFactor}, 
+              thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(fc), thrid)
+#
+_getFMdThread(dfg::AbstractDFG,
+              lbl::Symbol,
+              thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(dfg, lbl), thrid)
+#
+
+
+
+
+# Helper function to construct CF from a CCW
+function CalcFactor(ccwl::CommonConvWrapper;
+                    factor = ccwl.usrfnc!, 
+                    metadata = _getFMdThread(ccwl), 
+                    _sampleIdx = 0, 
+                    _measCount = length(ccwl.measurement),
+                    _legacyMeas = ccwl.measurement, 
+                    _legacyParams = ccwl.params, 
+                    _allowThreads = true )
+  #
+  CalcFactor( factor,
+              metadata,
+              _sampleIdx,
+              _measCount,
+              _legacyMeas,
+              _legacyParams,
+              _allowThreads )
+end
 
 
 """
@@ -171,16 +216,15 @@ function ConvPerThread( X::AbstractVector{P},
 end
 
 
-
-function CommonConvWrapper( fnc::T,
+function CommonConvWrapper( usrfnc::T,
                             X::AbstractVector{P},
                             zDim::Int,
-                            params::AbstractVector{<:AbstractVector{Q}},
+                            varValsLink::NamedTuple,
                             factormetadata::FactorMetadata;
                             partial::Bool=false,
                             hypotheses::H=nothing,
                             certainhypo=nothing,
-                            activehypo= 1:length(params),
+                            activehypo= 1:length(varValsLink),
                             nullhypo::Real=0,
                             varidx::Int=1,
                             measurement::AbstractVector=Vector(Vector{Float64}(),),
@@ -192,21 +236,18 @@ function CommonConvWrapper( fnc::T,
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
                             inflation::Real=3.0,
                             vartypes=typeof.(getVariableType.(factormetadata.fullvariables)),
-                            gradients=nothing) where {T<:AbstractFactor,P,H,Q}
+                            gradients=nothing,
+                            userCache::CT = nothing ) where {T<:AbstractFactor,P,H,CT}
   #
-  # FIXME, deprecate params::Vector throughout codebase
-  tup = tuple(params...)
-  nms = tuple(factormetadata.variablelist...)
-  p_ntup = NamedTuple{nms,typeof(tup)}(tup)
 
-  return  CommonConvWrapper(fnc,
+  return  CommonConvWrapper(usrfnc,
                             xDim,
                             zDim,
                             partial,
                             hypotheses,
                             certainhypo,
                             Float64(nullhypo),
-                            p_ntup, # params,
+                            varValsLink,
                             varidx,
                             measurement,
                             threadmodel,
@@ -216,7 +257,8 @@ function CommonConvWrapper( fnc::T,
                             inflation,
                             partialDims,
                             DataType[vartypes...],
-                            gradients)
+                            gradients,
+                            userCache )
 end
 
 
@@ -252,10 +294,10 @@ Notes
 DevNotes
 - FIXME ARR internally should become a NamedTuple
 """
-function prepareparamsarray(Xi::Vector{<:DFGVariable},
-                            solvefor::Union{Nothing, Symbol},
-                            N::Int=0;
-                            solveKey::Symbol=:default  ) where P
+function _prepParamVec( Xi::Vector{<:DFGVariable},
+                        solvefor::Union{Nothing, Symbol},
+                        N::Int=0;
+                        solveKey::Symbol=:default  ) where P
   #
   # FIXME ON FIRE, refactor to new NamedTuple instead
   varParamsAll = Vector{Vector{Any}}()
@@ -295,9 +337,15 @@ function prepareparamsarray(Xi::Vector{<:DFGVariable},
   # FIXME deprecate use of (:null,)
   mani = length(Xi)==0 || sfidx==0 ? (:null,) : getManifold(Xi[sfidx])
 
+  varTypes = typeof.(getVariableType.(Xi)) # previous need to force unstable, ::Vector{DataType}
+
+  tup = tuple(varParamsAll...)
+  nms = tuple(getLabel.(Xi)...)
+  ntp = NamedTuple{nms,typeof(tup)}(tup)
+
   # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
   # maxlen = N == 0 ? maxlen : N
-  return varParamsAll, maxlen, sfidx, mani
+  return ntp, maxlen, sfidx, mani, varTypes
 end
 
 """
@@ -319,61 +367,19 @@ function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
 end
 
 
-
-"""
-    $SIGNATURES
-
-Notes
-- Can be called with `length(Xi)==0`
-"""
-function _prepCCW(Xi::Vector{<:DFGVariable},
-                  usrfnc::T;
-                  multihypo::Union{Nothing, Distributions.Categorical}=nothing,
-                  nullhypo::Real=0.0,
-                  threadmodel=MultiThreaded,
-                  inflation::Real=0.0,
-                  _blockRecursion::Bool=false  ) where {T <: AbstractFactor}
-  #
-  length(Xi) !== 0 ? nothing : @debug("cannot prep ccw.param list with length(Xi)==0, see DFG #590")
-
-  pttypes = getVariableType.(Xi) .|> getPointType
-  PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
-  # FIXME stop using Any, see #1321
-  # varParamsAll = Vector{Vector{Any}}()
-  varParamsAll, maxlen, sfidx, mani = prepareparamsarray( Xi, nothing, 0) # Nothing for init.
-
-  # standard factor metadata
-  sflbl = 0==length(Xi) ? :null : getLabel(Xi[end])
-  lbs = getLabel.(Xi)
-  fmd = FactorMetadata(Xi, lbs, varParamsAll, sflbl, nothing)
-
-  # create a temporary CalcFactor object for extracting the first sample
-  # TODO, deprecate this:  guess measurement points type
-  # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
-  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, varParamsAll, false) # (Vector{MeasType}(),)
-  
-  # get a measurement sample
-  meas_single = sampleFactor(_cf, 1)[1]
-
-  #TODO preallocate measurement?
-  measurement = Vector{typeof(meas_single)}()
-
-  # get the measurement dimension
-  zdim = calcZDim(_cf)
-  # some hypo resolution
-  certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
-  
-  # partialDims are sensitive to both which solvefor variable index and whether the factor is partial
-  ispartl = hasfield(T, :partial)
-  partialDims = if ispartl
-    Int[usrfnc.partial...]
-  else
-    Int[]
+function _updateCPTs!(ccwl, sfidx)
+  for thrid in 1:Threads.nthreads()
+    cpt_ = ccwl.cpt[thrid] 
+    cpt_.X = ccwl.params[sfidx]
+    # used in ccw functor for AbstractRelativeMinimize
+    # TODO JT - Confirm it should be updated here. Testing in _prepCCW
+    resize!(cpt_.res, ccwl.zDim) 
+    fill!(cpt_.res, 0.0)
   end
+  nothing
+end
 
-  # as per struct CommonConvWrapper
-  varTypes::Vector{DataType} = typeof.(getVariableType.(Xi))
-  gradients = nothing
+function attemptGradientPrep( varTypes, usrfnc, varParamsAll, multihypo, meas_single, _blockRecursion )
   # prepare new cached gradient lambdas (attempt)
   try
     # https://github.com/JuliaRobotics/IncrementalInference.jl/blob/db7ff84225cc848c325e57b5fb9d0d85cb6c79b8/src/DispatchPackedConversions.jl#L46
@@ -390,33 +396,91 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
       # assume for now fractional-var in multihypo have same varType
       hypoidxs = _selectHypoVariables(pts_, multihypo)
       gradients = FactorGradientsCached!(usrfnc, tuple(varTypes[hypoidxs]...), measurement_, tuple(pts_[hypoidxs]...), _blockRecursion=true);
+
+      return gradients
     end
   catch e
     @warn "Unable to create measurements and gradients for $usrfnc during prep of CCW, falling back on no-partial information assumption.  Enable ENV[\"JULIA_DEBUG\"] = \"IncrementalInference\" for @debug printing to see the error."
     # rethrow(e)
     @debug(e)
   end
+  return nothing
+end
 
-  ccw = CommonConvWrapper(
+
+"""
+    $SIGNATURES
+
+Notes
+- Can be called with `length(Xi)==0`
+"""
+function _prepCCW(Xi::Vector{<:DFGVariable},
+                  usrfnc::T;
+                  multihypo::Union{Nothing, <:Distributions.Categorical}=nothing,
+                  nullhypo::Real=0.0,
+                  certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi)),
+                  inflation::Real=0.0,
+                  solveKey::Symbol=:default,
+                  threadmodel=MultiThreaded,
+                  _blockRecursion::Bool=false,
+                  userCache::CT = nothing  ) where {T <: AbstractFactor, CT}
+  #
+  length(Xi) !== 0 ? nothing : @debug("cannot prep ccw.param list with length(Xi)==0, see DFG #590")
+  
+  # TODO check no Anys, see #1321
+  _varValsQuick, maxlen, sfidx, mani, varTypes = _prepParamVec( Xi, nothing, 0; solveKey ) # Nothing for init.
+
+  # standard factor metadata
+  sflbl = 0 == length(Xi) ? :null : getLabel(Xi[end])
+  lbs = getLabel.(Xi)
+  fmd = FactorMetadata(Xi, lbs, _varValsQuick, sflbl, nothing)
+  
+  # create a temporary CalcFactor object for extracting the first sample
+  # TODO, deprecate this:  guess measurement points type
+  # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
+  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, _varValsQuick, false)
+  
+  # get a measurement sample
+  meas_single = sampleFactor(_cf, 1)[1]
+  
+  #TODO preallocate measurement?
+  measurement = Vector{typeof(meas_single)}()
+  
+  # partialDims are sensitive to both which solvefor variable index and whether the factor is partial
+  partial = hasfield(T, :partial)
+  partialDims = if partial
+    Int[usrfnc.partial...]
+  else
+    Int[]
+  end
+
+  # as per struct CommonConvWrapper
+  gradients = attemptGradientPrep( varTypes, usrfnc, _varValsQuick, multihypo, meas_single, _blockRecursion )
+
+  # variable Types
+  pttypes = getVariableType.(Xi) .|> getPointType
+  PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
+
+  return CommonConvWrapper(
           usrfnc,
           PointType[],
-          zdim,
-          varParamsAll,
+          calcZDim(_cf),
+          _varValsQuick,
           fmd;
-          partial = ispartl,
+          partial,
           measurement,
-          hypotheses=multihypo,
-          certainhypo=certainhypo,
-          nullhypo=nullhypo,
-          threadmodel=threadmodel,
-          inflation=inflation,
-          partialDims=partialDims,
+          hypotheses = multihypo,
+          certainhypo,
+          nullhypo,
+          threadmodel,
+          inflation,
+          partialDims,
           vartypes = varTypes,
-          gradients=gradients
+          gradients,
+          userCache
         )
-  #
-  return ccw
 end
+
 
 """
     $(SIGNATURES)
@@ -428,95 +492,73 @@ approximate convolution computations.
 DevNotes
 - TODO consolidate with others, see https://github.com/JuliaRobotics/IncrementalInference.jl/projects/6
 """
-function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
-                                    ccwl::CommonConvWrapper{F},
-                                    Xi::AbstractVector{<:DFGVariable},
-                                    solvefor::Symbol,
-                                    N::Int;
-                                    needFreshMeasurements::Bool=true,
-                                    solveKey::Symbol=:default  ) where {F <: AbstractFactor}
+function _updateCCW!( F_::Type{<:AbstractRelative},
+                      ccwl::CommonConvWrapper{F},
+                      Xi::AbstractVector{<:DFGVariable},
+                      solvefor::Symbol,
+                      N::Integer;
+                      needFreshMeasurements::Bool=true,
+                      solveKey::Symbol=:default  ) where {F <: AbstractFactor}
   #
-
+  length(Xi) !== 0 ? nothing : @debug("cannot prep ccw.param list with length(Xi)==0, see DFG #590")
+  
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
-  pttypes = getVariableType.(Xi) .|> getPointType
-  PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
-
-  #FIXME, see #1321
-  # vecPtsArr = Vector{Vector{Any}}()
-
-  #TODO some better consolidate is needed
-  ccwl.vartypes = typeof.(getVariableType.(Xi))
-
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
-  vecPtsArr, maxlen, sfidx, mani = prepareparamsarray( Xi, solvefor, N, solveKey=solveKey)
-
+  _varValsQuick, maxlen, sfidx, mani, varTypes = _prepParamVec( Xi, solvefor, N; solveKey)
+  
+  # NOTE should be selecting for the correct multihypothesis mode
+  ccwl.params = _varValsQuick
+  # some better consolidate is needed
+  ccwl.vartypes = varTypes
   # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
   ccwl.xDim = getDimension(getVariableType(Xi[sfidx]))
-  # ccwl.xDim = length(vecPtsArr[sfidx][1])
-  # TODO should be selecting for the correct multihypothesis mode
-
-    # setup the partial or complete decision variable dimensions for this ccwl object
-    # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
-    # TODO, should this not be part of `prepareCommonConvWrapper` -- only here do we look for .partial
-    _setCCWDecisionDimsConv!(ccwl)
-
-  # SHOULD WE SLICE ARR DOWN BY PARTIAL DIMS HERE (OR LATER)?
-  # FIXME refactor new type higher up.
-  tup = tuple(vecPtsArr...)
-  nms = tuple(getLabel.(Xi)...)
-  ntp = NamedTuple{nms,typeof(tup)}(tup)
-  ccwl.params = ntp
+  # TODO maybe refactor new type higher up?
+  
+  # setup the partial or complete decision variable dimensions for this ccwl object
+  # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
+  # TODO, should this not be part of `prepareCommonConvWrapper` -- only here do we look for .partial
+  _setCCWDecisionDimsConv!(ccwl)
   
   # get factor metadata -- TODO, populate, also see #784
-  fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)
-
   # TODO consolidate with ccwl??
   # FIXME do not divert Mixture for sampling
-  # cf = _buildCalcFactorMixture(ccwl, fmd, 1, ccwl.measurement, ccwl.params) # TODO perhaps 0 is safer
-  cf = CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ccwl.params, true)
+  cf = CalcFactor(ccwl; _allowThreads=true)
+  
+  # cache the measurement dimension
+  @assert ccwl.zDim == calcZDim( cf ) "refactoring in progress, cannot drop assignment ccwl.zDim:$(ccwl.zDim) = calcZDim( cf ):$(calcZDim( cf ))"
+  # ccwl.zDim = calcZDim( cf )  # CalcFactor(ccwl) )
 
-  #  get variable node data
-  vnds = Xi
-
+  # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
+  ccwl.varidx = sfidx
+  
   # option to disable fresh samples
   if needFreshMeasurements
     # TODO refactor
     ccwl.measurement = sampleFactor(cf, maxlen)
-    # sampleFactor!(ccwl, maxlen, fmd, vnds)
   end
-
-  # cache the measurement dimension
-  ccwl.zDim = calcZDim(CalcFactor(ccwl))
-  # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
-  ccwl.varidx = sfidx
-
+  
   # set each CPT
-  for thrid in 1:Threads.nthreads()
-    cpt_ = ccwl.cpt[thrid] 
-    cpt_.X = ccwl.params[sfidx]
-
-    # used in ccw functor for AbstractRelativeMinimize
-    # TODO JT - Confirm it should be updated here. Testing in _prepCCW
-    resize!(cpt_.res, ccwl.zDim) 
-    fill!(cpt_.res, 0.0)
-  end
-
+  _updateCPTs!(ccwl, sfidx)
+    
   # calculate new gradients perhaps
   # J = ccwl.gradients(measurement..., pts...)
-
+  
   return sfidx, maxlen, mani
 end
 
 
-function prepareCommonConvWrapper!( ccwl::Union{CommonConvWrapper{F},
+function _updateCCW!( ccwl::Union{CommonConvWrapper{F},
                                                 CommonConvWrapper{Mixture{N_,F,S,T}}},
-                                    Xi::AbstractVector{<:DFGVariable},
-                                    solvefor::Symbol,
-                                    N::Int;
-                                    kw...  ) where {N_,F<:AbstractRelative,S,T}
+                      Xi::AbstractVector{<:DFGVariable},
+                      solvefor::Symbol,
+                      N::Integer;
+                      kw...  ) where {N_,F<:AbstractRelative,S,T}
   #
-  prepareCommonConvWrapper!(F, ccwl, Xi, solvefor, N; kw...)
+  _updateCCW!(F, ccwl, Xi, solvefor, N; kw...)
 end
+
+
+
 
 
 

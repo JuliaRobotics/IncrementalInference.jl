@@ -17,10 +17,10 @@ Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
 - TODO: Incidence matrix is rectagular and adjacency is the square.
 """
-function getEliminationOrder( dfg::G;
+function getEliminationOrder( dfg::AbstractDFG;
                               ordering::Symbol=:qr,
                               solvable::Int=1,
-                              constraints::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
+                              constraints::Vector{Symbol}=Symbol[] )
   #
   @assert 0 == length(constraints) || ordering == :ccolamd "Must use ordering=:ccolamd when trying to use constraints"
   # Get the sparse adjacency matrix, variable, and factor labels
@@ -39,7 +39,7 @@ function getEliminationOrder( dfg::G;
     # hack for dense matrix....
     A = Array(adjMat)
     # this is the default
-    q,r,p = qr(A, Val(true))
+    q,r,p = qr(A, (v"1.7"<=VERSION ? ColumnNorm() : Val(true)) )
     p .= p |> reverse
   elseif ordering==:ccolamd
     cons = zeros(SuiteSparse_long, length(adjMat.colptr) - 1)

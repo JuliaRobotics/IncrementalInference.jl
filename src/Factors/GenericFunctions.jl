@@ -1,4 +1,20 @@
 # TODO under development - experimenting with type to work with manifolds
+
+## ======================================================================================
+## Possible type piracy, but also standardizing to common API across repos
+## ======================================================================================
+
+
+DFG.getDimension(::Distributions.Uniform) = 1
+DFG.getDimension(::Normal) = 1
+DFG.getDimension(Z::MvNormal) = Z |> cov |> diag |> length
+
+DFG.getDimension(Z::FluxModelsDistribution) = length(Z.outputDim)==1 ? Z.outputDim[1] : error("can only do single index tensor at this time, please open an issue with Caesar.jl")
+DFG.getDimension(Z::ManifoldKernelDensity) = getManifold(Z) |> getDimension
+# TODO deprecate
+DFG.getDimension(Z::BallTreeDensity) = Ndim(Z)
+
+
 ## ======================================================================================
 ## Generic manifold cost functions
 ## ======================================================================================
@@ -155,8 +171,8 @@ function convert(::Union{Type{<:AbstractPackedFactor}, Type{<:PackedManifoldPrio
   c = AMP.makeCoordsFromPoint(obj.M, obj.p)
   
   # TODO convert all distributions to JSON
-  # Zst = convert(String, obj.Z)
-  Zst = string(obj.Z)
+  Zst = convert(String, obj.Z)
+  # Zst = string(obj.Z)
   
   PackedManifoldPrior(varT, c, Zst)
 end
@@ -171,8 +187,10 @@ function convert(::Union{Type{<:AbstractFactor}, Type{<:ManifoldPrior}},
   
   # TODO this is too excessive
   e0 = identity_element(M)
-  p = AMP.makePointFromCoords(M, obj.p, e0)
+  # u0 = getPointIdentity(obj.varType)
+  p = AMP.makePointFromCoords(M, obj.p, e0) #, u0)
 
+  @show obj.Z
   Z = convert(SamplableBelief, obj.Z)
 
   ManifoldPrior(M, p, Z)
