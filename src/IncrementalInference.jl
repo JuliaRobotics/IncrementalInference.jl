@@ -142,9 +142,9 @@ include("FactorGraph.jl")
 include("services/BayesNet.jl")
 
 # Serialization helpers
-include("entities/SerializingDistributions.jl")
-include("services/SerializingDistributions.jl")
-include("SerializationMKD.jl")
+include("Serialization/entities/SerializingDistributions.jl")
+include("Serialization/services/SerializingDistributions.jl")
+include("Serialization/services/SerializationMKD.jl")
 include("DispatchPackedConversions.jl")
 
 include("FGOSUtils.jl")
@@ -229,7 +229,7 @@ function __init__()
   # combining neural networks natively into the non-Gaussian  factor graph object
   @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
     include("Flux/FluxModelsDistribution.jl")
-    include("Flux/FluxModelsSerialization.jl") # uses BSON
+    include("Serializatoin/services/FluxModelsSerialization.jl") # uses BSON
   end
 end
 
