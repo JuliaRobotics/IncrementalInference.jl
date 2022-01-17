@@ -24,8 +24,9 @@ export AbstractDFG,
   # listDataBlobs  # ERROR: LightDFG{} doesn't override 'listDataBlobs'.
 
 # Inference types
-export FunctorInferenceType, PackedInferenceType
-export AbstractPrior, AbstractRelative, AbstractRelativeRoots, AbstractRelativeMinimize, AbstractManifoldMinimize
+export AbstractPackedFactor, AbstractFactor
+export AbstractPrior, AbstractRelative
+export AbstractRelativeRoots, AbstractRelativeMinimize, AbstractManifoldMinimize
 
 # not sure if this is necessary
 export convert, *

@@ -163,7 +163,7 @@ addFactor!(fg, [:x0,:x1], mlr)
 # if false
 # using GraphPlot
 # using DistributedFactorGraphs
-# dfgplot(fg)
+# plotDFG(fg)
 # end
 
 tree = solveTree!(fg)

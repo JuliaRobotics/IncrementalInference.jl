@@ -107,7 +107,7 @@ $(TYPEDEF)
 
 Serialization type for `Mixture`.
 """
-mutable struct PackedMixture <: PackedInferenceType
+mutable struct PackedMixture <: AbstractPackedFactor
   N::Int
   # store the packed type for later unpacking
   F_::String 

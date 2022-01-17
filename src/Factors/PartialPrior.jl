@@ -29,7 +29,7 @@ $(TYPEDEF)
 
 Serialization type for `PartialPrior`.
 """
-mutable struct PackedPartialPrior <: PackedInferenceType
+mutable struct PackedPartialPrior <: AbstractPackedFactor
   Z::String
   partials::Vector{Int}
 end

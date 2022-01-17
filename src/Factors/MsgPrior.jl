@@ -35,7 +35,7 @@ getManifold(mp::MsgPrior{<:ManifoldKernelDensity}) = mp.Z.manifold
 
 
 
-struct PackedMsgPrior <: PackedInferenceType
+struct PackedMsgPrior <: AbstractPackedFactor
   Z::String
   infoPerCoord::Vector{Float64}
 end
