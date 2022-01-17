@@ -145,7 +145,7 @@ include("services/BayesNet.jl")
 include("Serialization/entities/SerializingDistributions.jl")
 include("Serialization/services/SerializingDistributions.jl")
 include("Serialization/services/SerializationMKD.jl")
-include("DispatchPackedConversions.jl")
+include("Serialization/services/DispatchPackedConversions.jl")
 
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
