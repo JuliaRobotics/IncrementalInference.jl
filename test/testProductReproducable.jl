@@ -23,7 +23,7 @@ addFactor!(fg, [:b;:c], LinearRelative(Normal(10, 1)))
 addFactor!(fg, [:c;:d], LinearRelative(Normal(10, 1)))
 addFactor!(fg, [:d;:e], LinearRelative(Normal(10, 1)))
 
-ensureAllInitialized!(fg)
+initAll!(fg)
 
 tree = solveTree!(fg)
 

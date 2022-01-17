@@ -13,7 +13,7 @@ using Test
 
 td = Uniform()
 
-ptd = convert(PackedSamplableBelief, td)
+ptd = convert(String, td) # TODO, PackedSamplableBelief
 utd = convert(SamplableBelief, td)
 
 @test td.a - utd.a |> abs < 1e-10
@@ -23,27 +23,6 @@ utd = convert(SamplableBelief, td)
 end
 ##
 
-dfg = initfg()
-
-##
-@testset "hard-coded test of PackedPrior to Prior" begin
-##
-
-pt = PackedPrior("KDE:100:[1.5015]:[-98.8276 -101.803 -98.1296 -96.1897 -99.3076 -99.1881 -101.721 -101.332 -100.431 -97.7293 -96.7652 -99.3806 -95.5593 -104.237 -94.9318 -101.691 -102.255 -98.9559 -99.3386 -99.2361 -102.483 -102.896 -97.0244 -98.9643 -99.4457 -101.298 -103.263 -2.75251 5.14065 0.327863 3.60042 -0.604114 -0.0564047 -0.804898 3.05469 1.4974 1.34657 2.22745 4.78117 1.89485 -0.48091 6.63068 0.63013 -3.11422 1.73705 5.22904 -1.73223 2.47453 1.10584 -0.0179944 3.65585 4.50016 -1.95042 98.2664 98.9983 103.748 100.789 98.4127 101.397 104.364 102.125 96.3685 103.59 99.0581 100.913 101.461 105.211 103.513 99.3325 101.201 98.05 103.508 99.9785 104.624 100.202 100.258 101.579 96.6931 95.4181 299.02 296.804 301.322 298.127 299.578 298.36 296.339 300.156 299.641 297.731 299.822 296.941 295.857 299.482 302.531 301.875 302.192 301.999 300.634 294.084 300.44]")
-
-tt = convert(BallTreeDensity, pt.Z)
-@test isa(tt, BallTreeDensity)
-
-F = Prior
-
-upt = convert(F, pt)
-
-@test isa(upt, Prior)
-
-## TODO add more tests
-end
-
-##
 
 fg = initfg()
 N=100
@@ -65,6 +44,7 @@ f2 = addFactor!(fg, [:x1; :x2], lc)
 ##
 
 @testset "Testing conversion to packed function node data structure and back" begin
+##
 
 topack = getSolverData(f1)
 dd = convert(PackedFunctionNodeData{PackedPrior},topack)
@@ -78,22 +58,25 @@ upd = reconstFactorData(fg, [:x1;:x2], IncrementalInference.FunctionNodeData{Com
 
 @test compare(topack, upd)
 
+##
 end
 
 @testset "Testing conversion to packed variable node data structure and back" begin
+##
 
 dat = getSolverData(getVariable(fg,:x1))
 
 # dat.BayesNetVertID
 
-pd = packVariableNodeData(dfg, dat)
-unpckd = unpackVariableNodeData(dfg, pd)
+pd = packVariableNodeData(fg, dat)
+unpckd = unpackVariableNodeData(fg, pd)
 
 @test compareFields(dat, unpckd, skip=[:variableType])
 @test compareFields(getVariableType(dat), getVariableType(unpckd))
 @test isa(getVariableType(dat), ContinuousScalar)
 @test isa(getVariableType(unpckd), ContinuousScalar)
 
+##
 end
 
 
@@ -104,7 +87,7 @@ end
 mkd = manikde!(TranslationGroup(2), [randn(2) for _ in 1:100])
 
 # convert up and down
-st = convert(PackedSamplableBelief, mkd)
+st = convert(String, mkd) # TODO, PackedSamplableBelief
 upk = convert(SamplableBelief, st)
 
 # and check the basics

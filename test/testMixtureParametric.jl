@@ -141,7 +141,7 @@ plot!(x1,r2)
 # plot!(x1,r1+r2)
 
 ##
-ensureAllInitialized!(fg)
+initAll!(fg)
 solveTree!(fg)
 plotKDE(fg, :x1)
 plotKDE(fg, :l1)

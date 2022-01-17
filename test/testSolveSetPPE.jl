@@ -7,7 +7,7 @@ using DistributedFactorGraphs
 @testset "test PPE update during solve" begin
 
 fg = generateGraph_Kaess(graphinit=true)
-ensureAllInitialized!(fg)
+initAll!(fg)
 
 # list of variables to check
 vars = listVariables(fg)

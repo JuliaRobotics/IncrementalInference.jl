@@ -418,6 +418,7 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
                   usrfnc::T;
                   multihypo::Union{Nothing, <:Distributions.Categorical}=nothing,
                   nullhypo::Real=0.0,
+                  certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi)),
                   inflation::Real=0.0,
                   solveKey::Symbol=:default,
                   threadmodel=MultiThreaded,
@@ -444,10 +445,6 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
   
   #TODO preallocate measurement?
   measurement = Vector{typeof(meas_single)}()
-  
-  # get the measurement dimension
-  # some hypo resolution
-  certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   
   # partialDims are sensitive to both which solvefor variable index and whether the factor is partial
   partial = hasfield(T, :partial)

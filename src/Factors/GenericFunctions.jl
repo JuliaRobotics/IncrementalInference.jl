@@ -171,8 +171,8 @@ function convert(::Union{Type{<:AbstractPackedFactor}, Type{<:PackedManifoldPrio
   c = AMP.makeCoordsFromPoint(obj.M, obj.p)
   
   # TODO convert all distributions to JSON
-  # Zst = convert(String, obj.Z)
-  Zst = string(obj.Z)
+  Zst = convert(String, obj.Z)
+  # Zst = string(obj.Z)
   
   PackedManifoldPrior(varT, c, Zst)
 end
@@ -187,8 +187,10 @@ function convert(::Union{Type{<:AbstractFactor}, Type{<:ManifoldPrior}},
   
   # TODO this is too excessive
   e0 = identity_element(M)
-  p = AMP.makePointFromCoords(M, obj.p, e0)
+  # u0 = getPointIdentity(obj.varType)
+  p = AMP.makePointFromCoords(M, obj.p, e0) #, u0)
 
+  @show obj.Z
   Z = convert(SamplableBelief, obj.Z)
 
   ManifoldPrior(M, p, Z)

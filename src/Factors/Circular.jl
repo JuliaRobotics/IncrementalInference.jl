@@ -78,7 +78,7 @@ mutable struct PackedPriorCircular  <: IncrementalInference.PackedInferenceType
   # PackedPriorCircular(x::String) = new(x)
 end
 function convert(::Type{PackedPriorCircular}, d::PriorCircular)
-  return PackedPriorCircular(convert(PackedSamplableBelief, d.Z))
+  return PackedPriorCircular(convert(String, d.Z)) # TODO, PackedSamplableBelief
 end
 function convert(::Type{PriorCircular}, d::PackedPriorCircular)
   distr = convert(SamplableBelief, d.datastr)
@@ -106,7 +106,7 @@ function convert(::Type{CircularCircular}, d::PackedCircularCircular)
   return CircularCircular(convert(SamplableBelief, d.datastr))
 end
 function convert(::Type{PackedCircularCircular}, d::CircularCircular)
-  return PackedCircularCircular(convert(PackedSamplableBelief, d.Z))
+  return PackedCircularCircular(convert(String, d.Z)) # TODO, PackedSamplableBelief
 end
 
 

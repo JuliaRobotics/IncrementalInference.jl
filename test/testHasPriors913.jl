@@ -22,7 +22,7 @@ deleteFactor!.(fg, [Symbol("x$(i)lm0f1") for i=1:3])
 #force wrong init
 prpo = Prior(Normal(5, 0.01))
 addFactor!(fg, [:x0], prpo)
-ensureAllInitialized!(fg)
+initAll!(fg)
 deleteFactor!(fg, :x0f1)
 
 # now the correct prior
