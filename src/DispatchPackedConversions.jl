@@ -4,7 +4,7 @@
 # heavy use of multiple dispatch for converting between packed and original data types during DB usage
 
 
-function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FactorOperationalMemory}
+function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: AbstractPackedFactor, T <: FactorOperationalMemory}
   return PackedFunctionNodeData(d.eliminated, d.potentialused, d.edgeIDs,
                                 convert(P, _getCCW(d).usrfnc!),
                                 d.multihypo, _getCCW(d).certainhypo, d.nullhypo, 

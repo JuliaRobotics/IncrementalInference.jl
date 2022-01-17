@@ -30,7 +30,7 @@ Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{EuclidDistance}) = Ma
 $(TYPEDEF)
 Serialization type for `EuclidDistance` binary factor.
 """
-mutable struct PackedEuclidDistance <: PackedInferenceType
+mutable struct PackedEuclidDistance <: AbstractPackedFactor
   _type::String
   Z::String
 end

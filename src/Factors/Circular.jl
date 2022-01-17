@@ -72,7 +72,7 @@ $(TYPEDEF)
 
 Serialized object for storing PriorCircular.
 """
-mutable struct PackedPriorCircular  <: IncrementalInference.PackedInferenceType
+mutable struct PackedPriorCircular  <: AbstractPackedFactor
   datastr::String
   # PackedPriorCircular() = new()
   # PackedPriorCircular(x::String) = new(x)
@@ -97,7 +97,7 @@ $(TYPEDEF)
 
 Serialized object for storing CircularCircular.
 """
-mutable struct PackedCircularCircular  <: IncrementalInference.PackedInferenceType
+mutable struct PackedCircularCircular  <: AbstractPackedFactor
   datastr::String
   # PackedCircularCircular() = new()
   # PackedCircularCircular(x::String) = new(x)

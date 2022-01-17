@@ -14,7 +14,7 @@ end
 
 getSample(::CalcFactor{<:GenericMarginal}) = [0]
 
-mutable struct PackedGenericMarginal <: PackedInferenceType
+mutable struct PackedGenericMarginal <: AbstractPackedFactor
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}

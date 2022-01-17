@@ -26,7 +26,7 @@ $(TYPEDEF)
 
 Serialization type for Prior.
 """
-mutable struct PackedPrior <: PackedInferenceType
+mutable struct PackedPrior <: AbstractPackedFactor
   Z::String
 end
 function convert(::Type{PackedPrior}, d::Prior)

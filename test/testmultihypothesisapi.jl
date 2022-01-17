@@ -108,7 +108,7 @@ end
 println("Packing converters")
 
 
-mutable struct PackedDevelopPrior <: PackedInferenceType
+mutable struct PackedDevelopPrior <: AbstractPackedFactor
   x::String
   # PackedDevelopPrior() = new()
   # PackedDevelopPrior(x) = new(x)

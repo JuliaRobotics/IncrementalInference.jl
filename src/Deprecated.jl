@@ -32,6 +32,9 @@ end
 ## Deprecate code below before v0.29
 ##==============================================================================
 
+# DFG v0.18/19
+export FunctorInferenceType, PackedInferenceType
+
 @deprecate _evalType(pt::String) DFG.getTypeFromSerializationModule(pt)
 
 
