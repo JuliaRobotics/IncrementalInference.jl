@@ -155,10 +155,10 @@ function mahalanobus_distance2(M, X, inv_Σ)
 end
 
 
-mutable struct PackedManifoldPrior <: AbstractPackedFactor
+Base.@kwdef mutable struct PackedManifoldPrior <: AbstractPackedFactor
   varType::String 
   p::Vector{Float64}  #NOTE This is a fixed point from where the measurement `Z` likely stored as a coordinate
-  Z::String
+  Z::PackedSamplableBelief
 end
 
 
@@ -171,8 +171,7 @@ function convert(::Union{Type{<:AbstractPackedFactor}, Type{<:PackedManifoldPrio
   c = AMP.makeCoordsFromPoint(obj.M, obj.p)
   
   # TODO convert all distributions to JSON
-  Zst = convert(String, obj.Z)
-  # Zst = string(obj.Z)
+  Zst = convert(PackedSamplableBelief, obj.Z) # String
   
   PackedManifoldPrior(varT, c, Zst)
 end
@@ -190,7 +189,6 @@ function convert(::Union{Type{<:AbstractFactor}, Type{<:ManifoldPrior}},
   # u0 = getPointIdentity(obj.varType)
   p = AMP.makePointFromCoords(M, obj.p, e0) #, u0)
 
-  @show obj.Z
   Z = convert(SamplableBelief, obj.Z)
 
   ManifoldPrior(M, p, Z)

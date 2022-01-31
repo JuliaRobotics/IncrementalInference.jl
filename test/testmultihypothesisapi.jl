@@ -108,25 +108,21 @@ end
 println("Packing converters")
 
 
-mutable struct PackedDevelopPrior <: AbstractPackedFactor
-  x::String
-  # PackedDevelopPrior() = new()
-  # PackedDevelopPrior(x) = new(x)
+Base.@kwdef mutable struct PackedDevelopPrior <: AbstractPackedFactor
+  x::PackedSamplableBelief
 end
 function convert(::Type{PackedDevelopPrior}, d::DevelopPrior)
-  PackedDevelopPrior(convert(String, d.x)) # TODO, PackedSamplableBelief
+  PackedDevelopPrior(convert(PackedSamplableBelief, d.x))
 end
 function convert(::Type{DevelopPrior}, d::PackedDevelopPrior)
   DevelopPrior(convert(SamplableBelief, d.x))
 end
 
 mutable struct PackedDevelopLikelihood <: AbstractPackedFactor
-  x::String
-  # PackedDevelopLikelihood() = new()
-  # PackedDevelopLikelihood(x) = new(x)
+  x::PackedSamplableBelief
 end
 function convert(::Type{PackedDevelopLikelihood}, d::DevelopLikelihood)
-  PackedDevelopLikelihood(convert(String, d.x)) # TODO, PackedSamplableBelief
+  PackedDevelopLikelihood(convert(PackedSamplableBelief, d.x))
 end
 function convert(::Type{<:DevelopLikelihood}, d::PackedDevelopLikelihood)
   DevelopLikelihood(convert(SamplableBelief, d.x))

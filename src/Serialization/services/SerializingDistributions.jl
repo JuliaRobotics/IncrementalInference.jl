@@ -12,6 +12,24 @@ packDistribution(dtr::FullNormal) = PackedFullNormal(; mu=dtr.μ, cov=dtr.Σ.mat
 
 packDistribution(dtr::AliasingScalarSampler) = PackedAliasingScalarSampler(; domain=dtr.domain, weights=dtr.weights.values )
 
+# A more specialized constructor to help serialization processes reading Any[Any[1,2,3,..]] rather than floats. 
+function PackedHeatmapGridDensity(
+    _type::String, 
+    data::AbstractVector, # {Any} 
+    domain::AbstractVector, # {Any}
+    hint_callback::String, 
+    bw_factor::Float64, 
+    N::Int64 )
+  #
+  data_ = Vector{Vector{Float64}}(undef, length(data))
+  for (i,dat) in enumerate(data)
+    data_[i] = float.(dat)
+  end
+  domain_ = tuple(float.(domain[1]), float.(domain[2]))
+
+  PackedHeatmapGridDensity(_type, data_, domain_, hint_callback, bw_factor, N)
+end
+
 function packDistribution( obj::HeatmapGridDensity )
   #
   data_ = obj.data
@@ -101,6 +119,10 @@ unpackDistribution(dtr::PackedLevelSetGridNormal) = LevelSetGridNormal( dtr.leve
 convert(::Type{<:PackedSamplableBelief}, obj::StringThemSamplableBeliefs) = packDistribution(obj)
 convert(::Type{<:SamplableBelief}, obj::PackedSamplableBelief) = unpackDistribution(obj)
 
+function convert(::Type{<:PackedSamplableBelief}, nt::NamedTuple)
+  distrType = DFG.getTypeFromSerializationModule(nt._type)
+  distrType(;nt...)
+end
 
 ##===================================================================================
 

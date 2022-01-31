@@ -24,8 +24,8 @@ getSample(cf::CalcFactor{<:PartialPriorPassThrough}) = sampleTangent(getManifold
 
 Required internal density to store its type
 """
-mutable struct PackedPartialPriorPassThrough <: AbstractPackedFactor
-  Z::String # PackedHeatmapGridDensity
+Base.@kwdef mutable struct PackedPartialPriorPassThrough <: AbstractPackedFactor
+  Z::PackedSamplableBelief # PackedHeatmapGridDensity
   partial::Vector{Int}
 end
 
@@ -34,11 +34,8 @@ function convert( ::Union{Type{<:AbstractPackedFactor}, Type{<:PackedPartialPrio
                   obj::PartialPriorPassThrough )
   #
 
-  # TODO, PackedSamplableBelief
-  str = convert(String, obj.Z)
-  # po = convert(PackedSamplableBelief, obj.Z)
-  # str = JSON2.write(po)
-  PackedPartialPriorPassThrough(str, Int[obj.partial...])
+  po = convert(PackedSamplableBelief, obj.Z)
+  PackedPartialPriorPassThrough(po, Int[obj.partial...])
 end
 
 
@@ -46,13 +43,7 @@ function convert( ::Union{Type{<:AbstractFactor}, Type{<:PartialPriorPassThrough
                   obj::PackedPartialPriorPassThrough )
   #
 
-  # get as bland obj to extract type
   dens = convert(SamplableBelief, obj.Z)
-  # _up = JSON2.read(obj.Z)
-  # _typ = DFG.getTypeFromSerializationModule(_up._type)
-  # # now redo with type
-  # pdens = JSON2.read(obj.Z, _typ)
-  # dens = convert(SamplableBelief, pdens)
   PartialPriorPassThrough(dens, tuple(obj.partial...))
 end
 

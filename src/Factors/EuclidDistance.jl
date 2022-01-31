@@ -30,14 +30,14 @@ Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{EuclidDistance}) = Ma
 $(TYPEDEF)
 Serialization type for `EuclidDistance` binary factor.
 """
-mutable struct PackedEuclidDistance <: AbstractPackedFactor
+Base.@kwdef mutable struct PackedEuclidDistance <: AbstractPackedFactor
   _type::String
-  Z::String
+  Z::PackedSamplableBelief
 end
 
 function convert(::Type{PackedEuclidDistance}, d::EuclidDistance)
   PackedEuclidDistance( "/application/JuliaLang/PackedSamplableBelief",
-                        convert(String, d.Z) ) # TODO, PackedSamplableBelief
+                        convert(PackedSamplableBelief, d.Z) )
 end
 
 function convert(::Type{<:EuclidDistance}, d::PackedEuclidDistance)

@@ -52,11 +52,11 @@ Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{LinearRelative{N}}) w
 $(TYPEDEF)
 Serialization type for `LinearRelative` binary factor.
 """
-mutable struct PackedLinearRelative <: AbstractPackedFactor
-  Z::String
+Base.@kwdef mutable struct PackedLinearRelative <: AbstractPackedFactor
+  Z::PackedSamplableBelief
 end
 function convert(::Type{PackedLinearRelative}, d::LinearRelative)
-  PackedLinearRelative(convert(String, d.Z)) # TODO, PackedSamplableBelief
+  PackedLinearRelative(convert(PackedSamplableBelief, d.Z))
 end
 function convert(::Type{LinearRelative}, d::PackedLinearRelative)
   LinearRelative(convert(SamplableBelief, d.Z))
