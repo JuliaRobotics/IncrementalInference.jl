@@ -42,6 +42,16 @@ export FunctorInferenceType, PackedInferenceType
 ## Deprecate code below before v0.28
 ##==============================================================================
 
+function Base.convert(::Type{String}, 
+                      obj::FluxModelsDistribution)
+  #
+  @error "Obsolete, FluxModelsSerialization should not return String for general cases of PackedSamplableBelief"
+  # convert to packed type first
+  packed = convert(PackedFluxModelsDistribution, obj)
+  # FIXME, should not return String for general cases of PackedSamplableBelief 
+  return JSON2.write(packed)
+end
+
 
 # import IncrementalInference: decodefg, loadjld
 

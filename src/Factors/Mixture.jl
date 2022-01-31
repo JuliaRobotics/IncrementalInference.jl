@@ -1,5 +1,4 @@
 
-export Mixture, PackedMixture
 
 
 _defaultNamesMixtures(N::Int) = ((Symbol[Symbol("c$i") for i in 1:N])...,)
@@ -107,28 +106,27 @@ $(TYPEDEF)
 
 Serialization type for `Mixture`.
 """
-mutable struct PackedMixture <: AbstractPackedFactor
+Base.@kwdef mutable struct PackedMixture <: AbstractPackedFactor
   N::Int
   # store the packed type for later unpacking
   F_::String 
   S::Vector{String}
-  components::Vector{String}
-  diversity::String
+  components::Vector{PackedSamplableBelief}
+  diversity::PackedSamplableBelief
 end
 
 
 function convert(::Type{<:PackedMixture}, obj::Mixture{N,F,S,T}) where {N,F,S,T}
-  allcomp = String[]
+  allcomp = PackedSamplableBelief[]
   for val in obj.components
-    dtr_ = convert(String, val) # PackedSamplableBelief
+    dtr_ = convert(PackedSamplableBelief, val)
     # FIXME ON FIRE, likely to be difficult for non-standard "Samplable" types -- e.g. Flux models in RoME
-    # dtr_ = JSON2.write(packDistribution(val))
     push!(allcomp, dtr_)
   end
   pm = DFG.convertPackedType(obj.mechanics)
   pm_ = convert(pm, obj.mechanics)
   sT = string(typeof(pm_))
-  dvst = convert(String, obj.diversity) # PackedSamplableBelief
+  dvst = convert(PackedSamplableBelief, obj.diversity)
   PackedMixture( N, sT, string.(collect(S)), allcomp, dvst )
 end
 

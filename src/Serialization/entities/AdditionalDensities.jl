@@ -1,7 +1,7 @@
 
 
 
-struct PackedManifoldKernelDensity <: PackedSamplableBelief
+Base.@kwdef struct PackedManifoldKernelDensity <: PackedSamplableBelief
   _type::String
   varType::String
   pts::Vector{Vector{Float64}}
@@ -18,7 +18,7 @@ Base.@kwdef struct PackedAliasingScalarSampler <: PackedSamplableBelief
 end
 
 
-mutable struct PackedHeatmapGridDensity <: PackedSamplableBelief
+Base.@kwdef mutable struct PackedHeatmapGridDensity <: PackedSamplableBelief
   _type::String
   data::Vector{Vector{Float64}}
   domain::Tuple{Vector{Float64}, Vector{Float64}}
@@ -29,7 +29,7 @@ mutable struct PackedHeatmapGridDensity <: PackedSamplableBelief
 end
 
 
-mutable struct PackedLevelSetGridNormal <: PackedSamplableBelief
+Base.@kwdef mutable struct PackedLevelSetGridNormal <: PackedSamplableBelief
   _type::String
   level::Float64
   sigma::Float64

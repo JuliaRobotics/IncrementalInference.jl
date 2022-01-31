@@ -79,16 +79,6 @@ function packDistribution(obj::FluxModelsDistribution)
 end
 
 
-function Base.convert(::Type{String}, # ::Union{Type{<:PackedSamplableBelief},Type{<:PackedFluxModelsDistribution}}, 
-                      obj::FluxModelsDistribution)
-  #
-  # convert to packed type first
-  packed = packDistribution(obj)
-  # FIXME, should not return String for general cases of PackedSamplableBelief 
-  return JSON2.write(packed)
-end
-
-
 
 function unpackDistribution(obj::PackedFluxModelsDistribution)
   #
@@ -111,10 +101,20 @@ end
 
 
 
+function Base.convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedFluxModelsDistribution}}, 
+                      obj::FluxModelsDistribution)
+  #
+  # convert to packed type first
+  return packDistribution(obj)
+end
+
+
+
 function convert( ::Union{Type{<:SamplableBelief},Type{<:FluxModelsDistribution}}, 
                   obj::PackedFluxModelsDistribution )
   #
-  return unpackDistirbution(obj)
+  return unpackDistribution(obj)
 end
+
 
 #

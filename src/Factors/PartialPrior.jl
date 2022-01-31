@@ -29,13 +29,13 @@ $(TYPEDEF)
 
 Serialization type for `PartialPrior`.
 """
-mutable struct PackedPartialPrior <: AbstractPackedFactor
-  Z::String
+Base.@kwdef struct PackedPartialPrior <: AbstractPackedFactor
+  Z::PackedSamplableBelief
   partials::Vector{Int}
 end
 
 function convert(::Type{PackedPartialPrior}, d::PartialPrior)
-  PackedPartialPrior(convert(String, d.Z), [d.partial...;]) # TODO, PackedSamplableBelief
+  PackedPartialPrior(convert(PackedSamplableBelief, d.Z), [d.partial...;])
 end
 function convert(::Type{PartialPrior}, d::PackedPartialPrior)
   PartialPrior(convert(SamplableBelief, d.Z),(d.partials...,))
