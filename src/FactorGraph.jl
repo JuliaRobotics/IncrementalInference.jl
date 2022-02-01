@@ -332,7 +332,7 @@ function DefaultNodeDataParametric( dodims::Int,
     ϵ = getPointIdentity(variableType)
     return VariableNodeData([ϵ],
                             zeros(dims,dims), Symbol[], sp,
-                            dims, false, :_null, Symbol[], variableType, false, 0.0, false, dontmargin, 0, 0, :parametric)
+                            dims, false, :_null, Symbol[], variableType, false, zeros(dims), false, dontmargin, 0, 0, :parametric)
   end
 
 end
@@ -430,7 +430,7 @@ function setVariableRefence!( dfg::AbstractDFG,
                           Symbol[],
                           getVariableType(var),
                           true,
-                          0.0,
+                          zeros(getDimension(var)),
                           false,
                           true  )
   #
