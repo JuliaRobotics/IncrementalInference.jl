@@ -3,7 +3,6 @@
 
 # DFG SpecialDefinitions
 export AbstractDFG,
-  InMemDFGType,
   getSolverParams,
   LightDFG,
   GraphsDFG,

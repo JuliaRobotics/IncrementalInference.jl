@@ -38,6 +38,9 @@ export FunctorInferenceType, PackedInferenceType
 @deprecate _evalType(pt::String) DFG.getTypeFromSerializationModule(pt)
 
 
+export InMemDFGType
+const InMemDFGType = DFG.LocalDFG{SolverParams}
+
 ##==============================================================================
 ## Deprecate code below before v0.28
 ##==============================================================================

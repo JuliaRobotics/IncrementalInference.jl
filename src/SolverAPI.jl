@@ -183,7 +183,7 @@ function solveCliqWithStateMachine!(dfg::G,
 
   prnt = getParent(tree, cliq)
 
-  destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType
+  destType = (G <: InMemoryDFGTypes) ? G : LocalDFG
 
   csmc = isa(prevcsmc, Nothing) ? CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)), tree, cliq, prnt, children, false, true, true, downsolve, false, getSolverParams(dfg)) : prevcsmc
   statemachine = StateMachine{CliqStateMachineContainer}(next=nextfnc, name="cliq$(cliq.id)")

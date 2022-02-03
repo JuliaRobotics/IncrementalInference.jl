@@ -115,8 +115,6 @@ include("ExportAPI.jl")
 # regular
 include("entities/SolverParams.jl")
 
-# needs SolverParams
-const InMemDFGType = DFG.LocalDFG{SolverParams}
 
 include("entities/FactorOperationalMemory.jl")
 

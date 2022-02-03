@@ -6,7 +6,7 @@ $SIGNATURES
 
 Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
 """
-function initfg(dfg::T=InMemDFGType(solverParams=SolverParams());
+function initfg(dfg::T=LocalDFG(solverParams=SolverParams());
                                 sessionname="NA",
                                 robotname="",
                                 username="",
