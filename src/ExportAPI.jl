@@ -4,7 +4,6 @@
 # DFG SpecialDefinitions
 export AbstractDFG,
   getSolverParams,
-  LightDFG,
   GraphsDFG,
   LocalDFG,
   findShortestPathDijkstra, isPathFactorsHomogeneous,

@@ -37,7 +37,8 @@ export FunctorInferenceType, PackedInferenceType
 
 @deprecate _evalType(pt::String) DFG.getTypeFromSerializationModule(pt)
 
-
+# LightDFG will be replaced by GraphsDFG
+export LightDFG
 export InMemDFGType
 const InMemDFGType = DFG.LocalDFG{SolverParams}
 
