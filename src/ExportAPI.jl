@@ -3,9 +3,9 @@
 
 # DFG SpecialDefinitions
 export AbstractDFG,
-  InMemDFGType,
   getSolverParams,
-  LightDFG,
+  GraphsDFG,
+  LocalDFG,
   findShortestPathDijkstra, isPathFactorsHomogeneous,
   getSolvedCount, isSolved, setSolvedCount!,
   listSupersolves, listSolveKeys,

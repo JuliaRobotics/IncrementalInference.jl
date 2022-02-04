@@ -11,6 +11,10 @@ Alternatively, either use the Github Blame, or the Github `/compare/v0.18.0...v0
 
 The list below highlights major breaking changes, and please note that significant efforts are made to properly deprecate old code/APIs according to normal semver workflow -- i.e. breaking changes go through at least one deprecatation (via warnings) on the dominant number in the version number.  E.g. v0.18 -> v0.19 (warnings) -> v0.20 (breaking).
 
+# Major Changes in v0.27
+
+- InMemDFGType is deprecated in favor of LocalDFG (exported from DistributedFactorGraphs).
+
 # Major changes in v0.26
 
 - Standarding (non-binding) easy factor dipatch cases so measurement field is under `.Z` (#1441).

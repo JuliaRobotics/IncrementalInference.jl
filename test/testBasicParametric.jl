@@ -107,8 +107,8 @@ end
 
 ## #################################################################
 
-fg = LightDFG( solverParams=SolverParams(algorithms=[:default, :parametric]))
-# fg = LightDFG{SolverParams}( solverParams=SolverParams())
+fg = LocalDFG( solverParams=SolverParams(algorithms=[:default, :parametric]))
+# fg = LocalDFG{SolverParams}( solverParams=SolverParams())
 N = 100
 fg.solverParams.N = N
 graphinit = false

@@ -57,7 +57,7 @@ DevNotes
 
 Related
 
-[`approxDeconv`](@ref), `LightDFG.findShortestPathDijkstra`, [`evalFactor`](@ref)
+[`approxDeconv`](@ref), `LocalDFG.findShortestPathDijkstra`, [`evalFactor`](@ref)
 """
 function approxConvBelief(dfg::AbstractDFG, 
                           from::Symbol, 
@@ -80,7 +80,7 @@ function approxConvBelief(dfg::AbstractDFG,
     varLbls = Symbol[target;]
   else
     # must first discover shortest factor path in dfg
-    # TODO DFG only supports LightDFG.findShortestPathDijkstra at the time of writing (DFG v0.10.9)
+    # TODO DFG only supports LocalDFG.findShortestPathDijkstra at the time of writing (DFG v0.10.9)
     path = 0 == length(path) ? findShortestPathDijkstra(dfg, from, target) : path
     @assert path[1] == from "sanity check failing for shortest path function"
 

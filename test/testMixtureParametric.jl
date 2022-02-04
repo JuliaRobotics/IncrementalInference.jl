@@ -7,7 +7,7 @@ using Test
 
 ## Test simple mixture prior
 
-fg = LightDFG(;solverParams=SolverParams(algorithms=[:default, :parametric]))
+fg = LocalDFG(;solverParams=SolverParams(algorithms=[:default, :parametric]))
 
 addVariable!(fg, :x0, ContinuousScalar)
 
@@ -33,7 +33,7 @@ vardict, result, varIds, Σ = solveGraphParametric(fg; options, algorithm)
 
 
 ##
-fg = LightDFG(;solverParams=SolverParams(algorithms=[:default, :parametric]))
+fg = LocalDFG(;solverParams=SolverParams(algorithms=[:default, :parametric]))
 
 addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
@@ -58,7 +58,7 @@ vardict, result, varIds, Σ = solveGraphParametric(fg)
 
 ## ContinuousEuclid(2) prior
 
-fg = LightDFG(;solverParams=SolverParams(algorithms=[:default, :parametric]))
+fg = LocalDFG(;solverParams=SolverParams(algorithms=[:default, :parametric]))
 
 addVariable!(fg, :x0, ContinuousEuclid(2))
 
@@ -100,7 +100,7 @@ end
 
 if false
 
-fg = LightDFG(;solverParams=SolverParams(algorithms=[:default, :parametric]))
+fg = LocalDFG(;solverParams=SolverParams(algorithms=[:default, :parametric]))
 
 addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
@@ -175,7 +175,7 @@ end
 if false
 using RoME
 
-fg = LightDFG(;solverParams=SolverParams(algorithms=[:default, :parametric]))
+fg = LocalDFG(;solverParams=SolverParams(algorithms=[:default, :parametric]))
 
 pr_noise = [0.01, 0.01, 0.001]
 od_noise_1 = [0.5; 0.5; 0.2]

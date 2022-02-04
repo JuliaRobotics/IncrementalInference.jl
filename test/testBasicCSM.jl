@@ -18,7 +18,7 @@ VAR3 = :c
 
 # logger = SimpleLogger(stdout, Logging.Debug)
 # global_logger(logger)
-dfg = initfg() #LightDFG{SolverParams}(solverParams=SolverParams())
+dfg = initfg() #LocalDFG{SolverParams}(solverParams=SolverParams())
 # Add some nodes.
 v1 = addVariable!(dfg, VAR1, ContinuousScalar, labels = [:POSE])
 v2 = addVariable!(dfg, VAR2, ContinuousScalar, labels = [:POSE])

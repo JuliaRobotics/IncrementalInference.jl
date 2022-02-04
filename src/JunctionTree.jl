@@ -709,7 +709,7 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
   #
   @debug "Building Bayes tree with local DFG copy"
   t0 =time_ns()
-  fge = InMemDFGType(solverParams=getSolverParams(dfg))
+  fge = LocalDFG(solverParams=getSolverParams(dfg))
 
   #TODO JT - I think an optional solvable filter is needed in buildTreeFromOrdering!
   # copy required for both remote and local graphs
