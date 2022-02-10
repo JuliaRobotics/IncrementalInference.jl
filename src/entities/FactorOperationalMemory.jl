@@ -45,7 +45,7 @@ struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,AbstractVec
   _legacyParams::X
   """ allow threading for either sampling or residual calculations (workaround for thread yield issue) """
   _allowThreads::Bool
-  """ user cache of arbitrary type, overload the [`preambleCache`](@ref) function. """
+  """ user cache of arbitrary type, overload the [`preambleCache`](@ref) function. NOT YET THREADSAFE """
   cache::C
 end
 

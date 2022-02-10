@@ -180,8 +180,9 @@ function _buildCalcFactorMixture( ccwl::CommonConvWrapper,
                                   measurement_,
                                   varParams )
   #
+  # FIXME, make thread safe (cache)
   CalcFactor( ccwl.usrfnc!, _fmd_, smpid, 
-              length(measurement_), measurement_, varParams, true)
+              length(measurement_), measurement_, varParams, true, ccwl.dummyCache)
 end
 
 
@@ -192,8 +193,9 @@ function _buildCalcFactorMixture( ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
                                   varParams ) where {N_,F <: AbstractFactor,S,T}
   #
   # just a passthrough similar to pre-v0.20
+  # FIXME, make thread safe (cache)
   CalcFactor( ccwl.usrfnc!.mechanics, _fmd_, smpid, 
-              length(measurement_), measurement_, varParams, true)
+              length(measurement_), measurement_, varParams, true, ccwl.dummyCache)
 end
 
 

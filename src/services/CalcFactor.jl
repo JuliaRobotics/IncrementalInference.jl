@@ -440,7 +440,7 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
   # create a temporary CalcFactor object for extracting the first sample
   # TODO, deprecate this:  guess measurement points type
   # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
-  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, _varValsQuick, userCache)
+  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, _varValsQuick, false, userCache)
   
   # get a measurement sample
   meas_single = sampleFactor(_cf, 1)[1]
