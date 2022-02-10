@@ -46,7 +46,8 @@ function CalcFactor(ccwl::CommonConvWrapper;
                     _measCount = length(ccwl.measurement),
                     _legacyMeas = ccwl.measurement, 
                     _legacyParams = ccwl.params, 
-                    _allowThreads = true )
+                    _allowThreads = true,
+                    cache = ccwl.dummyCache )
   #
   CalcFactor( factor,
               metadata,
@@ -54,7 +55,8 @@ function CalcFactor(ccwl::CommonConvWrapper;
               _measCount,
               _legacyMeas,
               _legacyParams,
-              _allowThreads )
+              _allowThreads,
+              cache )
 end
 
 
@@ -438,7 +440,7 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
   # create a temporary CalcFactor object for extracting the first sample
   # TODO, deprecate this:  guess measurement points type
   # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
-  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, _varValsQuick, false)
+  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, _varValsQuick, false, userCache)
   
   # get a measurement sample
   meas_single = sampleFactor(_cf, 1)[1]
