@@ -1,6 +1,7 @@
 using Test
 
 # temporarily moved to start (for debugging)
+include("testDefaultDeconv.jl") # see #1482, sequence might influence/hide a test error.
 include("testSpecialEuclidean2Mani.jl")
 
 include("testFactorGradients.jl")
@@ -42,7 +43,6 @@ include("testBasicCSM.jl")
 include("testCliqueFactors.jl")
 include("testCcolamdOrdering.jl")
 include("testBasicGraphs.jl")
-include("testDefaultDeconv.jl")
 include("testJointEnforcement.jl")
 include("testHasPriors913.jl")
 include("testInitVariableOrder.jl")
