@@ -1,7 +1,7 @@
 using Test
 
 # temporarily moved to start (for debugging)
-include("testDefaultDeconv.jl")
+include("testDefaultDeconv.jl") # see #1482, sequence might influence/hide a test error.
 include("testSpecialEuclidean2Mani.jl")
 
 include("testFactorGradients.jl")
