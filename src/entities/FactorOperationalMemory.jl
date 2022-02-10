@@ -30,7 +30,7 @@ Related
 
 [`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref), [`FactorMetadata`](@ref), [`ConvPerThread`](@ref)
 """
-struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,AbstractVector}, X}
+struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,AbstractVector}, X, C}
   """ the interface compliant user object functor containing the data and logic """
   factor::T
   """ the metadata to be passed to the user residual function """
@@ -45,6 +45,8 @@ struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,AbstractVec
   _legacyParams::X
   """ allow threading for either sampling or residual calculations (workaround for thread yield issue) """
   _allowThreads::Bool
+  """ user cache of arbitrary type, overload the [`preambleCache`](@ref) function. """
+  cache::C
 end
 
 

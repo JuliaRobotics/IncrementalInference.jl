@@ -113,7 +113,9 @@ function CalcFactorMahalanobis(fct::DFGFactor)
   meas = typeof(_meas) <: Tuple ? _meas : (_meas,)
   iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
 
-  calcf = CalcFactor(getFactorMechanics(cf), _getFMdThread(fct), 0, 0, (), [], true)
+  # FIXME #1480, cache = preambleCache(dfg,vars,usrfnc)
+  cache = nothing
+  calcf = CalcFactor(getFactorMechanics(cf), _getFMdThread(fct), 0, 0, (), [], true, cache)
   
   multihypo = getSolverData(fct).multihypo
   nullhypo = getSolverData(fct).nullhypo

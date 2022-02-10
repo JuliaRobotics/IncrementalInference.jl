@@ -78,7 +78,7 @@ function sampleFactor( cf::CalcFactor{<:Mixture}, N::Int=1)
   ## example case is old FluxModelsPose2Pose2 requiring velocity
   # FIXME better consolidation of when to pass down .mechanics, also see #1099 and #1094 and #1069
   
-  cf_ = CalcFactor( cf.factor.mechanics, cf.metadata, 0, _lengthOrNothing(cf._legacyMeas), cf._legacyMeas, cf._legacyParams, cf._allowThreads)
+  cf_ = CalcFactor( cf.factor.mechanics, cf.metadata, 0, _lengthOrNothing(cf._legacyMeas), cf._legacyMeas, cf._legacyParams, cf._allowThreads, cf.cache)
   smpls = [getSample(cf_) for _=1:N]
     # smpls = Array{Float64,2}(undef,s.dims,N)
   #out memory should be right size first
