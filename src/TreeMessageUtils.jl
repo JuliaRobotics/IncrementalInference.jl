@@ -13,19 +13,6 @@ export addLikelihoodsDifferentialCHILD!
 
 convert(::Type{<:ManifoldKernelDensity}, src::TreeBelief) = manikde!(getManifold(src.variableType), src.val, bw=src.bw[:,1])
 
-"""
-    $(SIGNATURES)
-
-Construct a BallTreeDensity KDE object from an IIF.TreeBelief object.
-
-Related
-
-manikde!, getKDE, getKDEMax, getKDEMean, TreeBelief
-"""
-function kde!(em::TreeBelief)
-  # return AMP.manikde!(em.val, em.bw, em.manifolds)
-  return convert(ManifoldKernelDensity, em)
-end
 manikde!(em::TreeBelief) = convert(ManifoldKernelDensity, em)
 
 
@@ -258,7 +245,7 @@ function addLikelihoodsDifferential!( msgs::LikelihoodMessage,
   #     afc = addFactor!(tfg, [sym1_;sym2_], nfct, graphinit=false, tags=[:DUMMY;])
   #     # calculate the general deconvolution between variables
   #     pts = solveFactorMeasurements(tfg, afc.label)
-  #     newBel = manikde!(pts[1], getManifolds(nfactype))
+  #     newBel = manikde!(getManifold(nfactype), pts[1])
   #     # replace dummy factor with real deconv factor using manikde approx belief measurement
   #     fullFct = nfactype(newBel)
   #     deleteFactor!(tfg, afc.label)
@@ -276,7 +263,7 @@ addLikelihoodsDifferential!(subfg::AbstractDFG, msgs::LikelihoodMessage) = addLi
 # FIXME, must be renamed and standardized
 function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
                                           seps::Vector{Symbol}, 
-                                          tfg::AbstractDFG=initfg(InMemDFGType(solverParams=SolverParams(N=getSolverParams(cliqSubFG).N)));
+                                          tfg::AbstractDFG=initfg(LocalDFG(solverParams=SolverParams(N=getSolverParams(cliqSubFG).N)));
                                           solveKey::Symbol=:default )
   #
   # return list of differential factors the parent should add as part upward partial joint posterior

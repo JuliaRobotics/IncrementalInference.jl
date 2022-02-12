@@ -23,7 +23,7 @@ addFactor!(fg, [:x10;:x11], LinearRelative(Normal(-10,1.0)))
 addVariable!(fg, :x12, ContinuousScalar)
 addFactor!(fg, [:x11;:x12], LinearRelative(Normal(-10,1.0)))
 
-# dfgplot(fg)
+# plotDFG(fg)
 # getSolverParams(fg).drawtree = true
 # getSolverParams(fg).showtree = true
 # solve factor graph with two orphaned components

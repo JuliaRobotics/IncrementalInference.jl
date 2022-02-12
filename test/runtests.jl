@@ -1,28 +1,25 @@
 using Test
 
 # temporarily moved to start (for debugging)
-include("testSpecialEuclidean2Mani.jl")
-
-include("testFactorGradients.jl")
-include("testpartialconstraint.jl")
-include("testPartialNH.jl")
+#...
 
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
+include("testSpecialEuclidean2Mani.jl")
 
+# start as basic as possible and build from there
+include("typeReturnMemRef.jl")
 include("testDistributionsGeneric.jl")
 include("testHeatmapGridDensity.jl")
 include("testCliqSolveDbgUtils.jl")
-include("TestModuleFunctions.jl")
-include("testApproxConv.jl")
-include("testCompareVariablesFactors.jl")
-include("typeReturnMemRef.jl")
 include("basicGraphsOperations.jl")
-include("testMixturePrior.jl")
-include("testGradientUtils.jl")
-include("testPartialFactors.jl")
-include("testPartialPrior.jl")
+
+include("TestModuleFunctions.jl")
+include("testCompareVariablesFactors.jl")
+include("saveconvertertypes.jl")
+include("testgraphpackingconverters.jl")
 include("testSaveLoadDFG.jl")
+
 include("testJunctionTreeConstruction.jl")
 include("testBayesTreeiSAM2Example.jl")
 include("testTreeFunctions.jl")
@@ -30,19 +27,28 @@ include("testTreeFunctions.jl")
 #FIXME fails on MetaBayesTree
 include("testTreeSaveLoad.jl")
 
-include("testSpecialSampler.jl")
-include("saveconvertertypes.jl")
-include("testgraphpackingconverters.jl")
+include("testGradientUtils.jl")
+include("testFactorGradients.jl")
+include("testSpecialSampler.jl") # TODO, rename, refine
 include("testNLsolve.jl")
 include("testCommonConvWrapper.jl")
-include("testBasicForwardConvolve.jl")
 include("testFactorMetadata.jl")
+
+include("testApproxConv.jl")
+include("testBasicForwardConvolve.jl")
+include("testDefaultDeconv.jl")
+
+include("testPartialFactors.jl")
+include("testPartialPrior.jl")
+include("testpartialconstraint.jl")
+include("testPartialNH.jl")
+include("testMixturePrior.jl")
+
 include("testStateMachine.jl")
 include("testBasicCSM.jl")
 include("testCliqueFactors.jl")
 include("testCcolamdOrdering.jl")
 include("testBasicGraphs.jl")
-include("testDefaultDeconv.jl")
 include("testJointEnforcement.jl")
 include("testHasPriors913.jl")
 include("testInitVariableOrder.jl")

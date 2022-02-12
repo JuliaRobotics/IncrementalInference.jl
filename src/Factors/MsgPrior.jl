@@ -35,13 +35,13 @@ getManifold(mp::MsgPrior{<:ManifoldKernelDensity}) = mp.Z.manifold
 
 
 
-struct PackedMsgPrior <: PackedInferenceType
-  Z::String
+Base.@kwdef struct PackedMsgPrior <: AbstractPackedFactor
+  Z::PackedSamplableBelief
   infoPerCoord::Vector{Float64}
 end
 
 function convert(::Type{PackedMsgPrior}, d::MsgPrior)
-  PackedMsgPrior(convert(String, d.Z), d.infoPerCoord) # TODO PackedSamplableBelief
+  PackedMsgPrior(convert(PackedSamplableBelief, d.Z), d.infoPerCoord)
 end
 function convert(::Type{<:MsgPrior}, d::PackedMsgPrior)
   MsgPrior(convert(SamplableBelief, d.Z), d.infoPerCoord)

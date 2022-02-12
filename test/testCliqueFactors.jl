@@ -167,7 +167,7 @@ end
 @testset "Test cliqueSubgraph frontals, seperators, potentials" begin
 # clique subfg test
 fg = generateGraph_LineStep(4, landmarkPriorsAt=[0,4])
-# dfgplot(fg)
+# plotDFG(fg)
 tree = buildTreeReset!(fg)
 
 #check clique 1
@@ -202,6 +202,6 @@ sfg = buildCliqSubgraph(fg, cliq)
 
 
 sfg = buildCliqSubgraph(fg, tree, :x2)
-# dfgplot(sfg)
+# plotDFG(sfg)
 end
 #

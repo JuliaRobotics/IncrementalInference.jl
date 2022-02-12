@@ -3,9 +3,9 @@
 
 # DFG SpecialDefinitions
 export AbstractDFG,
-  InMemDFGType,
   getSolverParams,
-  LightDFG,
+  GraphsDFG,
+  LocalDFG,
   findShortestPathDijkstra, isPathFactorsHomogeneous,
   getSolvedCount, isSolved, setSolvedCount!,
   listSupersolves, listSolveKeys,
@@ -24,8 +24,9 @@ export AbstractDFG,
   # listDataBlobs  # ERROR: LightDFG{} doesn't override 'listDataBlobs'.
 
 # Inference types
-export FunctorInferenceType, PackedInferenceType
-export AbstractPrior, AbstractRelative, AbstractRelativeRoots, AbstractRelativeMinimize, AbstractManifoldMinimize
+export AbstractPackedFactor, AbstractFactor
+export AbstractPrior, AbstractRelative
+export AbstractRelativeRoots, AbstractRelativeMinimize, AbstractManifoldMinimize
 
 # not sure if this is necessary
 export convert, *
@@ -208,6 +209,7 @@ export
 
   # Bayes (Junction) Tree
   evalFactor,
+  calcProposalBelief,
   approxConvBelief,
   approxConv,
 
@@ -303,6 +305,8 @@ export PackedUniform, PackedNormal
 export PackedZeroMeanDiagNormal, PackedZeroMeanFullNormal, PackedDiagNormal, PackedFullNormal
 export PackedManifoldKernelDensity
 export PackedAliasingScalarSampler, PackedHeatmapGridDensity, PackedLevelSetGridNormal
+
+export Mixture, PackedMixture
 
 export sampleTangent
 export samplePoint

@@ -183,7 +183,7 @@ deleteFactor!.(sfg, [Symbol("x$(i)lm0f1") for i=1:(N-1)])
 vsyms = sortDFG(ls(sfg))
 fsyms = sortDFG(lsf(sfg))
 
-fg = deepcopyGraph(LightDFG, sfg, vsyms[1:3], fsyms[1:3])
+fg = deepcopyGraph(LocalDFG, sfg, vsyms[1:3], fsyms[1:3])
 
 getSolverParams(fg).graphinit = false
 getSolverParams(fg).treeinit = true

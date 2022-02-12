@@ -174,7 +174,7 @@ function generateGraph_LineStep(  lineLength::Int;
 
   vtype = (vardims == 1) ? ContinuousScalar() : ContinuousEuclid(vardims)
 
-  fg = LightDFG{SolverParams}( solverParams=solverParams)
+  fg = LocalDFG{SolverParams}( solverParams=solverParams)
 
   function xNoise(i::Int, σ::Float64=1.0)
     if (vardims == 1)

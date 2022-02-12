@@ -201,8 +201,8 @@ end
 
 # keep previous values to ensure funciton evaluation is modifying correct data fields
 
-@warn "restore findRelatedFromPotential as testset!"
-# @testset "test findRelatedFromPotential..." begin
+@warn "restore calcProposalBelief as testset!"
+# @testset "test calcProposalBelief..." begin
 # global v2, fg, f3, f4, N
 
 
@@ -210,7 +210,7 @@ thefac = getFactor(fg, :x1x2f1)
 
 X2lpts_ = getVal(getVariable(fg, :x2))
 @cast X2lpts[i,j] := X2lpts_[j][i]
-keepaside, = findRelatedFromPotential(fg, thefac, :x2, N=N)
+keepaside, = (calcProposalBelief(fg, thefac, :x2, N=N),)
 @test Ndim(keepaside) == 2
 lpts_ = getPoints(keepaside, false)
 @cast lpts[i,j] := lpts_[j][i]
@@ -232,7 +232,7 @@ memcheck_ = getVal(v2)
 
 X2lpts_ = getVal(v2)
 @cast X2lpts[i,j] := X2lpts_[j][i]
-p4, = findRelatedFromPotential(fg, f4, v2.label, N=N)
+p4 = calcProposalBelief(fg, f4, v2.label, N=N)
 @test Ndim(p4) == 2
 lpts_ = getPoints(keepaside, false)
 @cast lpts[i,j] := lpts_[j][i]

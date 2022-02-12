@@ -11,6 +11,19 @@ Alternatively, either use the Github Blame, or the Github `/compare/v0.18.0...v0
 
 The list below highlights major breaking changes, and please note that significant efforts are made to properly deprecate old code/APIs according to normal semver workflow -- i.e. breaking changes go through at least one deprecatation (via warnings) on the dominant number in the version number.  E.g. v0.18 -> v0.19 (warnings) -> v0.20 (breaking).
 
+# Major Changes in v0.27
+
+- InMemDFGType is deprecated in favor of LocalDFG (exported from DistributedFactorGraphs).
+- Factor serialization is now top level JSON only #1476.
+- Serialization of distributions are now JSON only #1468, #1472, #1473 (removed custom string legacy).
+- Fix chicken and egg problem on unpackFactor, change `convert` to `reconstFactorData`, #1424.
+- Add factor `preambleCache(dfg, vlbls, usrfnc)`, #1462, #1466.  Doesn't work for parametric yet (#1480).
+- Add `CalcFactor.cache` using preamble, #1481.  Not thread safe yet.
+- Standardize local graph naming to `LocalDFG`, #1479.
+- Refactor getDimension and sampling, #1463.
+- Language upgrades on `qr` for Julia 1.7, #1464.
+- Various other fixes and upgrades, https://github.com/JuliaRobotics/IncrementalInference.jl/milestone/111?closed=1
+
 # Major changes in v0.26
 
 - Standarding (non-binding) easy factor dipatch cases so measurement field is under `.Z` (#1441).

@@ -17,9 +17,9 @@ fxd = FluxModelsDistribution((5,),(3,),mdls,rand(5), false, false)
 measd = rand(fxd, 2)
 @test length( measd ) == 2
 
-# convert to flat string
-fxp = convert(String, fxd) # TODO, PackedSamplableBelief
-@test fxp isa String
+# convert to packed type
+fxp = convert(PackedSamplableBelief, fxd) # TODO, PackedSamplableBelief
+@test fxp isa IIF.PackedFluxModelsDistribution
 
 # convert back to hydrated object
 fxu = convert(SamplableBelief, fxp)

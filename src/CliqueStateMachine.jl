@@ -32,7 +32,7 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
   # children = TreeClique[]
   # prnt = TreeClique[]
 
-  destType = dfg isa InMemoryDFGTypes ? typeof(dfg) : InMemDFGType
+  destType = dfg isa InMemoryDFGTypes ? typeof(dfg) : LocalDFG
 
   csmc = CliqStateMachineContainer( dfg, initfg(destType, solverParams=getSolverParams(dfg)),
                                     tree, cliq,

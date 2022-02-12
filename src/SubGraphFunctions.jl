@@ -88,7 +88,7 @@ DevNotes
 """
 function buildCliqSubgraph( dfg::AbstractDFG,
                             cliq::TreeClique,
-                            subfg::InMemoryDFGTypes=InMemDFGType(solverParams=getSolverParams(dfg));
+                            subfg::InMemoryDFGTypes=LocalDFG(solverParams=getSolverParams(dfg));
                             solvable::Int=1,
                             verbose::Bool=false )
 
@@ -100,7 +100,7 @@ end
 function buildCliqSubgraph( fgl::AbstractDFG,
                             treel::AbstractBayesTree,
                             cliqsym::Symbol,
-                            subfg::InMemoryDFGTypes=InMemDFGType(solverParams=getSolverParams(fgl));
+                            subfg::InMemoryDFGTypes=LocalDFG(solverParams=getSolverParams(fgl));
                             solvable::Int=1,
                             verbose::Bool=false )
   #

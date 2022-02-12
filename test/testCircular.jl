@@ -32,6 +32,7 @@ gt = rem2pi.(collect(0:4), RoundNearest)
 d = "/tmp/caesar/random/testfg"
 saveDFG(d,fg)
 lfg = loadDFG(d)
+##
 Base.rm(d*".tar.gz")
 # check loaded fg for all variable and factors
 @test issetequal(ls(fg), ls(lfg))

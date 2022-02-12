@@ -113,7 +113,9 @@ function CalcFactorMahalanobis(fct::DFGFactor)
   meas = typeof(_meas) <: Tuple ? _meas : (_meas,)
   iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
 
-  calcf = CalcFactor(getFactorMechanics(cf), _getFMdThread(fct), 0, 0, (), [], true)
+  # FIXME #1480, cache = preambleCache(dfg,vars,usrfnc)
+  cache = nothing
+  calcf = CalcFactor(getFactorMechanics(cf), _getFMdThread(fct), 0, 0, (), [], true, cache)
   
   multihypo = getSolverData(fct).multihypo
   nullhypo = getSolverData(fct).nullhypo
@@ -133,14 +135,14 @@ function CalcFactorMahalanobis(fct::DFGFactor)
 end
 
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
-function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W}})(variables...) where {T<:AbstractFactor, U, V, W}
+function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:AbstractFactor, U, V, W, C}
   # call the user function (be careful to call the new CalcFactor version only!!!)
   res = cfp.calcfactor!(cfp.meas[1], variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
   return res' * cfp.iΣ[1] * res
 end
 
-function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W}})(variables...) where {T<:Union{ManifoldFactor, ManifoldPrior} , U, V, W}
+function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:Union{ManifoldFactor, ManifoldPrior} , U, V, W, C}
   # call the user function (be careful to call the new CalcFactor version only!!!)
   M = cfp.calcfactor!.factor.M
   X = cfp.calcfactor!(cfp.meas[1], variables...)
@@ -183,7 +185,7 @@ function _totalCost(M, cfvec::Vector{<:CalcFactorMahalanobis}, labeldict, points
   return obj
 end
 
-function _totalCost(cfdict::Dict{Symbol, CalcFactorMahalanobis},
+function _totalCost(cfdict::Dict{Symbol, <:CalcFactorMahalanobis},
                     flatvar,
                     X )
   #

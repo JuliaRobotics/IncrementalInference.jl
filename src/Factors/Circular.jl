@@ -72,16 +72,14 @@ $(TYPEDEF)
 
 Serialized object for storing PriorCircular.
 """
-mutable struct PackedPriorCircular  <: IncrementalInference.PackedInferenceType
-  datastr::String
-  # PackedPriorCircular() = new()
-  # PackedPriorCircular(x::String) = new(x)
+Base.@kwdef struct PackedPriorCircular  <: AbstractPackedFactor
+  Z::PackedSamplableBelief
 end
 function convert(::Type{PackedPriorCircular}, d::PriorCircular)
-  return PackedPriorCircular(convert(String, d.Z)) # TODO, PackedSamplableBelief
+  return PackedPriorCircular(convert(PackedSamplableBelief, d.Z))
 end
 function convert(::Type{PriorCircular}, d::PackedPriorCircular)
-  distr = convert(SamplableBelief, d.datastr)
+  distr = convert(SamplableBelief, d.Z)
   return PriorCircular{typeof(distr)}(distr)
 end
 
@@ -97,16 +95,14 @@ $(TYPEDEF)
 
 Serialized object for storing CircularCircular.
 """
-mutable struct PackedCircularCircular  <: IncrementalInference.PackedInferenceType
-  datastr::String
-  # PackedCircularCircular() = new()
-  # PackedCircularCircular(x::String) = new(x)
+Base.@kwdef struct PackedCircularCircular  <: AbstractPackedFactor
+  Z::PackedSamplableBelief
 end
 function convert(::Type{CircularCircular}, d::PackedCircularCircular)
-  return CircularCircular(convert(SamplableBelief, d.datastr))
+  return CircularCircular(convert(SamplableBelief, d.Z))
 end
 function convert(::Type{PackedCircularCircular}, d::CircularCircular)
-  return PackedCircularCircular(convert(String, d.Z)) # TODO, PackedSamplableBelief
+  return PackedCircularCircular(convert(PackedSamplableBelief, d.Z))
 end
 
 

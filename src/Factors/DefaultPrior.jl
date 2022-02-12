@@ -26,11 +26,11 @@ $(TYPEDEF)
 
 Serialization type for Prior.
 """
-mutable struct PackedPrior <: PackedInferenceType
-  Z::String
+Base.@kwdef mutable struct PackedPrior <: AbstractPackedFactor
+  Z::PackedSamplableBelief
 end
 function convert(::Type{PackedPrior}, d::Prior)
-  PackedPrior(convert(String, d.Z)) # TODO, PackedSamplableBelief
+  PackedPrior(convert(PackedSamplableBelief, d.Z))
 end
 function convert(::Type{Prior}, d::PackedPrior)
   Prior(convert(SamplableBelief, d.Z))

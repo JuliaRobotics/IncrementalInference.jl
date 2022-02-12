@@ -107,8 +107,8 @@ end
 
 ## #################################################################
 
-fg = LightDFG( solverParams=SolverParams(algorithms=[:default, :parametric]))
-# fg = LightDFG{SolverParams}( solverParams=SolverParams())
+fg = LocalDFG( solverParams=SolverParams(algorithms=[:default, :parametric]))
+# fg = LocalDFG{SolverParams}( solverParams=SolverParams())
 N = 100
 fg.solverParams.N = N
 graphinit = false
@@ -167,7 +167,7 @@ end
 fg = generateGraph_LineStep(10, poseEvery=1, landmarkEvery=10, posePriorsAt=Int[0,10], sightDistance=5, solverParams=SolverParams(algorithms=[:default, :parametric]))
 # break fg in 2
 deleteFactor!(fg, :x5x6f1)
-# dfgplot(fg)
+# plotDFG(fg)
 
 #check all factors
 # foreach(fct->println(fct.label, ": ", getFactorType(fct).Z), getFactors(fg))

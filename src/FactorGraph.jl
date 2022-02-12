@@ -6,7 +6,7 @@ $SIGNATURES
 
 Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
 """
-function initfg(dfg::T=InMemDFGType(solverParams=SolverParams());
+function initfg(dfg::T=LocalDFG(solverParams=SolverParams());
                                 sessionname="NA",
                                 robotname="",
                                 username="",
@@ -316,7 +316,7 @@ function DefaultNodeDataParametric( dodims::Int,
   # this should be the only function allocating memory for the node points
   if false && initialized
     error("not implemented yet")
-    # pN = AMP.manikde!(randn(dims, N), variableType.manifolds);
+    # pN = AMP.manikde!(variableType.manifold, randn(dims, N));
     #
     # sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     # gbw = getBW(pN)[:,1]
@@ -332,7 +332,7 @@ function DefaultNodeDataParametric( dodims::Int,
     ϵ = getPointIdentity(variableType)
     return VariableNodeData([ϵ],
                             zeros(dims,dims), Symbol[], sp,
-                            dims, false, :_null, Symbol[], variableType, false, 0.0, false, dontmargin, 0, 0, :parametric)
+                            dims, false, :_null, Symbol[], variableType, false, zeros(dims), false, dontmargin, 0, 0, :parametric)
   end
 
 end
@@ -392,12 +392,12 @@ function setDefaultNodeData!( v::DFGVariable,
 end
 # if size(initval,2) < N && size(initval, 1) == dims
 #   @warn "setDefaultNodeData! -- deprecated use of stdev."
-#   p = AMP.manikde!(initval,diag(stdev), varType.manifolds);
+#   p = manikde!(varType.manifold, initval,diag(stdev));
 #   pN = resample(p,N)
 # if size(initval,2) < N && size(initval, 1) != dims
   # @info "Node value memory allocated but not initialized"
 # else
-#   pN = AMP.manikde!(initval, varType.manifolds)
+#   pN = manikde!(varType.manifold, initval)
 # end
 # dims = size(initval,1) # rows indicate dimensions
 
@@ -430,7 +430,7 @@ function setVariableRefence!( dfg::AbstractDFG,
                           Symbol[],
                           getVariableType(var),
                           true,
-                          0.0,
+                          zeros(getDimension(var)),
                           false,
                           true  )
   #

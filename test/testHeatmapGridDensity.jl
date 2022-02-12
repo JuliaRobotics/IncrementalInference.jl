@@ -1,6 +1,6 @@
-# test ScatterAlignPose2
 
 using Test
+using Interpolations
 using IncrementalInference
 using Distributions
 
@@ -15,16 +15,21 @@ y = -10:0.1:10;
 
 img = zeros(length(x),length(y))
 
-g = (x,y)->pdf(MvNormal([1.0;1.0]),[x;y])
+# lambda dispatch in this scope was REALLY slow
+mv = MvNormal([1.0;1.0])
+g(x,y) = pdf(mv,[x;y])
 
 for (i,x_) in enumerate(x), (j,y_) in enumerate(y)
   img[i,j] = g(x_,y_)
 end
 
-hgd = IIF.HeatmapGridDensity(img,(x,y),nothing, 0.07, N=1000)
+##
+println("build a HeatmapGridDensity")
+hgd = IIF.HeatmapGridDensity(img, (x,y), nothing, 0.07; N=1000)
 
+println("test packing converters")
 # check conversions to packed types
-phgd = convert(String, hgd) # TODO, PackedSamplableBelief
+phgd = convert(PackedSamplableBelief, hgd)
 hgd_ = convert(SamplableBelief, phgd)
 
 @test isapprox( hgd, hgd_ )
