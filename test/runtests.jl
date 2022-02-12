@@ -1,23 +1,19 @@
 using Test
 
 # temporarily moved to start (for debugging)
-include("testDefaultDeconv.jl") # see #1482, sequence might influence/hide a test error.
-include("testSpecialEuclidean2Mani.jl")
-
-include("testFactorGradients.jl")
-include("testpartialconstraint.jl")
-include("testPartialNH.jl")
+#...
 
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
+include("testSpecialEuclidean2Mani.jl")
 
 include("testDistributionsGeneric.jl")
 include("testHeatmapGridDensity.jl")
 include("testCliqSolveDbgUtils.jl")
 include("TestModuleFunctions.jl")
-include("testApproxConv.jl")
 include("testCompareVariablesFactors.jl")
 include("typeReturnMemRef.jl")
+include("testApproxConv.jl")
 include("basicGraphsOperations.jl")
 include("testMixturePrior.jl")
 include("testGradientUtils.jl")
@@ -31,12 +27,17 @@ include("testTreeFunctions.jl")
 #FIXME fails on MetaBayesTree
 include("testTreeSaveLoad.jl")
 
-include("testSpecialSampler.jl")
+include("testFactorGradients.jl")
+include("testpartialconstraint.jl")
+include("testPartialNH.jl")
+
+include("testSpecialSampler.jl") # TODO, rename, refine
 include("saveconvertertypes.jl")
 include("testgraphpackingconverters.jl")
 include("testNLsolve.jl")
 include("testCommonConvWrapper.jl")
 include("testBasicForwardConvolve.jl")
+include("testDefaultDeconv.jl")
 include("testFactorMetadata.jl")
 include("testStateMachine.jl")
 include("testBasicCSM.jl")
