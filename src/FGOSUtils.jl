@@ -140,23 +140,13 @@ getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid)
 
 # extend convenience function (Matrix or Vector{P})
 function manikde!(variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
-                  pts::AbstractVector{P},
-                  bws::Vector{<:Real} ) where {P <: Union{<:AbstractArray,<:Number,<:ProductRepr,<:Manifolds.ArrayPartition} }
+                  pts::AbstractVector{P};
+                  kw... ) where {P <: Union{<:AbstractArray,<:Number,<:ProductRepr,<:Manifolds.ArrayPartition} }
   #
   M = getManifold(variableType)
   infoPerCoord=ones(AMP.getNumberCoords(M, pts[1]))
-  return AMP.manikde!(M, pts, bw=bws, infoPerCoord=infoPerCoord)
+  return AMP.manikde!(M, pts; infoPerCoord, kw...)
 end
-
-
-function manikde!(vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
-                  pts::AbstractVector{P} ) where {P <: Union{<:AbstractArray,<:Number,<:ProductRepr,<:Manifolds.ArrayPartition} }
-  #
-  M = getManifold(vartype)
-  infoPerCoord=ones(manifold_dimension(M))
-  return AMP.manikde!(M, pts, infoPerCoord=infoPerCoord)
-end
-
 
 
 """
