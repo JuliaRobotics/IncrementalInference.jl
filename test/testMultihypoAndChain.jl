@@ -78,7 +78,7 @@ tree = solveTree!(fg, eliminationOrder=eo) #, smtasks=smtasks, recordcliqs=ls(fg
 L2 = getBelief(fg, :l2)
 npts = length(getPoints(L2))
 pts = [2.0.+0.1*randn(1) for _ in 1:npts]
-L2_ = manikde!(pts, ContinuousScalar)
+L2_ = manikde!(ContinuousScalar, pts)
 
 # test that there is at least a mode present
 @test mmd(L2_, L2, ContinuousScalar) < 1e-3

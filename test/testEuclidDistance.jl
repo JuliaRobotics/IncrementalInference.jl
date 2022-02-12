@@ -250,7 +250,7 @@ end
 ##
 
 # pts = approxConv(fg, :x2l1f1, :l1)
-# plotKDE(manikde!(pts, ContinuousEuclid{2}))
+# plotKDE(manikde!(ContinuousEuclid{2}, pts))
 # plotLocalProduct(fg, :l1, levels=3)
 
 
@@ -277,4 +277,4 @@ end
 
 # initManual!(sfg, :l1, pts)
 # pts = approxConv(sfg, :x2l1f1, :l1)
-# plotKDE(manikde!(pts, ContinuousEuclid{2}))
+# plotKDE(manikde!(ContinuousEuclid{2}, pts))

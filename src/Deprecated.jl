@@ -32,6 +32,8 @@ end
 ## Deprecate code below before v0.29
 ##==============================================================================
 
+@deprecate kde!(em::TreeBelief) manikde!(em)
+
 # DFG v0.18/19
 export FunctorInferenceType, PackedInferenceType
 
