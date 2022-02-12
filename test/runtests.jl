@@ -7,19 +7,19 @@ include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
 include("testSpecialEuclidean2Mani.jl")
 
+# start as basic as possible and build from there
+include("typeReturnMemRef.jl")
 include("testDistributionsGeneric.jl")
 include("testHeatmapGridDensity.jl")
 include("testCliqSolveDbgUtils.jl")
+include("basicGraphsOperations.jl")
+
 include("TestModuleFunctions.jl")
 include("testCompareVariablesFactors.jl")
-include("typeReturnMemRef.jl")
-include("testApproxConv.jl")
-include("basicGraphsOperations.jl")
-include("testMixturePrior.jl")
-include("testGradientUtils.jl")
-include("testPartialFactors.jl")
-include("testPartialPrior.jl")
+include("saveconvertertypes.jl")
+include("testgraphpackingconverters.jl")
 include("testSaveLoadDFG.jl")
+
 include("testJunctionTreeConstruction.jl")
 include("testBayesTreeiSAM2Example.jl")
 include("testTreeFunctions.jl")
@@ -27,18 +27,23 @@ include("testTreeFunctions.jl")
 #FIXME fails on MetaBayesTree
 include("testTreeSaveLoad.jl")
 
+include("testGradientUtils.jl")
 include("testFactorGradients.jl")
-include("testpartialconstraint.jl")
-include("testPartialNH.jl")
-
 include("testSpecialSampler.jl") # TODO, rename, refine
-include("saveconvertertypes.jl")
-include("testgraphpackingconverters.jl")
 include("testNLsolve.jl")
 include("testCommonConvWrapper.jl")
+include("testFactorMetadata.jl")
+
+include("testApproxConv.jl")
 include("testBasicForwardConvolve.jl")
 include("testDefaultDeconv.jl")
-include("testFactorMetadata.jl")
+
+include("testPartialFactors.jl")
+include("testPartialPrior.jl")
+include("testpartialconstraint.jl")
+include("testPartialNH.jl")
+include("testMixturePrior.jl")
+
 include("testStateMachine.jl")
 include("testBasicCSM.jl")
 include("testCliqueFactors.jl")

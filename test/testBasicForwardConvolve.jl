@@ -45,9 +45,9 @@ X1_ = forwardConvolve(X0, statemodel)
 
 ## measure -- product of beliefs, using `ApproxManifoldProducts.jl`
 
-predX1 = manikde!(X1_, ContinuousScalar)
+predX1 = manikde!(ContinuousScalar, X1_)
 z3 = Normal(9.5,0.75)
-measX1 = manikde!([rand(z3,1) for _ in 1:100], ContinuousScalar)
+measX1 = manikde!(ContinuousScalar, [rand(z3,1) for _ in 1:100])
 
 # do actual product
 posterioriX1 = predX1 * measX1

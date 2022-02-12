@@ -90,9 +90,9 @@ const FSM = FunctionalStateMachine
 const IIF = IncrementalInference
 
 
-const InstanceType{T} = Union{Type{<:T},T}
-const NothingUnion{T} = Union{Nothing, T}
-const BeliefArray{T} = Union{Array{T,2}, Adjoint{T, Array{T,2}} } # TBD deprecate?
+const InstanceType{T} = Union{Type{<:T},<:T}
+const NothingUnion{T} = Union{Nothing, <:T}
+const BeliefArray{T} = Union{<:AbstractMatrix{<:T}, <:Adjoint{<:T, AbstractMatrix{<:T}} } # TBD deprecate?
 
 ## =============================
 # API Exports
