@@ -93,15 +93,11 @@ end
 fg = generateGraph_CaesarRing1D()
 getSolverParams(fg).useMsgLikelihoods = true
 
-# # TEMPORARY MUST COMMENT ON TRAVIS
-# getSolverParams(fg).drawtree = true
-
 vo = [:x3,:x5,:x1,:l1,:x4,:x2,:x6,:x0]
 
 mkpath(getLogPath(fg))
-tree = solveTree!(fg, eliminationOrder=vo, timeout=40, verbose=true) 
+tree = solveTree!(fg, eliminationOrder=vo, verbose=true) #, timeout=5) # timeout creates interrupt exception
 
-# msg = getMsgUpThis(tree.cliques[2])
 msg = IIF.getMessageBuffer(tree.cliques[2]).upRx
 
 tfg = buildCliqSubgraph(fg, tree.cliques[2])
@@ -174,6 +170,7 @@ pred, meas = approxDeconv(fg, :x0x1f1)
 ##
 
 end
+
 
 
 #
