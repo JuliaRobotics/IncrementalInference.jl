@@ -316,7 +316,7 @@ function DefaultNodeDataParametric( dodims::Int,
   # this should be the only function allocating memory for the node points
   if false && initialized
     error("not implemented yet")
-    # pN = AMP.manikde!(randn(dims, N), variableType.manifolds);
+    # pN = AMP.manikde!(variableType.manifold, randn(dims, N));
     #
     # sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     # gbw = getBW(pN)[:,1]
@@ -392,12 +392,12 @@ function setDefaultNodeData!( v::DFGVariable,
 end
 # if size(initval,2) < N && size(initval, 1) == dims
 #   @warn "setDefaultNodeData! -- deprecated use of stdev."
-#   p = AMP.manikde!(initval,diag(stdev), varType.manifolds);
+#   p = manikde!(varType.manifold, initval,diag(stdev));
 #   pN = resample(p,N)
 # if size(initval,2) < N && size(initval, 1) != dims
   # @info "Node value memory allocated but not initialized"
 # else
-#   pN = AMP.manikde!(initval, varType.manifolds)
+#   pN = manikde!(varType.manifold, initval)
 # end
 # dims = size(initval,1) # rows indicate dimensions
 

@@ -28,17 +28,17 @@ initAll!(fg)
 tree = solveTree!(fg)
 
 
-@test (Statistics.mean(getPoints(getKDE(fg, :a)))- 0 |> abs) < 3
-@test (Statistics.mean(getPoints(getKDE(fg, :b)))-10 |> abs) < 4
-@test (Statistics.mean(getPoints(getKDE(fg, :c)))-20 |> abs) < 4
-@test (Statistics.mean(getPoints(getKDE(fg, :d)))-30 |> abs) < 5
-@test (Statistics.mean(getPoints(getKDE(fg, :e)))-40 |> abs) < 5
+@test (Statistics.mean(getPoints(getBelief(fg, :a)))- 0 |> abs) < 3
+@test (Statistics.mean(getPoints(getBelief(fg, :b)))-10 |> abs) < 4
+@test (Statistics.mean(getPoints(getBelief(fg, :c)))-20 |> abs) < 4
+@test (Statistics.mean(getPoints(getBelief(fg, :d)))-30 |> abs) < 5
+@test (Statistics.mean(getPoints(getBelief(fg, :e)))-40 |> abs) < 5
 
-@test 0.3 < Statistics.std(getPoints(getKDE(fg, :a))) < 2
-@test 0.5 < Statistics.std(getPoints(getKDE(fg, :b))) < 4
-@test 0.9 < Statistics.std(getPoints(getKDE(fg, :c))) < 6
-@test 1.2 < Statistics.std(getPoints(getKDE(fg, :d))) < 7
-@test 1.5 < Statistics.std(getPoints(getKDE(fg, :e))) < 8
+@test 0.3 < Statistics.std(getPoints(getBelief(fg, :a))) < 2
+@test 0.5 < Statistics.std(getPoints(getBelief(fg, :b))) < 4
+@test 0.9 < Statistics.std(getPoints(getBelief(fg, :c))) < 6
+@test 1.2 < Statistics.std(getPoints(getBelief(fg, :d))) < 7
+@test 1.5 < Statistics.std(getPoints(getBelief(fg, :e))) < 8
 
 
 # drawTree(tree, show=true)
@@ -61,25 +61,25 @@ addFactor!(fg, [:a;:b], LinearRelative(Normal(10, 1)), graphinit=false)
 initManual!(fg, :a, randn(1,100))
 initManual!(fg, :b, 10 .+randn(1,100))
 
-A = getKDE(fg, :a)
-B = getKDE(fg, :b)
+A = getBelief(fg, :a)
+B = getBelief(fg, :b)
 # plotKDE(fg, [:a; :b])
 
 # repeat many times to ensure the means stay put and covariances spread out
 for i in 1:10
   pts = approxConv(fg, :abf1, :b)
-  B_ = manikde!(pts,ContinuousScalar)
+  B_ = manikde!(ContinuousScalar, pts)
   # plotKDE([B_; B])
   initManual!(fg, :b, B_)
 
   pts = approxConv(fg, :abf1, :a)
-  A_ = manikde!(pts, ContinuousScalar)
+  A_ = manikde!(ContinuousScalar, pts)
   # plotKDE([A_; A])
   initManual!(fg, :a, A_)
 end
 
-A_ = getKDE(fg, :a)
-B_ = getKDE(fg, :b)
+A_ = getBelief(fg, :a)
+B_ = getBelief(fg, :b)
 # plotKDE([A_; B_; A; B])
 
 @test (Statistics.mean(getPoints(A)) |> abs) < 1

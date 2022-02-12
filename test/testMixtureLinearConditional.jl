@@ -86,7 +86,7 @@ addVariable!(fg, :x1, ContinuousScalar)
 mp = Mixture(Prior, [Normal(); Normal(10,1)], [0.5;0.5])
 f0 = addFactor!(fg, [:x0;], mp)
 
-mr = Mixture(LinearRelative, (fancy=manikde!([randn(1) for _ in 1:75], ContinuousEuclid(1)), naive=Normal(0,10)), [0.4;0.6])
+mr = Mixture(LinearRelative, (fancy=manikde!(ContinuousEuclid(1), [randn(1) for _ in 1:75]), naive=Normal(0,10)), [0.4;0.6])
 f1 = addFactor!(fg, [:x0;:x1], mr)
 
 ##

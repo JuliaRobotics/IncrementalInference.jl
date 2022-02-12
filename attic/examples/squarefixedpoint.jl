@@ -41,4 +41,4 @@ initManual!(fg, :x, randn(1,100))
 tree = solveTree!(fg)
 
 ## plot the result
-plotKDE(map(x->getKDE(fg,x), [:x; :xy]))
+plotKDE(map(x->getBelief(fg,x), [:x; :xy]))

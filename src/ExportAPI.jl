@@ -209,6 +209,7 @@ export
 
   # Bayes (Junction) Tree
   evalFactor,
+  calcProposalBelief,
   approxConvBelief,
   approxConv,
 
