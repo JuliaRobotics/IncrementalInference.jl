@@ -456,7 +456,9 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
         #FIXME check if getManifold is defined otherwise fall back to getManifoldPartial, JT: I would like to standardize to getManifold
         if hasmethod(getManifold, (typeof(fnc),))
           Msrc = getManifold(fnc)
-          setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m], partialCoords, false)
+          # TODO workaround until partial manifold approach is standardized, see #1492
+          asPartial = isPartial(fnc) && manifold_dimension(Msrc) < manifold_dimension(mani)
+          setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m], partialCoords, asPartial)
         else
           Msrc, = getManifoldPartial(mani, partialCoords)
           setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m], partialCoords)
