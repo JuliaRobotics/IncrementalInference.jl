@@ -232,8 +232,9 @@ export
   rand,
   fastnorm,
 
-  # new wrapper (experimental)
+  # Factor operational memory
   CommonConvWrapper,
+  CalcFactor,
   
   getCliqVarInitOrderUp,
   getCliqNumAssocFactorsPerVar,
