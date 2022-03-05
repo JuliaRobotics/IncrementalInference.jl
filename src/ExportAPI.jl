@@ -306,6 +306,7 @@ export PackedUniform, PackedNormal
 export PackedZeroMeanDiagNormal, PackedZeroMeanFullNormal, PackedDiagNormal, PackedFullNormal
 export PackedManifoldKernelDensity
 export PackedAliasingScalarSampler, PackedHeatmapGridDensity, PackedLevelSetGridNormal
+export PackedRayleigh
 
 export Mixture, PackedMixture
 
