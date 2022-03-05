@@ -24,6 +24,7 @@ The list below highlights major breaking changes, and please note that significa
 - Language upgrades on `qr` for Julia 1.7, #1464.
 - Various other fixes and upgrades, https://github.com/JuliaRobotics/IncrementalInference.jl/milestone/111?closed=1
 - Add distribution serialization for Rayleigh.
+- Add `Position{N}` and `Position1`..`Position4` as new standard and aliases for `ContinuousScalar`, `ContinuousEuclid{N}`.
 
 # Changes in v0.26
 
