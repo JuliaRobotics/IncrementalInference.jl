@@ -7,7 +7,7 @@ using JSON
 
 ##
 
-@testset "Test packing of mixture of distributions" begin
+@testset "Test packing of mixture of distributions, 1498" begin
 ##
 
 # Start with an empty factor graph
