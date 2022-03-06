@@ -232,8 +232,9 @@ export
   rand,
   fastnorm,
 
-  # new wrapper (experimental)
+  # Factor operational memory
   CommonConvWrapper,
+  CalcFactor,
   
   getCliqVarInitOrderUp,
   getCliqNumAssocFactorsPerVar,
@@ -294,8 +295,8 @@ export
   setVariableRefence!,
   reshapeVec2Mat
 
-export ContinuousScalar
-export ContinuousEuclid
+export Position, Position1, Position2, Position3, Position4
+export ContinuousScalar, ContinuousEuclid # TODO figure out if this will be deprecated, Caesar.jl #807
 export Circular, Circle
 
 # serializing distributions
@@ -305,6 +306,7 @@ export PackedUniform, PackedNormal
 export PackedZeroMeanDiagNormal, PackedZeroMeanFullNormal, PackedDiagNormal, PackedFullNormal
 export PackedManifoldKernelDensity
 export PackedAliasingScalarSampler, PackedHeatmapGridDensity, PackedLevelSetGridNormal
+export PackedRayleigh
 
 export Mixture, PackedMixture
 

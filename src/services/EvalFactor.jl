@@ -299,7 +299,7 @@ end
 
 Multiple dispatch wrapper for `<:AbstractRelativeRoots` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
 
-Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
+Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceVariable`.
 """
 function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{T},

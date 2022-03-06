@@ -1,7 +1,3 @@
-import Base: convert
-import Base: ==
-
-export CalcFactor
 
 
 """
@@ -12,13 +8,12 @@ User factor interface method for computing the residual values of factors.
 Notes
 - Also see #467 on API consolidation
 
-```juila
+```julia
 function (cf::CalcFactor{<:LinearRelative})(res::AbstractVector{<:Real}, z, xi, xj)
   cf.metadata.variablelist
   cf.metadata.targetvariable
-  cf.metadata.usercache
-  generic on-manifold residual function 
-  
+  cf.cache
+  # generic on-manifold residual function 
   return distance(z, distance(xj, xi))
 end
 ```
@@ -108,6 +103,7 @@ mutable struct FactorMetadata{FV<:AbstractVector{<:DFGVariable},
   # label of which variable is being solved for
   solvefor::Symbol 
   # for type specific user data, see (? #784)
+  # OBSOLETE? Replaced by CalcFactor.cache
   cachedata::CD
 end
 

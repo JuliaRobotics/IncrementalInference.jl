@@ -9,6 +9,7 @@ packDistribution(dtr::ZeroMeanDiagNormal) = PackedZeroMeanDiagNormal(; diag=dtr.
 packDistribution(dtr::ZeroMeanFullNormal) = PackedZeroMeanFullNormal(; cov=dtr.Σ.mat[:] )
 packDistribution(dtr::DiagNormal) = PackedDiagNormal(; mu=dtr.μ, diag=dtr.Σ.diag )
 packDistribution(dtr::FullNormal) = PackedFullNormal(; mu=dtr.μ, cov=dtr.Σ.mat[:] )
+packDistribution(dtr::Rayleigh) = PackedRayleigh(; sigma=dtr.σ )
 
 packDistribution(dtr::AliasingScalarSampler) = PackedAliasingScalarSampler(; domain=dtr.domain, weights=dtr.weights.values )
 
@@ -58,10 +59,11 @@ packDistribution(dtr::LevelSetGridNormal) = PackedLevelSetGridNormal( "Increment
 unpackDistribution(dtr::PackedCategorical) = Categorical( dtr.p ./ sum(dtr.p) )
 unpackDistribution(dtr::PackedUniform) = Uniform(dtr.a, dtr.b )
 unpackDistribution(dtr::PackedNormal) = Normal( dtr.mu, dtr.sigma )
-unpackDistribution(dtr::PackedZeroMeanDiagNormal) = MvNormal( sqrt.(dtr.diag) )
+unpackDistribution(dtr::PackedZeroMeanDiagNormal) = MvNormal( LinearAlgebra.Diagonal(map(abs2, sqrt.(dtr.diag))) ) # sqrt.(dtr.diag)
 unpackDistribution(dtr::PackedZeroMeanFullNormal) = MvNormal( reshape(dtr.cov, length(dtr.mu), :) )
 unpackDistribution(dtr::PackedDiagNormal) = MvNormal( dtr.mu, sqrt.(dtr.diag) )
 unpackDistribution(dtr::PackedFullNormal) = MvNormal( dtr.mu, reshape(dtr.cov, length(dtr.mu), :) )
+unpackDistribution(dtr::PackedRayleigh) = Rayleigh( dtr.sigma )
 
 unpackDistribution(dtr::PackedAliasingScalarSampler) = AliasingScalarSampler( dtr.domain, dtr.weights ./ sum(dtr.weights) )
 
