@@ -20,6 +20,8 @@ include("saveconvertertypes.jl")
 include("testgraphpackingconverters.jl")
 include("testSaveLoadDFG.jl")
 
+include("testPackingMixtures.jl")
+
 include("testJunctionTreeConstruction.jl")
 include("testBayesTreeiSAM2Example.jl")
 include("testTreeFunctions.jl")
