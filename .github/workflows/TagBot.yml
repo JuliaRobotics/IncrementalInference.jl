@@ -1,8 +1,6 @@
 name: TagBot
 
 on:
-  schedule:
-    - cron: '20 00 * * *'
   issues:
     types: [closed,]
 
