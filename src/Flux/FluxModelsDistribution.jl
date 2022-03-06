@@ -112,7 +112,7 @@ Related
 
 Mixture, FluxModelsDistribution
 """
-function MixtureFluxModels( F_::FunctorInferenceType,
+function MixtureFluxModels( F_::AbstractFactor,
                             nnModels::Vector{P}, 
                             inDim::NTuple{ID,Int}, 
                             data::D,
@@ -147,7 +147,7 @@ end
 
 MixtureFluxModels(::Type{F}, 
                   w...;
-                  kw...) where F <: FunctorInferenceType = MixtureFluxModels(F(LinearAlgebra.I),w...;kw...)
+                  kw...) where F <: AbstractFactor = MixtureFluxModels(F(LinearAlgebra.I),w...;kw...)
 
 
 

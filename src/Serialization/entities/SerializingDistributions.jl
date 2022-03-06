@@ -53,6 +53,9 @@ Base.@kwdef struct PackedFullNormal <: PackedSamplableBelief
   cov::Vector{Float64} = ones(1)
 end
 
-
+Base.@kwdef struct PackedRayleigh <: PackedSamplableBelief
+  _type::String = "IncrementalInference.PackedRayleigh"
+  sigma::Float64 = 1.0
+end
 
 #

@@ -2,37 +2,41 @@
 
 ## Euclid 1
 
+
+
+"""
+    $TYPEDEF
+
+Continuous Euclidean variable of dimension `N` representing a Position in cartesian space.
+"""
+struct Position{N} <: InferenceVariable end
+
+Position(N::Int) = Position{N}()
+
+# not sure if these overloads are necessary since DFG 775?
+DFG.getManifold(::InstanceType{Position{N}}) where N = TranslationGroup(N)                             
+DFG.getDimension(val::InstanceType{Position{N}}) where N = manifold_dimension(getManifold(val))
+DFG.getPointType(::Type{Position{N}}) where N = Vector{Float64}
+DFG.getPointIdentity(M_::Type{Position{N}}) where N = zeros(N) # identity_element(getManifold(M_), zeros(N)) 
+
+Base.convert(::Type{<:ManifoldsBase.AbstractManifold}, ::InstanceType{Position{N}}) where N = TranslationGroup(N)
+
+#
+
 """
 $(TYPEDEF)
 
 Most basic continuous scalar variable in a `::DFG.AbstractDFG` object.
 
-DevNotes
-- TODO Consolidate with ContinuousEuclid{1}
+Alias of `Position{1}`
 """
-@defVariable ContinuousScalar TranslationGroup(1) [0.0;]
+const ContinuousScalar = Position{1}
+const ContinuousEuclid{N} = Position{N}
 
-
-
-"""
-    ContinuousEuclid{N}
-Continuous Euclidean variable of dimension `N`.
-"""
-struct ContinuousEuclid{N} <: InferenceVariable end
-
-ContinuousEuclid(x::Int) = ContinuousEuclid{x}()
-
-# not sure if these overloads are necessary since DFG 775?
-DFG.getManifold(::InstanceType{ContinuousEuclid{N}}) where N = TranslationGroup(N)                             
-DFG.getDimension(val::InstanceType{ContinuousEuclid{N}}) where N = manifold_dimension(getManifold(val))
-
-
-DFG.getPointType(::Type{ContinuousEuclid{N}}) where N = Vector{Float64}
-DFG.getPointIdentity(M_::Type{ContinuousEuclid{N}}) where N = zeros(N) # identity_element(getManifold(M_), zeros(N)) 
-
-
-Base.convert(::Type{<:ManifoldsBase.AbstractManifold}, ::InstanceType{ContinuousEuclid{N}}) where N = TranslationGroup(N)
-
+const Position1 = Position{1}
+const Position2 = Position{2}
+const Position3 = Position{3}
+const Position4 = Position{4}
 
 ## Circular
 
@@ -43,8 +47,6 @@ $(TYPEDEF)
 Circular is a `Manifolds.Circle{ℝ}` mechanization of one rotation, with `theta in [-pi,pi)`.
 """
 @defVariable Circular RealCircleGroup() [0.0;]
-
-
 
 
 #

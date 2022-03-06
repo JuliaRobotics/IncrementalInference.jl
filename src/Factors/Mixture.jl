@@ -33,7 +33,7 @@ mlr = Mixture(LinearRelative,
 addFactor!(fg, [:x0;:x1], mlr)
 ```
 """
-struct Mixture{N, F<:FunctorInferenceType, S, T<:Tuple} <: FunctorInferenceType
+struct Mixture{N, F<:AbstractFactor, S, T<:Tuple} <: AbstractFactor
   mechanics::F
   components::NamedTuple{S,T}
   diversity::Distributions.Categorical
@@ -44,21 +44,21 @@ end
 
 Mixture(f::Type{F},
         z::NamedTuple{S,T}, 
-        c::Distributions.DiscreteNonParametric ) where {F<:FunctorInferenceType, S, T} = Mixture{length(z),F,S,T}(f(LinearAlgebra.I), z, c, size( rand(z[1],1), 1), zeros(Int, 0))
+        c::Distributions.DiscreteNonParametric ) where {F<:AbstractFactor, S, T} = Mixture{length(z),F,S,T}(f(LinearAlgebra.I), z, c, size( rand(z[1],1), 1), zeros(Int, 0))
 Mixture(f::F,
         z::NamedTuple{S,T}, 
-        c::Distributions.DiscreteNonParametric ) where {F<:FunctorInferenceType, S, T} = Mixture{length(z),F,S,T}(f, z, c, size( rand(z[1],1), 1), zeros(Int, 0))
+        c::Distributions.DiscreteNonParametric ) where {F<:AbstractFactor, S, T} = Mixture{length(z),F,S,T}(f, z, c, size( rand(z[1],1), 1), zeros(Int, 0))
 Mixture(f::Union{F,Type{F}},z::NamedTuple{S,T}, 
-        c::AbstractVector{<:Real}) where {F<:FunctorInferenceType,S,T} = Mixture(f, z, Categorical([c...]) )
+        c::AbstractVector{<:Real}) where {F<:AbstractFactor,S,T} = Mixture(f, z, Categorical([c...]) )
 Mixture(f::Union{F,Type{F}},
         z::NamedTuple{S,T}, 
-        c::NTuple{N,<:Real}) where {N,F<:FunctorInferenceType,S,T} = Mixture(f, z, [c...] )
+        c::NTuple{N,<:Real}) where {N,F<:AbstractFactor,S,T} = Mixture(f, z, [c...] )
 Mixture(f::Union{F,Type{F}},
         z::Tuple, 
-        c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F<:FunctorInferenceType, N} = Mixture(f,NamedTuple{_defaultNamesMixtures(length(z))}(z), c )
+        c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F<:AbstractFactor, N} = Mixture(f,NamedTuple{_defaultNamesMixtures(length(z))}(z), c )
 Mixture(f::Union{F,Type{F}},
         z::AbstractVector{<:SamplableBelief}, 
-        c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F <: FunctorInferenceType, N} = Mixture(f,(z...,), c )
+        c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F <: AbstractFactor, N} = Mixture(f,(z...,), c )
 
 
 function Base.resize!(mp::Mixture, s::Int)
