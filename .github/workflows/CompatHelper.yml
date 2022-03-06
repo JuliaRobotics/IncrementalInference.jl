@@ -3,8 +3,6 @@ name: CompatHelper
 on:
   schedule:
     - cron: '20 00 * * *'
-  issues:
-    types: [opened]
 
 jobs:
   CompatHelper:
