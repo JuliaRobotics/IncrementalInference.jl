@@ -18,3 +18,13 @@ function calcStdBasicSpread(vartype::InferenceVariable, ptsArr::Vector{P}) where
   return msst
 end
 
+#TODO consolidate
+function calcMeanCovar(vari::DFGVariable, solvekey=:default)
+
+  pts = getSolverData(vari, solvekey).val
+  μ = mean(getManifold(vari), pts)
+  Σ = cov(getVariableType(vari), pts)
+  return μ, Σ
+end
+
+

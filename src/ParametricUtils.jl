@@ -548,25 +548,15 @@ function initParametricFrom!(fg::AbstractDFG, fromkey::Symbol = :default; parkey
     for v in getVariables(fg)
       fromvnd = getSolverData(v, fromkey)
       dims = getDimension(v)
-      getSolverData(v, parkey).val[1:dims] .= fromvnd.val[1:dims]#zeros(dims)*1e-5
+      getSolverData(v, parkey).val[1] .= fromvnd.val[1]
       getSolverData(v, parkey).bw[1:dims,1:dims] .= LinearAlgebra.I(dims)
     end
   else
     for var in getVariables(fg)
-        fromvnd = getSolverData(var, fromkey)
-        ptr_ = fromvnd.val
-        @cast ptr[i,j] := ptr_[j][i]
-        if fromvnd.dims == 1
-          nf = fit(Normal, ptr)
-          getSolverData(var, parkey).val[1][1] = nf.μ
-          getSolverData(var, parkey).bw[1,1] = nf.σ
-          # m = var.estimateDict[:default].mean
-        else
-          #FIXME circular will not work correctly with MvNormal
-          nf = fit(MvNormal, ptr)
-          getSolverData(var, parkey).val[1][1:fromvnd.dims] .= mean(nf)[1:fromvnd.dims]
-          getSolverData(var, parkey).bw = cov(nf)
-        end
+        dims = getDimension(var)
+        μ,Σ = calcMeanCovar(var, fromkey)
+        getSolverData(var, parkey).val[1] .= μ
+        getSolverData(var, parkey).bw[1:dims, 1:dims] .= Σ
     end
   end
 end
