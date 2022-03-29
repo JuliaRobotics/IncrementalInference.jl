@@ -110,7 +110,8 @@ function CalcFactorMahalanobis(fct::DFGFactor)
   varOrder = getVariableOrder(fct)
   
   _meas, _iΣ = getMeasurementParametric(cf)
-  meas = typeof(_meas) <: Tuple ? _meas : (_meas,)
+  M = getManifold(getFactorType(fct))
+  meas = typeof(_meas) <: Tuple ? _meas : (hat(M, Identity(M), _meas),)
   iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
 
   # FIXME #1480, cache = preambleCache(dfg,vars,usrfnc)
@@ -185,7 +186,8 @@ function _totalCost(M, cfvec::Vector{<:CalcFactorMahalanobis}, labeldict, points
   return obj
 end
 
-function _totalCost(cfdict::Dict{Symbol, <:CalcFactorMahalanobis},
+function _totalCost(fg, 
+                    cfdict::Dict{Symbol, <:CalcFactorMahalanobis},
                     flatvar,
                     X )
   #
@@ -194,7 +196,7 @@ function _totalCost(cfdict::Dict{Symbol, <:CalcFactorMahalanobis},
 
     varOrder = cfp.varOrder
 
-    Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
+    Xparams = [getPoint(getVariableType(fg, varId), view(X, flatvar.idx[varId])) for varId in varOrder]
 
     # call the user function
     retval = cfp(Xparams...)
@@ -267,7 +269,8 @@ function solveGraphParametric(fg::AbstractDFG;
   flatvar = FlatVariables(fg, varIds)
 
   for vId in varIds
-    flatvar[vId] = getVariableSolverData(fg, vId, solvekey).val[1][:]
+    p = getVariableSolverData(fg, vId, solvekey).val[1]
+    flatvar[vId] = getCoordinates(getVariableType(fg,vId), p)
   end
 
   initValues = flatvar.X
@@ -279,7 +282,7 @@ function solveGraphParametric(fg::AbstractDFG;
 
   if useCalcFactor
     cfd = calcFactorMahalanobisDict(fg)
-    tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(cfd, flatvar, x), initValues, autodiff = autodiff)
+    tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(fg, cfd, flatvar, x), initValues, autodiff = autodiff)
   else
     tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(fg, flatvar, x), initValues, autodiff = autodiff)
   end
