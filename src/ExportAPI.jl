@@ -295,6 +295,19 @@ export
   setVariableRefence!,
   reshapeVec2Mat
 
+
+export incrSuffix
+
+export calcPPE, calcVariablePPE
+export setPPE!, setVariablePosteriorEstimates!
+export getPPEDict
+export getPPESuggested, getPPEMean, getPPEMax
+export getPPESuggestedAll
+export loadDFG
+export findVariablesNear, defaultFixedLagOnTree!
+export fetchDataJSON
+
+
 export Position, Position1, Position2, Position3, Position4
 export ContinuousScalar, ContinuousEuclid # TODO figure out if this will be deprecated, Caesar.jl #807
 export Circular, Circle
