@@ -2,18 +2,8 @@
 #  IIF methods should direclty detect extended types from user import
 # of convert in their namespace
 
-import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
-import DistributedFactorGraphs: getFactorType
 
-export incrSuffix
-export calcPPE, calcVariablePPE
-export setPPE!, setVariablePosteriorEstimates!
-export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
-export loadDFG
-export fetchDataJSON
-
-
-
+# FIXME, upgrade to AMP instead
 KDE.getPoints(dfg::AbstractDFG, lbl::Symbol) = getBelief(dfg, lbl) |> getPoints
 
 clampStringLength(st::AbstractString, len::Int=5) = st[1:minimum([len; length(st)])]
