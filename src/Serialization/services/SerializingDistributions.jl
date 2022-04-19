@@ -57,6 +57,33 @@ packDistribution(dtr::LevelSetGridNormal) = PackedLevelSetGridNormal( "Increment
 #
 
 
+function parchDistribution(hgd::HeatmapGridDensity)
+  @assert 2 <= size(hgd.data,1) "parchDistribution of HeatmapGridDensity can only be done when `.data` is larger than 2x1"
+  
+  data = Matrix{eltype(hgd.data)}(undef, 2,2)
+  data[1,1] = hgd.data[1,1]
+  # data[2,2] = hgd.data[2,2] # disable since data might be a single column in unusual cases
+  data[2,1] = size(hgd.data,1)
+  data[1,2] = size(hgd.data,2)
+
+  domain = hgd.domain
+  hint_callback = hgd.hint_callback
+  bw_factor = hgd.bw_factor
+  densityFnc = parchDistribution(hgd.densityFnc)
+  
+  HeatmapGridDensity(
+    data,
+    domain,
+    hint_callback,
+    bw_factor,
+    densityFnc
+  )
+end
+
+
+
+
+
 ## Unpack JSON/Packed to Distribution types
 
 unpackDistribution(dtr::PackedCategorical) = Categorical( dtr.p ./ sum(dtr.p) )
