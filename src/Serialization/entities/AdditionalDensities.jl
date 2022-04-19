@@ -19,18 +19,18 @@ end
 
 
 Base.@kwdef mutable struct PackedHeatmapGridDensity <: PackedSamplableBelief
-  _type::String
+  _type::String = "IncrementalInference.PackedHeatmapGridDensity"
   data::Vector{Vector{Float64}}
   domain::Tuple{Vector{Float64}, Vector{Float64}}
   hint_callback::String
   bw_factor::Float64
   N::Int
-  # densityFnc::String # TODO rather rebuild at unpack
+  # _densityFnc::String = "" # only use if storing parched belief data entry label/id
 end
 
 
 Base.@kwdef mutable struct PackedLevelSetGridNormal <: PackedSamplableBelief
-  _type::String
+  _type::String = "IncrementalInference.PackedLevelSetGridNormal"
   level::Float64
   sigma::Float64
   sigma_scale::Float64

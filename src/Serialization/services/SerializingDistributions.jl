@@ -20,11 +20,14 @@ function PackedHeatmapGridDensity(
     domain::AbstractVector, # {Any}
     hint_callback::String, 
     bw_factor::Float64, 
-    N::Int64 )
+    N::Int64 
+  )
   #
+  # TODO data might not be type Float64, should store and recover as performance enhancement (if user specified different element type)
   data_ = Vector{Vector{Float64}}(undef, length(data))
   for (i,dat) in enumerate(data)
-    data_[i] = float.(dat)
+    dat_ = replace(dat, nothing=>0)
+    data_[i] = float.(dat_)
   end
   domain_ = tuple(float.(domain[1]), float.(domain[2]))
 
@@ -52,6 +55,33 @@ packDistribution(dtr::LevelSetGridNormal) = PackedLevelSetGridNormal( "Increment
                                                                       dtr.sigma_scale,
                                                                       convert(PackedHeatmapGridDensity, dtr.heatmap) )
 #
+
+
+function parchDistribution(hgd::HeatmapGridDensity)
+  @assert 2 <= size(hgd.data,1) "parchDistribution of HeatmapGridDensity can only be done when `.data` is larger than 2x1"
+  
+  data = Matrix{eltype(hgd.data)}(undef, 2,2)
+  data[1,1] = hgd.data[1,1]
+  # data[2,2] = hgd.data[2,2] # disable since data might be a single column in unusual cases
+  data[2,1] = size(hgd.data,1)
+  data[1,2] = size(hgd.data,2)
+
+  domain = hgd.domain
+  hint_callback = hgd.hint_callback
+  bw_factor = hgd.bw_factor
+  densityFnc = parchDistribution(hgd.densityFnc)
+  
+  HeatmapGridDensity(
+    data,
+    domain,
+    hint_callback,
+    bw_factor,
+    densityFnc
+  )
+end
+
+
+
 
 
 ## Unpack JSON/Packed to Distribution types

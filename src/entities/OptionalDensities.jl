@@ -13,7 +13,7 @@ struct FluxModelsDistribution{ID,OD,P,D<:AbstractArray}
   data::D
   # shuffle model predictions relative to particle index at each sampling
   shuffle::Base.RefValue{Bool}
-  # false for default serialization with model info, set true for separate storage of models 
+  """ EXPL: false for default serialization with model info, set true for separate storage of models. TODO rename as to useStashing, see [docs](@ref section_stash_unstash) """
   serializeHollow::Base.RefValue{Bool}
     # # TODO remove requirement and standardize sampler API
     # specialSampler::Function
@@ -41,7 +41,7 @@ DevNotes:
 - TODO standardize with AliasingScalarSampler see IIF #1341
 - TODO store the hint function (at least any easy cases)
 """
-struct HeatmapGridDensity{T <: Real, H <: Union{<:Function, Nothing}, B <: Union{ManifoldKernelDensity, BallTreeDensity}}
+struct HeatmapGridDensity{T <: Real, H <: Union{<:Function, Nothing}, B <: ManifoldKernelDensity}
   """intensity data, on regular grid"""
   data::Matrix{T}
   """domain as grid or locations at which scalar intensity elements exist"""
@@ -49,10 +49,10 @@ struct HeatmapGridDensity{T <: Real, H <: Union{<:Function, Nothing}, B <: Union
   """use location hint to focus sampling to specific area of data, requires additional info at `getSample`
       assumed the callback will return _____ NOT ACTIVE YET"""
   hint_callback::H
-  """general rule for kernel bandwidths used in construction of density, e.g. 0.7 of domain grid spacing"""
+  """general rule for kernel bandwidths used in construction of grid density, e.g. bw is 0.7 of domain grid spacing"""
   bw_factor::T 
   """density function as samplable representation of the data over the domain"""
-  densityFnc::B # TODO change to ::ManifoldKernelDensity{TranslationGroup(2),BallTreeDensity}
+  densityFnc::B
 end
 
 (hmd::HeatmapGridDensity)(w...;kw...) = hmd.densityFnc(w...;kw...)
@@ -84,6 +84,29 @@ end
 
 Base.show(io::IO, ::MIME"text/plain", x::HeatmapGridDensity) = show(io, x)
 Base.show(io::IO, ::MIME"application/prs.juno.inline", x::HeatmapGridDensity) = show(io,x)
+
+
+"""
+    $SIGNATURES
+
+Internal function for updating HGD.  
+  
+Notes
+- Likely to be used for [unstashing packed factors](@ref section_stash_unstash) via [`preambleCache`](@ref).
+- Counterpart to `AMP._update!` function for stashing of either MKD or HGD.
+"""
+function _update!(dst::HeatmapGridDensity{T,H,B}, src::HeatmapGridDensity{T,H,B}) where {T,H,B}
+  @assert size(dst.data) == size(src.data) "Updating HeatmapDensityGrid can only be done for data of the same size"
+  dst.data .= src.data
+  if !isapprox(dst.domain[1], src.domain[1])
+    dst.domain[1] .= src.domain[1]
+  end
+  if !isapprox(dst.domain[2], src.domain[2])
+    dst.domain[2] .= src.domain[2]
+  end
+  AMP._update!(dst.densityFnc, src.densityFnc)
+  dst
+end
 
 
 ##

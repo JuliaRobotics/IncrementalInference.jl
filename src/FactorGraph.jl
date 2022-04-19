@@ -684,18 +684,19 @@ function DFG.addFactor!(dfg::AbstractDFG,
   varOrderLabels = Symbol[v.label for v=Xi]
   solverData = getDefaultFactorData(dfg, 
                                     Xi, 
-                                    deepcopy(usrfnc), 
-                                    multihypo=multihypo, 
-                                    nullhypo=nullhypo, 
-                                    threadmodel=threadmodel,
-                                    inflation=inflation,
-                                    _blockRecursion=_blockRecursion)
+                                    deepcopy(usrfnc);
+                                    multihypo, 
+                                    nullhypo, 
+                                    threadmodel,
+                                    inflation,
+                                    _blockRecursion)
+  #
   newFactor = DFGFactor(Symbol(namestring),
                         varOrderLabels,
                         solverData;
                         tags=Set(union(tags, [:FACTOR])),
-                        solvable=solvable,
-                        timestamp=timestamp)
+                        solvable,
+                        timestamp)
   #
 
   success = addFactor!(dfg, newFactor)

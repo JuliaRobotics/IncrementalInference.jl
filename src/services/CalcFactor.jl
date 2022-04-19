@@ -49,6 +49,7 @@ function CalcFactor(ccwl::CommonConvWrapper;
                     _allowThreads = true,
                     cache = ccwl.dummyCache )
   #
+  # FIXME using ccwl.dummyCache is not thread-safe
   CalcFactor( factor,
               metadata,
               _sampleIdx,
@@ -184,13 +185,15 @@ function calcFactorResidualTemporary( fct::AbstractRelative,
     sampleFactor(cfo, 1)[1]
   end
   
+  
   # assume a single sample point is being run
-  return if doTime
+  res = if doTime
     @time res = calcFactorResidual(_dfgfct, _measurement, pts...)
     res
   else
     calcFactorResidual(_dfgfct, _measurement, pts...)
   end
+  return res
 end
 
 
