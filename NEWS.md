@@ -25,6 +25,7 @@ The list below highlights major breaking changes, and please note that significa
 - Various other fixes and upgrades, https://github.com/JuliaRobotics/IncrementalInference.jl/milestone/111?closed=1
 - Add distribution serialization for Rayleigh.
 - Add `Position{N}` and `Position1`..`Position4` as new standard and aliases for `ContinuousScalar`, `ContinuousEuclid{N}`.
+- `HeatmapGridDensity` now only supports `ManifoldKernelDensity` functions.
 
 # Changes in v0.26
 

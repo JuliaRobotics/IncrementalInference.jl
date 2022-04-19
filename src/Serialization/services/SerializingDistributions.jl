@@ -20,11 +20,14 @@ function PackedHeatmapGridDensity(
     domain::AbstractVector, # {Any}
     hint_callback::String, 
     bw_factor::Float64, 
-    N::Int64 )
+    N::Int64 
+  )
   #
+  # TODO data might not be type Float64, should store and recover as performance enhancement (if user specified different element type)
   data_ = Vector{Vector{Float64}}(undef, length(data))
   for (i,dat) in enumerate(data)
-    data_[i] = float.(dat)
+    dat_ = replace(dat, nothing=>0)
+    data_[i] = float.(dat_)
   end
   domain_ = tuple(float.(domain[1]), float.(domain[2]))
 
