@@ -2,12 +2,12 @@
 
 
 Base.@kwdef struct PackedManifoldKernelDensity <: PackedSamplableBelief
-  _type::String
+  _type::String            = "IncrementalInference.PackedManifoldKernelDensity"
   varType::String
   pts::Vector{Vector{Float64}}
-  bw::Vector{Float64}
-  partial::Vector{Int}
-  infoPerCoord::Vector{Float64}
+  bw::Vector{Float64}      = ones(length(pts[1]))
+  partial::Vector{Int}     = collect(1:length(pts[1])) 
+  infoPerCoord::Vector{Float64} = zeros(length(pts[1]))
 end
 
 
