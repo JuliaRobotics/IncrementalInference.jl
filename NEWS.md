@@ -17,7 +17,7 @@ The list below highlights breaking changes according to normal semver workflow -
 - `PackedHeatmapGridDensity` has an expanded fields to support future stash and cache serialization strategies.
 - Internal `parchDistribution` functions have been added towards future stashed serialization strategies.
 - Internal `_update!` function supports updating of the `HeatmapGridDensity` distribution.
-
+- Unpacking of `PackedManifoldKernelDensity` is more versatile with improved `.partial` and `.bw` options.
 
 # Changes in v0.27
 
