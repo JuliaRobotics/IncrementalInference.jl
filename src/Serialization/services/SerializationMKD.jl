@@ -57,10 +57,10 @@ function unpackDistribution(dtr::PackedManifoldKernelDensity)
   # find InferenceVariable type from string (anything Manifolds.jl?)
   M = DFG.getTypeFromSerializationModule(dtr.varType) |> getManifold
   vecP = [AMP.makePointFromCoords(M, pt) for pt in dtr.pts]
-
-  partial = length(dtr.partial) == manifold_dimension(M) ? nothing : dtr.partial
+  bw = length(dtr.bw) === 0 ? nothing : dtr.bw
+  partial = length(dtr.partial) == manifold_dimension(M) || length(dtr.partial) === 0 ? nothing : dtr.partial
   
-  return manikde!( M, vecP; bw=dtr.bw, partial, infoPerCoord=dtr.infoPerCoord )
+  return manikde!( M, vecP; bw, partial, infoPerCoord=dtr.infoPerCoord )
 end
 
 
