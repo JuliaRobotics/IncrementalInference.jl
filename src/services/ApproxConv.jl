@@ -212,17 +212,17 @@ function proposalbeliefs!(dfg::AbstractDFG,
                           destlbl::Symbol,
                           factors::AbstractVector, #{<:DFGFactor},
                           dens::AbstractVector{<:ManifoldKernelDensity},
-                          measurement::AbstractVector=Tuple[];
-                          solveKey::Symbol=:default,
-                          N::Int=getSolverParams(dfg).N, #maximum([length(getPoints(getBelief(dfg, destlbl, solveKey))); getSolverParams(dfg).N]),
+                          measurement::AbstractVector = Tuple[];
+                          solveKey::Symbol = :default,
+                          N::Int = getSolverParams(dfg).N, #maximum([length(getPoints(getBelief(dfg, destlbl, solveKey))); getSolverParams(dfg).N]),
                           # how much nullSurplus should be added, see #1517
-                          nullSurplusAdd::Real=0.2,
-                          dbg::Bool=false  )
+                          nullSurplusAdd::Real = getSolverParams(dfg).nullSurplusAdd,
+                          dbg::Bool = false  )
   #
-
+  
   # populate the full and partial dim containers
   ipcs = Vector{Vector{Float64}}(undef, length(factors))
-
+  
   # workaround for IIF #1517, additional entropy for sibling factors to target variable if one has multihypo
   nullSrp = zeros(length(factors))
   if any(isMultihypo.(factors))
@@ -261,7 +261,7 @@ function proposalbeliefs!(dfg::AbstractDFG,
   for _ipc in ipcs
     ipc .+= _ipc
   end
-
+  
   ipc
 end
 # group partial dimension factors by selected dimensions -- i.e. [(1,)], [(1,2),(1,2)], [(2,);(2;)]
