@@ -9,12 +9,13 @@ function approxConvBelief(dfg::AbstractDFG,
                           measurement::AbstractVector=Tuple[];
                           solveKey::Symbol=:default,
                           N::Int=length(measurement), 
+                          nullSurplus::Real=0,
                           skipSolve::Bool=false )
   #
   v1 = getVariable(dfg, target)
   N = N == 0 ? getNumPts(v1, solveKey=solveKey) : N
   # points and infoPerCoord
-  pts, ipc = evalFactor(dfg, fc, v1.label, measurement, solveKey=solveKey, N=N, skipSolve=skipSolve)
+  pts, ipc = evalFactor(dfg, fc, v1.label, measurement; solveKey, N, skipSolve, nullSurplus)
   
   len = length(ipc)
   mask = 1e-14 .< abs.(ipc)
@@ -69,7 +70,8 @@ function approxConvBelief(dfg::AbstractDFG,
                           setPPEmethod::Union{Nothing, Type{<:AbstractPointParametricEst}}=nothing,
                           setPPE::Bool= setPPEmethod !== nothing,
                           path::AbstractVector{Symbol}=Symbol[],
-                          skipSolve::Bool=false  )
+                          skipSolve::Bool=false,
+                          nullSurplus::Real=0  )
   #
   # @assert isVariable(dfg, target) "approxConv(dfg, from, target,...) where `target`=$target must be a variable in `dfg`"
   
@@ -109,7 +111,7 @@ function approxConvBelief(dfg::AbstractDFG,
     # get the factor
     fct0 = getFactor(dfg,from)
     # get the Matrix{<:Real} of projected points
-    pts1Bel = approxConvBelief(dfg, fct0, path[2], measurement, solveKey=solveKey, N=N, skipSolve=skipSolve)
+    pts1Bel = approxConvBelief(dfg, fct0, path[2], measurement; solveKey, N, skipSolve, nullSurplus)
     if length(path) == 2
       return pts1Bel
     end
@@ -127,7 +129,7 @@ function approxConvBelief(dfg::AbstractDFG,
       # this is a factor path[idx]
       fct = getFactor(dfg, path[idx])
       addFactor!(tfg, fct)
-      ptsBel = approxConvBelief(tfg, fct, path[idx+1], solveKey=solveKey, N=N, skipSolve=skipSolve)
+      ptsBel = approxConvBelief(tfg, fct, path[idx+1]; solveKey, N, skipSolve)
       initManual!(tfg, path[idx+1], ptsBel)
       !setPPE ? nothing : setPPE!(tfg, path[idx+1], solveKey, ppemethod)
     end
@@ -155,10 +157,11 @@ function calcProposalBelief(dfg::AbstractDFG,
                             measurement::AbstractVector=Tuple[];
                             N::Int=length(measurement),
                             solveKey::Symbol=:default,
+                            nullSurplus::Real=0,
                             dbg::Bool=false  )
   #
   # assuming it is properly initialized TODO
-  proposal = approxConvBelief(dfg, fct, target, measurement, solveKey=solveKey, N=N)
+  proposal = approxConvBelief(dfg, fct, target, measurement; solveKey, N, nullSurplus)
 
   # return the proposal belief and inferdim, NOTE likely to be changed
   return proposal
@@ -172,6 +175,7 @@ function calcProposalBelief(dfg::AbstractDFG,
                             measurement::AbstractVector=Tuple[];
                             N::Int=length(measurement),
                             solveKey::Symbol=:default,
+                            nullSurplus::Real=0,
                             dbg::Bool=false  )
   #
 
@@ -211,11 +215,25 @@ function proposalbeliefs!(dfg::AbstractDFG,
                           measurement::AbstractVector=Tuple[];
                           solveKey::Symbol=:default,
                           N::Int=getSolverParams(dfg).N, #maximum([length(getPoints(getBelief(dfg, destlbl, solveKey))); getSolverParams(dfg).N]),
+                          # how much nullSurplus should be added, see #1517
+                          nullSurplusAdd::Real=0.2,
                           dbg::Bool=false  )
   #
 
   # populate the full and partial dim containers
   ipcs = Vector{Vector{Float64}}(undef, length(factors))
+
+  # workaround for IIF #1517, additional entropy for sibling factors to target variable if one has multihypo
+  nullSrp = zeros(length(factors))
+  if any(isMultihypo.(factors))
+    # relative sibling factors get nullSurplus
+    for (i,f) in enumerate(factors)
+      # don't add additional nullSurplus, since its already being done in ExplicitDiscreteMarg!!!  FIXME refactor to common solution
+      if isa(getFactorType(f), AbstractRelative) && !isMultihypo(f)
+        nullSrp[i] = nullSurplusAdd
+      end
+    end
+  end
   
   vardim = getDimension(getVariable(dfg, destlbl))
   # get a proposal belief from each factor connected to destlbl
@@ -226,7 +244,7 @@ function proposalbeliefs!(dfg::AbstractDFG,
     # FIXME, update to infoPerCoord
     fct_ipc = ones(vardim) # getFactorSolvableDim(dfg, fct, destlbl, solveKey)
     # convolve or passthrough to get a new proposal
-    propBel_ = calcProposalBelief(dfg, fct, destlbl, measurement, N=N, dbg=dbg, solveKey=solveKey)
+    propBel_ = calcProposalBelief(dfg, fct, destlbl, measurement; N, dbg, solveKey, nullSurplus=nullSrp[count])
     # partial density
     propBel = if isPartial(ccwl)
       pardims = _getDimensionsPartial(ccwl)

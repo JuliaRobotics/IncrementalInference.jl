@@ -306,7 +306,7 @@ Return bool on whether a certain factor has user defined multihypothesis.
 
 Related
 
-getMultihypoDistribution
+[`getMultihypoDistribution`](@ref)
 """
 isMultihypo(fct::DFGFactor) = isa(_getCCW(fct).hypotheses, Distribution)
 

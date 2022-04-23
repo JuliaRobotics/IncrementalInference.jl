@@ -311,6 +311,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 N::Int= 0<length(measurement) ? length(measurement) : maximum(Npts.(getBelief.(Xi, solveKey))),
                                 spreadNH::Real=3.0,
                                 inflateCycles::Int=3,
+                                nullSurplus::Real=0,
                                 dbg::Bool=false,
                                 skipSolve::Bool=false,
                                 _slack=nothing  ) where {T <: AbstractFactor}
@@ -318,7 +319,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
 
   # Prep computation variables
   # NOTE #1025, should FMD be built here...
-  sfidx, maxlen, mani = _updateCCW!(ccwl, Xi, solvefor, N, needFreshMeasurements=needFreshMeasurements, solveKey=solveKey)
+  sfidx, maxlen, mani = _updateCCW!(ccwl, Xi, solvefor, N; needFreshMeasurements, solveKey)
   # check for user desired measurement values
   if 0 < length(measurement)
     ccwl.measurement = measurement
@@ -328,7 +329,9 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   isinit = map(x->isInitialized(x), Xi)
   
   # assemble how hypotheses should be computed
-  hyporecipe = _prepareHypoRecipe!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit, ccwl.nullhypo )
+  # nullSurplus see #1517
+  runnullhypo = maximum((ccwl.nullhypo,nullSurplus))
+  hyporecipe = _prepareHypoRecipe!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit, runnullhypo )
   
   # get manifold add operations
   # TODO, make better use of dispatch, see JuliaRobotics/RoME.jl#244
@@ -372,6 +375,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 dbg::Bool=false,
                                 spreadNH::Real=3.0,
                                 inflateCycles::Int=3,
+                                nullSurplus::Real=0,
                                 skipSolve::Bool=false,
                                 _slack=nothing ) where {T <: AbstractFactor}
   #
@@ -396,7 +400,9 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # Check which variables have been initialized
   # TODO not sure why forcing to Bool vs BitVector
   isinit::Vector{Bool} = Xi .|> isInitialized .|> Bool
-  hyporecipe = _prepareHypoRecipe!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, ccwl.nullhypo )
+  # nullSurplus see #1517
+  runnullhypo = maximum((ccwl.nullhypo,nullSurplus))
+  hyporecipe = _prepareHypoRecipe!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, runnullhypo )
   
   # get solvefor manifolds, FIXME ON FIRE, upgrade to new Manifolds.jl
   mani = getManifold(Xi[sfidx])
@@ -523,6 +529,7 @@ function evalFactor(dfg::AbstractDFG,
                     solveKey::Symbol=:default,
                     N::Int=length(measurement),
                     inflateCycles::Int=getSolverParams(dfg).inflateCycles,
+                    nullSurplus::Real=0,
                     dbg::Bool=false,
                     skipSolve::Bool=false,
                     _slack=nothing  )
@@ -539,10 +546,9 @@ function evalFactor(dfg::AbstractDFG,
     ccw.cpt[i].factormetadata.solvefor = solvefor
   end
 
-  return evalPotentialSpecific( Xi, ccw, solvefor, measurement, needFreshMeasurements=needFreshMeasurements,
-                                solveKey=solveKey, N=N, dbg=dbg, spreadNH=getSolverParams(dfg).spreadNH, 
-                                inflateCycles=inflateCycles, skipSolve=skipSolve,
-                                _slack=_slack  )
+  return evalPotentialSpecific( Xi, ccw, solvefor, measurement; needFreshMeasurements,
+                                solveKey, N, dbg, spreadNH=getSolverParams(dfg).spreadNH, 
+                                inflateCycles, nullSurplus, skipSolve, _slack  )
   #
 end
 
