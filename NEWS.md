@@ -18,6 +18,7 @@ The list below highlights breaking changes according to normal semver workflow -
 - Internal `parchDistribution` functions have been added towards future stashed serialization strategies.
 - Internal `_update!` function supports updating of the `HeatmapGridDensity` distribution.
 - Unpacking of `PackedManifoldKernelDensity` is more versatile with improved `.partial` and `.bw` options.
+- Bugfix on `multihypo=` which now includes `nullSurplus` on sibling relative factors to a variable with a `multihypo` factor, #1518.
 
 # Changes in v0.27
 
