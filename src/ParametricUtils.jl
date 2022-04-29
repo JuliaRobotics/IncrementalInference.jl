@@ -86,7 +86,7 @@ function getMeasurementParametric(s::AbstractFactor)
     @warn "getMeasurementParametric fallback to using field `.Zij` by default will be deprecated, use field `Z` or extend it for more complex factors." maxlog=1
   elseif hasfield(typeof(s), :z)
     Z = s.z
-    @info "getMeasurementParametric fallback to using field `.Zij` by default will be deprecated, use field `Z` or extend it for more complex factors." maxlog=1
+    @info "getMeasurementParametric fallback to using field `.z` by default will be deprecated, use field `Z` or extend it for more complex factors." maxlog=1
   else
     error("getMeasurementParametric(::$(typeof(s))) not defined, please add it, or use non-parametric, or open an issue for help.")
   end
@@ -139,6 +139,15 @@ end
 function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:AbstractFactor, U, V, W, C}
   # call the user function (be careful to call the new CalcFactor version only!!!)
   res = cfp.calcfactor!(cfp.meas[1], variables...)
+  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+  return res' * cfp.iΣ[1] * res
+end
+
+function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:AbstractPrior, U, V, W, C}
+  # TODO should prior functions follow the same factor definition with a measurement on tangant?
+  M = getManifold(cfp.calcfactor!.factor)
+  m = exp(M, identity_element(M), cfp.meas[1])  
+  res = cfp.calcfactor!(m, variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
   return res' * cfp.iΣ[1] * res
 end
