@@ -94,16 +94,16 @@ end
 
 function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
   kdePr = manikde!(getManifold(belief_.variableType), belief_.val, bw=belief_.bw[:,1])
-  MsgPrior(kdePr, belief_.infoPerCoord)
+  MsgPrior(kdePr, belief_.infoPerCoord, getManifold(belief_))
 end
 
 function generateMsgPrior(belief_::TreeBelief, ::ParametricMessage)
   msgPrior = if length(belief_.val[1]) == 1 && length(belief_.val) == 1
-    MsgPrior(Normal(belief_.val[1][1], sqrt(belief_.bw[1])), belief_.infoPerCoord)
+    MsgPrior(Normal(belief_.val[1][1], sqrt(belief_.bw[1])), belief_.infoPerCoord, getManifold(belief_))
   elseif length(belief_.val) == 1 && 1 != length(belief_.val[1])
     mvnorm = createMvNormal(belief_.val[1], belief_.bw)
     mvnorm !== nothing ? nothing : (return DFGFactor[])
-    MsgPrior(mvnorm, belief_.infoPerCoord)
+    MsgPrior(mvnorm, belief_.infoPerCoord, getManifold(belief_))
   end
   return msgPrior
 end
