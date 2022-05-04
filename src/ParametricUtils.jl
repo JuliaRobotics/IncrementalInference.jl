@@ -611,7 +611,8 @@ function updateParametricSolution!(sfg, vardict)
   for (v,val) in vardict
       vnd = getSolverData(getVariable(sfg, v), :parametric)
       # fill in the variable node data value
-      vnd.val .= val.val
+      p = getPoint(getVariableType(sfg, v), val.val)
+      vnd.val[1] = p
       #calculate and fill in covariance
       vnd.bw = val.cov
       #fill in ppe as mean
