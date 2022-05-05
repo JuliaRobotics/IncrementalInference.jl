@@ -86,7 +86,7 @@ function getMeasurementParametric(s::AbstractFactor)
     @warn "getMeasurementParametric fallback to using field `.Zij` by default will be deprecated, use field `Z` or extend it for more complex factors." maxlog=1
   elseif hasfield(typeof(s), :z)
     Z = s.z
-    @info "getMeasurementParametric fallback to using field `.Zij` by default will be deprecated, use field `Z` or extend it for more complex factors." maxlog=1
+    @info "getMeasurementParametric fallback to using field `.z` by default will be deprecated, use field `Z` or extend it for more complex factors." maxlog=1
   else
     error("getMeasurementParametric(::$(typeof(s))) not defined, please add it, or use non-parametric, or open an issue for help.")
   end
@@ -110,7 +110,8 @@ function CalcFactorMahalanobis(fct::DFGFactor)
   varOrder = getVariableOrder(fct)
   
   _meas, _iΣ = getMeasurementParametric(cf)
-  meas = typeof(_meas) <: Tuple ? _meas : (_meas,)
+  M = getManifold(getFactorType(fct))
+  meas = typeof(_meas) <: Tuple ? _meas : (hat(M, Identity(M), _meas),)
   iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
 
   # FIXME #1480, cache = preambleCache(dfg,vars,usrfnc)
@@ -138,6 +139,15 @@ end
 function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:AbstractFactor, U, V, W, C}
   # call the user function (be careful to call the new CalcFactor version only!!!)
   res = cfp.calcfactor!(cfp.meas[1], variables...)
+  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+  return res' * cfp.iΣ[1] * res
+end
+
+function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:AbstractPrior, U, V, W, C}
+  # TODO should prior functions follow the same factor definition with a measurement on tangant?
+  M = getManifold(cfp.calcfactor!.factor)
+  m = exp(M, identity_element(M), cfp.meas[1])  
+  res = cfp.calcfactor!(m, variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
   return res' * cfp.iΣ[1] * res
 end
@@ -185,7 +195,8 @@ function _totalCost(M, cfvec::Vector{<:CalcFactorMahalanobis}, labeldict, points
   return obj
 end
 
-function _totalCost(cfdict::Dict{Symbol, <:CalcFactorMahalanobis},
+function _totalCost(fg, 
+                    cfdict::Dict{Symbol, <:CalcFactorMahalanobis},
                     flatvar,
                     X )
   #
@@ -194,7 +205,7 @@ function _totalCost(cfdict::Dict{Symbol, <:CalcFactorMahalanobis},
 
     varOrder = cfp.varOrder
 
-    Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
+    Xparams = [getPoint(getVariableType(fg, varId), view(X, flatvar.idx[varId])) for varId in varOrder]
 
     # call the user function
     retval = cfp(Xparams...)
@@ -267,7 +278,8 @@ function solveGraphParametric(fg::AbstractDFG;
   flatvar = FlatVariables(fg, varIds)
 
   for vId in varIds
-    flatvar[vId] = getVariableSolverData(fg, vId, solvekey).val[1][:]
+    p = getVariableSolverData(fg, vId, solvekey).val[1]
+    flatvar[vId] = getCoordinates(getVariableType(fg,vId), p)
   end
 
   initValues = flatvar.X
@@ -279,7 +291,7 @@ function solveGraphParametric(fg::AbstractDFG;
 
   if useCalcFactor
     cfd = calcFactorMahalanobisDict(fg)
-    tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(cfd, flatvar, x), initValues, autodiff = autodiff)
+    tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(fg, cfd, flatvar, x), initValues, autodiff = autodiff)
   else
     tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(fg, flatvar, x), initValues, autodiff = autodiff)
   end
@@ -548,25 +560,15 @@ function initParametricFrom!(fg::AbstractDFG, fromkey::Symbol = :default; parkey
     for v in getVariables(fg)
       fromvnd = getSolverData(v, fromkey)
       dims = getDimension(v)
-      getSolverData(v, parkey).val[1:dims] .= fromvnd.val[1:dims]#zeros(dims)*1e-5
+      getSolverData(v, parkey).val[1] .= fromvnd.val[1]
       getSolverData(v, parkey).bw[1:dims,1:dims] .= LinearAlgebra.I(dims)
     end
   else
     for var in getVariables(fg)
-        fromvnd = getSolverData(var, fromkey)
-        ptr_ = fromvnd.val
-        @cast ptr[i,j] := ptr_[j][i]
-        if fromvnd.dims == 1
-          nf = fit(Normal, ptr)
-          getSolverData(var, parkey).val[1][1] = nf.μ
-          getSolverData(var, parkey).bw[1,1] = nf.σ
-          # m = var.estimateDict[:default].mean
-        else
-          #FIXME circular will not work correctly with MvNormal
-          nf = fit(MvNormal, ptr)
-          getSolverData(var, parkey).val[1][1:fromvnd.dims] .= mean(nf)[1:fromvnd.dims]
-          getSolverData(var, parkey).bw = cov(nf)
-        end
+        dims = getDimension(var)
+        μ,Σ = calcMeanCovar(var, fromkey)
+        getSolverData(var, parkey).val[1] .= μ
+        getSolverData(var, parkey).bw[1:dims, 1:dims] .= Σ
     end
   end
 end
@@ -609,7 +611,8 @@ function updateParametricSolution!(sfg, vardict)
   for (v,val) in vardict
       vnd = getSolverData(getVariable(sfg, v), :parametric)
       # fill in the variable node data value
-      vnd.val .= val.val
+      p = getPoint(getVariableType(sfg, v), val.val)
+      vnd.val[1] = p
       #calculate and fill in covariance
       vnd.bw = val.cov
       #fill in ppe as mean
