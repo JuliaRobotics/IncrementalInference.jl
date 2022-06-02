@@ -1,8 +1,11 @@
 using Test
 
+TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
+
 # temporarily moved to start (for debugging)
 #...
 
+if TEST_GROUP in ["all", "basic_functional_group"]
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
 include("testSpecialEuclidean2Mani.jl")
@@ -65,6 +68,9 @@ include("testSolveOrphanedFG.jl")
 include("testSolveSetPPE.jl")
 include("testSolveKey.jl")
 include("testEuclidDistance.jl")
+end
+
+if TEST_GROUP in ["all", "test_cases_group"]
 include("priorusetest.jl")
 include("testnullhypothesis.jl") 
 include("testVariousNSolveSize.jl")
@@ -93,7 +99,7 @@ end
 
 include("testMultiprocess.jl")
 include("testDeadReckoningTether.jl")
-
+end
 
 
 #
