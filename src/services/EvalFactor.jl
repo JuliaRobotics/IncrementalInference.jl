@@ -134,7 +134,8 @@ function addEntropyOnManifold!( M::ManifoldsBase.AbstractManifold,
     # update tangent vector X
     get_vector!(M, X, points[idx], Xc, DefaultOrthogonalBasis())  
     #update point
-    exp!(M, points[idx], points[idx], X)
+    # exp!(M, points[idx], points[idx], X)
+    retract!(M, points[idx], points[idx], X)
     # points[idx] = exp(M, points[idx], X)
     
   end
