@@ -46,7 +46,7 @@ end
 
 sampleTangent(M::AbstractManifold, fmd::FluxModelsDistribution, p=0) = rand(fmd, 1)[1]
 samplePoint(M::AbstractManifold, fmd::FluxModelsDistribution, p=0) = rand(fmd, 1)[1]
-samplePoint(M::AbstractGroupManifold, fmd::FluxModelsDistribution, p=0) = rand(fmd, 1)[1]
+samplePoint(M::AbstractDecoratorManifold, fmd::FluxModelsDistribution, p=0) = rand(fmd, 1)[1]
 
 
 FluxModelsDistribution( inDim::NTuple{ID,Int},

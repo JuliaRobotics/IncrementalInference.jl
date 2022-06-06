@@ -96,7 +96,7 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   fM = getManifold(fcttype)
   function cost(p, X, Xc)
     hat!(M, X, ϵ, Xc)
-    exp!(M, p, ϵ, X)  
+    retract!(M, p, ϵ, X)  
     # X = objResX(p)
     # return norm(fM, p, X)^2 #TODO the manifold of p and X are not always the same
     #options getPointIdentity or leave it to factor 

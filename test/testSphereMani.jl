@@ -6,8 +6,12 @@ using Test
 
 ##
 
-@testset "Test Sphere(2) prior and relative (broken)" begin
+@testset "Test Sphere(2) prior and relative" begin
 ##
+
+#FIXME REMOVE! this is type piracy and not a good idea, for testing only!!!
+Manifolds.identity_element(::Sphere{2, ℝ}, p::Vector{Float64}) = Float64[1,0,0]
+
 
 Base.convert(::Type{<:Tuple}, M::Sphere{2, ℝ}) = (:Euclid, :Euclid)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{Sphere{2, ℝ}})  = (:Euclid, :Euclid)
@@ -32,8 +36,8 @@ p = addFactor!(fg, [:x0], mp)
 doautoinit!(fg, :x0)
 
 vnd = getVariableSolverData(fg, :x0)
-@test_broken all(isapprox.(mean(vnd.val), [1,0,0], atol=0.1))
-@test_broken all(is_point.(Ref(M), vnd.val))
+@test all(isapprox.(mean(M, vnd.val), [1,0,0], atol=0.1))
+@test all(is_point.(Ref(M), vnd.val))
 
 v1 = addVariable!(fg, :x1, Sphere2)
 mf = ManifoldFactor(Sphere(2), MvNormal([0.1, 0.2], [0.05,0.05]))
@@ -45,5 +49,13 @@ smtasks = Task[]
 solveTree!(fg; smtasks) #, verbose=true, recordcliqs=ls(fg))
 # hists = fetchCliqHistoryAll!(smtasks);
 
+#
+p = SA[1.,0,0]
+X = get_vector(M, p, SA[0.1,0.2], DefaultOrthonormalBasis())
+q = exp(M, p, X)
+
+vnd = getVariableSolverData(fg, :x1)
+@test all(isapprox.(mean(M, vnd.val), q, atol=0.01))
+@test all(is_point.(Ref(M), vnd.val))
 ##
 end

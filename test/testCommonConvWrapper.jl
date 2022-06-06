@@ -154,7 +154,7 @@ end
 
 N=100
 p1 = [randn(1) for _ in 1:N]
-d1 = manikde!(Euclidean(1), p1)
+d1 = manikde!(TranslationGroup(1), p1)
 p2 = [randn(1) for _ in 1:N]
 t = Vector{Vector{Vector{Float64}}}()
 push!(t,p1)

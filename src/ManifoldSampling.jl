@@ -10,7 +10,7 @@ Notes
 function sampleTangent end
 
 # Sampling MKD
-function sampleTangent(M::AbstractGroupManifold, x::ManifoldKernelDensity, p=mean(x))
+function sampleTangent(M::AbstractDecoratorManifold, x::ManifoldKernelDensity, p=mean(x))
     # get legacy matrix of coordinates and selected labels
     coords, lbls = sample(x.belief,1)
     X = hat(x.manifold, p, coords)
@@ -26,10 +26,14 @@ function sampleTangent(M::AbstractManifold, z::Distribution, p, basis::AbstractB
   return get_vector(M, p, rand(z), basis)
 end
 
-function sampleTangent(M::AbstractGroupManifold, z::Distribution, p=identity_element(M)) 
+function sampleTangent(M::AbstractDecoratorManifold, z::Distribution, p=identity_element(M)) 
   return hat(M, p, rand(z,1)[:]) #TODO find something better than (z,1)[:]
 end
 
+#TODO, re-evaluate this. special case for the RealCircleGroup to return a vector see https://github.com/JuliaManifolds/Manifolds.jl/issues/489 
+function sampleTangent(M::RealCircleGroup, z::Distribution, p=identity_element(M)) 
+  return hat(M, [0.0], rand(z,1))
+end
 
 """
     $SIGNATURES
@@ -43,12 +47,12 @@ function samplePoint(M::AbstractManifold, sbelief, p, basis::AbstractBasis, retr
   X = sampleTangent(M, sbelief, p, basis)
   return retract(M, p, X, retraction_method)
 end
-function samplePoint(M::AbstractGroupManifold, sbelief, p=identity_element(M), retraction_method::AbstractRetractionMethod=ExponentialRetraction())
+function samplePoint(M::AbstractDecoratorManifold, sbelief, p=identity_element(M), retraction_method::AbstractRetractionMethod=ExponentialRetraction())
   X = sampleTangent(M, sbelief, p)
   return retract(M, p, X, retraction_method)
 end
 
-function samplePoint(M::AbstractGroupManifold, sbelief::ManifoldKernelDensity, p=identity_element(M, mean(sbelief)), retraction_method::AbstractRetractionMethod=ExponentialRetraction())
+function samplePoint(M::AbstractDecoratorManifold, sbelief::ManifoldKernelDensity, p=identity_element(M, mean(sbelief)), retraction_method::AbstractRetractionMethod=ExponentialRetraction())
   X = sampleTangent(M, sbelief, p)
   return retract(M, p, X, retraction_method)
 end
