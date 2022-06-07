@@ -12,7 +12,6 @@ using Test
 #FIXME REMOVE! this is type piracy and not a good idea, for testing only!!!
 Manifolds.identity_element(::Sphere{2, ℝ}, p::Vector{Float64}) = Float64[1,0,0]
 
-
 Base.convert(::Type{<:Tuple}, M::Sphere{2, ℝ}) = (:Euclid, :Euclid)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{Sphere{2, ℝ}})  = (:Euclid, :Euclid)
 
@@ -46,8 +45,7 @@ f = addFactor!(fg, [:x0, :x1], mf)
 ##
 # Debugging Sphere error
 smtasks = Task[]
-solveTree!(fg; smtasks) #, verbose=true, recordcliqs=ls(fg))
-# hists = fetchCliqHistoryAll!(smtasks);
+solveTree!(fg; smtasks)
 
 #
 p = SA[1.,0,0]
@@ -57,5 +55,6 @@ q = exp(M, p, X)
 vnd = getVariableSolverData(fg, :x1)
 @test all(isapprox.(mean(M, vnd.val), q, atol=0.01))
 @test all(is_point.(Ref(M), vnd.val))
+
 ##
 end
