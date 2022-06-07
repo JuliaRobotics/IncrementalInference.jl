@@ -43,7 +43,7 @@ mf = ManifoldFactor(Sphere(2), MvNormal([0.1, 0.2], [0.05,0.05]))
 f = addFactor!(fg, [:x0, :x1], mf)
 
 ##
-# Debugging Sphere error
+
 smtasks = Task[]
 solveTree!(fg; smtasks)
 
