@@ -13,9 +13,6 @@ using Test
 Manifolds.identity_element(::Sphere{2, ℝ}, p::Vector{Float64}) = Float64[1,0,0]
 
 
-Base.convert(::Type{<:Tuple}, M::Sphere{2, ℝ}) = (:Euclid, :Euclid)
-Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{Sphere{2, ℝ}})  = (:Euclid, :Euclid)
-
 @defVariable Sphere2 Sphere(2) [1.0, 0.0, 0.0]
 M = getManifold(Sphere2)
 @test M == Sphere(2)
@@ -44,10 +41,9 @@ mf = ManifoldFactor(Sphere(2), MvNormal([0.1, 0.2], [0.05,0.05]))
 f = addFactor!(fg, [:x0, :x1], mf)
 
 ##
-# Debugging Sphere error
+
 smtasks = Task[]
-solveTree!(fg; smtasks) #, verbose=true, recordcliqs=ls(fg))
-# hists = fetchCliqHistoryAll!(smtasks);
+solveTree!(fg; smtasks)
 
 #
 p = SA[1.,0,0]
@@ -57,5 +53,6 @@ q = exp(M, p, X)
 vnd = getVariableSolverData(fg, :x1)
 @test all(isapprox.(mean(M, vnd.val), q, atol=0.01))
 @test all(is_point.(Ref(M), vnd.val))
+
 ##
 end
