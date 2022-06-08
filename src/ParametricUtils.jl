@@ -270,6 +270,10 @@ function solveGraphParametric(fg::AbstractDFG;
   #                     allow_f_increases=true,
   #                     g_tol = 1e-6,
   #                     )
+  # Example for useing Optim's manifold functions
+  # mc_mani = IIF.MixedCircular(fg, varIds)
+  # alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
+  
   varIds = listVariables(fg)
 
   #TODO mabye remove sorting, just for convenience
@@ -285,9 +289,7 @@ function solveGraphParametric(fg::AbstractDFG;
   initValues = flatvar.X
 
 
-  mc_mani = IIF.MixedCircular(fg, varIds)
-  alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
-  # alg = algorithm(; algorithmkwargs...)
+  alg = algorithm(; algorithmkwargs...)
 
   if useCalcFactor
     cfd = calcFactorMahalanobisDict(fg)
