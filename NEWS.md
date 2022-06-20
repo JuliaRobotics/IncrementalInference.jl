@@ -11,6 +11,10 @@ Alternatively, either use the Github Blame, or the Github `/compare/v0.18.0...v0
 
 The list below highlights breaking changes according to normal semver workflow -- i.e. breaking changes go through at least one deprecatation (via warnings) on the dominant number in the version number.  E.g. v0.18 -> v0.19 (warnings) -> v0.20 (breaking).  Note that ongoing efforts are made to properly deprecate old code/APIs
 
+# Changes in v0.29
+
+- Upgrade to Manifolds.jl v0.8
+- Deprecate `initManual!`, instead use `initVariable!`.
 # Changes in v0.28
 
 - `HeatmapGridDensity` now only supports `ManifoldKernelDensity` functions.

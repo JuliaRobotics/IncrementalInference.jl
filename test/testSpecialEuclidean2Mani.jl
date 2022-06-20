@@ -5,6 +5,7 @@ using Manifolds
 using StaticArrays
 using Test
 import IncrementalInference: LevelSetGridNormal
+import Rotations as _Rot
 
 ## define new local variable types for testing
 
@@ -104,6 +105,31 @@ pbel_ = approxConvBelief(fg, :x0f1, :x0)
 
 ##
 end
+
+
+@testset "test initVariableManual! with Vector of Tuple inputs" begin
+##
+
+fg = initfg()
+
+pts = [(randn(2), _Rot.RotMatrix2(randn()).mat) for _ in 1:50]
+
+addVariable!(fg, :x0, SpecialEuclidean2)
+initVariable!(getVariable(fg, :x0), pts)
+
+@test isapprox( pts[1][1], getPoints(fg, :x0)[1].parts[1])
+@test isapprox( pts[1][2], getPoints(fg, :x0)[1].parts[2])
+
+# can delete upon deprecation of initManual! and favor initVariable!
+initManual!(getVariable(fg, :x0), reverse(pts)) 
+@test isapprox( pts[end][1], getPoints(fg, :x0)[1].parts[1])
+@test isapprox( pts[end][2], getPoints(fg, :x0)[1].parts[2])
+
+
+##
+end
+
+
 
 ##
 struct ManifoldFactorSE2{T <: SamplableBelief} <: IIF.AbstractManifoldMinimize
@@ -574,5 +600,8 @@ pnt = getPoints(fg, :x1a)
 pnt = getPoints(fg, :x1b)
 @test sum(isapprox.(Ref(SpecialEuclidean(2)), pnt, Ref(ProductRepr([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071])), atol=0.1)) > 20
 
+##
 end
+
+
 #

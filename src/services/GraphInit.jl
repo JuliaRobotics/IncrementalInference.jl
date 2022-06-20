@@ -199,25 +199,25 @@ addVariable!(fg, :somepoint3, ContinuousEuclid{2})
 
 # data is organized as (row,col) == (dimension, samples)
 pts = randn(2,100)
-initManual!(fg, :somepoint3, pts)
+initVariable!(fg, :somepoint3, pts)
 
 # manifold management should be done automatically.
 # note upgrades are coming to consolidate with Manifolds.jl, see RoME #244
 
-## it is also possible to initManual! by using existing factors, e.g.
-initManual!(fg, :x3, [:x2x3f1])
+## it is also possible to initVariable! by using existing factors, e.g.
+initVariable!(fg, :x3, [:x2x3f1])
 ```
 
 DevNotes
 - TODO better document graphinit and treeinit.
 """
-function initManual!( variable::DFGVariable, 
+function initVariable!( variable::DFGVariable, 
                       ptsArr::ManifoldKernelDensity,
                       solveKey::Symbol=:default;
                       dontmargin::Bool=false,
                       N::Int=length(getPoints(ptsArr)) )
   #
-  @debug "initManual! $(getLabel(variable))"
+  @debug "initVariable! $(getLabel(variable))"
   if !(solveKey in listSolveKeys(variable))
     @debug "$(getLabel(variable)) needs new VND solveKey=$(solveKey)"
     varType = getVariableType(variable)
@@ -227,7 +227,7 @@ function initManual!( variable::DFGVariable,
   setValKDE!(variable, ptsArr, true, solveKey=solveKey)
   return nothing
 end
-function initManual!( dfg::AbstractDFG, 
+function initVariable!( dfg::AbstractDFG, 
                       label::Symbol, 
                       belief::ManifoldKernelDensity,
                       solveKey::Symbol=:default;
@@ -235,38 +235,54 @@ function initManual!( dfg::AbstractDFG,
                       N::Int=getSolverParams(dfg).N  )
   #
   variable = getVariable(dfg, label)
-  initManual!(variable, belief, solveKey, dontmargin=dontmargin, N=N)
+  initVariable!(variable, belief, solveKey, dontmargin=dontmargin, N=N)
   return nothing
 end
-function initManual!( dfg::AbstractDFG, 
+
+
+function initVariable!( dfg::AbstractDFG, 
                       label::Symbol, 
                       usefcts::Vector{Symbol},
                       solveKey::Symbol=:default;
-                      dontmargin::Bool=false,
-                      N::Int=getSolverParams(dfg).N )
+                      N::Int=getSolverParams(dfg).N,
+                      kwargs... )
   #
   pts = predictbelief(dfg, label, usefcts, solveKey=solveKey)[1]
   vert = getVariable(dfg, label)
   Xpre = manikde!(getManifold(getVariableType(vert)), pts )
-  initManual!(vert, Xpre, solveKey, dontmargin=dontmargin, N=N )
+  initVariable!(vert, Xpre, solveKey; N, kwargs... )
   # setValKDE!(vert, Xpre, true, solveKey=solveKey)
   # return nothing
 end
 
 
-function initManual!( dfg::AbstractDFG, 
-                      sym::Symbol, 
-                      pts::AbstractVector{P}, 
-                      solveKey::Symbol=:default;
-                      bw=nothing ) where {P}
+function initVariable!( vari::DFGVariable, 
+                        pts::AbstractVector{P}, 
+                        solveKey::Symbol=:default;
+                        bw=nothing ) where {P}
   #
-  var = getVariable(dfg, sym)
-  M = getManifold(var)
-  pp = manikde!(M, pts, bw=bw)
-  initManual!(var,pp, solveKey)
+  # specializations to support generic case of Tuple rather than ProductRepr or ArrayPartition inputs
+  # TODO ArrayPartition inputs
+  _prodrepr(pt) = pt
+  _prodrepr(pt::Tuple) = Manifolds.ProductRepr(pt...)
+
+  M = getManifold(vari)
+  pp = manikde!(M, _prodrepr.(pts); bw)
+  initVariable!(vari, pp, solveKey)
 end
 
-const initVariableManual! = initManual!
+function initVariable!( dfg::AbstractDFG, 
+                        sym::Symbol, 
+                        pts::AbstractVector{P}, 
+                        solveKey::Symbol=:default;
+                        kwargs... ) where P
+  #
+  initVariable!(getVariable(dfg, sym), pts, solveKey; kwargs...)
+end
+
+# legacy alias
+const initVariableManual! = initVariable!
+
 
 """
     $SIGNATURES

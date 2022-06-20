@@ -125,7 +125,7 @@ export
   deleteMsgFactors!,
   factorCanInitFromOtherVars,
   doautoinit!,
-  initManual!,
+  initVariable!,
   initVariableManual!,
   resetInitialValues!,
   resetInitValues!,
