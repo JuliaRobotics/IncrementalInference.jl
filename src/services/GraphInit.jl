@@ -241,12 +241,20 @@ end
 
 function initVariable!( dfg::AbstractDFG, 
                       label::Symbol, 
-                      samplable_belief,
+                      samplable_belief::SamplableBelief,
                       solveKey::Symbol=:default;
-                      dontmargin::Bool=false,
                       N::Int=getSolverParams(dfg).N  )
   #
   variable = getVariable(dfg, label)
+  initVariable!(variable, samplable_belief, solveKey; N)
+  return nothing
+end
+
+function initVariable!(variable::DFGVariable, 
+                      samplable_belief::SamplableBelief,
+                      solveKey::Symbol=:default;
+                      N::Int=length(getVal(variable)) )
+  #
   M = getManifold(variable)
   points = [samplePoint(M, samplable_belief) for _ = 1:N]
   initVariable!(variable, points, solveKey)
