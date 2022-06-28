@@ -176,6 +176,7 @@ foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val[1] .= x.second
 # fg.solverParams.showtree = true
 # fg.solverParams.drawtree = true
 # fg.solverParams.dbg = true
+# fg.solverParams.graphinit = false
 
 # task = @async begin
   #   global tree2
@@ -186,10 +187,9 @@ tree2 = solveTree!(fg; algorithm=:parametric, eliminationOrder=[:x0, :x2, :x1])
 # end
 foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), getVariables(fg))
 
-@error "Suppressing `solveTree!(fg, algorithm=:parametric)` check post #1219"
-@test_broken isapprox(getVariable(fg,:x0).solverDataDict[:parametric].val[1][1], -0.01, atol=1e-4)
-@test_broken isapprox(getVariable(fg,:x1).solverDataDict[:parametric].val[1][1], 0.0, atol=1e-4)
-@test_broken isapprox(getVariable(fg,:x2).solverDataDict[:parametric].val[1][1], 0.01, atol=1e-4)
+@test isapprox(getVariable(fg,:x0).solverDataDict[:parametric].val[1][1], -0.01, atol=1e-4)
+@test isapprox(getVariable(fg,:x1).solverDataDict[:parametric].val[1][1], 0.0, atol=1e-4)
+@test isapprox(getVariable(fg,:x2).solverDataDict[:parametric].val[1][1], 0.01, atol=1e-4)
 
 ## ##############################################################################
 ## multiple sections

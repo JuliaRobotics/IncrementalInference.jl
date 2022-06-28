@@ -185,7 +185,6 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   logCSM(csmc, "$(csmc.cliq.id): Solve completed")
 
   return updateFromSubgraph_StateMachine
-  # return updateFromSubgraph_ParametricStateMachine
 end
 
 #
