@@ -112,7 +112,7 @@ N=100
 points = [[100.0;0.0],[0.0;100.0]]
 fg = IIF.generateGraph_EuclidDistance(points)
 
-# initManual!(fg, :l1, [1000.0.*randn(2) for _ in 1:100])
+# initVariable!(fg, :l1, [1000.0.*randn(2) for _ in 1:100])
 
 # check regular full solution produces two modes
 
@@ -275,6 +275,6 @@ end
 
 ##
 
-# initManual!(sfg, :l1, pts)
+# initVariable!(sfg, :l1, pts)
 # pts = approxConv(sfg, :x2l1f1, :l1)
 # plotKDE(manikde!(ContinuousEuclid{2}, pts))

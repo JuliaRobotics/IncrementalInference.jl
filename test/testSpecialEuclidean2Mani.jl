@@ -120,7 +120,7 @@ initVariable!(getVariable(fg, :x0), pts)
 @test isapprox( pts[1][1], getPoints(fg, :x0)[1].parts[1])
 @test isapprox( pts[1][2], getPoints(fg, :x0)[1].parts[2])
 
-# can delete upon deprecation of initManual! and favor initVariable!
+# can delete upon deprecation of initVariable! and favor initVariable!
 initManual!(getVariable(fg, :x0), reverse(pts)) 
 @test isapprox( pts[end][1], getPoints(fg, :x0)[1].parts[1])
 @test isapprox( pts[end][2], getPoints(fg, :x0)[1].parts[2])

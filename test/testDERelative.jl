@@ -56,7 +56,7 @@ for i in 1:3
                         problemType=ODEProblem )
   #
   addFactor!( fg, [prev;nextSym], oder, graphinit=false )
-  initManual!(fg, nextSym, [zeros(1) for _ in 1:100])
+  initVariable!(fg, nextSym, [zeros(1) for _ in 1:100])
 
   prev = nextSym
 end
@@ -121,7 +121,7 @@ sl = DifferentialEquations.solve(oder_.forwardProblem)
 
 tfg = initfg()
 pts_ = approxConv(fg, :x0f1, :x3, setPPE=true, tfg=tfg)
-# initManual!(tfg, :x3, pts)
+# initVariable!(tfg, :x3, pts)
 
 
 ##
@@ -242,11 +242,11 @@ pts_ = approxConv(fg, :x0x1f1, :x0)
 
 tfg = initfg()
 for s in ls(fg)
-  initManual!(fg, s, [zeros(2) for _ in 1:100])
+  initVariable!(fg, s, [zeros(2) for _ in 1:100])
 end
 
 pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg)
-# initManual!(tfg, :x7, pts)
+# initVariable!(tfg, :x7, pts)
 
 
 
@@ -416,7 +416,7 @@ pts_ = approxConv(fg, :x0x1ωβf1, :x0)
 
 tfg = initfg()
 for s in ls(fg)
-  initManual!(fg, s, [zeros(2) for _ in 1:100])
+  initVariable!(fg, s, [zeros(2) for _ in 1:100])
 end
 
 # must initialize the parameters

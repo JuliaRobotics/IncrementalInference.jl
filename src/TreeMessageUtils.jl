@@ -226,7 +226,7 @@ function addLikelihoodsDifferential!( msgs::LikelihoodMessage,
   #     addVariable!(tfg, label, val.variableType)
   #     @debug "New variable added to subfg" _group=:check_addLHDiff #TODO JT remove debug. 
   #   end
-  #   initManual!(tfg, label, manikde!(val))
+  #   initVariable!(tfg, label, manikde!(val))
   # end
 
   # # list all variables in order of dimension size
@@ -275,7 +275,7 @@ function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
       addVariable!(tfg, label, getVariableType(cliqSubFG, label))
       @debug "New variable added to subfg" _group=:check_addLHDiff #TODO JT remove debug. 
     end
-    initManual!(tfg, label, getBelief(cliqSubFG, label, solveKey), solveKey)
+    initVariable!(tfg, label, getBelief(cliqSubFG, label, solveKey), solveKey)
   end
 
   # list all variables in order of dimension size

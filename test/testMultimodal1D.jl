@@ -149,19 +149,19 @@ end
 #
 #
 # stuff = localProduct(fg,:lm2)
-# initManual!(fg,:lm2, stuff[1]); p1 = plotKDE(stuff[1], title="lm2")
+# initVariable!(fg,:lm2, stuff[1]); p1 = plotKDE(stuff[1], title="lm2")
 #
 # stuff = localProduct(fg,:lm1)
-# initManual!(fg,:lm1, stuff[1]); p2 = plotKDE(stuff[1], title="lm1")
+# initVariable!(fg,:lm1, stuff[1]); p2 = plotKDE(stuff[1], title="lm1")
 #
 # stuff = localProduct(fg,:lp2)
-# initManual!(fg,:lp2, stuff[1]); p3 = plotKDE(stuff[1], title="lp2")
+# initVariable!(fg,:lp2, stuff[1]); p3 = plotKDE(stuff[1], title="lp2")
 #
 # stuff = localProduct(fg,:lp1)
-# initManual!(fg,:lp1, stuff[1]); p4 = plotKDE(stuff[1], title="lp1")
+# initVariable!(fg,:lp1, stuff[1]); p4 = plotKDE(stuff[1], title="lp1")
 #
 # stuff = localProduct(fg,:x1)
-# initManual!(fg,:x1, stuff[1]); p5 = plotKDE(stuff[1], title="x1")
+# initVariable!(fg,:x1, stuff[1]); p5 = plotKDE(stuff[1], title="x1")
 #
 # h1 = hstack(p1,p2,p3,p4,p5)
 #

@@ -14,7 +14,7 @@ Development Notes
 
 Related
 
-doautoinit!, initManual!, isInitialized, isMultihypo
+doautoinit!, initVariable!, isInitialized, isMultihypo
 """
 function factorCanInitFromOtherVars(dfg::AbstractDFG,
                                     fct::Symbol,

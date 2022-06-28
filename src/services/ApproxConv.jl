@@ -118,7 +118,7 @@ function approxConvBelief(dfg::AbstractDFG,
     getPoints(pts1Bel)
   end
   # didn't return early so shift focus to using `tfg` more intensely
-  initManual!(tfg, varLbls[1], pts)
+  initVariable!(tfg, varLbls[1], pts)
   # use in combination with setPPE and setPPEmethod keyword arguments
   ppemethod = setPPEmethod === nothing ? MeanMaxPPE : setPPEmethod
   !setPPE ? nothing : setPPE!(tfg, varLbls[1], solveKey, ppemethod)
@@ -130,7 +130,7 @@ function approxConvBelief(dfg::AbstractDFG,
       fct = getFactor(dfg, path[idx])
       addFactor!(tfg, fct)
       ptsBel = approxConvBelief(tfg, fct, path[idx+1]; solveKey, N, skipSolve)
-      initManual!(tfg, path[idx+1], ptsBel)
+      initVariable!(tfg, path[idx+1], ptsBel)
       !setPPE ? nothing : setPPE!(tfg, path[idx+1], solveKey, ppemethod)
     end
   end
