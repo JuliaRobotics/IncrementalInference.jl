@@ -222,29 +222,6 @@ function _totalCost(fg,
 end
 
 
-# DEPRECATED slower version
-function _totalCost(fg::AbstractDFG,
-                    flatvar,
-                    X )
-  #
-  obj = 0
-  for fct in getFactors(fg)
-
-    varOrder = getVariableOrder(fct)
-
-    Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
-
-    cfp = CalcFactorMahalanobis(fct)
-    retval = cfp(Xparams...)
-
-    # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-    obj += 1/2*retval
-  end
-
-  return obj
-end
-
-
 export solveGraphParametric
 
 """
@@ -346,7 +323,8 @@ function solveConditionalsParametric(fg::AbstractDFG,
   flatvar = FlatVariables(fg, varIds)
 
   for vId in varIds
-    flatvar[vId] = getVariableSolverData(fg, vId, solvekey).val[1][:]
+    p = getVariableSolverData(fg, vId, solvekey).val[1]
+    flatvar[vId] =getCoordinates(getVariableType(fg,vId), p)
   end
   initValues = flatvar.X
 
@@ -359,18 +337,17 @@ function solveConditionalsParametric(fg::AbstractDFG,
   # sX = view(initValues, (frontalsLength+1):length(initValues))
   sX = initValues[frontalsLength+1:end]
 
-  mc_mani = MixedCircular(fg, varIds)
-  alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
+  alg = algorithm(; algorithmkwargs...)
   # alg = algorithm(; algorithmkwargs...)
+  cfd = calcFactorMahalanobisDict(fg)
+  tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(fg, cfd, flatvar, [x;sX]), fX, autodiff = autodiff)
 
-  tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(fg, flatvar,x), initValues, autodiff = autodiff)
-
-  result = Optim.optimize((x)->_totalCost(fg, flatvar, [x;sX]), fX, alg, options)
-  # result = optimize(x->totalCost([x;sX]), fX, alg, options)
+  # result = Optim.optimize((x)->_totalCost(fg, flatvar, [x;sX]), fX, alg, options)
+  result = Optim.optimize(tdtotalCost, fX, alg, options)
 
   rv = Optim.minimizer(result)
-
-  H = Optim.hessian!(tdtotalCost, [rv; sX])
+ 
+  H = Optim.hessian!(tdtotalCost, rv)
 
   Σ = pinv(H)
 
