@@ -154,7 +154,7 @@ function approxDeconv(dfg::AbstractDFG,
   lbls = getVariableOrder(fct)
   for lb in lbls
     exists(tfg, lb) ? nothing : addVariable!(tfg, lb, getVariableType(dfg, lb))
-    initManual!(tfg, lb, getBelief(dfg, lb, solveKey))
+    initVariable!(tfg, lb, getBelief(dfg, lb, solveKey))
   end
 
   # add factor type requested by user
@@ -216,7 +216,7 @@ function deconvSolveKey(dfg::AbstractDFG,
   if !exists(tfg, refSym_)
     addVariable!(tfg, refSym_, refVarType)
   end
-  initManual!(tfg, refSym_, Xref)
+  initVariable!(tfg, refSym_, Xref)
 
   # add the second "test" variable
   tstVarType = getVariableType(dfg, tstSym)
@@ -225,7 +225,7 @@ function deconvSolveKey(dfg::AbstractDFG,
   if !exists(tfg, tstSym_)
     addVariable!(tfg, tstSym_, tstVarType)
   end
-  initManual!(tfg, tstSym_, Xtst)
+  initVariable!(tfg, tstSym_, Xtst)
 
   # add the new dummy factor with default manifold for computations
   fctType = selectFactorType(refVarType, tstVarType)

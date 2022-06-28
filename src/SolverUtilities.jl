@@ -150,7 +150,7 @@ function _buildGraphByFactorAndTypes!(fct::AbstractFactor,
     exists(dfg, vars[s_]) ? nothing : addVariable!(dfg, vars[s_],  vTyp)
     # set the numerical values if available
     # TODO allow pts to come in as full MKD beliefs, not just one point
-    ((0 < length(pts)) && (pts[s_] isa Nothing)) ? nothing : initManual!(dfg,  vars[s_], [pts[s_],], solveKey, bw=ones(getDimension(vTyp)))
+    ((0 < length(pts)) && (pts[s_] isa Nothing)) ? nothing : initVariable!(dfg,  vars[s_], [pts[s_],], solveKey, bw=ones(getDimension(vTyp)))
   end
   # if newFactor then add the factor on vars, else assume only one existing factor between vars
   _dfgfct = newFactor ? addFactor!(dfg, vars, fct, graphinit=graphinit, _blockRecursion=_blockRecursion) : getFactor(dfg, intersect((ls.(dfg, vars))...)[1] )
