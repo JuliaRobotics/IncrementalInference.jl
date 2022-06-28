@@ -98,9 +98,9 @@ function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
 end
 
 function generateMsgPrior(belief_::TreeBelief, ::ParametricMessage)
-  msgPrior = if length(belief_.val[1]) == 1 && length(belief_.val) == 1
+  msgPrior = if length(belief_.val[1]) == 1 #FIXME ? && length(belief_.val) == 1
     MsgPrior(Normal(belief_.val[1][1], sqrt(belief_.bw[1])), belief_.infoPerCoord, getManifold(belief_))
-  elseif length(belief_.val) == 1 && 1 != length(belief_.val[1])
+  elseif length(belief_.val[1]) > 1 #FIXME ? length(belief_.val) == 1
     mvnorm = createMvNormal(belief_.val[1], belief_.bw)
     mvnorm !== nothing ? nothing : (return DFGFactor[])
     MsgPrior(mvnorm, belief_.infoPerCoord, getManifold(belief_))
