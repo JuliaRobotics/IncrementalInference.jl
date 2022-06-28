@@ -62,6 +62,11 @@ function getSample(cf::CalcFactor{<:PriorCircular})
   return samplePoint(getManifold(cf.factor), cf.factor.Z, [0.0])
 end
 
+function (cf::CalcFactor{<:PriorCircular})(m, p)
+  M = getManifold(cf.factor)
+  Xc = vee(M, p, log(M, p, m))
+  return Xc
+end
 
 Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{PriorCircular}) = Manifolds.RealCircleGroup()
 

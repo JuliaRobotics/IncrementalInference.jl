@@ -256,8 +256,15 @@ function initVariable!(variable::DFGVariable,
                       N::Int=length(getVal(variable)) )
   #
   M = getManifold(variable)
-  points = [samplePoint(M, samplable_belief) for _ = 1:N]
-  initVariable!(variable, points, solveKey)
+  if solveKey == :parametric
+    μ, iΣ = getMeasurementParametric(samplable_belief)
+    vnd = getSolverData(variable, solveKey)
+    vnd.val[1] .= μ
+    vnd.bw .= inv(iΣ) 
+  else
+    points = [samplePoint(M, samplable_belief) for _ = 1:N]
+    initVariable!(variable, points, solveKey)
+  end
   return nothing
 end
 
