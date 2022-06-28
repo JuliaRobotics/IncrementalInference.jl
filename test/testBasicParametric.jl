@@ -14,7 +14,7 @@ using IncrementalInference
     @test isapprox(d[sym].val[1], i, atol=1e-6)
   end
   
-  d,st = IIF.solveGraphParametric(fg; useCalcFactor=true)
+  d,st = IIF.solveGraphParametric(fg)
   for i in 0:10
     sym = Symbol("x",i)
     @test isapprox(d[sym].val[1], i, atol=1e-6)

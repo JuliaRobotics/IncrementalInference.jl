@@ -146,7 +146,11 @@ end
 function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:AbstractPrior, U, V, W, C}
   # TODO should prior functions follow the same factor definition with a measurement on tangant?
   M = getManifold(cfp.calcfactor!.factor)
-  m = exp(M, identity_element(M), cfp.meas[1])  
+  #FIXME find a better fix for bitstypes
+  ϵ = identity_element(M)
+  ϵ = isbitstype(typeof(ϵ)) ? [ϵ] : ϵ
+  m = exp(M, ϵ, cfp.meas[1])  
+
   res = cfp.calcfactor!(m, variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
   return res' * cfp.iΣ[1] * res
@@ -251,7 +255,7 @@ Notes:
   - Only :Euclid and :Circular manifolds are currently supported, own manifold are supported with `algorithmkwargs` (code may need updating though)
 """
 function solveGraphParametric(fg::AbstractDFG;
-                              useCalcFactor::Bool=true, #TODO dev param will be removed
+                              useCalcFactor=nothing,#TODO Delete in v0.30
                               solvekey::Symbol=:parametric,
                               autodiff = :forward,
                               algorithm=Optim.BFGS,
@@ -273,7 +277,9 @@ function solveGraphParametric(fg::AbstractDFG;
   # Example for useing Optim's manifold functions
   # mc_mani = IIF.MixedCircular(fg, varIds)
   # alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
-  
+  !isnothing(useCalcFactor) && warn("`useCalcFactor` is deprecated to true")
+
+
   varIds = listVariables(fg)
 
   #TODO mabye remove sorting, just for convenience
@@ -291,12 +297,8 @@ function solveGraphParametric(fg::AbstractDFG;
 
   alg = algorithm(; algorithmkwargs...)
 
-  if useCalcFactor
-    cfd = calcFactorMahalanobisDict(fg)
-    tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(fg, cfd, flatvar, x), initValues, autodiff = autodiff)
-  else
-    tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(fg, flatvar, x), initValues, autodiff = autodiff)
-  end
+  cfd = calcFactorMahalanobisDict(fg)
+  tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(fg, cfd, flatvar, x), initValues, autodiff = autodiff)
 
   result = Optim.optimize(tdtotalCost, initValues, alg, options)
   rv = Optim.minimizer(result)
@@ -592,6 +594,7 @@ function addParametricSolver!(fg; init=true)
   nothing
 end
 
+#TODO Delete?
 function updateVariablesFromParametricSolution!(fg::AbstractDFG, vardict)
   for (v,val) in vardict
     vnd = getVariableSolverData(fg, v, :parametric)
