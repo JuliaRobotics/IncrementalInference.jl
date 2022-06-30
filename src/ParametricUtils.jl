@@ -32,6 +32,45 @@ function Base.getindex(flatVar::FlatVariables{T}, vId::Symbol) where T<:Real
   return flatVar.X[flatVar.idx[vId]]
 end
 
+
+## ================================================================================================
+## LazyCase based on LazyBufferCache from PreallocationTools.jl
+## ================================================================================================
+
+"""
+  $SIGNATURES
+A lazily allocated cache object.
+"""
+struct LazyCache{F <: Function}
+    dict::Dict{Tuple{DataType, Symbol}, Any}
+    fnc::F
+end
+LazyCache(f::F = allocate) where {F <: Function} = LazyCache(Dict{Tuple{DataType, Symbol}, Any}(), f)
+
+# override the [] method
+function Base.getindex(cache::LazyCache, u::T, varname::Symbol) where T
+    val = get!(cache.dict, (T, varname)) do 
+      cache.fnc(u)
+    end::T
+    return val
+end
+
+function Base.getindex(cache::LazyCache, u::T, varname::Symbol) where T
+  val = get!(cache.dict, (T, varname)) do 
+    cache.fnc(u)
+  end::T
+  return val
+end
+
+function getCoordCache!(cache::LazyCache, M, T::DataType, varname::Symbol)
+  val = get!(cache.dict, (T, varname)) do 
+    Vector{T}(undef,manifold_dimension(M))
+  end::Vector{T}
+  return val
+end
+
+
+
 ## ================================================================================================
 ## Parametric Factors
 ## ================================================================================================
@@ -105,17 +144,19 @@ end
 getFactorMechanics(f::AbstractFactor) = f
 getFactorMechanics(f::Mixture) = f.mechanics
 
-function CalcFactorMahalanobis(fct::DFGFactor)
+function CalcFactorMahalanobis(fg, fct::DFGFactor)
   cf = getFactorType(fct)
   varOrder = getVariableOrder(fct)
-  
+  varTypes = getVariableType.(fg, varOrder) .|> typeof
   _meas, _iΣ = getMeasurementParametric(cf)
   M = getManifold(getFactorType(fct))
   meas = typeof(_meas) <: Tuple ? _meas : (hat(M, Identity(M), _meas),)
   iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
 
-  # FIXME #1480, cache = preambleCache(dfg,vars,usrfnc)
-  cache = nothing
+  # FIXME which one
+  cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
+  # cache = preambleCache(fg, varOrder, getFactorType(fct))
+
   calcf = CalcFactor(getFactorMechanics(cf), _getFMdThread(fct), 0, 0, (), [], true, cache)
   
   multihypo = getSolverData(fct).multihypo
@@ -132,7 +173,7 @@ function CalcFactorMahalanobis(fct::DFGFactor)
     special = nothing
   end
 
-  return CalcFactorMahalanobis(calcf, varOrder, meas, iΣ, special)
+  return CalcFactorMahalanobis(calcf, varOrder, varTypes, meas, iΣ, special)
 end
 
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
@@ -173,7 +214,7 @@ end
 function calcFactorMahalanobisDict(fg)
   calcFactors = Dict{Symbol, CalcFactorMahalanobis}()
   for fct in getFactors(fg)
-    calcFactors[fct.label] = CalcFactorMahalanobis(fct)
+    calcFactors[fct.label] = CalcFactorMahalanobis(fg, fct)
   end
   return calcFactors
 end
