@@ -30,7 +30,7 @@ The list below highlights breaking changes according to normal semver workflow -
 - Factor serialization is now top level JSON only #1476.
 - Serialization of distributions are now JSON only #1468, #1472, #1473 (removed custom string legacy).
 - Fix chicken and egg problem on unpackFactor, change `convert` to `reconstFactorData`, #1424.
-- Add factor `preambleCache(dfg, vlbls, usrfnc)`, #1462, #1466.  Doesn't work for parametric yet (#1480).
+- Add factor `preambleCache(dfg, vecVars, usrfnc)`, #1462, #1466.  Doesn't work for parametric yet (#1480).
 - Add `CalcFactor.cache` using preamble, #1481.  Not thread safe yet.
 - Standardize local graph naming to `LocalDFG`, #1479.
 - Refactor getDimension and sampling, #1463.
