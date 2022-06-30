@@ -57,6 +57,7 @@ Related
 struct CalcFactorMahalanobis{CF<:CalcFactor, S, N}
   calcfactor!::CF
   varOrder::Vector{Symbol}
+  varTypes::Vector{DataType}
   meas#::NTuple{N, <:AbstractVector{Float64}}
   iΣ::NTuple{N, Matrix{Float64}}
   specialAlg::S
