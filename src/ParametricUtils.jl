@@ -6,109 +6,67 @@ using RecursiveArrayTools: ArrayPartition
 
 import DistributedFactorGraphs: getPointIdentity
 
-# function getPointIdentity(G::ProductGroup)
-#   M = G.manifold
-#   return ArrayPartition(map(getPointIdentity, M.manifolds))
-#   # return ProductRepr(map(getPointIdentity, M.manifolds))
-# end
 
-# # Manifolds.@trait_function getPointIdentity(G::AbstractDecoratorManifold)
-
-# function getPointIdentity(G::SpecialOrthogonal{N}) where N
-#   # return SMatrix{N,N, Float64}(I)
-#   return Matrix(1.0I, N, N)
-# end
-
-# function getPointIdentity(G::TranslationGroup{Tuple{N}}) where N
-#   # return zeros(SVector{N,Float64})
-#   return zeros(N)
-# end
-
-# # fallback 
-# function getPointIdentity(G::GroupManifold)
-#   return identity_element(G)
-# end
-
-# function getPointIdentity(G::ProductManifold)
-#   return ProductRepr(map(getPointIdentity, G.manifolds))
-# end
-
-# function getPointIdentity(M::Manifolds.PowerManifoldNestedReplacing)
-#   N = Manifolds.get_iterator(M).stop
-#   return fill(getPointIdentity(M.manifold), N)
-# end
-
-# function getPointIdentity(M::PowerManifold)
-#   N = Manifolds.get_iterator(M).stop
-#   return fill(getPointIdentity(M.manifold), N)
-# end
-
-
-
-# function getPointIdentity(G::SemidirectProductGroup)
-#   M = base_manifold(G)
-#   N, H = M.manifolds
-#   np = getPointIdentity(N)
-#   hp = getPointIdentity(H)
-#   return ArrayPartition(np, hp)
-#   # return ProductRepr(np, hp)
-# end
-
-
-# function Manifolds.allocate_result(G::SemidirectProductGroup, ::typeof(getPointIdentity))
-#   M = base_manifold(G)
-#   N, H = M.manifolds
-#   np = allocate_result(N, getPointIdentity)
-#   hp = allocate_result(H, getPointIdentity)
-#   return ArrayPartition(np, hp)
-# end
-
-
-##
-
-function getPointIdentity(G::ProductGroup, numtype)
+function getPointIdentity(G::ProductGroup, numtype=Float64)
   M = G.manifold
-  return ArrayPartition(map(x->getPointIdentity(x, numtype), M.manifolds))
-  # return ProductRepr(map(getPointIdentity, M.manifolds))
+  return ProductRepr(map(x->getPointIdentity(x, numtype), M.manifolds))
+  # return ArrayPartition(map(x->getPointIdentity(x, numtype), M.manifolds))
 end
 
-function getPointIdentity(G::SpecialOrthogonal{N}, numtype) where N
+function getPointIdentity(G::SpecialOrthogonal{N}, numtype=Float64) where N
   return SMatrix{N,N, numtype}(I)
   # return Matrix(one(numtype)*I, N, N)
 end
 
-function getPointIdentity(G::TranslationGroup{Tuple{N}}, numtype) where N
+function getPointIdentity(G::TranslationGroup{Tuple{N}}, numtype=Float64) where N
   return zeros(SVector{N,numtype})
   # return zeros(numtype, N)
 end
 
 # fallback 
-function getPointIdentity(G::GroupManifold, numtype)
+function getPointIdentity(G::GroupManifold, numtype=Float64)
   return error("not implemented")
 end
 
-function getPointIdentity(G::ProductManifold, numtype)
+function getPointIdentity(G::ProductManifold, numtype=Float64)
   return ProductRepr(map(x->getPointIdentity(x,numtype), G.manifolds))
 end
 
-function getPointIdentity(M::Manifolds.PowerManifoldNestedReplacing, numtype)
+function getPointIdentity(M::Manifolds.PowerManifoldNestedReplacing, numtype=Float64)
   N = Manifolds.get_iterator(M).stop
   return fill(getPointIdentity(M.manifold, numtype), N)
 end
 
-function getPointIdentity(M::PowerManifold, numtype)
+function getPointIdentity(M::PowerManifold, numtype=Float64)
   N = Manifolds.get_iterator(M).stop
   return fill(getPointIdentity(M.manifold, numtype), N)
 end
 
-
-function getPointIdentity(G::SemidirectProductGroup, numtype)
+function getPointIdentity(G::SemidirectProductGroup, numtype=Float64)
   M = base_manifold(G)
   N, H = M.manifolds
   np = getPointIdentity(N,numtype)
   hp = getPointIdentity(H,numtype)
   # return ArrayPartition(np, hp)
   return ProductRepr(np, hp)
+end
+
+function getPointIdentity(::SpecialOrthogonal{2})
+  return SA[1.0 0.0; 0.0 1.0]
+end
+
+function getPointIdentity(::SpecialOrthogonal{3})
+  return SA[1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0]
+end
+
+function getPointIdentity(::SpecialEuclidean{2})
+  # or ArrayPartition
+  return ProductRepr(SA[0.,0.], SA[1.0 0.0; 0.0 1.0])
+end
+
+function getPointIdentity(::SpecialEuclidean{3})
+  # or ArrayPartition
+  return ProductRepr(SA[0.,0.,0.], SA[1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0])
 end
 
 
@@ -545,19 +503,9 @@ function _totalCost2(fg,
 
   numtype = eltype(Xc)
 
-  
-  if (false)
-    #TODO this does not work through autodiff
-    ϵ = gsc.ϵ
-    p = gsc.p
-    X = gsc.X
-    get_vector!(M, X, ϵ, Xc, DefaultBasis())
-    exp!(M, p, ϵ, X)
-  else
-    ϵ = getPointIdentity(M, numtype)
-    X = get_vector(M, ϵ, Xc, DefaultOrthogonalBasis())
-    p = exp(M, ϵ, X)
-  end
+  ϵ = getPointIdentity(M, numtype)
+  X = get_vector(M, ϵ, Xc, DefaultOrthogonalBasis())
+  p = exp(M, ϵ, X)
 
   # obj = zero(eltype(Xc))
   obj = zeros(eltype(Xc),(Threads.nthreads()))
@@ -576,7 +524,6 @@ function _totalCost2(fg,
     # obj += retval
   end
 
-  @warn obj maxlog=10
   return 1/2*sum(obj)
   
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
@@ -655,7 +602,7 @@ function solveGraphParametric2(fg::AbstractDFG;
   tdtotalCost = Optim.TwiceDifferentiable(tc, initValues, autodiff = autodiff)
 
   # TODO remove, only testing
-  @time tc(initValues)
+  # @time tc(initValues)
   # 0.000178 seconds (463 allocations: 28.297 KiB) #original
   # 0.000236 seconds (678 allocations: 31.250 KiB)
 
