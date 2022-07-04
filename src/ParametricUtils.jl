@@ -1,9 +1,240 @@
 ## ================================================================================================
+## ArrayPartition getPointIdentity (identity_element)
+## ================================================================================================
+import Manifolds: TraitList, IsExplicitDecorator, EmptyTrait, AdditionGroupTrait, trait, _padpoint!, next_trait
+using RecursiveArrayTools: ArrayPartition
+
+import DistributedFactorGraphs: getPointIdentity
+
+# function getPointIdentity(G::ProductGroup)
+#   M = G.manifold
+#   return ArrayPartition(map(getPointIdentity, M.manifolds))
+#   # return ProductRepr(map(getPointIdentity, M.manifolds))
+# end
+
+# # Manifolds.@trait_function getPointIdentity(G::AbstractDecoratorManifold)
+
+# function getPointIdentity(G::SpecialOrthogonal{N}) where N
+#   # return SMatrix{N,N, Float64}(I)
+#   return Matrix(1.0I, N, N)
+# end
+
+# function getPointIdentity(G::TranslationGroup{Tuple{N}}) where N
+#   # return zeros(SVector{N,Float64})
+#   return zeros(N)
+# end
+
+# # fallback 
+# function getPointIdentity(G::GroupManifold)
+#   return identity_element(G)
+# end
+
+# function getPointIdentity(G::ProductManifold)
+#   return ProductRepr(map(getPointIdentity, G.manifolds))
+# end
+
+# function getPointIdentity(M::Manifolds.PowerManifoldNestedReplacing)
+#   N = Manifolds.get_iterator(M).stop
+#   return fill(getPointIdentity(M.manifold), N)
+# end
+
+# function getPointIdentity(M::PowerManifold)
+#   N = Manifolds.get_iterator(M).stop
+#   return fill(getPointIdentity(M.manifold), N)
+# end
+
+
+
+# function getPointIdentity(G::SemidirectProductGroup)
+#   M = base_manifold(G)
+#   N, H = M.manifolds
+#   np = getPointIdentity(N)
+#   hp = getPointIdentity(H)
+#   return ArrayPartition(np, hp)
+#   # return ProductRepr(np, hp)
+# end
+
+
+# function Manifolds.allocate_result(G::SemidirectProductGroup, ::typeof(getPointIdentity))
+#   M = base_manifold(G)
+#   N, H = M.manifolds
+#   np = allocate_result(N, getPointIdentity)
+#   hp = allocate_result(H, getPointIdentity)
+#   return ArrayPartition(np, hp)
+# end
+
+
+##
+
+function getPointIdentity(G::ProductGroup, numtype)
+  M = G.manifold
+  return ArrayPartition(map(x->getPointIdentity(x, numtype), M.manifolds))
+  # return ProductRepr(map(getPointIdentity, M.manifolds))
+end
+
+function getPointIdentity(G::SpecialOrthogonal{N}, numtype) where N
+  return SMatrix{N,N, numtype}(I)
+  # return Matrix(one(numtype)*I, N, N)
+end
+
+function getPointIdentity(G::TranslationGroup{Tuple{N}}, numtype) where N
+  return zeros(SVector{N,numtype})
+  # return zeros(numtype, N)
+end
+
+# fallback 
+function getPointIdentity(G::GroupManifold, numtype)
+  return error("not implemented")
+end
+
+function getPointIdentity(G::ProductManifold, numtype)
+  return ProductRepr(map(x->getPointIdentity(x,numtype), G.manifolds))
+end
+
+function getPointIdentity(M::Manifolds.PowerManifoldNestedReplacing, numtype)
+  N = Manifolds.get_iterator(M).stop
+  return fill(getPointIdentity(M.manifold, numtype), N)
+end
+
+function getPointIdentity(M::PowerManifold, numtype)
+  N = Manifolds.get_iterator(M).stop
+  return fill(getPointIdentity(M.manifold, numtype), N)
+end
+
+
+function getPointIdentity(G::SemidirectProductGroup, numtype)
+  M = base_manifold(G)
+  N, H = M.manifolds
+  np = getPointIdentity(N,numtype)
+  hp = getPointIdentity(H,numtype)
+  # return ArrayPartition(np, hp)
+  return ProductRepr(np, hp)
+end
+
+
+function Manifolds.allocate_result(G::SemidirectProductGroup, ::typeof(getPointIdentity))
+  M = base_manifold(G)
+  N, H = M.manifolds
+  np = allocate_result(N, getPointIdentity)
+  hp = allocate_result(H, getPointIdentity)
+  # return ArrayPartition(np, hp)
+  return ProductRepr(np, hp)
+end
+
+##
+
+# test
+# M = ProductManifold(SpecialEuclidean(2), SpecialEuclidean(3), SpecialOrthogonal(3), TranslationGroup(2));
+# G = ProductGroup(M);
+# getPointIdentity(G)
+
+## ================================================================================================
+## GraphSolveStructures
+## ================================================================================================
+
+function getVariableTypesCount(fg::AbstractDFG)
+  vars = getVariables(fg)
+  typedict = Dict{DataType, Int}()
+  alltypes = Dict{DataType,Vector{Symbol}}()
+  for v in vars
+      varType = typeof(getVariableType(v))
+      cnt = get!(typedict, varType, 0)
+      typedict[varType] = cnt+1
+
+      dt = get!(alltypes, varType, Symbol[])
+      push!(dt, v.label)
+  end
+  vartypes = tuple(keys(typedict)...)
+  return vartypes, typedict, alltypes
+end
+
+function buildGraphSolveManifold(fg)
+  vartypes, vartypecount, vartypeslist = getVariableTypesCount(fg)
+  M = mapreduce(ProductManifold, vartypes) do vartype
+      N = vartypecount[vartype] 
+      G = getManifold(vartype)
+      PowerManifold(G, NestedReplacingPowerRepresentation(), N)
+      # PowerManifold(G, NestedPowerRepresentation(), N)
+  end
+  return M, vartypes, vartypeslist
+end
+
+
+# function Manifolds.vee(M::AbstractPowerManifold, X)
+#   rep_size = representation_size(M.manifold)
+#   p = getPointIdentity(M.manifold, Float64)
+#   vs = [
+#       vee(M.manifold, p, Manifolds._read(M, rep_size, X, i)) for i in Manifolds.get_iterator(M)
+#   ]
+#   return reduce(vcat, reshape(vs, length(vs)))
+# end
+
+# function Manifolds.vee(M::ProductManifold, X)
+#     reps = map(
+#         vee,
+#         M.manifolds,
+#         submanifold_components(M, X))
+#     return vcat(reps...)
+# end
+
+# function Manifolds.log!(M::ProductManifold, X, ::Identity{ProductOperation}, q)
+#   map(
+#       log!,
+#       M.manifolds,
+#       submanifold_components(M, X),
+#       submanifold_components(M, p),
+#       submanifold_components(M, q),
+#   )
+#   return X
+# end
+
+# function Manifolds.hat!(M::Manifolds.PowerManifoldNestedReplacing, Y, p, c)
+#   B=VeeOrthogonalBasis()
+#   dim = manifold_dimension(M.manifold)
+#   rep_size = representation_size(M.manifold)
+#   v_iter = 1
+#   for i in Manifolds.get_iterator(M)
+#      get_vector!(
+#           M.manifold,
+#           Manifolds._write(M, rep_size, Y, i),
+#           Manifolds._read(M, rep_size, Y, i),
+#           c[v_iter:(v_iter + dim - 1)],
+#           B,
+#       )
+#       v_iter += dim
+#   end
+#   return Y
+# end
+
+
+struct GraphSolveContainer{T<:Real}
+  M # ProductManifold or ProductGroup
+  ϵ
+  p
+  X
+  Xc
+  varTypes
+  varTypesIds
+end
+
+function GraphSolveContainer(fg)
+  M, varTypes, varTypesIds = buildGraphSolveManifold(fg)
+  ϵ = getPointIdentity(M, Float64)
+  p = deepcopy(ϵ)# allocate_result(M, getPointIdentity)
+  X = deepcopy(ϵ) #allcoate(p)
+  Xc = get_coordinates(M, ϵ, X, DefaultOrthogonalBasis())
+  return GraphSolveContainer{Float64}(M, ϵ, p, X, Xc, varTypes, varTypesIds)
+end
+
+
+## ================================================================================================
 ## FlatVariables - used for packing variables for optimization
 ## ================================================================================================
 
 struct FlatVariables{T<:Real}
   X::Vector{T}
+  p::ProductRepr
+  M::ProductGroup
   idx::Dict{Symbol, UnitRange{Int}}
 end
 
@@ -17,7 +248,9 @@ function FlatVariables(fg::AbstractDFG, varIds::Vector{Symbol})
     idx[vid] = index:(index+dims-1)
     index += dims
   end
-  return FlatVariables(Vector{Float64}(undef, index-1), idx)
+  M = ProductGroup(ProductManifold(getManifold.(fg, varIds)...))
+  p = ProductRepr(getPointIdentity.(getVariableType.(fg,varIds))...)
+  return FlatVariables(Vector{Float64}(undef, index-1), p, M, idx)
 end
 
 function Base.setindex!(flatVar::FlatVariables{T}, val::Vector{T}, vId::Symbol) where T<:Real
@@ -55,12 +288,7 @@ function Base.getindex(cache::LazyCache, u::T, varname::Symbol) where T
     return val
 end
 
-function Base.getindex(cache::LazyCache, u::T, varname::Symbol) where T
-  val = get!(cache.dict, (T, varname)) do 
-    cache.fnc(u)
-  end::T
-  return val
-end
+
 
 function getCoordCache!(cache::LazyCache, M, T::DataType, varname::Symbol)
   val = get!(cache.dict, (T, varname)) do 
@@ -213,52 +441,250 @@ function calcFactorMahalanobisDict(fg)
   return calcFactors
 end
 
-# new experimental Manifold ProductRepr version
-function _totalCost(M, cfvec::Vector{<:CalcFactorMahalanobis}, labeldict, points)
-  #
-  obj = 0
 
-  for cfp in cfvec
+cost_cfp(cfp::CalcFactorMahalanobis, M, p, varOrder::NTuple{1,Int}) = cfp(p[M, varOrder[1]])
+cost_cfp(cfp::CalcFactorMahalanobis, M, p, varOrder::NTuple{2,Int}) = cfp(p[M, varOrder[1]], p[M, varOrder[2]])
+cost_cfp(cfp::CalcFactorMahalanobis, M, p, varOrder::NTuple{3,Int}) = cfp(p[M, varOrder[1]], p[M, varOrder[2]], p[M, varOrder[3]])
 
-      varOrder = getindex.(Ref(labeldict), cfp.varOrder)
-
-      factor_point_params = [points[M, i] for i in varOrder]
-
-      # call the user function
-      _,retval = cfp(factor_point_params...)
-
-      # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-      obj += 1/2*retval
-  end
-
-  return obj
-end
+cost_cfp(cfp::CalcFactorMahalanobis, M, p, vi::NTuple{1,Tuple{Int64, Int64}}) = cfp(p[M, vi[1][1]][vi[1][2]])
+cost_cfp(cfp::CalcFactorMahalanobis, M, p, vi::NTuple{2,Tuple{Int64, Int64}}) = cfp(p[M, vi[1][1]][vi[1][2]], p[M, vi[2][1]][vi[2][2]])
 
 function _totalCost(fg, 
                     cfdict::Dict{Symbol, <:CalcFactorMahalanobis},
                     flatvar,
-                    X )
+                    point_varOrders,
+                    Xc )
   #
-  obj = 0
-  for (fid, cfp) in cfdict
+  
+  
+  if (test_new=true)
+    M = flatvar.M
+    # p = flatvar.p
+    # hat!(M, p, Identity(M), Xc)
+    # exp!(M, p, identity_element(M), p)
 
-    varOrder = cfp.varOrder
+    p = exp(M, identity_element(M), hat(M, Identity(M), Xc))
 
-    Xparams = [getPoint(getVariableType(fg, varId), view(X, flatvar.idx[varId])) for varId in varOrder]
-
-    # call the user function
-    retval = cfp(Xparams...)
-
-    # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-    obj += 1/2*retval
   end
 
-  return obj
+  
+  #TODO create once fur multithread
+  # obj = zero(eltype(Xc))
+  obj = zeros(eltype(Xc),(Threads.nthreads()))
+  facs = collect(keys(cfdict))
+  Threads.@threads for fid in facs
+    cfp = cfdict[fid]
+  # for (fid, cfp) in cfdict 
+    # call the user function
+    if test_new
+      retval = cost_cfp(cfp, M, p, point_varOrders[fid])
+    else
+      varOrder = cfp.varOrder
+      Xparams = [getPoint(getVariableType(fg, varId), view(Xc, flatvar.idx[varId])) for varId in varOrder]
+      retval = cfp(Xparams...)
+    end    
+    
+    obj[Threads.threadid()] += retval
+    # obj += retval
+  end
+
+  return 1/2*sum(obj)
+  
+  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+  # return 1/2*obj
+end
+
+## :forward test_new==false
+# 57.366395 seconds (33.10 M allocations: 1.626 GiB, 0.65% gc time, 99.43% compilation time)
+# 0.309763 seconds (1.42 M allocations: 321.207 MiB, 16.38% gc time)
+
+## :forward test_new==true N=30
+# 5.262519 seconds (15.64 M allocations: 963.398 MiB, 4.91% gc time, 94.58% compilation time)
+# 0.230315 seconds (758.36 k allocations: 244.261 MiB, 9.56% gc time)
+
+## :forward test_new==true N=50
+# 7.334445 seconds (13.06 M allocations: 1.619 GiB, 4.52% gc time, 80.12% compilation time)
+# 1.215492 seconds (3.77 M allocations: 1.138 GiB, 11.52% gc time)
+
+# 1 thread
+# 1.154163 seconds (3.77 M allocations: 488.173 MiB, 12.62% gc time)
+# 1.109158 seconds (3.77 M allocations: 488.173 MiB, 8.16% gc time)
+# 4 threads
+# 0.727205 seconds (3.86 M allocations: 498.374 MiB, 13.44% gc time)
+# 0.739042 seconds (3.86 M allocations: 498.372 MiB, 17.42% gc time)
+
+# function cacheByType!(cache::LazyCache, T::DataType, varname::Symbol, fnc, x...) 
+#   val = get!(cache.dict, (T, varname)) do 
+#     fnc(x...)
+#   end
+#   return val
+# end
+
+# if numtype in cashedTypes
+#   ϵ = cacheByType!(lazycache, numtype, :ϵ, identity, 0)
+#   p = cacheByType!(lazycache, numtype, :p, identity, 0)
+#   X = cacheByType!(lazycache, numtype, :X, identity, 0)
+# else
+#   @warn "cache miss"
+#   ϵ = cacheByType!(lazycache, numtype, :ϵ, getPointIdentity, M, numtype)
+#   p = cacheByType!(lazycache, numtype, :p, deepcopy, ϵ)
+#   X = cacheByType!(lazycache, numtype, :X, deepcopy, ϵ)
+#   @warn "added to cache"
+# end
+
+
+
+function _totalCost2(fg, 
+                    cfdict::Dict{Symbol, <:CalcFactorMahalanobis},
+                    gsc,
+                    varOrderDict,
+                    Xc )
+  #
+  M = gsc.M
+
+
+  numtype = eltype(Xc)
+
+  
+  if (false)
+    #TODO this does not work through autodiff
+    ϵ = gsc.ϵ
+    p = gsc.p
+    X = gsc.X
+    get_vector!(M, X, ϵ, Xc, DefaultBasis())
+    exp!(M, p, ϵ, X)
+  else
+    ϵ = getPointIdentity(M, numtype)
+    X = get_vector(M, ϵ, Xc, DefaultOrthogonalBasis())
+    p = exp(M, ϵ, X)
+  end
+
+  # obj = zero(eltype(Xc))
+  obj = zeros(eltype(Xc),(Threads.nthreads()))
+  facs = collect(keys(cfdict))
+
+  Threads.@threads for fid in facs
+    cfp = cfdict[fid]
+  # for (fid, cfp) in cfdict 
+
+    prod_pow_idx = varOrderDict[fid]
+
+    # call the user function
+    retval = cost_cfp(cfp, M, p, prod_pow_idx)
+
+    obj[Threads.threadid()] += retval
+    # obj += retval
+  end
+
+  @warn obj maxlog=10
+  return 1/2*sum(obj)
+  
+  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+  # return 1/2*obj
+end
+
+#fg = generateCanonicalFG_Honeycomb!()
+
+# fg = generateGraph_Hexagonal(;fg=initfg(GraphsDFG;solverParams=SolverParams(algorithms=[:default, :parametric])), graphinit=false)
+# 0.082069 seconds (517.90 k allocations: 56.727 MiB)
+# (770.17 k allocations: 136.930 MiB, 11.95% gc time)
+
+function solveGraphParametric2(fg::AbstractDFG;
+                              computeCovariance::Bool = false,
+                              useCalcFactor=nothing,#TODO Delete in v0.30
+                              solvekey::Symbol=:parametric,
+                              autodiff = :forward,
+                              algorithm=Optim.BFGS,
+                              algorithmkwargs=(), # add manifold to overwrite computed one
+                              options = Optim.Options(allow_f_increases=true,
+                                                      time_limit = 100,
+                                                      # show_trace = true,
+                                                      # show_every = 1,
+                                                      ))
+# 
+  # Build the container  
+  # fg = Main.generateGraph_Hexagonal(;fg=initfg(GraphsDFG;solverParams=SolverParams(algorithms=[:default, :parametric])), graphinit=false)                                                    
+  gsc = GraphSolveContainer(fg)
+
+  M = gsc.M
+  p = gsc.p
+  X = gsc.X
+  Xc = gsc.Xc
+  ϵ = gsc.ϵ
+  # copy variables from graph #TODO do with container constructor
+  for (i, vartype) in enumerate(gsc.varTypes)
+    varIds = gsc.varTypesIds[vartype]
+    for (j,vId) in enumerate(varIds)
+      gsc.p[gsc.M, i][j] = getVariableSolverData(fg, vId, solvekey).val[1]
+    end
+  end
+
+  # 
+  # log!(M, X, Identity(ProductOperation), p)
+  log!(M, X, ϵ, p)
+  get_coordinates!(M, Xc, ϵ, X, DefaultOrthogonalBasis())
+
+
+  alg = algorithm(; algorithmkwargs...)
+
+  cfd = calcFactorMahalanobisDict(fg)
+
+  varOrderDict = Dict{Symbol, Tuple}()#NTuple{N,Tuple{Int64, Int64}}}()
+  #TODO find better way for indexing
+  for (fid, cfp) in cfd 
+    varOrder = cfp.varOrder
+    prod_pow_idx = map(varOrder) do v
+      v_type = getVariableType(fg, v) |> typeof
+      prod_idx = findfirst(==(v_type), gsc.varTypes)
+      vars = gsc.varTypesIds[gsc.varTypes[prod_idx]]
+      pow_idx = findfirst(==(v), vars)
+      (prod_idx, pow_idx)
+    end
+    prod_pow_idx = tuple(prod_pow_idx...)
+    varOrderDict[fid] = prod_pow_idx
+  end
+  
+  # point_varOrders = Dict(fac_lbl => tuple(indexin(cfm.varOrder, varIds)...)  for (fac_lbl, cfm) in cfd)
+
+  #TODO check if closure is correct for performance
+  tc(_Xc)=_totalCost2(fg, cfd, gsc, varOrderDict,_Xc)
+
+  initValues = Xc
+  initValues .+= randn(length(Xc))*0.001
+
+  tdtotalCost = Optim.TwiceDifferentiable(tc, initValues, autodiff = autodiff)
+
+  # TODO remove, only testing
+  @time tc(initValues)
+  # 0.000178 seconds (463 allocations: 28.297 KiB) #original
+  # 0.000236 seconds (678 allocations: 31.250 KiB)
+
+  result = Optim.optimize(tdtotalCost, initValues, alg, options)
+  rv = Optim.minimizer(result)
+
+  Σ = if computeCovariance
+    H = Optim.hessian!(tdtotalCost, rv)
+    pinv(H)
+  else
+    nothing
+  end
+
+  # d = Dict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
+
+  # for key in varIds
+  #   r = flatvar.idx[key]
+  #   push!(d,key=>(val=rv[r],cov=Σ[r,r]))
+  # end
+
+  get_vector!(M, X, ϵ, rv, DefaultOrthogonalBasis())
+  exp!(M, p, ϵ, X)
+
+  # return d, result, flatvar.idx, Σ
+  return (result=result, p=p, gsc=gsc, Σ=Σ)
 end
 
 
 export solveGraphParametric
-
 """
     $SIGNATURES
 
@@ -267,6 +693,7 @@ Notes:
   - Only :Euclid and :Circular manifolds are currently supported, own manifold are supported with `algorithmkwargs` (code may need updating though)
 """
 function solveGraphParametric(fg::AbstractDFG;
+                              computeCovariance::Bool = false,
                               solvekey::Symbol=:parametric,
                               autodiff = :forward,
                               algorithm=Optim.BFGS,
@@ -292,7 +719,7 @@ function solveGraphParametric(fg::AbstractDFG;
 
   varIds = listVariables(fg)
 
-  #TODO mabye remove sorting, just for convenience
+  #TODO maybe remove sorting, just for convenience
   sort!(varIds, lt=natural_lt)
 
   flatvar = FlatVariables(fg, varIds)
@@ -303,25 +730,43 @@ function solveGraphParametric(fg::AbstractDFG;
   end
 
   initValues = flatvar.X
-
+  initValues .+= randn(length(initValues))*0.001
 
   alg = algorithm(; algorithmkwargs...)
 
   cfd = calcFactorMahalanobisDict(fg)
-  tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(fg, cfd, flatvar, x), initValues, autodiff = autodiff)
+  
+  
+  point_varOrders = Dict(fac_lbl => tuple(indexin(cfm.varOrder, varIds)...)  for (fac_lbl, cfm) in cfd)
+
+  #TODO check if closure is correct for performance
+  tc(x)=_totalCost(fg, cfd, flatvar, point_varOrders, x)
+
+  # TODO remove, only testing
+  @time tc(initValues)
+
+  tdtotalCost = Optim.TwiceDifferentiable(tc, initValues, autodiff = autodiff)
 
   result = Optim.optimize(tdtotalCost, initValues, alg, options)
   rv = Optim.minimizer(result)
 
-  H = Optim.hessian!(tdtotalCost, rv)
-
-  Σ = pinv(H)
+  Σ = if computeCovariance
+    H = Optim.hessian!(tdtotalCost, rv)
+    pinv(H)
+  else
+    nothing
+  end
 
   d = Dict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
 
   for key in varIds
     r = flatvar.idx[key]
-    push!(d,key=>(val=rv[r],cov=Σ[r,r]))
+    cov = if Σ === nothing
+      [0.;;]
+    else
+      Σ[r,r]
+    end
+    push!(d,key=>(val=rv[r],cov=cov))
   end
 
   return d, result, flatvar.idx, Σ

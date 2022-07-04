@@ -34,7 +34,7 @@ Base.@kwdef mutable struct SolverParams <: DFG.AbstractParams
   graphinit::Bool = true            # default to graph-based initialization of variables
   treeinit::Bool =false             # init variables on the tree
   limittreeinit_iters::Int = 10
-  algorithms::Vector{Symbol} = [:default] # list of algorithms to run [:default] is mmisam
+  algorithms::Vector{Symbol} = [:default, :parametric] # list of algorithms to run [:default] is mmisam
   spreadNH::Float64 = 3.0           # entropy spread adjustment used for both null hypo cases.
   inflation::Float64 = 5.0          # how much to disperse particles before convolution solves, #1051
   nullSurplusAdd::Float64 = 0.3     # minimum nullhypo for relative factors sibling to multihypo factors onto a specific variable.
