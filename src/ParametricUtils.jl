@@ -60,8 +60,8 @@ function getPointIdentity(::SpecialOrthogonal{3})
 end
 
 function getPointIdentity(::SpecialEuclidean{2})
-  # or ArrayPartition
   return ProductRepr(SA[0.,0.], SA[1.0 0.0; 0.0 1.0])
+  # return ArrayPartition(SA[0.,0.], SA[1.0 0.0; 0.0 1.0])
 end
 
 function getPointIdentity(::SpecialEuclidean{3})
@@ -333,12 +333,11 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
   meas = typeof(_meas) <: Tuple ? _meas : (hat(M, Identity(M), _meas),)
   iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
 
-  # FIXME which one
   cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
-  # cache = preambleCache(fg, varOrder, getFactorType(fct))
+  cache = isnothing(cache) ? NamedTuple() : cache
 
-  calcf = CalcFactor(getFactorMechanics(cf), _getFMdThread(fct), 0, 0, (), [], true, cache)
-  
+  calcf = CalcFactor(getFactorMechanics(cf), _getFMdThread(fct), 0, 0, nothing, nothing, true, cache)
+
   multihypo = getSolverData(fct).multihypo
   nullhypo = getSolverData(fct).nullhypo
 
@@ -367,9 +366,8 @@ end
 function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:AbstractPrior, U, V, W, C}
   # TODO should prior functions follow the same factor definition with a measurement on tangant?
   M = getManifold(cfp.calcfactor!.factor)
-  #FIXME find a better fix for bitstypes
-  ϵ = identity_element(M)
-  ϵ = isbitstype(typeof(ϵ)) ? [ϵ] : ϵ
+
+  ϵ = getPointIdentity(M)
   m = exp(M, ϵ, cfp.meas[1])  
 
   res = cfp.calcfactor!(m, variables...)
