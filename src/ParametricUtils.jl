@@ -165,23 +165,23 @@ end
 # end
 
 
-struct GraphSolveContainer{T<:Real}
-  M # ProductManifold or ProductGroup
-  ϵ
-  p
-  X
-  Xc
-  varTypes
-  varTypesIds
+struct GraphSolveContainer{T<:Real,U,N}
+  M::AbstractManifold # ProductManifold or ProductGroup
+  ϵ::U
+  p::U
+  X::U
+  Xc::Vector{T}
+  varTypes::NTuple{N, DataType}
+  varTypesIds::Dict{DataType, Vector{Symbol}}
 end
 
-function GraphSolveContainer(fg)
+function GraphSolveContainer(fg, ::Type{T}) where T<:Real
   M, varTypes, varTypesIds = buildGraphSolveManifold(fg)
-  ϵ = getPointIdentity(M, Float64)
+  ϵ = getPointIdentity(M, T)
   p = deepcopy(ϵ)# allocate_result(M, getPointIdentity)
   X = deepcopy(ϵ) #allcoate(p)
   Xc = get_coordinates(M, ϵ, X, DefaultOrthogonalBasis())
-  return GraphSolveContainer{Float64}(M, ϵ, p, X, Xc, varTypes, varTypesIds)
+  return GraphSolveContainer(M, ϵ, p, X, Xc, varTypes, varTypesIds)
 end
 
 
@@ -330,13 +330,23 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
   varTypes = getVariableType.(fg, varOrder) .|> typeof
   _meas, _iΣ = getMeasurementParametric(cf)
   M = getManifold(getFactorType(fct))
-  meas = typeof(_meas) <: Tuple ? _meas : (hat(M, Identity(M), _meas),)
+
+  (typeof(_meas) <: Tuple) && error("Not implemented $_meas")
+
+  ϵ = getPointIdentity(M)
+  if cf isa AbstractPrior
+    meas = (exp(M, ϵ, hat(M, Identity(M), _meas)),)
+  else  
+    meas = (hat(M, Identity(M), _meas),)
+  end
+
   iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
 
   cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
   cache = isnothing(cache) ? NamedTuple() : cache
 
-  calcf = CalcFactor(getFactorMechanics(cf), _getFMdThread(fct), 0, 0, nothing, nothing, true, cache)
+  calcf = CalcFactor(getFactorMechanics(cf), nothing, 0, 0, nothing, nothing, true, nothing)
+  # calcf = CalcFactor(getFactorMechanics(cf), _getFMdThread(fct), 0, 0, nothing, nothing, true, cache)
 
   multihypo = getSolverData(fct).multihypo
   nullhypo = getSolverData(fct).nullhypo
@@ -356,38 +366,47 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
 end
 
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
-function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:AbstractFactor, U, V, W, C}
+function (cfp::CalcFactorMahalanobis)(variables...)
   # call the user function (be careful to call the new CalcFactor version only!!!)
+  # @warn "1" a=typeof(cfp.meas[1])
+
   res = cfp.calcfactor!(cfp.meas[1], variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
   return res' * cfp.iΣ[1] * res
 end
 
-function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:AbstractPrior, U, V, W, C}
-  # TODO should prior functions follow the same factor definition with a measurement on tangant?
-  M = getManifold(cfp.calcfactor!.factor)
+# function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:AbstractFactor, U, V, W, C}
+#   # call the user function (be careful to call the new CalcFactor version only!!!)
+#   res = cfp.calcfactor!(cfp.meas[1], variables...)
+#   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+#   return res' * cfp.iΣ[1] * res
+# end
 
-  ϵ = getPointIdentity(M)
-  m = exp(M, ϵ, cfp.meas[1])  
+# function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:AbstractPrior, U, V, W, C}
+#   # TODO should prior functions follow the same factor definition with a measurement on tangant?
+#   M = getManifold(cfp.calcfactor!.factor)
 
-  res = cfp.calcfactor!(m, variables...)
-  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-  return res' * cfp.iΣ[1] * res
-end
+#   ϵ = getPointIdentity(M)
+#   m = exp(M, ϵ, cfp.meas[1])  
 
-function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:Union{ManifoldFactor, ManifoldPrior} , U, V, W, C}
-  # call the user function (be careful to call the new CalcFactor version only!!!)
-  M = cfp.calcfactor!.factor.M
-  X = cfp.calcfactor!(cfp.meas[1], variables...)
-  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-  # return mahalanobus_distance2(M, X, cfp.iΣ[1])
+#   res = cfp.calcfactor!(m, variables...)
+#   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+#   return res' * cfp.iΣ[1] * res
+# end
+
+# function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:Union{ManifoldFactor, ManifoldPrior} , U, V, W, C}
+#   # call the user function (be careful to call the new CalcFactor version only!!!)
+#   M = cfp.calcfactor!.factor.M
+#   X = cfp.calcfactor!(cfp.meas[1], variables...)
+#   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+#   # return mahalanobus_distance2(M, X, cfp.iΣ[1])
   
-  #TODO do something about basis?
-  # Xc = get_coordinates(M, variables[1], X, DefaultOrthogonalBasis())
-  # Xc = get_coordinates(M, variables[1], X, DefaultOrthonormalBasis())
-  Xc = vee(M, variables[1], X)
-  return X, Xc' * cfp.iΣ[1] * Xc
-end
+#   #TODO do something about basis?
+#   # Xc = get_coordinates(M, variables[1], X, DefaultOrthogonalBasis())
+#   # Xc = get_coordinates(M, variables[1], X, DefaultOrthonormalBasis())
+#   Xc = vee(M, variables[1], X)
+#   return X, Xc' * cfp.iΣ[1] * Xc
+# end
 
 function calcFactorMahalanobisDict(fg)
   calcFactors = Dict{Symbol, CalcFactorMahalanobis}()
@@ -488,44 +507,66 @@ end
 #   @warn "added to cache"
 # end
 
+# @profview foreach((_Xc)->IIF._totalCost2(fg, cfd, gsc, varOrderDict, _Xc), [Xc+randn(length(Xc)) for _=1:10])
 
-
-function _totalCost2(fg, 
-                    cfdict::Dict{Symbol, <:CalcFactorMahalanobis},
-                    gsc,
-                    varOrderDict,
-                    Xc )
-  #
+function _toPoints2!(gsc::GraphSolveContainer{T,U,N}, Xc::Vector{T}) where {T,U,N}
   M = gsc.M
+  ϵ = gsc.ϵ
+  p = gsc.p
+  X = gsc.X
+  get_vector!(M, X, ϵ, Xc, DefaultOrthogonalBasis())
+  exp!(M, p, ϵ, X)
+  return p::U
+end
 
+struct LazyGraphSolveCache
+  dict::Dict{DataType, GraphSolveContainer}
+end
+LazyGraphSolveCache() = LazyGraphSolveCache(Dict{DataType, GraphSolveContainer}())
 
-  numtype = eltype(Xc)
+function getGraphSolveCache!(cache::LazyGraphSolveCache, fg::AbstractDFG, ::Type{T}) where T<:Real
+  val = get!(cache.dict, T) do 
+    @info "cache miss, caching" T
+    GraphSolveContainer(fg, T)
+  end
+  return val
+end
 
-  ϵ = getPointIdentity(M, numtype)
-  X = get_vector(M, ϵ, Xc, DefaultOrthogonalBasis())
-  p = exp(M, ϵ, X)
+function _totalCost2(fg::AbstractDFG,
+                    lazycache::LazyGraphSolveCache, 
+                    cfdict::Dict{Symbol, <:CalcFactorMahalanobis},
+                    varOrderDict::Dict{Symbol, <:Tuple},
+                    Xc::Vector{T} ) where T<:Real
+  #
 
-  # obj = zero(eltype(Xc))
-  obj = zeros(eltype(Xc),(Threads.nthreads()))
-  facs = collect(keys(cfdict))
+  gsc = getGraphSolveCache!(lazycache, fg, T)
 
-  Threads.@threads for fid in facs
-    cfp = cfdict[fid]
-  # for (fid, cfp) in cfdict 
+  M = gsc.M 
+
+  p = _toPoints2!(gsc, Xc)
+
+  obj::T = zero(T)
+  # retval::T = zero(T)
+  # obj = zeros(T,(Threads.nthreads()))
+  # facs = collect(keys(cfdict))
+
+  # Threads.@threads for fid in facs
+    # cfp = cfdict[fid]
+  for (fid, cfp) in cfdict 
 
     prod_pow_idx = varOrderDict[fid]
 
     # call the user function
     retval = cost_cfp(cfp, M, p, prod_pow_idx)
 
-    obj[Threads.threadid()] += retval
-    # obj += retval
+    # obj[Threads.threadid()] += retval
+    obj += retval
   end
 
-  return 1/2*sum(obj)
+  # return 1/2*sum(obj)
   
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-  # return 1/2*obj
+  return 1/2*obj
 end
 
 #fg = generateCanonicalFG_Honeycomb!()
@@ -549,7 +590,10 @@ function solveGraphParametric2(fg::AbstractDFG;
 # 
   # Build the container  
   # fg = Main.generateGraph_Hexagonal(;fg=initfg(GraphsDFG;solverParams=SolverParams(algorithms=[:default, :parametric])), graphinit=false)                                                    
-  gsc = GraphSolveContainer(fg)
+  # T = Optim.ForwardDiff.Dual{ForwardDiff.Tag{IncrementalInference.var"#tc#667"{GraphsDFG{SolverParams, DFGVariable, DFGFactor}, Dict{Symbol, Tuple{Tuple{Int64, Int64}, Vararg{Tuple{Int64, Int64}}}}, Dict{Symbol, IncrementalInference.CalcFactorMahalanobis}, IncrementalInference.LazyGraphSolveCache}, Float64}, Float64, 12}
+  lazyCache = LazyGraphSolveCache()
+  gsc = getGraphSolveCache!(lazyCache, fg, Float64)
+
 
   M = gsc.M
   p = gsc.p
@@ -574,7 +618,9 @@ function solveGraphParametric2(fg::AbstractDFG;
 
   cfd = calcFactorMahalanobisDict(fg)
 
-  varOrderDict = Dict{Symbol, Tuple}()#NTuple{N,Tuple{Int64, Int64}}}()
+ 
+
+  varOrderDict = Dict{Symbol, Tuple{Tuple{Int,Int}, Vararg{Tuple{Int,Int}}}}()#NTuple{N,Tuple{Int64, Int64}}}()
   #TODO find better way for indexing
   for (fid, cfp) in cfd 
     varOrder = cfp.varOrder
@@ -591,8 +637,9 @@ function solveGraphParametric2(fg::AbstractDFG;
   
   # point_varOrders = Dict(fac_lbl => tuple(indexin(cfm.varOrder, varIds)...)  for (fac_lbl, cfm) in cfd)
 
+
   #TODO check if closure is correct for performance
-  tc(_Xc)=_totalCost2(fg, cfd, gsc, varOrderDict,_Xc)
+  tc(_Xc)=_totalCost2(fg, lazyCache, cfd, varOrderDict, _Xc)
 
   initValues = Xc
   initValues .+= randn(length(Xc))*0.001
@@ -688,7 +735,7 @@ function solveGraphParametric(fg::AbstractDFG;
   tc(x)=_totalCost(fg, cfd, flatvar, point_varOrders, x)
 
   # TODO remove, only testing
-  @time tc(initValues)
+  # @time tc(initValues)
 
   tdtotalCost = Optim.TwiceDifferentiable(tc, initValues, autodiff = autodiff)
 
@@ -1102,21 +1149,21 @@ end
 
 # end
 
-function (cfp::CalcFactorMahalanobis{<:CalcFactor, MaxMixture})(variables...)
+# function (cfp::CalcFactorMahalanobis{<:CalcFactor, MaxMixture})(variables...)
   
-  r = [_calcFactorMahalanobis(cfp, cfp.meas[i], cfp.iΣ[i], variables...) for i = 1:length(cfp.meas)]
+#   r = [_calcFactorMahalanobis(cfp, cfp.meas[i], cfp.iΣ[i], variables...) for i = 1:length(cfp.meas)]
 
-  p = cfp.specialAlg.p
+#   p = cfp.specialAlg.p
 
-  k = size(cfp.iΣ[1], 2)
-  # α = 1 ./ sqrt.(2pi .* k .* det.(inv.(cfp.iΣ)))
-  α = sqrt.(det.(cfp.iΣ) ./ ((2pi)^k))
+#   k = size(cfp.iΣ[1], 2)
+#   # α = 1 ./ sqrt.(2pi .* k .* det.(inv.(cfp.iΣ)))
+#   α = sqrt.(det.(cfp.iΣ) ./ ((2pi)^k))
 
-  mm, at = findmin(r .- log.(α .* p))
-  # mm = -log(sum(α .* p .* exp.(-0.5 .* r) ))
-  return mm + maximum(log.(α .* p))
+#   mm, at = findmin(r .- log.(α .* p))
+#   # mm = -log(sum(α .* p .* exp.(-0.5 .* r) ))
+#   return mm + maximum(log.(α .* p))
     
-end
+# end
 
 
 ## ================================================================================================
@@ -1131,44 +1178,44 @@ struct MaxNullhypo
   nullhypo::Float64
 end
 
-function (cfp::CalcFactorMahalanobis{<:CalcFactor, MaxMultihypo})(X1, L1, L2)
-  mh = cfp.specialAlg.multihypo
-  @assert length(mh) == 3 "multihypo $mh  not supported with parametric, length should be 3"
-  @assert mh[1] == 0 "multihypo $mh  not supported with parametric, first should be 0"
+# function (cfp::CalcFactorMahalanobis{<:CalcFactor, MaxMultihypo})(X1, L1, L2)
+#   mh = cfp.specialAlg.multihypo
+#   @assert length(mh) == 3 "multihypo $mh  not supported with parametric, length should be 3"
+#   @assert mh[1] == 0 "multihypo $mh  not supported with parametric, first should be 0"
   
-  #calculate both multihypo options
-  r1 = cfp(X1, L1)
-  r2 = cfp(X1, L2)
-  r = [r1, r2]
+#   #calculate both multihypo options
+#   r1 = cfp(X1, L1)
+#   r2 = cfp(X1, L2)
+#   r = [r1, r2]
 
-  # hacky multihypo to start of with 
-  mm, at = findmin(r .* (1 .- mh[2:end]))
-  nat = at == 1 ? 1 : 2
-  k = length(X1)*one(r1) * 1e-3
-  return r[at] + r[nat]*k
+#   # hacky multihypo to start of with 
+#   mm, at = findmin(r .* (1 .- mh[2:end]))
+#   nat = at == 1 ? 1 : 2
+#   k = length(X1)*one(r1) * 1e-3
+#   return r[at] + r[nat]*k
   
-end
+# end
 
-function (cfp::CalcFactorMahalanobis{<:CalcFactor, MaxNullhypo})(X1, X2) 
-  nh = cfp.specialAlg.nullhypo
-  @assert nh > 0 "nullhypo $nh not as expected"
+# function (cfp::CalcFactorMahalanobis{<:CalcFactor, MaxNullhypo})(X1, X2) 
+#   nh = cfp.specialAlg.nullhypo
+#   @assert nh > 0 "nullhypo $nh not as expected"
   
-  #calculate factor residual
-  res = cfp.calcfactor!(cfp.meas[1], X1, X2)
-  r1 =  res' * cfp.iΣ * res
+#   #calculate factor residual
+#   res = cfp.calcfactor!(cfp.meas[1], X1, X2)
+#   r1 =  res' * cfp.iΣ * res
 
-  # compare to uniform nullhypo
-  r2 = length(res)*one(r1)
-  r = [r1,r2]
-  mm, at = findmin(r .* [nh, (1-nh)])
+#   # compare to uniform nullhypo
+#   r2 = length(res)*one(r1)
+#   r = [r1,r2]
+#   mm, at = findmin(r .* [nh, (1-nh)])
 
-  residual = at == 1 ? r1 : r1*1e-3
+#   residual = at == 1 ? r1 : r1*1e-3
 
-  return residual
+#   return residual
 
-  # rand residual option
-  # idx = rand(Categorical([(1-nh), nh]))
-  # nh == 0.05 && cfp.varOrder==[:x1,:l1] && println("$idx -> $(r1.value), $r2")
-  # return r[idx] 
+#   # rand residual option
+#   # idx = rand(Categorical([(1-nh), nh]))
+#   # nh == 0.05 && cfp.varOrder==[:x1,:l1] && println("$idx -> $(r1.value), $r2")
+#   # return r[idx] 
 
-end
+# end
