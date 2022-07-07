@@ -9,8 +9,8 @@ import DistributedFactorGraphs: getPointIdentity
 
 function getPointIdentity(G::ProductGroup, numtype=Float64)
   M = G.manifold
-  return ProductRepr(map(x->getPointIdentity(x, numtype), M.manifolds))
-  # return ArrayPartition(map(x->getPointIdentity(x, numtype), M.manifolds))
+  # return ProductRepr(map(x->getPointIdentity(x, numtype), M.manifolds))
+  return ArrayPartition(map(x->getPointIdentity(x, numtype), M.manifolds))
 end
 
 function getPointIdentity(G::SpecialOrthogonal{N}, numtype=Float64) where N
@@ -29,7 +29,8 @@ function getPointIdentity(G::GroupManifold, numtype=Float64)
 end
 
 function getPointIdentity(G::ProductManifold, numtype=Float64)
-  return ProductRepr(map(x->getPointIdentity(x,numtype), G.manifolds))
+  # return ProductRepr(map(x->getPointIdentity(x,numtype), G.manifolds))
+  return ArrayPartition(map(x->getPointIdentity(x,numtype), G.manifolds))
 end
 
 function getPointIdentity(M::Manifolds.PowerManifoldNestedReplacing, numtype=Float64)
@@ -47,8 +48,8 @@ function getPointIdentity(G::SemidirectProductGroup, numtype=Float64)
   N, H = M.manifolds
   np = getPointIdentity(N,numtype)
   hp = getPointIdentity(H,numtype)
-  # return ArrayPartition(np, hp)
-  return ProductRepr(np, hp)
+  return ArrayPartition(np, hp)
+  # return ProductRepr(np, hp)
 end
 
 function getPointIdentity(::SpecialOrthogonal{2})
@@ -60,23 +61,24 @@ function getPointIdentity(::SpecialOrthogonal{3})
 end
 
 function getPointIdentity(::SpecialEuclidean{2})
-  return ProductRepr(SA[0.,0.], SA[1.0 0.0; 0.0 1.0])
-  # return ArrayPartition(SA[0.,0.], SA[1.0 0.0; 0.0 1.0])
+  # return ProductRepr(SA[0.,0.], SA[1.0 0.0; 0.0 1.0])
+  return ArrayPartition(SA[0.,0.], SA[1.0 0.0; 0.0 1.0])
 end
 
 function getPointIdentity(::SpecialEuclidean{3})
-  # or ArrayPartition
-  return ProductRepr(SA[0.,0.,0.], SA[1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0])
+  # return ProductRepr(SA[0.,0.,0.], SA[1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0])
+  return ArrayPartition(SA[0.,0.,0.], SA[1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0])
 end
 
 
 function Manifolds.allocate_result(G::SemidirectProductGroup, ::typeof(getPointIdentity))
+  @warn "allocate_result(G::SemidirectProductGroup, ::typeof(getPointIdentity)"
   M = base_manifold(G)
   N, H = M.manifolds
   np = allocate_result(N, getPointIdentity)
   hp = allocate_result(H, getPointIdentity)
-  # return ArrayPartition(np, hp)
-  return ProductRepr(np, hp)
+  return ArrayPartition(np, hp)
+  # return ProductRepr(np, hp)
 end
 
 ##
@@ -104,7 +106,9 @@ function getVariableTypesCount(fg::AbstractDFG)
       dt = get!(alltypes, varType, Symbol[])
       push!(dt, v.label)
   end
-  vartypes = tuple(keys(typedict)...)
+  #TODO tuple or vector?
+  # vartypes = tuple(keys(typedict)...)
+  vartypes = collect(keys(typedict))
   return vartypes, typedict, alltypes
 end
 
@@ -645,7 +649,8 @@ function solveGraphParametric2(fg::AbstractDFG;
   Xc = buffs.Xc
 
   #initialize points in buffer from fg, TODO maybe do in constructor
-  initPoints!(p, gsc, fg, solveKey)
+  #FIXME needs points in variable upgraded
+  # initPoints!(p, gsc, fg, solveKey)
 
   # log!(M, X, Identity(ProductOperation), p)
   # calculate initial coordinates vector for Optim
