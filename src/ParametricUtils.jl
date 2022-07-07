@@ -89,11 +89,13 @@ end
 ## ================================================================================================
 ## GraphSolveStructures
 ## ================================================================================================
+using OrderedCollections
 
 function getVariableTypesCount(fg::AbstractDFG)
+
   vars = getVariables(fg)
-  typedict = Dict{DataType, Int}()
-  alltypes = Dict{DataType,Vector{Symbol}}()
+  typedict = OrderedDict{DataType, Int}()
+  alltypes = OrderedDict{DataType,Vector{Symbol}}()
   for v in vars
       varType = typeof(getVariableType(v))
       cnt = get!(typedict, varType, 0)
@@ -163,26 +165,6 @@ end
 #   end
 #   return Y
 # end
-
-
-struct GraphSolveContainer{T<:Real,U,N}
-  M::AbstractManifold # ProductManifold or ProductGroup
-  ϵ::U
-  p::U
-  X::U
-  Xc::Vector{T}
-  varTypes::NTuple{N, DataType}
-  varTypesIds::Dict{DataType, Vector{Symbol}}
-end
-
-function GraphSolveContainer(fg, ::Type{T}) where T<:Real
-  M, varTypes, varTypesIds = buildGraphSolveManifold(fg)
-  ϵ = getPointIdentity(M, T)
-  p = deepcopy(ϵ)# allocate_result(M, getPointIdentity)
-  X = deepcopy(ϵ) #allcoate(p)
-  Xc = get_coordinates(M, ϵ, X, DefaultOrthogonalBasis())
-  return GraphSolveContainer(M, ϵ, p, X, Xc, varTypes, varTypesIds)
-end
 
 
 ## ================================================================================================
@@ -409,7 +391,7 @@ end
 # end
 
 function calcFactorMahalanobisDict(fg)
-  calcFactors = Dict{Symbol, CalcFactorMahalanobis}()
+  calcFactors = OrderedDict{Symbol, CalcFactorMahalanobis}()
   for fct in getFactors(fg)
     calcFactors[fct.label] = CalcFactorMahalanobis(fg, fct)
   end
@@ -425,7 +407,7 @@ cost_cfp(cfp::CalcFactorMahalanobis, M, p, vi::NTuple{1,Tuple{Int64, Int64}}) = 
 cost_cfp(cfp::CalcFactorMahalanobis, M, p, vi::NTuple{2,Tuple{Int64, Int64}}) = cfp(p[M, vi[1][1]][vi[1][2]], p[M, vi[2][1]][vi[2][2]])
 
 function _totalCost(fg, 
-                    cfdict::Dict{Symbol, <:CalcFactorMahalanobis},
+                    cfdict::OrderedDict{Symbol, <:CalcFactorMahalanobis},
                     flatvar,
                     point_varOrders,
                     Xc )
@@ -446,8 +428,8 @@ function _totalCost(fg,
   #TODO create once fur multithread
   # obj = zero(eltype(Xc))
   obj = zeros(eltype(Xc),(Threads.nthreads()))
-  facs = collect(keys(cfdict))
-  Threads.@threads for fid in facs
+
+  Threads.@threads for fid in collect(keys(cfdict))
     cfp = cfdict[fid]
   # for (fid, cfp) in cfdict 
     # call the user function
@@ -509,76 +491,136 @@ end
 
 # @profview foreach((_Xc)->IIF._totalCost2(fg, cfd, gsc, varOrderDict, _Xc), [Xc+randn(length(Xc)) for _=1:10])
 
-function _toPoints2!(gsc::GraphSolveContainer{T,U,N}, Xc::Vector{T}) where {T,U,N}
+
+struct GraphSolveBuffers{T<:Real, U}
+  ϵ::U
+  p::U
+  X::U
+  Xc::Vector{T}
+end
+
+function GraphSolveBuffers(M, ::Type{T}) where T
+  ϵ = getPointIdentity(M, T)
+  p = deepcopy(ϵ)# allocate_result(M, getPointIdentity)
+  X = deepcopy(ϵ) #allcoate(p)
+  Xc = get_coordinates(M, ϵ, X, DefaultOrthogonalBasis())
+  GraphSolveBuffers(ϵ, p, X, Xc)
+end
+
+struct GraphSolveContainer
+  M::AbstractManifold # ProductManifold or ProductGroup
+  buffers::OrderedDict{DataType, GraphSolveBuffers}
+  varTypes::Vector{DataType}
+  varTypesIds::OrderedDict{DataType, Vector{Symbol}}
+  cfdict::OrderedDict{Symbol, CalcFactorMahalanobis}
+  varOrderDict::OrderedDict{Symbol, Tuple{Tuple{Int,Int}, Vararg{Tuple{Int,Int}}}}
+end
+
+
+function GraphSolveContainer(fg)
+
+  M, varTypes, varTypesIds = buildGraphSolveManifold(fg)
+  buffs = OrderedDict{DataType,GraphSolveBuffers}()
+  cfd = calcFactorMahalanobisDict(fg)
+
+  varOrderDict = OrderedDict{Symbol, Tuple{Tuple{Int,Int}, Vararg{Tuple{Int,Int}}}}()#NTuple{N,Tuple{Int64, Int64}}}()
+  #TODO find better way for indexing
+  for (fid, cfp) in cfd 
+    varOrder = cfp.varOrder
+    prod_pow_idx = map(varOrder) do v
+      v_type = getVariableType(fg, v) |> typeof
+      prod_idx = findfirst(==(v_type), varTypes)
+      vars = varTypesIds[varTypes[prod_idx]]
+      pow_idx = findfirst(==(v), vars)
+      (prod_idx, pow_idx)
+    end
+    prod_pow_idx = tuple(prod_pow_idx...)
+    varOrderDict[fid] = prod_pow_idx
+  end
+
+  return GraphSolveContainer(M, buffs, varTypes, varTypesIds, cfd, varOrderDict)
+end
+
+function getGraphSolveCache!(gsc::GraphSolveContainer, ::Type{T}) where T<:Real
+  cache = gsc.buffers
   M = gsc.M
-  ϵ = gsc.ϵ
-  p = gsc.p
-  X = gsc.X
+  val = get!(cache, T) do 
+    @info "cache miss, cacheing" T
+    GraphSolveBuffers(M, T)
+  end
+  return val
+end
+
+function _toPoints2!(M::AbstractManifold, buffs::GraphSolveBuffers{T,U}, Xc::Vector{T}) where {T,U}
+  ϵ = buffs.ϵ
+  p = buffs.p
+  X = buffs.X
   get_vector!(M, X, ϵ, Xc, DefaultOrthogonalBasis())
   exp!(M, p, ϵ, X)
   return p::U
 end
 
-struct LazyGraphSolveCache
-  dict::Dict{DataType, GraphSolveContainer}
-end
-LazyGraphSolveCache() = LazyGraphSolveCache(Dict{DataType, GraphSolveContainer}())
+Base.firstindex(::OrderedCollections.OrderedDict{Symbol, IncrementalInference.CalcFactorMahalanobis}) = error()
 
-function getGraphSolveCache!(cache::LazyGraphSolveCache, fg::AbstractDFG, ::Type{T}) where T<:Real
-  val = get!(cache.dict, T) do 
-    @info "cache miss, caching" T
-    GraphSolveContainer(fg, T)
-  end
-  return val
-end
-
-function _totalCost2(fg::AbstractDFG,
-                    lazycache::LazyGraphSolveCache, 
-                    cfdict::Dict{Symbol, <:CalcFactorMahalanobis},
-                    varOrderDict::Dict{Symbol, <:Tuple},
-                    Xc::Vector{T} ) where T<:Real
+function (gsc::GraphSolveContainer)(Xc::Vector{T}) where T <: Real
   #
+  buffs = getGraphSolveCache!(gsc, T)
 
-  gsc = getGraphSolveCache!(lazycache, fg, T)
+  cfdict = gsc.cfdict
+  varOrderDict = gsc.varOrderDict
 
   M = gsc.M 
 
-  p = _toPoints2!(gsc, Xc)
+  p = _toPoints2!(M, buffs, Xc)
 
-  obj::T = zero(T)
-  # retval::T = zero(T)
-  # obj = zeros(T,(Threads.nthreads()))
-  # facs = collect(keys(cfdict))
+  #NOTE multi threaded option
+  obj = zeros(T,(Threads.nthreads()))
+  Threads.@threads for fid in collect(keys(cfdict))
+    cfp = cfdict[fid]
 
-  # Threads.@threads for fid in facs
-    # cfp = cfdict[fid]
-  for (fid, cfp) in cfdict 
+  #NOTE single thread option
+  # obj::T = zero(T)
+  # for (fid, cfp) in cfdict 
 
     prod_pow_idx = varOrderDict[fid]
 
     # call the user function
     retval = cost_cfp(cfp, M, p, prod_pow_idx)
 
-    # obj[Threads.threadid()] += retval
-    obj += retval
+    #NOTE multi threaded option
+    obj[Threads.threadid()] += retval
+    # NOTE single thread option
+    # obj += retval
   end
 
-  # return 1/2*sum(obj)
-  
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-  return 1/2*obj
+
+  #NOTE multi threaded option
+  return sum(obj)/2
+  # NOTE single thread option
+  # return obj/2
 end
 
 #fg = generateCanonicalFG_Honeycomb!()
 
+  # copy variables from graph
+function initPoints!(p, gsc, fg::AbstractDFG, solveKey=:parametric)
+  for (i, vartype) in enumerate(gsc.varTypes)
+    varIds = gsc.varTypesIds[vartype]
+    for (j,vId) in enumerate(varIds)
+      p[gsc.M, i][j] = getVariableSolverData(fg, vId, solveKey).val[1]
+    end
+  end
+end
+
+
 # fg = generateGraph_Hexagonal(;fg=initfg(GraphsDFG;solverParams=SolverParams(algorithms=[:default, :parametric])), graphinit=false)
 # 0.082069 seconds (517.90 k allocations: 56.727 MiB)
 # (770.17 k allocations: 136.930 MiB, 11.95% gc time)
-
+using ForwardDiff
 function solveGraphParametric2(fg::AbstractDFG;
                               computeCovariance::Bool = false,
-                              useCalcFactor=nothing,#TODO Delete in v0.30
-                              solvekey::Symbol=:parametric,
+                              solveKey::Symbol=:parametric,
                               autodiff = :forward,
                               algorithm=Optim.BFGS,
                               algorithmkwargs=(), # add manifold to overwrite computed one
@@ -590,70 +632,38 @@ function solveGraphParametric2(fg::AbstractDFG;
 # 
   # Build the container  
   # fg = Main.generateGraph_Hexagonal(;fg=initfg(GraphsDFG;solverParams=SolverParams(algorithms=[:default, :parametric])), graphinit=false)                                                    
-  # T = Optim.ForwardDiff.Dual{ForwardDiff.Tag{IncrementalInference.var"#tc#667"{GraphsDFG{SolverParams, DFGVariable, DFGFactor}, Dict{Symbol, Tuple{Tuple{Int64, Int64}, Vararg{Tuple{Int64, Int64}}}}, Dict{Symbol, IncrementalInference.CalcFactorMahalanobis}, IncrementalInference.LazyGraphSolveCache}, Float64}, Float64, 12}
-  lazyCache = LazyGraphSolveCache()
-  gsc = getGraphSolveCache!(lazyCache, fg, Float64)
-
+  # T = Optim.ForwardDiff.Dual{ForwardDiff.Tag{IncrementalInference.var"#tc#667"{GraphsDFG{SolverParams, DFGVariable, DFGFactor}, OrderedDict{Symbol, Tuple{Tuple{Int64, Int64}, Vararg{Tuple{Int64, Int64}}}}, OrderedDict{Symbol, IncrementalInference.CalcFactorMahalanobis}, IncrementalInference.LazyGraphSolveCache}, Float64}, Float64, 12}
+  # lazyCache = LazyGraphSolveCache()
+  gsc = GraphSolveContainer(fg)
+  # buffs = getGraphSolveCache!(gsc, ForwardDiff.Dual{ForwardDiff.Tag{IncrementalInference.GraphSolveContainer, Float64}, Float64, 12})
+  buffs = getGraphSolveCache!(gsc, Float64)
 
   M = gsc.M
-  p = gsc.p
-  X = gsc.X
-  Xc = gsc.Xc
-  ϵ = gsc.ϵ
-  # copy variables from graph #TODO do with container constructor
-  for (i, vartype) in enumerate(gsc.varTypes)
-    varIds = gsc.varTypesIds[vartype]
-    for (j,vId) in enumerate(varIds)
-      gsc.p[gsc.M, i][j] = getVariableSolverData(fg, vId, solvekey).val[1]
-    end
-  end
+  ϵ = buffs.ϵ
+  p = buffs.p
+  X = buffs.X
+  Xc = buffs.Xc
 
-  # 
+  #initialize points in buffer from fg, TODO maybe do in constructor
+  initPoints!(p, gsc, fg, solveKey)
+
   # log!(M, X, Identity(ProductOperation), p)
+  # calculate initial coordinates vector for Optim
   log!(M, X, ϵ, p)
   get_coordinates!(M, Xc, ϵ, X, DefaultOrthogonalBasis())
 
-
-  alg = algorithm(; algorithmkwargs...)
-
-  cfd = calcFactorMahalanobisDict(fg)
-
- 
-
-  varOrderDict = Dict{Symbol, Tuple{Tuple{Int,Int}, Vararg{Tuple{Int,Int}}}}()#NTuple{N,Tuple{Int64, Int64}}}()
-  #TODO find better way for indexing
-  for (fid, cfp) in cfd 
-    varOrder = cfp.varOrder
-    prod_pow_idx = map(varOrder) do v
-      v_type = getVariableType(fg, v) |> typeof
-      prod_idx = findfirst(==(v_type), gsc.varTypes)
-      vars = gsc.varTypesIds[gsc.varTypes[prod_idx]]
-      pow_idx = findfirst(==(v), vars)
-      (prod_idx, pow_idx)
-    end
-    prod_pow_idx = tuple(prod_pow_idx...)
-    varOrderDict[fid] = prod_pow_idx
-  end
-  
-  # point_varOrders = Dict(fac_lbl => tuple(indexin(cfm.varOrder, varIds)...)  for (fac_lbl, cfm) in cfd)
-
-
-  #TODO check if closure is correct for performance
-  tc(_Xc)=_totalCost2(fg, lazyCache, cfd, varOrderDict, _Xc)
-
   initValues = Xc
-  initValues .+= randn(length(Xc))*0.001
+  #FIXME, for some reason we get NANs and adding a small random value works
+  initValues .+= randn(length(Xc))*0.0001
 
-  tdtotalCost = Optim.TwiceDifferentiable(tc, initValues, autodiff = autodiff)
+  #optim setup and solve
+  alg = algorithm(; algorithmkwargs...)
+  tdtotalCost = Optim.TwiceDifferentiable(gsc, initValues, autodiff = autodiff)
 
-  # TODO remove, only testing
-  # @time tc(initValues)
-  # 0.000178 seconds (463 allocations: 28.297 KiB) #original
-  # 0.000236 seconds (678 allocations: 31.250 KiB)
-
-  result = Optim.optimize(tdtotalCost, initValues, alg, options)
+  @time result = Optim.optimize(tdtotalCost, initValues, alg, options)
   rv = Optim.minimizer(result)
 
+  # optionally compute hessian for covariance
   Σ = if computeCovariance
     H = Optim.hessian!(tdtotalCost, rv)
     pinv(H)
@@ -661,7 +671,9 @@ function solveGraphParametric2(fg::AbstractDFG;
     nothing
   end
 
-  # d = Dict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
+  #TODO better return 
+
+  # d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
 
   # for key in varIds
   #   r = flatvar.idx[key]
@@ -729,7 +741,7 @@ function solveGraphParametric(fg::AbstractDFG;
   cfd = calcFactorMahalanobisDict(fg)
   
   
-  point_varOrders = Dict(fac_lbl => tuple(indexin(cfm.varOrder, varIds)...)  for (fac_lbl, cfm) in cfd)
+  point_varOrders = OrderedDict(fac_lbl => tuple(indexin(cfm.varOrder, varIds)...)  for (fac_lbl, cfm) in cfd)
 
   #TODO check if closure is correct for performance
   tc(x)=_totalCost(fg, cfd, flatvar, point_varOrders, x)
@@ -739,7 +751,7 @@ function solveGraphParametric(fg::AbstractDFG;
 
   tdtotalCost = Optim.TwiceDifferentiable(tc, initValues, autodiff = autodiff)
 
-  result = Optim.optimize(tdtotalCost, initValues, alg, options)
+  @time result = Optim.optimize(tdtotalCost, initValues, alg, options)
   rv = Optim.minimizer(result)
 
   Σ = if computeCovariance
@@ -749,7 +761,7 @@ function solveGraphParametric(fg::AbstractDFG;
     nothing
   end
 
-  d = Dict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
+  d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
 
   for key in varIds
     r = flatvar.idx[key]
@@ -821,7 +833,7 @@ function solveConditionalsParametric(fg::AbstractDFG,
 
   Σ = pinv(H)
 
-  d = Dict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
+  d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
 
   for key in frontals
     r = flatvar.idx[key]
