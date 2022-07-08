@@ -681,6 +681,8 @@ function DFG.addFactor!(dfg::AbstractDFG,
                         _blockRecursion::Bool=!getSolverParams(dfg).attemptGradients  )
   #
 
+  @assert (suppressChecks || length(multihypo) === 0 || length(multihypo) == length(Xi)) "When using multihypo=[...], the number of variables and multihypo probabilies must match.  See documentation on how to include fractional data-association uncertainty."
+
   varOrderLabels = Symbol[v.label for v=Xi]
   solverData = getDefaultFactorData(dfg, 
                                     Xi, 

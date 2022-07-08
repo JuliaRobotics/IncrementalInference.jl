@@ -46,7 +46,12 @@ f0 = addFactor!(fg, [:x0], Prior(Normal()))
 # create the object and add it to the graph
 mf = MyFactor( Normal(10,1) ) 
 
+## test #424
+
+@test_throws AssertionError addFactor!(fg, [:x0;:x1_a;:x1_b], mf, multihypo=[1/2;1/2])
+
 ##
+
 
 # this sampling might error
 f1 = addFactor!(fg, [:x0;:x1_a;:x1_b], mf, multihypo=[1;1/2;1/2])
