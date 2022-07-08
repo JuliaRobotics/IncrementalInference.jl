@@ -26,12 +26,12 @@ function sampleTangent(M::AbstractManifold, z::Distribution, p, basis::AbstractB
   return get_vector(M, p, rand(z), basis)
 end
 
-function sampleTangent(M::AbstractDecoratorManifold, z::Distribution, p=identity_element(M)) 
+function sampleTangent(M::AbstractDecoratorManifold, z::Distribution, p=getPointIdentity(M)) 
   return hat(M, p, rand(z,1)[:]) #TODO find something better than (z,1)[:]
 end
 
 #TODO, re-evaluate this. special case for the RealCircleGroup to return a vector see https://github.com/JuliaManifolds/Manifolds.jl/issues/489 
-function sampleTangent(M::RealCircleGroup, z::Distribution, p=identity_element(M)) 
+function sampleTangent(M::RealCircleGroup, z::Distribution, p=getPointIdentity(M)) 
   return hat(M, [0.0], rand(z,1))
 end
 
@@ -47,7 +47,7 @@ function samplePoint(M::AbstractManifold, sbelief, p, basis::AbstractBasis, retr
   X = sampleTangent(M, sbelief, p, basis)
   return retract(M, p, X, retraction_method)
 end
-function samplePoint(M::AbstractDecoratorManifold, sbelief, p=identity_element(M), retraction_method::AbstractRetractionMethod=ExponentialRetraction())
+function samplePoint(M::AbstractDecoratorManifold, sbelief, p=getPointIdentity(M), retraction_method::AbstractRetractionMethod=ExponentialRetraction())
   X = sampleTangent(M, sbelief, p)
   return retract(M, p, X, retraction_method)
 end
