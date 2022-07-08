@@ -308,26 +308,15 @@ function _prepParamVec( Xi::Vector{<:DFGVariable},
   # varParamsAll = Vector{Vector{Any}}()
   # made it better
   varParamsAll = getVal.(Xi; solveKey)
+  Xi_labels = getLabel.(Xi)
+  sfidx = findfirst(==(solvefor), Xi_labels)
 
-  # LEN = Int[]
   maxlen = N # FIXME see #105
-  count = 0
-  sfidx = 0
 
   LEN = length.(varParamsAll)
   maxlen = maximum([N; LEN])
-
-  for xi in Xi
-    # vecP = getVal(xi, solveKey=solveKey)
-    # push!(varParamsAll, vecP)
-    # LEN = length.(varParamsAll)
-    # maxlen = maximum([N; LEN])
-    count += 1
-    if xi.label == solvefor
-      sfidx = count #xi.index
-    end
-  end
-
+    
+  count = 0
   # resample variables with too few kernels (manifolds points)
   SAMP = LEN .< maxlen
   for i in 1:count
@@ -350,7 +339,7 @@ function _prepParamVec( Xi::Vector{<:DFGVariable},
   varTypes = typeof.(getVariableType.(Xi)) # previous need to force unstable, ::Vector{DataType}
 
   tup = tuple(varParamsAll...)
-  nms = tuple(getLabel.(Xi)...)
+  nms = tuple(Xi_labels...)
   ntp = NamedTuple{nms,typeof(tup)}(tup)
 
   # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
