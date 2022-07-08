@@ -323,6 +323,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   sfidx, maxlen, mani = _updateCCW!(ccwl, Xi, solvefor, N; needFreshMeasurements, solveKey)
   # check for user desired measurement values
   if 0 < length(measurement)
+    # @info "HERE" typeof(ccwl.measurement) typeof(measurement)
     ccwl.measurement = measurement
   end
 

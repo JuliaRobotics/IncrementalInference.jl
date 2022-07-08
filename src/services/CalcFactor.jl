@@ -441,8 +441,12 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
   # get a measurement sample
   meas_single = sampleFactor(_cf, 1)[1]
   
+  elT = typeof(meas_single)
+  # @info "WHAT" elT
+  elT <: ProductRepr ? @error("ProductRepr is deprecated, use ArrayPartition instead, $T") : nothing
+
   #TODO preallocate measurement?
-  measurement = Vector{typeof(meas_single)}()
+  measurement = Vector{elT}()
   
   # partialDims are sensitive to both which solvefor variable index and whether the factor is partial
   partial = hasfield(T, :partial)
@@ -458,6 +462,8 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
   # variable Types
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
+
+  # @info "CCW" typeof(measurement)
 
   return CommonConvWrapper(
           usrfnc,
