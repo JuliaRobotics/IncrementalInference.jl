@@ -318,10 +318,9 @@ function _prepParamVec( Xi::Vector{<:DFGVariable},
   LEN = length.(varParamsAll)
   maxlen = maximum([N; LEN])
     
-  count = 0
   # resample variables with too few kernels (manifolds points)
   SAMP = LEN .< maxlen
-  for i in 1:count
+  for i in 1:length(Xi_labels)
     if SAMP[i]
       Pr = getBelief(Xi[i], solveKey)
       _resizePointsVector!(varParamsAll[i], Pr, maxlen)
