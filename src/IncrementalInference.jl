@@ -13,6 +13,8 @@ using Reexport
 @reexport using LinearAlgebra
 
 using Manifolds
+using RecursiveArrayTools: ArrayPartition
+export ArrayPartition
 
 export ℝ, AbstractManifold
 export ProductRepr
@@ -113,6 +115,8 @@ include("ExportAPI.jl")
 # FIXME, move up to DFG
 # abstract type AbstractManifoldMinimize <: AbstractRelative end
 
+#
+include("ManifoldsExtentions.jl")
 # regular
 include("entities/SolverParams.jl")
 
