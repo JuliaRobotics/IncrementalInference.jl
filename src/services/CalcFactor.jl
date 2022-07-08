@@ -304,9 +304,7 @@ function _prepParamVec( Xi::Vector{<:DFGVariable},
                         N::Int=0;
                         solveKey::Symbol=:default  ) where P
   #
-  # FIXME ON FIRE, refactor to new NamedTuple instead
-  # varParamsAll = Vector{Vector{Any}}()
-  # made it better
+  # FIXME refactor to new NamedTuple instead
   varParamsAll = getVal.(Xi; solveKey)
   Xi_labels = getLabel.(Xi)
   sfidx = findfirst(==(solvefor), Xi_labels)
