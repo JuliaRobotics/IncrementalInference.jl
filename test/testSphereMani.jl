@@ -29,7 +29,7 @@ fg = initfg()
 
 v0 = addVariable!(fg, :x0, Sphere2)
 
-mp = ManifoldPrior(Sphere(2), SA[1., 0, 0], MvNormal([0.01, 0.01]), DefaultOrthonormalBasis(), ExponentialRetraction())
+mp = ManifoldPrior(Sphere(2), SA[1., 0, 0], MvNormal(Diagonal(map(abs2, [0.01, 0.01]))), DefaultOrthonormalBasis(), ExponentialRetraction())
 p = addFactor!(fg, [:x0], mp)
 
 doautoinit!(fg, :x0)
