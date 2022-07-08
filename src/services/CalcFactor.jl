@@ -305,18 +305,23 @@ function _prepParamVec( Xi::Vector{<:DFGVariable},
                         solveKey::Symbol=:default  ) where P
   #
   # FIXME ON FIRE, refactor to new NamedTuple instead
-  varParamsAll = Vector{Vector{Any}}()
+  # varParamsAll = Vector{Vector{Any}}()
+  # made it better
+  varParamsAll = getVal.(Xi; solveKey)
 
-  LEN = Int[]
+  # LEN = Int[]
   maxlen = N # FIXME see #105
   count = 0
   sfidx = 0
 
+  LEN = length.(varParamsAll)
+  maxlen = maximum([N; LEN])
+
   for xi in Xi
-    vecP = getVal(xi, solveKey=solveKey)
-    push!(varParamsAll, vecP)
-    LEN = length.(varParamsAll)
-    maxlen = maximum([N; LEN])
+    # vecP = getVal(xi, solveKey=solveKey)
+    # push!(varParamsAll, vecP)
+    # LEN = length.(varParamsAll)
+    # maxlen = maximum([N; LEN])
     count += 1
     if xi.label == solvefor
       sfidx = count #xi.index
