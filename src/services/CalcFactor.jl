@@ -311,6 +311,8 @@ function _prepParamVec( Xi::Vector{<:DFGVariable},
   Xi_labels = getLabel.(Xi)
   sfidx = findfirst(==(solvefor), Xi_labels)
 
+  sfidx = isnothing(sfidx) ? 0 : sfidx
+
   maxlen = N # FIXME see #105
 
   LEN = length.(varParamsAll)
