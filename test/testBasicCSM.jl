@@ -20,9 +20,9 @@ VAR3 = :c
 # global_logger(logger)
 dfg = initfg() #LocalDFG{SolverParams}(solverParams=SolverParams())
 # Add some nodes.
-v1 = addVariable!(dfg, VAR1, ContinuousScalar, labels = [:POSE])
-v2 = addVariable!(dfg, VAR2, ContinuousScalar, labels = [:POSE])
-v3 = addVariable!(dfg, VAR3, ContinuousScalar, labels = [:LANDMARK])
+v1 = addVariable!(dfg, VAR1, ContinuousScalar, tags = [:POSE])
+v2 = addVariable!(dfg, VAR2, ContinuousScalar, tags = [:POSE])
+v3 = addVariable!(dfg, VAR3, ContinuousScalar, tags = [:LANDMARK])
 f1 = addFactor!(dfg, [VAR1; VAR2], LinearRelative(Normal(50.0,2.0)) )
 f2 = addFactor!(dfg, [VAR2; VAR3], LinearRelative(Normal(50.0,2.0)) )
 
