@@ -40,7 +40,7 @@ end
     $SIGNATURES
 
 Returns the parametric measurement for a factor as a tuple (measurement, inverse covariance) for parametric inference (assuming Gaussian).
-Defaults to find the parametric measurement at field `Z`, fields `Zij` and `z` will be deprecated for standardization.
+Defaults to find the parametric measurement at field `Z`, fields `Zij` and `z` are deprecated for standardization.
 
 Notes
 - Users should overload this method should their factor not default to `.Z<:ParametricType`.
@@ -81,12 +81,6 @@ function getMeasurementParametric(s::AbstractFactor)
   if hasfield(typeof(s), :Z)
     Z = s.Z
     @info "getMeasurementParametric falls back to using field `.Z` by default. Extend it for more complex factors." maxlog=1
-  elseif hasfield(typeof(s), :Zij)
-    Z = s.Zij
-    @warn "getMeasurementParametric fallback to using field `.Zij` by default will be deprecated, use field `Z` or extend it for more complex factors." maxlog=1
-  elseif hasfield(typeof(s), :z)
-    Z = s.z
-    @info "getMeasurementParametric fallback to using field `.z` by default will be deprecated, use field `Z` or extend it for more complex factors." maxlog=1
   else
     error("getMeasurementParametric(::$(typeof(s))) not defined, please add it, or use non-parametric, or open an issue for help.")
   end
@@ -232,7 +226,6 @@ Notes:
   - Only :Euclid and :Circular manifolds are currently supported, own manifold are supported with `algorithmkwargs` (code may need updating though)
 """
 function solveGraphParametric(fg::AbstractDFG;
-                              useCalcFactor=nothing,#TODO Delete in v0.30
                               solvekey::Symbol=:parametric,
                               autodiff = :forward,
                               algorithm=Optim.BFGS,
@@ -254,7 +247,6 @@ function solveGraphParametric(fg::AbstractDFG;
   # Example for useing Optim's manifold functions
   # mc_mani = IIF.MixedCircular(fg, varIds)
   # alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
-  !isnothing(useCalcFactor) && warn("`useCalcFactor` is deprecated to true")
 
 
   varIds = listVariables(fg)
