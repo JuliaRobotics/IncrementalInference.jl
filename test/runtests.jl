@@ -5,8 +5,6 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
 # temporarily moved to start (for debugging)
 #...
 
-include("testMultiHypo3Door.jl") # commented out below
-
 if TEST_GROUP in ["all", "basic_functional_group"]
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
@@ -74,13 +72,13 @@ include("testEuclidDistance.jl")
 end
 
 if TEST_GROUP in ["all", "test_cases_group"]
+include("testMultiHypo3Door.jl")
 include("priorusetest.jl")
 include("testnullhypothesis.jl") 
 include("testVariousNSolveSize.jl")
 include("testExplicitMultihypo.jl")
 include("TestCSMMultihypo.jl")
 include("testMultihypoFMD.jl")
-# include("testMultiHypo3Door.jl")
 include("testMultimodal1D.jl")
 include("testMultihypoAndChain.jl")
 include("testMultithreaded.jl")
