@@ -167,11 +167,11 @@ N = size(pts, 2)
 # IIF._getCCW(fg, :x1l1f1).inflation = 150.0 # few iters gets there
 IIF._getCCW(fg, :x1l1f1).inflation = 200.0 # One almost, second good
 pts = approxConv(fg, :x1l1f1, :l1)
-initManual!(fg, :l1, pts)
+initVariable!(fg, :l1, pts)
 # plotKDE(fg, ls(fg))
 
 pts_ = approxConv(fg, :x1l1f1, :l1)
-initManual!(fg, :l1, pts_)
+initVariable!(fg, :l1, pts_)
 # plotKDE(fg, ls(fg))
 
 @cast pts[i,j] := pts_[j][i]
@@ -206,14 +206,14 @@ points = [[0.0;100.0],[100.0;0.0]]
 fg = IIF.generateGraph_EuclidDistance(points)
 getSolverParams(fg).inflation=3.0
 
-initManual!(fg, :x1, [rand(MvNormal([100.,0], [1.,1])) for _ in 1:N])
-initManual!(fg, :x2, [rand(MvNormal([0.,100], [1.,1])) for _ in 1:N])
+initVariable!(fg, :x1, [rand(MvNormal([100.,0], [1.,1])) for _ in 1:N])
+initVariable!(fg, :x2, [rand(MvNormal([0.,100], [1.,1])) for _ in 1:N])
 
 # init = MixtureModel([MvNormal([100.,100], [10.,10]),
 #                        MvNormal([0.,0], [10.,10])],
 #                        [0.5, 0.5])
 init = MvNormal([25.,25], [1.,1])
-initManual!(fg, :l1, [rand(init) for _ in 1:N])
+initVariable!(fg, :l1, [rand(init) for _ in 1:N])
 
 # plotKDE(fg, ls(fg))
 

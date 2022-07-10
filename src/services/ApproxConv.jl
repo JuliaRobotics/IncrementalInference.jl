@@ -97,7 +97,7 @@ function approxConvBelief(dfg::AbstractDFG,
     # bring all the solveKeys too
     addVariable!.(tfg, getVariable.(dfg, varLbls[neMsk]))
     # variables adjacent to the shortest path should be initialized from dfg
-    setdiff(varLbls, path[xor.(fctMsk,true)]) .|> x->initManual!(tfg, x, getBelief(dfg, x))
+    setdiff(varLbls, path[xor.(fctMsk,true)]) .|> x->initVariable!(tfg, x, getBelief(dfg, x))
   end
   
   # find/set the starting point
