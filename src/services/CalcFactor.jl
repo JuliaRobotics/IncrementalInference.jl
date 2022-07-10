@@ -443,7 +443,7 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
   
   elT = typeof(meas_single)
   # @info "WHAT" elT
-  elT <: ProductRepr ? @error("ProductRepr is deprecated, use ArrayPartition instead, $T") : nothing
+  elT <: ProductRepr ? @error("ProductRepr is deprecated, use ArrayPartition instead, $T") : nothing #TODO remove in v0.32
 
   #TODO preallocate measurement?
   measurement = Vector{elT}()

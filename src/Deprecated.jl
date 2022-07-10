@@ -29,11 +29,11 @@ end
 
 
 ##==============================================================================
-## Deprecate code below before v0.30
+## Deprecate code below before v0.31
 ##==============================================================================
 
 
-# @deprecate initManual!(w...;kw...) initVariable!(w...;kw...)
+@deprecate initManual!(w...;kw...) initVariable!(w...;kw...)
 
 
 

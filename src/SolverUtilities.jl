@@ -48,12 +48,8 @@ end
 # part of consolidation, see #927
 function sampleFactor!( ccwl::CommonConvWrapper, 
                         N::Int, 
-                        fmd::FactorMetadata=_getFMdThread(ccwl), 
-                        vnd=nothing )
+                        fmd::FactorMetadata=_getFMdThread(ccwl))
   #
-  # depr warning added before IIF v0.20
-  vnd !== nothing ? @warn("sampleFactor! no longer accepts vnd::Vector as meaningful input.") : nothing
-  
   ccwl.measurement = sampleFactor(ccwl, N)
   # # build a CalcFactor object and get fresh samples.
   # cf = CalcFactor(ccwl) # CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
