@@ -30,12 +30,12 @@ N=100
 # doors = zeros(1,4)
 T = ContinuousScalar
 doors = [[-100.0;],[0.0;],[100.0;],[300.0;]]
-pd = manikde!(T, doors, [3.0;])
+pd = manikde!(T, doors; bw=[3.0;])
 pd = resample(pd,N);
 bws = getBW(pd)[:,1]
 doors2 = getPoints(pd);
 v1 = addVariable!(fg,:x1, ContinuousScalar,N=N)
-f1  = addFactor!(fg,[:x1], Prior(manikde!(T, doors2, bws)))
+f1  = addFactor!(fg,[:x1], Prior(manikde!(T, doors2; bw=bws)))
 
 v2 = addVariable!(fg,:x2, ContinuousScalar, N=N)
 lc = LinearRelative(  Normal(50.0, 2.0) )

@@ -58,8 +58,8 @@ addVariable!(fg, :b, ContinuousScalar)
 
 addFactor!(fg, [:a;:b], LinearRelative(Normal(10, 1)), graphinit=false)
 
-initManual!(fg, :a, randn(1,100))
-initManual!(fg, :b, 10 .+randn(1,100))
+initVariable!(fg, :a, randn(1,100))
+initVariable!(fg, :b, 10 .+randn(1,100))
 
 A = getBelief(fg, :a)
 B = getBelief(fg, :b)
