@@ -99,18 +99,29 @@ end
 getFactorMechanics(f::AbstractFactor) = f
 getFactorMechanics(f::Mixture) = f.mechanics
 
-function CalcFactorMahalanobis(fct::DFGFactor)
+function CalcFactorMahalanobis(fg, fct::DFGFactor)
   cf = getFactorType(fct)
   varOrder = getVariableOrder(fct)
   
   _meas, _iΣ = getMeasurementParametric(cf)
   M = getManifold(getFactorType(fct))
-  meas = typeof(_meas) <: Tuple ? _meas : (hat(M, Identity(M), _meas),)
+
+  (typeof(_meas) <: Tuple) && error("Not implemented $_meas")
+
+  ϵ = getPointIdentity(M)
+  if cf isa AbstractPrior
+    meas = (exp(M, ϵ, hat(M, Identity(M), _meas)),)
+  else  
+    meas = (hat(M, Identity(M), _meas),)
+  end
+
   iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
 
-  # FIXME #1480, cache = preambleCache(dfg,vars,usrfnc)
-  cache = nothing
-  calcf = CalcFactor(getFactorMechanics(cf), _getFMdThread(fct), 0, 0, (), [], true, cache)
+  cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
+  # cache = isnothing(cache) ? NamedTuple() : cache
+
+  # calcf = CalcFactor(getFactorMechanics(cf), nothing, 0, 0, nothing, nothing, true, nothing)
+  calcf = CalcFactor(getFactorMechanics(cf), _getFMdThread(fct), 0, 0, nothing, nothing, true, cache)
   
   multihypo = getSolverData(fct).multihypo
   nullhypo = getSolverData(fct).nullhypo
@@ -130,25 +141,13 @@ function CalcFactorMahalanobis(fct::DFGFactor)
 end
 
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
-function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:AbstractFactor, U, V, W, C}
+function (cfp::CalcFactorMahalanobis)(variables...)
   # call the user function (be careful to call the new CalcFactor version only!!!)
   res = cfp.calcfactor!(cfp.meas[1], variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
   return res' * cfp.iΣ[1] * res
 end
 
-function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:AbstractPrior, U, V, W, C}
-  # TODO should prior functions follow the same factor definition with a measurement on tangant?
-  M = getManifold(cfp.calcfactor!.factor)
-  #FIXME find a better fix for bitstypes
-  ϵ = identity_element(M)
-  ϵ = isbitstype(typeof(ϵ)) ? [ϵ] : ϵ
-  m = exp(M, ϵ, cfp.meas[1])  
-
-  res = cfp.calcfactor!(m, variables...)
-  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-  return res' * cfp.iΣ[1] * res
-end
 
 function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:Union{ManifoldFactor, ManifoldPrior} , U, V, W, C}
   # call the user function (be careful to call the new CalcFactor version only!!!)
@@ -165,9 +164,9 @@ function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) w
 end
 
 function calcFactorMahalanobisDict(fg)
-  calcFactors = Dict{Symbol, CalcFactorMahalanobis}()
+  calcFactors = OrderedDict{Symbol, CalcFactorMahalanobis}()
   for fct in getFactors(fg)
-    calcFactors[fct.label] = CalcFactorMahalanobis(fct)
+    calcFactors[fct.label] = CalcFactorMahalanobis(fg, fct)
   end
   return calcFactors
 end
@@ -194,16 +193,16 @@ function _totalCost(M, cfvec::Vector{<:CalcFactorMahalanobis}, labeldict, points
 end
 
 function _totalCost(fg, 
-                    cfdict::Dict{Symbol, <:CalcFactorMahalanobis},
+                    cfdict::OrderedDict{Symbol, <:CalcFactorMahalanobis},
                     flatvar,
-                    X )
+                    Xc )
   #
-  obj = 0
+  obj = zero(eltype(Xc))
   for (fid, cfp) in cfdict
 
     varOrder = cfp.varOrder
 
-    Xparams = [getPoint(getVariableType(fg, varId), view(X, flatvar.idx[varId])) for varId in varOrder]
+    Xparams = [getPoint(getVariableType(fg, varId), view(Xc, flatvar.idx[varId])) for varId in varOrder]
 
     # call the user function
     retval = cfp(Xparams...)
@@ -251,7 +250,7 @@ function solveGraphParametric(fg::AbstractDFG;
 
   varIds = listVariables(fg)
 
-  #TODO mabye remove sorting, just for convenience
+  #TODO maybe remove sorting, just for convenience
   sort!(varIds, lt=natural_lt)
 
   flatvar = FlatVariables(fg, varIds)
@@ -343,7 +342,7 @@ function solveConditionalsParametric(fg::AbstractDFG,
 
   Σ = pinv(H)
 
-  d = Dict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
+  d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
 
   for key in frontals
     r = flatvar.idx[key]
