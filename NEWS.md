@@ -14,6 +14,8 @@ The list below highlights breaking changes according to normal semver workflow -
 # Changes in v0.30
 
 - `ArrayPartition` should be used instead of `ProductRepr`, see issue #1537.
+- Remove old deprecated option keywords in `addVariable` and `addFactor`.
+
 # Changes in v0.29
 
 - Upgrade to Manifolds.jl v0.8
