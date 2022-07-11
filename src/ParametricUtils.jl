@@ -106,14 +106,15 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
   _meas, _iΣ = getMeasurementParametric(cf)
   M = getManifold(getFactorType(fct))
 
-  (typeof(_meas) <: Tuple) && error("Not implemented $_meas")
-
   ϵ = getPointIdentity(M)
-  if cf isa AbstractPrior
-    meas = (exp(M, ϵ, hat(M, Identity(M), _meas)),)
-  else  
-    meas = (hat(M, Identity(M), _meas),)
+  
+  if typeof(_meas) <: Tuple
+    _measX = map(m->hat(M, ϵ, m), _meas)
+  else
+    _measX = (hat(M, ϵ, _meas),)
   end
+
+  meas = cf isa AbstractPrior ? map(X->exp(M, ϵ, X), _measX) : _measX
 
   iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
 
@@ -139,6 +140,7 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
 
   return CalcFactorMahalanobis(calcf, varOrder, meas, iΣ, special)
 end
+
 
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
 function (cfp::CalcFactorMahalanobis)(variables...)
