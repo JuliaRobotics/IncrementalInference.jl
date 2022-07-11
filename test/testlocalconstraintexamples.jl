@@ -10,7 +10,7 @@ N=100
 fg = initfg()
 
 doors = [[0.0;],]
-pd = manikde!(ContinuousScalar, doors, [3.0;])
+pd = manikde!(ContinuousScalar, doors; bw=[3.0;])
 pd = resample(pd, N);
 bws = getBW(pd)[:,1]
 doors2 = getPoints(pd);

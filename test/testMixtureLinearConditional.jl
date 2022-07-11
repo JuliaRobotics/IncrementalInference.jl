@@ -47,7 +47,7 @@ addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
 
 addFactor!(fg, [:x0], Prior(Normal()), graphinit=false)
-initManual!(fg, :x0, [zeros(1) for _ in 1:100])
+initVariable!(fg, :x0, [zeros(1) for _ in 1:100])
 
 mlr = Mixture(LinearRelative, (Normal(), Normal(10,1)),(1/2,1/2) )
 addFactor!(fg, [:x0;:x1], mlr, graphinit=false)

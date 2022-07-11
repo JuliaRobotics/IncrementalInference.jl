@@ -36,9 +36,6 @@ Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
         d[k] = v[:clique]
       end
       return d
-    elseif f == :variableOrder
-      @warn "MetaBayesTree.variableOrder has been deprecated in favor of .eliminationOrder"
-      return getfield(x,:eliminationOrder)
     else
       getfield(x,f)
     end

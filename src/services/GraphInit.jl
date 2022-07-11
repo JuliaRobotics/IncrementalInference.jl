@@ -340,7 +340,7 @@ resetInitialValues!(fgNew,fg)
 
 Related
 
-initManual!, graphinit (keyword)
+initVariable!, graphinit (keyword)
 """
 function resetInitialValues!(dest::AbstractDFG,
                             src::AbstractDFG=dest,
