@@ -80,8 +80,8 @@ end
 function getMeasurementParametric(s::AbstractFactor)
   if hasfield(typeof(s), :Z)
     Z = s.Z
-    @info "getMeasurementParametric falls back to using field `.Z` by default. Extend it for more complex factors." maxlog=1
   else
+    @warn "getMeasurementParametric falls back to using field `.Z` by default. Extend it for more complex factors." 
     error("getMeasurementParametric(::$(typeof(s))) not defined, please add it, or use non-parametric, or open an issue for help.")
   end
   
@@ -94,8 +94,7 @@ end
 ## Parametric solve with Mahalanobis distance - CalcFactor
 ## ================================================================================================
 
-
-
+#TODO maybe remove with Mixture rework see #1504
 getFactorMechanics(f::AbstractFactor) = f
 getFactorMechanics(f::Mixture) = f.mechanics
 
@@ -240,15 +239,10 @@ function buildGraphSolveManifold(fg)
       N = vartypecount[vartype] 
       G = getManifold(vartype)
       PowerManifold(G, NestedReplacingPowerRepresentation(), N)
-      # PowerManifold(G, NestedPowerRepresentation(), N)
+      # PowerManifold(G, NestedPowerRepresentation(), N) #NOTE does not converge
   end
   return M, vartypes, vartypeslist
 end
-
-
-cost_cfp(cfp::CalcFactorMahalanobis, M, p, vi::NTuple{1,Tuple{Int64, Int64}}) = cfp(p[M, vi[1][1]][vi[1][2]])
-cost_cfp(cfp::CalcFactorMahalanobis, M, p, vi::NTuple{2,Tuple{Int64, Int64}}) = cfp(p[M, vi[1][1]][vi[1][2]], p[M, vi[2][1]][vi[2][2]])
-
 
 struct GraphSolveBuffers{T<:Real, U}
   ϵ::U
@@ -271,29 +265,24 @@ struct GraphSolveContainer
   varTypes::Vector{DataType}
   varTypesIds::OrderedDict{DataType, Vector{Symbol}}
   cfdict::OrderedDict{Symbol, CalcFactorMahalanobis}
-  varOrderDict::OrderedDict{Symbol, Tuple{Tuple{Int,Int}, Vararg{Tuple{Int,Int}}}}
+  varOrderDict::OrderedDict{Symbol, Tuple{Int, Vararg{Int,}}}
 end
 
 
 function GraphSolveContainer(fg)
 
   M, varTypes, varTypesIds = buildGraphSolveManifold(fg)
+  varTypesIndexes = ArrayPartition(values(varTypesIds)...)
   buffs = OrderedDict{DataType,GraphSolveBuffers}()
   cfd = calcFactorMahalanobisDict(fg)
 
-  varOrderDict = OrderedDict{Symbol, Tuple{Tuple{Int,Int}, Vararg{Tuple{Int,Int}}}}()#NTuple{N,Tuple{Int64, Int64}}}()
-  #TODO find better way for indexing
+  varOrderDict = OrderedDict{Symbol, Tuple{Int, Vararg{Int,}}}()
   for (fid, cfp) in cfd 
     varOrder = cfp.varOrder
-    prod_pow_idx = map(varOrder) do v
-      v_type = getVariableType(fg, v) |> typeof
-      prod_idx = findfirst(==(v_type), varTypes)
-      vars = varTypesIds[varTypes[prod_idx]]
-      pow_idx = findfirst(==(v), vars)
-      (prod_idx, pow_idx)
+    var_idx = map(varOrder) do v
+      findfirst(==(v), varTypesIndexes)
     end
-    prod_pow_idx = tuple(prod_pow_idx...)
-    varOrderDict[fid] = prod_pow_idx
+    varOrderDict[fid] = tuple(var_idx...)
   end
 
   return GraphSolveContainer(M, buffs, varTypes, varTypesIds, cfd, varOrderDict)
@@ -318,7 +307,11 @@ function _toPoints2!(M::AbstractManifold, buffs::GraphSolveBuffers{T,U}, Xc::Vec
   return p::U
 end
 
+cost_cfp(cfp::CalcFactorMahalanobis, p, vi::NTuple{1,Int}) = cfp(p[vi[1]])
+cost_cfp(cfp::CalcFactorMahalanobis, p, vi::NTuple{2,Int}) = cfp(p[vi[1]], p[vi[2]])
+cost_cfp(cfp::CalcFactorMahalanobis, p, vi::NTuple{3,Int}) = cfp(p[vi[1]], p[vi[2]], p[vi[3]])
 
+# the cost function
 function (gsc::GraphSolveContainer)(Xc::Vector{T}) where T <: Real
   #
   buffs = getGraphSolveCache!(gsc, T)
@@ -339,10 +332,10 @@ function (gsc::GraphSolveContainer)(Xc::Vector{T}) where T <: Real
   # obj::T = zero(T)
   # for (fid, cfp) in cfdict 
 
-    prod_pow_idx = varOrderDict[fid]
+    varOrder_idx = varOrderDict[fid]
 
     # call the user function
-    retval = cost_cfp(cfp, M, p, prod_pow_idx)
+    retval = cost_cfp(cfp, p, varOrder_idx)
 
     #NOTE multi threaded option
     obj[Threads.threadid()] += retval
@@ -371,9 +364,6 @@ function initPoints!(p, gsc, fg::AbstractDFG, solveKey=:parametric)
 end
 
 
-# fg = generateGraph_Hexagonal(;fg=initfg(GraphsDFG;solverParams=SolverParams(algorithms=[:default, :parametric])), graphinit=false)
-# 0.082069 seconds (517.90 k allocations: 56.727 MiB)
-# (770.17 k allocations: 136.930 MiB, 11.95% gc time)
 # using ForwardDiff
 function solveGraphParametric2(fg::AbstractDFG;
                               computeCovariance::Bool = false,
@@ -388,9 +378,6 @@ function solveGraphParametric2(fg::AbstractDFG;
                                                       ))
 # 
   # Build the container  
-  # fg = Main.generateGraph_Hexagonal(;fg=initfg(GraphsDFG;solverParams=SolverParams(algorithms=[:default, :parametric])), graphinit=false)                                                    
-  # T = Optim.ForwardDiff.Dual{ForwardDiff.Tag{IncrementalInference.var"#tc#667"{GraphsDFG{SolverParams, DFGVariable, DFGFactor}, OrderedDict{Symbol, Tuple{Tuple{Int64, Int64}, Vararg{Tuple{Int64, Int64}}}}, OrderedDict{Symbol, IncrementalInference.CalcFactorMahalanobis}, IncrementalInference.LazyGraphSolveCache}, Float64}, Float64, 12}
-  # lazyCache = LazyGraphSolveCache()
   gsc = GraphSolveContainer(fg)
   # buffs = getGraphSolveCache!(gsc, ForwardDiff.Dual{ForwardDiff.Tag{IncrementalInference.GraphSolveContainer, Float64}, Float64, 12})
   buffs = getGraphSolveCache!(gsc, Float64)
@@ -402,8 +389,7 @@ function solveGraphParametric2(fg::AbstractDFG;
   Xc = buffs.Xc
 
   #initialize points in buffer from fg, TODO maybe do in constructor
-  #FIXME needs points in variable upgraded
-  # initPoints!(p, gsc, fg, solveKey)
+  initPoints!(p, gsc, fg, solveKey)
 
   # log!(M, X, Identity(ProductOperation), p)
   # calculate initial coordinates vector for Optim
@@ -418,7 +404,7 @@ function solveGraphParametric2(fg::AbstractDFG;
   alg = algorithm(; algorithmkwargs...)
   tdtotalCost = Optim.TwiceDifferentiable(gsc, initValues, autodiff = autodiff)
 
-  @time result = Optim.optimize(tdtotalCost, initValues, alg, options)
+  result = Optim.optimize(tdtotalCost, initValues, alg, options)
   rv = Optim.minimizer(result)
 
   # optionally compute hessian for covariance
@@ -482,6 +468,7 @@ Notes:
   - Only :Euclid and :Circular manifolds are currently supported, own manifold are supported with `algorithmkwargs` (code may need updating though)
 """
 function solveGraphParametric(fg::AbstractDFG;
+                              computeCovariance::Bool = true,
                               solvekey::Symbol=:parametric,
                               autodiff = :forward,
                               algorithm=Optim.BFGS,
@@ -518,7 +505,7 @@ function solveGraphParametric(fg::AbstractDFG;
   end
 
   initValues = flatvar.X
-
+  # initValues .+= randn(length(initValues))*0.0001
 
   alg = algorithm(; algorithmkwargs...)
 
@@ -528,9 +515,13 @@ function solveGraphParametric(fg::AbstractDFG;
   result = Optim.optimize(tdtotalCost, initValues, alg, options)
   rv = Optim.minimizer(result)
 
-  H = Optim.hessian!(tdtotalCost, rv)
-
-  Σ = pinv(H)
+  Σ = if computeCovariance
+    H = Optim.hessian!(tdtotalCost, rv)
+    pinv(H)
+  else
+    N = length(initValues)
+    zeros(N,N)
+  end
 
   d = Dict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
 
