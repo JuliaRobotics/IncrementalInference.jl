@@ -1,4 +1,35 @@
+# ================================================================================================
+## FactorOperationalMemory for parametric, TODO move back to FactorOperationalMemory.jl
 ## ================================================================================================
+
+abstract type AbstractMaxMixtureSolver end
+
+"""
+$TYPEDEF
+
+Internal parametric extension to [`CalcFactor`](@ref) used for buffering measurement and calculating Mahalanobis distance
+
+Related
+
+[`CalcFactor`](@ref)
+"""
+struct CalcFactorMahalanobis{N, S<:Union{Nothing,AbstractMaxMixtureSolver}}
+  calcfactor!::CalcFactor
+  varOrder::Vector{Symbol}
+  meas::NTuple{N, <:AbstractArray}
+  iΣ::NTuple{N, Matrix{Float64}}
+  specialAlg::S
+end
+# struct CalcFactorMahalanobis{CF<:CalcFactor, S<:Union{Nothing,AbstractMaxMixtureSolver}, N}
+#   calcfactor!::CF
+#   varOrder::Vector{Symbol}
+#   meas::NTuple{N, <:AbstractArray}
+#   iΣ::NTuple{N, Matrix{Float64}}
+#   specialAlg::S
+# end
+
+
+# ================================================================================================
 ## FlatVariables - used for packing variables for optimization
 ## ================================================================================================
 
@@ -99,10 +130,10 @@ getFactorMechanics(f::AbstractFactor) = f
 getFactorMechanics(f::Mixture) = f.mechanics
 
 function CalcFactorMahalanobis(fg, fct::DFGFactor)
-  cf = getFactorType(fct)
+  fac_func = getFactorType(fct)
   varOrder = getVariableOrder(fct)
   
-  _meas, _iΣ = getMeasurementParametric(cf)
+  _meas, _iΣ = getMeasurementParametric(fac_func)
   M = getManifold(getFactorType(fct))
 
   ϵ = getPointIdentity(M)
@@ -113,15 +144,16 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
     _measX = (hat(M, ϵ, _meas),)
   end
 
-  meas = cf isa AbstractPrior ? map(X->exp(M, ϵ, X), _measX) : _measX
+  meas = fac_func isa AbstractPrior ? map(X->exp(M, ϵ, X), _measX) : _measX
 
   iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
 
   cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
-  # cache = isnothing(cache) ? NamedTuple() : cache
 
-  # calcf = CalcFactor(getFactorMechanics(cf), nothing, 0, 0, nothing, nothing, true, nothing)
-  calcf = CalcFactor(getFactorMechanics(cf), _getFMdThread(fct), 0, 0, nothing, nothing, true, cache)
+  # calcf = CalcFactor(getFactorMechanics(fac_func), nothing, 0, 0, nothing, nothing, true, nothing)
+  calcf = CalcFactor(getFactorMechanics(fac_func), nothing, 0, 0, nothing, nothing, true, cache)
+  #FactorMetadata is not type stable
+  # calcf = CalcFactor(getFactorMechanics(fac_func), _getFMdThread(fct), 0, 0, nothing, nothing, true, cache)
   
   multihypo = getSolverData(fct).multihypo
   nullhypo = getSolverData(fct).nullhypo
@@ -131,8 +163,8 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
     special = MaxMultihypo(multihypo)
   elseif nullhypo > 0 
     special = MaxNullhypo(nullhypo)
-  elseif cf isa Mixture
-    special = MaxMixture(cf.diversity.p, Ref(0))
+  elseif fac_func isa Mixture
+    special = MaxMixture(fac_func.diversity.p, Ref(0))
   else
     special = nothing
   end
@@ -142,27 +174,13 @@ end
 
 
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
-function (cfp::CalcFactorMahalanobis)(variables...)
-  # call the user function (be careful to call the new CalcFactor version only!!!)
+function (cfp::CalcFactorMahalanobis{1,Nothing})(variables...) # AbstractArray{T} where T <: Real
+  # call the user function 
   res = cfp.calcfactor!(cfp.meas[1], variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
   return res' * cfp.iΣ[1] * res
 end
 
-
-function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:Union{ManifoldFactor, ManifoldPrior} , U, V, W, C}
-  # call the user function (be careful to call the new CalcFactor version only!!!)
-  M = cfp.calcfactor!.factor.M
-  X = cfp.calcfactor!(cfp.meas[1], variables...)
-  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-  # return mahalanobus_distance2(M, X, cfp.iΣ[1])
-  
-  #TODO do something about basis?
-  # Xc = get_coordinates(M, variables[1], X, DefaultOrthogonalBasis())
-  # Xc = get_coordinates(M, variables[1], X, DefaultOrthonormalBasis())
-  Xc = vee(M, variables[1], X)
-  return X, Xc' * cfp.iΣ[1] * Xc
-end
 
 function calcFactorMahalanobisDict(fg)
   calcFactors = OrderedDict{Symbol, CalcFactorMahalanobis}()
@@ -233,14 +251,16 @@ function getVariableTypesCount(fg::AbstractDFG)
   return vartypes, typedict, alltypes
 end
 
-function buildGraphSolveManifold(fg)
+function buildGraphSolveManifold(fg::AbstractDFG)
   vartypes, vartypecount, vartypeslist = getVariableTypesCount(fg)
-  M = mapreduce(ProductManifold, vartypes) do vartype
+
+  PMs = map(vartypes) do vartype
       N = vartypecount[vartype] 
       G = getManifold(vartype)
       PowerManifold(G, NestedReplacingPowerRepresentation(), N)
-      # PowerManifold(G, NestedPowerRepresentation(), N) #NOTE does not converge
+      # PowerManifold(G, NestedPowerRepresentation(), N) #TODO investigate as it does not converge
   end
+  M = ProductManifold(PMs...)    
   return M, vartypes, vartypeslist
 end
 
@@ -292,7 +312,7 @@ function getGraphSolveCache!(gsc::GraphSolveContainer, ::Type{T}) where T<:Real
   cache = gsc.buffers
   M = gsc.M
   val = get!(cache, T) do 
-    @info "cache miss, cacheing" T
+    @debug "cache miss, cacheing" T
     GraphSolveBuffers(M, T)
   end
   return val
@@ -417,8 +437,6 @@ function solveGraphParametric2(fg::AbstractDFG;
 
   #TODO better return 
 
-  # d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
-
   # for key in varIds
   #   r = flatvar.idx[key]
   #   push!(d,key=>(val=rv[r],cov=Σ[r,r]))
@@ -427,8 +445,16 @@ function solveGraphParametric2(fg::AbstractDFG;
   get_vector!(M, X, ϵ, rv, DefaultOrthogonalBasis())
   exp!(M, p, ϵ, X)
 
+  # d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
+  d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Any,Matrix{Float64}}}}()
+  for (i,key) in enumerate(vcat(values(gsc.varTypesIds)...))
+    push!(d,key=>(val=p[i],cov=[0.0;;]))
+    #TODO r
+    # push!(d,key=>(val=p[i],cov=Σ[r,r]))
+  end
+
   # return d, result, flatvar.idx, Σ
-  return (result=result, p=p, gsc=gsc, Σ=Σ)
+  return (d=d, result=result, Σ=Σ)
 end
 
 
@@ -870,7 +896,7 @@ end
 # To sort out how to dispatch on specialized functions.
 # related to #931 and #1069
 
-struct MaxMixture
+struct MaxMixture <: AbstractMaxMixtureSolver
   p::Vector{Float64}
   # the chosen component to be used for the optimization
   choice::Base.RefValue{Int}
@@ -918,7 +944,7 @@ end
 
 # end
 
-function (cfp::CalcFactorMahalanobis{<:CalcFactor, MaxMixture})(variables...)
+function (cfp::CalcFactorMahalanobis{N, MaxMixture})(variables...) where N
   
   r = [_calcFactorMahalanobis(cfp, cfp.meas[i], cfp.iΣ[i], variables...) for i = 1:length(cfp.meas)]
 
@@ -940,14 +966,14 @@ end
 ## ================================================================================================
 #TODO better dispatch
 
-struct MaxMultihypo
+struct MaxMultihypo <: AbstractMaxMixtureSolver
   multihypo::Vector{Float64}
 end
-struct MaxNullhypo
+struct MaxNullhypo <: AbstractMaxMixtureSolver
   nullhypo::Float64
 end
 
-function (cfp::CalcFactorMahalanobis{<:CalcFactor, MaxMultihypo})(X1, L1, L2)
+function (cfp::CalcFactorMahalanobis{N, MaxMultihypo})(X1, L1, L2) where N
   mh = cfp.specialAlg.multihypo
   @assert length(mh) == 3 "multihypo $mh  not supported with parametric, length should be 3"
   @assert mh[1] == 0 "multihypo $mh  not supported with parametric, first should be 0"
@@ -965,7 +991,7 @@ function (cfp::CalcFactorMahalanobis{<:CalcFactor, MaxMultihypo})(X1, L1, L2)
   
 end
 
-function (cfp::CalcFactorMahalanobis{<:CalcFactor, MaxNullhypo})(X1, X2) 
+function (cfp::CalcFactorMahalanobis{N, MaxNullhypo})(X1, X2) where N
   nh = cfp.specialAlg.nullhypo
   @assert nh > 0 "nullhypo $nh not as expected"
   
