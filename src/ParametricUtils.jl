@@ -412,7 +412,7 @@ function _getComponentsCovar(PM::PowerManifold, Σ::AbstractMatrix)
 end
 
 # using ForwardDiff
-function solveGraphParametric2(fg::AbstractDFG;
+function solveGraphParametric(fg::AbstractDFG;
                               computeCovariance::Bool = true,
                               solveKey::Symbol=:parametric,
                               autodiff = :forward,
@@ -475,11 +475,12 @@ function solveGraphParametric2(fg::AbstractDFG;
   # d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
   d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{AbstractArray,Matrix{Float64}}}}()
 
-  for (i,key) in enumerate(vcat(values(gsc.varTypesIds)...))
+  varIds = vcat(values(gsc.varTypesIds)...)
+  for (i,key) in enumerate(varIds)
     push!(d,key=>(val=p[i],cov=sigmas[i]))
   end
 
-  return (opti=d, stat=result, Σ=Σ)
+  return (opti=d, stat=result, varIds=varIds, Σ=Σ)
 end
 
 
@@ -509,7 +510,6 @@ function _totalCost(fg,
 end
 
 
-export solveGraphParametric
 
 """
     $SIGNATURES
@@ -518,7 +518,7 @@ Batch solve a Gaussian factor graph using Optim.jl. Parameters can be passed dir
 Notes:
   - Only :Euclid and :Circular manifolds are currently supported, own manifold are supported with `algorithmkwargs` (code may need updating though)
 """
-function solveGraphParametric(fg::AbstractDFG;
+function solveGraphParametric2(fg::AbstractDFG;
                               computeCovariance::Bool = true,
                               solvekey::Symbol=:parametric,
                               autodiff = :forward,
