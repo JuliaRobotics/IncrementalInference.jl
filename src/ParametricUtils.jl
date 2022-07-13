@@ -35,13 +35,13 @@ end
 
 struct FlatVariables{T<:Real}
   X::Vector{T}
-  idx::Dict{Symbol, UnitRange{Int}}
+  idx::OrderedDict{Symbol, UnitRange{Int}}
 end
 
 function FlatVariables(fg::AbstractDFG, varIds::Vector{Symbol})
 
   index = 1
-  idx = Dict{Symbol, UnitRange{Int}}()
+  idx = OrderedDict{Symbol, UnitRange{Int}}()
   for vid = varIds
     v = getVariable(fg, vid)
     dims = getDimension(v)
@@ -480,7 +480,9 @@ function solveGraphParametric(fg::AbstractDFG;
     push!(d,key=>(val=p[i],cov=sigmas[i]))
   end
 
-  return (opti=d, stat=result, varIds=varIds, Σ=Σ)
+  varIdDict = FlatVariables(fg, varIds).idx
+
+  return (opti=d, stat=result, varIds=varIdDict, Σ=Σ)
 end
 
 
