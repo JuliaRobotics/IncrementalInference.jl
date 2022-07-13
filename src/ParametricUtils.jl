@@ -383,10 +383,37 @@ function initPoints!(p, gsc, fg::AbstractDFG, solveKey=:parametric)
   end
 end
 
+#NOTE this only works with a product of power manifolds
+function getComponentsCovar(PM::ProductManifold, Σ::AbstractMatrix)
+
+  dims = manifold_dimension.(PM.manifolds)
+  dim_ranges = Manifolds._get_dim_ranges(dims)
+
+  subsigmas = map(zip(dim_ranges, PM.manifolds)) do v
+    r = v[1]
+    M = v[2]
+    _getComponentsCovar(M, view(Σ, r, r)) 
+  end
+
+  return ArrayPartition(subsigmas...)
+
+end
+
+function _getComponentsCovar(PM::PowerManifold, Σ::AbstractMatrix)
+
+  M = PM.manifold
+  dim = manifold_dimension(M)
+  subsigmas = map(Manifolds.get_iterator(PM)) do i
+    r = (i-1)*dim+1:i*dim
+    Σ[r, r]
+  end
+
+  return subsigmas
+end
 
 # using ForwardDiff
 function solveGraphParametric2(fg::AbstractDFG;
-                              computeCovariance::Bool = false,
+                              computeCovariance::Bool = true,
                               solveKey::Symbol=:parametric,
                               autodiff = :forward,
                               algorithm=Optim.BFGS,
@@ -432,29 +459,27 @@ function solveGraphParametric2(fg::AbstractDFG;
     H = Optim.hessian!(tdtotalCost, rv)
     pinv(H)
   else
-    nothing
+    N = length(initValues)
+    zeros(N,N)
   end
 
   #TODO better return 
 
-  # for key in varIds
-  #   r = flatvar.idx[key]
-  #   push!(d,key=>(val=rv[r],cov=Σ[r,r]))
-  # end
-
+  #get point (p) values form results
   get_vector!(M, X, ϵ, rv, DefaultOrthogonalBasis())
   exp!(M, p, ϵ, X)
 
+  #extract covariances from result
+  sigmas = getComponentsCovar(M, Σ)
+
   # d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
-  d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Any,Matrix{Float64}}}}()
+  d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{AbstractArray,Matrix{Float64}}}}()
+
   for (i,key) in enumerate(vcat(values(gsc.varTypesIds)...))
-    push!(d,key=>(val=p[i],cov=[0.0;;]))
-    #TODO r
-    # push!(d,key=>(val=p[i],cov=Σ[r,r]))
+    push!(d,key=>(val=p[i],cov=sigmas[i]))
   end
 
-  # return d, result, flatvar.idx, Σ
-  return (d=d, result=result, Σ=Σ)
+  return (opti=d, stat=result, Σ=Σ)
 end
 
 
