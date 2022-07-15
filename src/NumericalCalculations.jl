@@ -164,15 +164,6 @@ end
 # internal function to dispatch view on either vector or matrix, rows are dims and samples are columns
 _getindextuple(tup::Tuple, ind1::Int) = [getindex(t, ind1) for t in tup]
 
-# TODO, likely a shortlived function, and should be replaced with ccw.hypoParams::Tuple(hypo1, hypo2,...), made at construction and allows direct hypo lookup
-# DevNotes, also see new `hyporecipe` approach (towards consolidation CCW CPT FMd CF...)
-function _view(nt::NamedTuple, idxs::AbstractVector{<:Integer})
-  varParams = tuple([nt[i] for i in idxs]...)
-  tup = tuple(varParams...)
-  nms = keys(nt)[idxs]
-  return NamedTuple{nms,typeof(tup)}(tup)
-  # tuple([nt[i] for i in idxs]...)
-end
 
 function _buildCalcFactorMixture( ccwl::CommonConvWrapper,
                                   _fmd_,
@@ -225,8 +216,12 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
                                       _slack = nothing  )
   #
 
+  # TODO from obsolete _view:
+  # Should be replaced with ccw.hypoParams::Tuple(hypo1, hypo2,...), made at construction and allows direct hypo lookup
+  # DevNotes, also see new `hyporecipe` approach (towards consolidation CCW CPT FMd CF...)
+  
   # build a view to the decision variable memory
-  varValsHypo = _view(ccwl.params, cpt_.activehypo)
+  varValsHypo = ccwl.params[cpt_.activehypo]
   # tup = tuple(varParams...)
   # nms = keys(ccwl.params)[cpt_.activehypo]
   # varValsHypo = NamedTuple{nms,typeof(tup)}(tup)
