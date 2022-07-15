@@ -16,7 +16,7 @@ using Manifolds
 using RecursiveArrayTools: ArrayPartition
 export ArrayPartition
 
-using OrderedCollections
+using OrderedCollections: OrderedDict
 
 export ℝ, AbstractManifold
 export ProductRepr

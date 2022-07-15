@@ -75,7 +75,7 @@ DevNotes
 """
 mutable struct FactorMetadata{FV<:AbstractVector{<:DFGVariable}, 
                               VL<:AbstractVector{Symbol}, 
-                              AR<:NamedTuple, 
+                              AR<:Tuple, 
                               CD}
   # full list of Vector{DFGVariable} connected to the factor
   fullvariables::FV # Vector{<:DFGVariable}
@@ -142,7 +142,7 @@ Related
 mutable struct CommonConvWrapper{ T<:AbstractFactor,
                                   H<:Union{Nothing, Distributions.Categorical},
                                   C<:Union{Nothing, Vector{Int}},
-                                  NTP <: NamedTuple,
+                                  NTP <: Tuple,
                                   G,
                                   MT,
                                   CT} <: FactorOperationalMemory

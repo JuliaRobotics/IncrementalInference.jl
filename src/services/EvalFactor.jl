@@ -320,7 +320,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
 
   # Prep computation variables
   # NOTE #1025, should FMD be built here...
-  sfidx, maxlen, mani = _updateCCW!(ccwl, Xi, solvefor, N; needFreshMeasurements, solveKey)
+  sfidx, maxlen = _updateCCW!(ccwl, Xi, solvefor, N; needFreshMeasurements, solveKey)
   # check for user desired measurement values
   if 0 < length(measurement)
     # @info "HERE" typeof(ccwl.measurement) typeof(measurement)

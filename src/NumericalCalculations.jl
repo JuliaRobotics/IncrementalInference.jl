@@ -166,6 +166,7 @@ _getindextuple(tup::Tuple, ind1::Int) = [getindex(t, ind1) for t in tup]
 
 # TODO, likely a shortlived function, and should be replaced with ccw.hypoParams::Tuple(hypo1, hypo2,...), made at construction and allows direct hypo lookup
 # DevNotes, also see new `hyporecipe` approach (towards consolidation CCW CPT FMd CF...)
+# TODO obsolete?
 function _view(nt::NamedTuple, idxs::AbstractVector{<:Integer})
   varParams = tuple([nt[i] for i in idxs]...)
   tup = tuple(varParams...)
@@ -226,7 +227,7 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   #
 
   # build a view to the decision variable memory
-  varValsHypo = _view(ccwl.params, cpt_.activehypo)
+  varValsHypo = ccwl.params[cpt_.activehypo]
   # tup = tuple(varParams...)
   # nms = keys(ccwl.params)[cpt_.activehypo]
   # varValsHypo = NamedTuple{nms,typeof(tup)}(tup)
