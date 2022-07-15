@@ -124,8 +124,8 @@ for i in 0:10
   sym = Symbol("x",i)
   var = getVariable(fg,sym)
   @show val = var.solverDataDict[:parametric].val
-  @test isapprox(val[1][1], i, atol=1e-6)
-  @test isapprox(val[1][2], i, atol=1e-6)
+  @test isapprox(val[1][1], i, atol=1e-4)
+  @test isapprox(val[1][2], i, atol=1e-4)
 end
 
 ##
@@ -231,7 +231,7 @@ for i in 0:10
   sym = Symbol("x",i)
   var = getVariable(fg,sym)
   val = var.solverDataDict[:parametric].val
-  @test isapprox(val[1][1], i, atol=1e-6)
+  @test isapprox(val[1][1], i, atol=1e-4)
 end
 
 ##

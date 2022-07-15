@@ -16,6 +16,8 @@ using Manifolds
 using RecursiveArrayTools: ArrayPartition
 export ArrayPartition
 
+using OrderedCollections
+
 export ℝ, AbstractManifold
 export ProductRepr
 # common groups -- preferred defaults at this time.
