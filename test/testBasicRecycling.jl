@@ -91,8 +91,8 @@ tree = solveTree!(fg)
 @test lm0 == getVal(fg, :lm0) #Still Frozen
 @test X1cmp != getVal(fg, :x1) #not frozen
 
-# freeze 2,4,6 to all marginalize clique 2
-setfreeze!(fg, [:x2, :x4, :x6])
+# freeze 6,8 to all marginalize clique 2
+setfreeze!(fg, [:x6, :x8])
 smtasks = Task[];
 tree = solveTree!(fg; recordcliqs=ls(fg), smtasks=smtasks);
 
@@ -115,7 +115,9 @@ end
 
 X1 = deepcopy(getVal(fg, :x1))
 
-setfreeze!(fg, [:x3, :x5])
+# to freeze clique 2,3,4
+setfreeze!(fg, [:x4, :x5, :x7])
+
 tree = solveTree!(fg, tree; recordcliqs=ls(fg));
 # csmAnimate(tree, hists, frames=1)
 
@@ -124,7 +126,7 @@ tree = solveTree!(fg, tree; recordcliqs=ls(fg));
 @test lm0 == getVal(fg, :lm0) #Still Frozen
 @test X1 != getVal(fg, :x1) #not frozen
 
-for i = [2,4,6]
+for i = [2,3,4]
     @test areCliqVariablesAllMarginalized(fg, tree.cliques[i])
 end
 
@@ -154,7 +156,7 @@ smtasks = Task[]
 tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 hists = fetchCliqHistoryAll!(smtasks)
 
-@test !(IIF.solveUp_StateMachine in getindex.(hists[4], 3))
+@test !(IIF.solveUp_StateMachine in getindex.(hists[3], 3))
 
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested

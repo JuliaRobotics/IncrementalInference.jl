@@ -13,7 +13,7 @@ fg = generateGraph_LineStep(3;
 fg.solverParams.useMsgLikelihoods = true
 # addVariable!(subfg, :x0, Con)
 
-@test getCliqVarInitOrderUp(fg) == [:x0, :lm0, :x3, :x2, :x1]
+@test getCliqVarInitOrderUp(fg) == [:x0, :lm0, :x3, :x1, :x2]
 
 solveTree!(fg)
 
