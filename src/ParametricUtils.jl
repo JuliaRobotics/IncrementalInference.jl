@@ -885,12 +885,13 @@ function updateParametricSolution!(sfg, vardict)
   for (v,val) in vardict
       vnd = getSolverData(getVariable(sfg, v), :parametric)
       # fill in the variable node data value
-      p = getPoint(getVariableType(sfg, v), val.val)
-      vnd.val[1] = p
+      vnd.val[1] = val.val
       #calculate and fill in covariance
       vnd.bw = val.cov
       #fill in ppe as mean
-      ppe = MeanMaxPPE(:parametric, val.val, val.val, val.val)
+      Xc = getCoordinates(getVariableType(sfg, v), val.val)
+
+      ppe = MeanMaxPPE(:parametric, Xc, Xc, Xc)
       getPPEDict(getVariable(sfg, v))[:parametric] = ppe
   end
 end
