@@ -64,7 +64,10 @@ addFactor!(fg, [:x8,:x9], LinearRelative(Normal(1.0, 0.1)))
 addFactor!(fg, [:lm0, :x9], LinearRelative(Normal(9,0.1)))
 
 smtasks = Task[];
-tree = solveTree!(fg; recordcliqs=ls(fg), smtasks=smtasks);
+
+eliminationOrder = [:x1, :x3, :x9, :x7, :x5, :lm0, :x8, :x4, :x2, :x6]
+
+tree = solveTree!(fg; recordcliqs=ls(fg), smtasks, eliminationOrder);
 hists = fetchCliqHistoryAll!(smtasks)
 
 #clique 7 should be marginalized and therefor not do up or downsolve
@@ -86,7 +89,7 @@ unfreezeVariablesAll!(fg)
 # freeze again
 defaultFixedLagOnTree!(fg, 9)
 
-tree = solveTree!(fg)
+tree = solveTree!(fg; eliminationOrder)
 
 @test lm0 == getVal(fg, :lm0) #Still Frozen
 @test X1cmp != getVal(fg, :x1) #not frozen
@@ -94,7 +97,7 @@ tree = solveTree!(fg)
 # freeze 6,8 to all marginalize clique 2
 setfreeze!(fg, [:x6, :x8])
 smtasks = Task[];
-tree = solveTree!(fg; recordcliqs=ls(fg), smtasks=smtasks);
+tree = solveTree!(fg; recordcliqs=ls(fg), smtasks, eliminationOrder);
 
 hists = fetchCliqHistoryAll!(smtasks)
 
@@ -104,7 +107,7 @@ hists = fetchCliqHistoryAll!(smtasks)
 @test !(IIF.solveUp_StateMachine in getindex.(hists[2], 3))
 @test areCliqVariablesAllMarginalized(fg, tree.cliques[2])
 
-tree = solveTree!(fg, tree; recordcliqs=ls(fg));
+tree = solveTree!(fg, tree; recordcliqs=ls(fg), eliminationOrder);
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     println("Testing ", var,": ", sppe)
@@ -118,7 +121,7 @@ X1 = deepcopy(getVal(fg, :x1))
 # to freeze clique 2,3,4
 setfreeze!(fg, [:x4, :x5, :x7])
 
-tree = solveTree!(fg, tree; recordcliqs=ls(fg));
+tree = solveTree!(fg, tree; recordcliqs=ls(fg), eliminationOrder);
 # csmAnimate(tree, hists, frames=1)
 
 @test calcCliquesRecycled(tree) == (7,3,4,0)
@@ -149,11 +152,12 @@ getSolverParams(fg).treeinit = true
 
 # tree = buildTreeReset!(fg, drawpdf=true, show=true)
 
-tree = solveTree!(fg; recordcliqs=ls(fg)); # , smtasks=smtasks
+eliminationOrder = [:lm3, :x0, :x3, :x1, :x2, :lm0]
+tree = solveTree!(fg; recordcliqs=ls(fg), eliminationOrder); # , smtasks=smtasks
 
 addFactor!(fg, [:lm3], Prior(Normal(3, 0.1)), graphinit=false)
 smtasks = Task[]
-tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
+tree = solveTree!(fg, tree; smtasks, recordcliqs=ls(fg), eliminationOrder);
 hists = fetchCliqHistoryAll!(smtasks)
 
 @test !(IIF.solveUp_StateMachine in getindex.(hists[3], 3))
