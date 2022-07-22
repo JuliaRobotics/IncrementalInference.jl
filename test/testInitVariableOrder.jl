@@ -13,7 +13,10 @@ fg = generateGraph_LineStep(3;
 fg.solverParams.useMsgLikelihoods = true
 # addVariable!(subfg, :x0, Con)
 
-@test getCliqVarInitOrderUp(fg) == [:x0, :lm0, :x3, :x2, :x1]
+cliqInitOrder = getCliqVarInitOrderUp(fg) 
+#TODO variable order can change, but should be more stable using OrderedDict. Testing for both.
+# maybe remove cliqInitOrder == [:x0, :lm0, :x3, :x2, :x1] test in v0.31
+@test cliqInitOrder == [:x0, :lm0, :x3, :x2, :x1] || cliqInitOrder == [:x0, :lm0, :x3, :x1, :x2]
 
 solveTree!(fg)
 

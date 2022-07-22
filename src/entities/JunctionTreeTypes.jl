@@ -26,7 +26,7 @@ const BayesTree = MetaBayesTree
 
 MetaBayesTree() = MetaBayesTree(MetaDiGraph{Int,Float64}(), 0, Dict{AbstractString, Int}(), Symbol[], 0.0)
 
-Base.propertynames(x::MetaBayesTree, private::Bool=false) = (:bt, :btid, :cliques, :frontals, :variableOrder, :buildTime)
+Base.propertynames(x::MetaBayesTree, private::Bool=false) = (:bt, :btid, :cliques, :frontals, :eliminationOrder, :buildTime)
 
 Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
     if f == :cliques
