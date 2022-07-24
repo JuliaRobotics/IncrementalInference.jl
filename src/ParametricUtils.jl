@@ -271,7 +271,7 @@ struct GraphSolveBuffers{T<:Real, U}
   Xc::Vector{T}
 end
 
-function GraphSolveBuffers(M, ::Type{T}) where T
+function GraphSolveBuffers(@nospecialize(M), ::Type{T}) where T
   ϵ = getPointIdentity(M, T)
   p = deepcopy(ϵ)# allocate_result(M, getPointIdentity)
   X = deepcopy(ϵ) #allcoate(p)
@@ -318,7 +318,7 @@ function getGraphSolveCache!(gsc::GraphSolveContainer, ::Type{T}) where T<:Real
   return val
 end
 
-function _toPoints2!(M::AbstractManifold, buffs::GraphSolveBuffers{T,U}, Xc::Vector{T}) where {T,U}
+function _toPoints2!(@nospecialize(M::AbstractManifold), buffs::GraphSolveBuffers{T,U}, Xc::Vector{T}) where {T,U}
   ϵ = buffs.ϵ
   p = buffs.p
   X = buffs.X
@@ -384,7 +384,7 @@ function initPoints!(p, gsc, fg::AbstractDFG, solveKey=:parametric)
 end
 
 #NOTE this only works with a product of power manifolds
-function getComponentsCovar(PM::ProductManifold, Σ::AbstractMatrix)
+function getComponentsCovar(@nospecialize(PM::ProductManifold), Σ::AbstractMatrix)
 
   dims = manifold_dimension.(PM.manifolds)
   dim_ranges = Manifolds._get_dim_ranges(dims)
@@ -399,8 +399,7 @@ function getComponentsCovar(PM::ProductManifold, Σ::AbstractMatrix)
 
 end
 
-function _getComponentsCovar(PM::PowerManifold, Σ::AbstractMatrix)
-
+function _getComponentsCovar(@nospecialize(PM::PowerManifold), Σ::AbstractMatrix)
   M = PM.manifold
   dim = manifold_dimension(M)
   subsigmas = map(Manifolds.get_iterator(PM)) do i
@@ -470,17 +469,19 @@ function solveGraphParametric(fg::AbstractDFG;
   exp!(M, p, ϵ, X)
 
   #extract covariances from result
-  sigmas = getComponentsCovar(M, Σ)
+  # sigmas = getComponentsCovar(M, Σ)
 
   # d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
   d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{AbstractArray,Matrix{Float64}}}}()
 
   varIds = vcat(values(gsc.varTypesIds)...)
+  varIdDict = FlatVariables(fg, varIds).idx
   for (i,key) in enumerate(varIds)
-    push!(d,key=>(val=p[i],cov=sigmas[i]))
+    r = varIdDict[key]
+    push!(d,key=>(val=p[i], cov=Σ[r,r]))
+    # push!(d,key=>(val=p[i], cov=sigmas[i]))
   end
 
-  varIdDict = FlatVariables(fg, varIds).idx
 
   return (opti=d, stat=result, varIds=varIdDict, Σ=Σ)
 end
@@ -652,41 +653,6 @@ function solveConditionalsParametric(fg::AbstractDFG,
 
   return d, result, flatvar.idx, Σ
 end
-
-## ================================================================================================
-## MixedCircular Manifold for Optim.jl
-## ================================================================================================
-
-"""
-    MixedCircular
-Mixed Circular Manifold. Simple manifold for circular and cartesian mixed for use in optim
-
-DevNotes
-- Consolidate around `ManifoldsBase.AbstractManifold` instead, with possible wrapper-type solution for `Optim.Manifold`
-"""
-struct MixedCircular <: Optim.Manifold
-  isCircular::BitArray
-end
-
-function MixedCircular(fg::AbstractDFG, varIds::Vector{Symbol})
-  circMask = Bool[]
-  for k = varIds
-    append!(circMask, convert(Tuple, getManifold(getVariableType(fg, k))) .== :Circular)
-  end
-  MixedCircular(circMask)
-end
-
-# https://github.com/JuliaNLSolvers/Optim.jl/blob/e439de4c997a727f3f724ae76da54b9cc08456b2/src/Manifolds.jl#L3
-# retract!(m, x): map x back to a point on the manifold m
-function Optim.retract!(c::MixedCircular, x)
-  for (i,v) = enumerate(x)
-    c.isCircular[i] && (x[i] = rem2pi(v, RoundNearest))
-  end
-  return x
-end
-# https://github.com/JuliaNLSolvers/Optim.jl/blob/e439de4c997a727f3f724ae76da54b9cc08456b2/src/Manifolds.jl#L2
-# project_tangent!(m, g, x): project g on the tangent space to m at x
-Optim.project_tangent!(S::MixedCircular,g,x) = g
 
 ## ================================================================================================
 ## Manifolds.jl Consolidation
@@ -861,19 +827,6 @@ function addParametricSolver!(fg; init=true)
       error("parametric solvekey already exists")
   end
   nothing
-end
-
-#TODO Delete?
-function updateVariablesFromParametricSolution!(fg::AbstractDFG, vardict)
-  for (v,val) in vardict
-    vnd = getVariableSolverData(fg, v, :parametric)
-    vnd.val .= val.val
-    if size(vnd.bw) != size(val.cov)
-      vnd.bw = val.cov
-    else
-      vnd.bw .= val.cov
-    end
-  end
 end
 
 """

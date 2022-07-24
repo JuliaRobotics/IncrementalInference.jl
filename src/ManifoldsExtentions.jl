@@ -16,16 +16,11 @@ function getPointIdentity(G::GroupManifold,::Type{T}=Float64) where T<:Real
   return error("getPointIdentity not implemented on G")
 end
 
-function getPointIdentity(G::ProductManifold,::Type{T}=Float64) where T<:Real
+function getPointIdentity(@nospecialize(G::ProductManifold),::Type{T}=Float64) where T<:Real
   return ArrayPartition(map(x->getPointIdentity(x,T), G.manifolds))
 end
 
-function getPointIdentity(M::Manifolds.PowerManifoldNestedReplacing,::Type{T}=Float64) where T<:Real
-  N = Manifolds.get_iterator(M).stop
-  return fill(getPointIdentity(M.manifold, T), N)
-end
-
-function getPointIdentity(M::PowerManifold,::Type{T}=Float64) where T<:Real
+function getPointIdentity(@nospecialize(M::PowerManifold),::Type{T}=Float64) where T<:Real
   N = Manifolds.get_iterator(M).stop
   return fill(getPointIdentity(M.manifold, T), N)
 end
