@@ -187,6 +187,11 @@ addFactor!(fg, [:x0; :l1], mf)
 mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([10.0,0,0], [0.1,0.1,0.01]))
 addFactor!(fg, [:x6; :l1], mf)
 
+##
+
+smtasks = Task[]
+solveTree!(fg; smtasks);
+
 vnd = getVariableSolverData(fg, :x0)
 @test isapprox(M, mean(M, vnd.val), ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.2)
 
@@ -195,11 +200,6 @@ vnd = getVariableSolverData(fg, :x1)
 
 vnd = getVariableSolverData(fg, :x6)
 @test isapprox(M, mean(M, vnd.val), ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.5)
-
-##
-
-smtasks = Task[]
-solveTree!(fg; smtasks);
 
 ## Special test for manifold based messages
 
