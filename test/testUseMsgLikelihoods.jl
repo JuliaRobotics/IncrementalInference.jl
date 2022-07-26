@@ -6,6 +6,10 @@ using IncrementalInference
 
 ##
 
+
+@testset "Test differential factors for MKD sampling types (useMsgLikelihoods" begin
+##
+
 fg = generateGraph_CaesarRing1D()
 getSolverParams(fg).useMsgLikelihoods = true
 
@@ -16,14 +20,14 @@ fT = getFactorType(fct)
 @test fT isa LinearRelative
 @test fT.Z isa Normal
 
-z = sampleFactor(fct)[1]
-@test z isa Vector{<:Real}
-
 ##
 
 M = getManifold(fT)
 X = sampleTangent(M, fT.Z)
 @test X isa Vector{<:Real}
+
+z = sampleFactor(fct)[1]
+@test z isa Vector{<:Real}
 
 ##
 
@@ -71,11 +75,7 @@ IIF.addMsgFactors!(cfg, beliefMsg5, IIF.UpwardPass)
 fct = cfg[:x0x6f1]
 fT = getFactorType(fct)
 @test fT isa LinearRelative
-@test fT.Z isa Normal
-
-z = sampleFactor(fct)[1]
-
-@test z isa Vector{<:Real}
+@test fT.Z isa MKD
 
 ##
 
@@ -83,7 +83,11 @@ M = getManifold(fT.Z)
 X = sampleTangent(M, fT.Z)
 @test X isa Vector{<:Real}
 
+z = sampleFactor(fct)[1]
+@test z isa Vector{<:Real}
+
 ##
+
 
 childmsgs = LikelihoodMessage[]
 retdict = IIF.upGibbsCliqueDensity(cfg, tree[2], :default, childmsgs)
@@ -103,3 +107,4 @@ solveGraph!(fg)
 
 
 ##
+end

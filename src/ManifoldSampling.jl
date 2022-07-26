@@ -13,8 +13,10 @@ function sampleTangent end
 function sampleTangent(M::AbstractDecoratorManifold, x::ManifoldKernelDensity, p=mean(x))
     # get legacy matrix of coordinates and selected labels
     coords, lbls = sample(x.belief,1)
-    X = hat(x.manifold, p, coords)
-    return X
+    X = hat(x.manifold, Identity(x.manifold), coords)
+
+    X_ = 1 === size(X,2) ? X[:] : X
+    return X_
 end
 
 function sampleTangent(x::ManifoldKernelDensity, p=mean(x)) 
