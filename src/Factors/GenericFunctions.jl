@@ -31,7 +31,7 @@ end
 
 #::MeasurementOnTangent
 function distanceTangent2Point(M::SemidirectProductGroup, X, p, q)
-  q̂ = Manifolds.compose(M, p, exp(M, getPointIdentity(M), X)) #for groups
+  q̂ = Manifolds.compose(M, p, exp(M, identity_element(M, p), X)) #for groups
   # return log(M, q, q̂)
   return vee(M, q, log(M, q, q̂))
   # return distance(M, q, q̂)
