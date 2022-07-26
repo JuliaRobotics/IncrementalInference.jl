@@ -78,7 +78,7 @@ solveGraph!(fg)
 
 ##
 
-for i in 1:3
+for i in 1:1
   solveGraph!(fg);
 end
 
