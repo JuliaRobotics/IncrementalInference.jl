@@ -41,6 +41,7 @@ include("testFactorMetadata.jl")
 
 include("testApproxConv.jl")
 include("testBasicForwardConvolve.jl")
+include("testUseMsgLikelihoods.jl")
 include("testDefaultDeconv.jl")
 
 include("testPartialFactors.jl")

@@ -11,10 +11,11 @@ function sampleTangent end
 
 # Sampling MKD
 function sampleTangent(M::AbstractDecoratorManifold, x::ManifoldKernelDensity, p=mean(x))
-    # get legacy matrix of coordinates and selected labels
-    coords, lbls = sample(x.belief,1)
-    X = hat(x.manifold, p, coords)
-    return X
+  # get legacy matrix of coordinates and selected labels
+  #TODO make sure that when `sample` is replaced in MKD, coordinates is a vector
+  coords, lbls = sample(x.belief,1)
+  X = hat(x.manifold, p, coords[:])
+  return X
 end
 
 function sampleTangent(x::ManifoldKernelDensity, p=mean(x)) 
@@ -30,10 +31,6 @@ function sampleTangent(M::AbstractDecoratorManifold, z::Distribution, p=getPoint
   return hat(M, p, rand(z,1)[:]) #TODO find something better than (z,1)[:]
 end
 
-#TODO, re-evaluate this. special case for the RealCircleGroup to return a vector see https://github.com/JuliaManifolds/Manifolds.jl/issues/489 
-function sampleTangent(M::RealCircleGroup, z::Distribution, p=getPointIdentity(M)) 
-  return hat(M, [0.0], rand(z,1))
-end
 
 """
     $SIGNATURES
