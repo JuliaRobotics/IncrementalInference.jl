@@ -61,7 +61,7 @@ function samplePoint(M::AbstractDecoratorManifold, sbelief::ManifoldKernelDensit
   return retract(M, p, X, retraction_method)
 end
 
-function samplePoint(x::ManifoldKernelDensity, p=getPointIdentity(x)) 
+function samplePoint(x::ManifoldKernelDensity, p=getPointIdentity(x.manifold)) 
   return samplePoint(x.manifold, x, p)
 end
 

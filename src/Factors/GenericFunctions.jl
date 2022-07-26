@@ -31,7 +31,7 @@ end
 
 #::MeasurementOnTangent
 function distanceTangent2Point(M::SemidirectProductGroup, X, p, q)
-  q̂ = Manifolds.compose(M, p, exp(M, identity_element(M, p), X)) #for groups
+  q̂ = Manifolds.compose(M, p, exp(M, getPointIdentity(M), X)) #for groups
   # return log(M, q, q̂)
   return vee(M, q, log(M, q, q̂))
   # return distance(M, q, q̂)
@@ -185,7 +185,7 @@ function convert(::Union{Type{<:AbstractFactor}, Type{<:ManifoldPrior}},
   M = DFG.getTypeFromSerializationModule(obj.varType) |> getManifold
   
   # TODO this is too excessive
-  e0 = identity_element(M)
+  e0 = getPointIdentity(M)
   # u0 = getPointIdentity(obj.varType)
   p = AMP.makePointFromCoords(M, obj.p, e0) #, u0)
 
@@ -204,7 +204,7 @@ end
 function samplePointPartial(M::AbstractDecoratorManifold,
                             z::Distribution,
                             partial::Vector{Int}, 
-                            p=identity_element(M), 
+                            p=getPointIdentity(M), 
                             retraction_method::AbstractRetractionMethod=ExponentialRetraction())
   dim = manifold_dimension(M)
   Xc = zeros(dim)

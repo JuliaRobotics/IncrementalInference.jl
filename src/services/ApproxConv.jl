@@ -22,12 +22,15 @@ function approxConvBelief(dfg::AbstractDFG,
   partl = collect(1:len)[ mask ]
 
   # is the convolution infoPerCoord full or partial
+  vari = getVariable(dfg, target)
+  M = getManifold(vari)
+  vT = getVariableType(vari)
   if sum(mask) == len
     # not partial
-    return manikde!(getManifold(getVariable(dfg, target)), pts, partial=nothing)
+    return manikde!(M, pts, partial=nothing, u0=getPointIdentity(vT))
   else
     # is partial
-    return manikde!(getManifold(getVariable(dfg, target)), pts, partial=partl)
+    return manikde!(M, pts, partial=partl, u0=getPointIdentity(vT))
   end
 end
 

@@ -151,7 +151,7 @@ end
 
 function (cf::CalcFactor{<:ManifoldFactorSE2})(X, p, q)
     M = SpecialEuclidean(2)
-    q̂ = Manifolds.compose(M, p, exp(M, identity_element(M, p), X)) #for groups
+    q̂ = Manifolds.compose(M, p, exp(M, getPointIdentity(M), X)) #for groups
     Xc = zeros(3)
     vee!(M, Xc, q, log(M, q, q̂))
     return Xc
@@ -277,9 +277,9 @@ DFG.getManifold(::ManiPose2Point2) = TranslationGroup(2)
 function (cfo::CalcFactor{<:ManiPose2Point2})(measX, p, q)
   #
     M = SpecialEuclidean(2)
-    q_SE = ArrayPartition(q, identity_element(SpecialOrthogonal(2), p.x[2]))
+    q_SE = ArrayPartition(q, getPointIdentity(SpecialOrthogonal(2)))
 
-    X_se2 = log(M, identity_element(M, p), Manifolds.compose(M, inv(M, p), q_SE))
+    X_se2 = log(M, getPointIdentity(M), Manifolds.compose(M, inv(M, p), q_SE))
     X = X_se2.x[1]
     # NOTE wrong for what we want X̂ = log(M, p, q_SE)
     return measX - X 

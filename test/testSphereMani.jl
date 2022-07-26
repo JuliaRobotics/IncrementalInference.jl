@@ -9,8 +9,9 @@ using Test
 @testset "Test Sphere(2) prior and relative" begin
 ##
 
+# NOTE us getPointIdentity instead
 #FIXME REMOVE! this is type piracy and not a good idea, for testing only!!!
-Manifolds.identity_element(::Sphere{2, ℝ}, p::Vector{Float64}) = Float64[1,0,0]
+# Manifolds.identity_element(::Sphere{2, ℝ}, p::Vector{Float64}) = Float64[1,0,0]
 
 Base.convert(::Type{<:Tuple}, M::Sphere{2, ℝ}) = (:Euclid, :Euclid)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{Sphere{2, ℝ}})  = (:Euclid, :Euclid)
