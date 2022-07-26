@@ -1,16 +1,47 @@
+# ================================================================================================
+## FactorOperationalMemory for parametric, TODO move back to FactorOperationalMemory.jl
 ## ================================================================================================
+
+abstract type AbstractMaxMixtureSolver end
+
+"""
+$TYPEDEF
+
+Internal parametric extension to [`CalcFactor`](@ref) used for buffering measurement and calculating Mahalanobis distance
+
+Related
+
+[`CalcFactor`](@ref)
+"""
+struct CalcFactorMahalanobis{N, S<:Union{Nothing,AbstractMaxMixtureSolver}}
+  calcfactor!::CalcFactor
+  varOrder::Vector{Symbol}
+  meas::NTuple{N, <:AbstractArray}
+  iΣ::NTuple{N, Matrix{Float64}}
+  specialAlg::S
+end
+# struct CalcFactorMahalanobis{CF<:CalcFactor, S<:Union{Nothing,AbstractMaxMixtureSolver}, N}
+#   calcfactor!::CF
+#   varOrder::Vector{Symbol}
+#   meas::NTuple{N, <:AbstractArray}
+#   iΣ::NTuple{N, Matrix{Float64}}
+#   specialAlg::S
+# end
+
+
+# ================================================================================================
 ## FlatVariables - used for packing variables for optimization
 ## ================================================================================================
 
 struct FlatVariables{T<:Real}
   X::Vector{T}
-  idx::Dict{Symbol, UnitRange{Int}}
+  idx::OrderedDict{Symbol, UnitRange{Int}}
 end
 
 function FlatVariables(fg::AbstractDFG, varIds::Vector{Symbol})
 
   index = 1
-  idx = Dict{Symbol, UnitRange{Int}}()
+  idx = OrderedDict{Symbol, UnitRange{Int}}()
   for vid = varIds
     v = getVariable(fg, vid)
     dims = getDimension(v)
@@ -80,8 +111,8 @@ end
 function getMeasurementParametric(s::AbstractFactor)
   if hasfield(typeof(s), :Z)
     Z = s.Z
-    @info "getMeasurementParametric falls back to using field `.Z` by default. Extend it for more complex factors." maxlog=1
   else
+    @warn "getMeasurementParametric falls back to using field `.Z` by default. Extend it for more complex factors." 
     error("getMeasurementParametric(::$(typeof(s))) not defined, please add it, or use non-parametric, or open an issue for help.")
   end
   
@@ -94,23 +125,35 @@ end
 ## Parametric solve with Mahalanobis distance - CalcFactor
 ## ================================================================================================
 
-
-
+#TODO maybe remove with Mixture rework see #1504
 getFactorMechanics(f::AbstractFactor) = f
 getFactorMechanics(f::Mixture) = f.mechanics
 
-function CalcFactorMahalanobis(fct::DFGFactor)
-  cf = getFactorType(fct)
+function CalcFactorMahalanobis(fg, fct::DFGFactor)
+  fac_func = getFactorType(fct)
   varOrder = getVariableOrder(fct)
   
-  _meas, _iΣ = getMeasurementParametric(cf)
+  _meas, _iΣ = getMeasurementParametric(fac_func)
   M = getManifold(getFactorType(fct))
-  meas = typeof(_meas) <: Tuple ? _meas : (hat(M, Identity(M), _meas),)
+
+  ϵ = getPointIdentity(M)
+  
+  if typeof(_meas) <: Tuple
+    _measX = map(m->hat(M, ϵ, m), _meas)
+  else
+    _measX = (hat(M, ϵ, _meas),)
+  end
+
+  meas = fac_func isa AbstractPrior ? map(X->exp(M, ϵ, X), _measX) : _measX
+
   iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
 
-  # FIXME #1480, cache = preambleCache(dfg,vars,usrfnc)
-  cache = nothing
-  calcf = CalcFactor(getFactorMechanics(cf), _getFMdThread(fct), 0, 0, (), [], true, cache)
+  cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
+
+  # calcf = CalcFactor(getFactorMechanics(fac_func), nothing, 0, 0, nothing, nothing, true, nothing)
+  calcf = CalcFactor(getFactorMechanics(fac_func), nothing, 0, 0, nothing, nothing, true, cache)
+  #FactorMetadata is not type stable
+  # calcf = CalcFactor(getFactorMechanics(fac_func), _getFMdThread(fct), 0, 0, nothing, nothing, true, cache)
   
   multihypo = getSolverData(fct).multihypo
   nullhypo = getSolverData(fct).nullhypo
@@ -120,8 +163,8 @@ function CalcFactorMahalanobis(fct::DFGFactor)
     special = MaxMultihypo(multihypo)
   elseif nullhypo > 0 
     special = MaxNullhypo(nullhypo)
-  elseif cf isa Mixture
-    special = MaxMixture(cf.diversity.p, Ref(0))
+  elseif fac_func isa Mixture
+    special = MaxMixture(fac_func.diversity.p, Ref(0))
   else
     special = nothing
   end
@@ -129,81 +172,334 @@ function CalcFactorMahalanobis(fct::DFGFactor)
   return CalcFactorMahalanobis(calcf, varOrder, meas, iΣ, special)
 end
 
+
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
-function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:AbstractFactor, U, V, W, C}
-  # call the user function (be careful to call the new CalcFactor version only!!!)
+function (cfp::CalcFactorMahalanobis{1,Nothing})(variables...) # AbstractArray{T} where T <: Real
+  # call the user function 
   res = cfp.calcfactor!(cfp.meas[1], variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
   return res' * cfp.iΣ[1] * res
 end
 
-function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:AbstractPrior, U, V, W, C}
-  # TODO should prior functions follow the same factor definition with a measurement on tangant?
-  M = getManifold(cfp.calcfactor!.factor)
-  #FIXME find a better fix for bitstypes
-  ϵ = identity_element(M)
-  ϵ = isbitstype(typeof(ϵ)) ? [ϵ] : ϵ
-  m = exp(M, ϵ, cfp.meas[1])  
-
-  res = cfp.calcfactor!(m, variables...)
-  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-  return res' * cfp.iΣ[1] * res
-end
-
-function (cfp::CalcFactorMahalanobis{CalcFactor{T, U, V, W, C}})(variables...) where {T<:Union{ManifoldFactor, ManifoldPrior} , U, V, W, C}
-  # call the user function (be careful to call the new CalcFactor version only!!!)
-  M = cfp.calcfactor!.factor.M
-  X = cfp.calcfactor!(cfp.meas[1], variables...)
-  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-  # return mahalanobus_distance2(M, X, cfp.iΣ[1])
-  
-  #TODO do something about basis?
-  # Xc = get_coordinates(M, variables[1], X, DefaultOrthogonalBasis())
-  # Xc = get_coordinates(M, variables[1], X, DefaultOrthonormalBasis())
-  Xc = vee(M, variables[1], X)
-  return X, Xc' * cfp.iΣ[1] * Xc
-end
 
 function calcFactorMahalanobisDict(fg)
-  calcFactors = Dict{Symbol, CalcFactorMahalanobis}()
+  calcFactors = OrderedDict{Symbol, CalcFactorMahalanobis}()
   for fct in getFactors(fg)
-    calcFactors[fct.label] = CalcFactorMahalanobis(fct)
+    calcFactors[fct.label] = CalcFactorMahalanobis(fg, fct)
   end
   return calcFactors
 end
 
-# new experimental Manifold ProductRepr version
-function _totalCost(M, cfvec::Vector{<:CalcFactorMahalanobis}, labeldict, points)
-  #
-  obj = 0
+## ================================================================================================
+## ================================================================================================
+## New Parametric refactor WIP
+## ================================================================================================
+## ================================================================================================
 
-  for cfp in cfvec
+## ================================================================================================
+## LazyCase based on LazyBufferCache from PreallocationTools.jl
+## ================================================================================================
 
-      varOrder = getindex.(Ref(labeldict), cfp.varOrder)
+"""
+  $SIGNATURES
+A lazily allocated cache object.
+"""
+struct LazyCache{F <: Function}
+    dict::Dict{Tuple{DataType, Symbol}, Any}
+    fnc::F
+end
+LazyCache(f::F = allocate) where {F <: Function} = LazyCache(Dict{Tuple{DataType, Symbol}, Any}(), f)
 
-      factor_point_params = [points[M, i] for i in varOrder]
-
-      # call the user function
-      _,retval = cfp(factor_point_params...)
-
-      # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-      obj += 1/2*retval
-  end
-
-  return obj
+# override the [] method
+function Base.getindex(cache::LazyCache, u::T, varname::Symbol) where T
+    val = get!(cache.dict, (T, varname)) do 
+      cache.fnc(u)
+    end::T
+    return val
 end
 
-function _totalCost(fg, 
-                    cfdict::Dict{Symbol, <:CalcFactorMahalanobis},
-                    flatvar,
-                    X )
+
+
+function getCoordCache!(cache::LazyCache, M, T::DataType, varname::Symbol)
+  val = get!(cache.dict, (T, varname)) do 
+    Vector{T}(undef,manifold_dimension(M))
+  end::Vector{T}
+  return val
+end
+
+## ================================================================================================
+## GraphSolveStructures
+## ================================================================================================
+
+
+function getVariableTypesCount(fg::AbstractDFG)
+
+  vars = getVariables(fg)
+  typedict = OrderedDict{DataType, Int}()
+  alltypes = OrderedDict{DataType,Vector{Symbol}}()
+  for v in vars
+      varType = typeof(getVariableType(v))
+      cnt = get!(typedict, varType, 0)
+      typedict[varType] = cnt+1
+
+      dt = get!(alltypes, varType, Symbol[])
+      push!(dt, v.label)
+  end
+  #TODO tuple or vector?
+  # vartypes = tuple(keys(typedict)...)
+  vartypes = collect(keys(typedict))
+  return vartypes, typedict, alltypes
+end
+
+function buildGraphSolveManifold(fg::AbstractDFG)
+  vartypes, vartypecount, vartypeslist = getVariableTypesCount(fg)
+
+  PMs = map(vartypes) do vartype
+      N = vartypecount[vartype] 
+      G = getManifold(vartype)
+      PowerManifold(G, NestedReplacingPowerRepresentation(), N)
+      # PowerManifold(G, NestedPowerRepresentation(), N) #TODO investigate as it does not converge
+  end
+  M = ProductManifold(PMs...)    
+  return M, vartypes, vartypeslist
+end
+
+struct GraphSolveBuffers{T<:Real, U}
+  ϵ::U
+  p::U
+  X::U
+  Xc::Vector{T}
+end
+
+function GraphSolveBuffers(M, ::Type{T}) where T
+  ϵ = getPointIdentity(M, T)
+  p = deepcopy(ϵ)# allocate_result(M, getPointIdentity)
+  X = deepcopy(ϵ) #allcoate(p)
+  Xc = get_coordinates(M, ϵ, X, DefaultOrthogonalBasis())
+  GraphSolveBuffers(ϵ, p, X, Xc)
+end
+
+struct GraphSolveContainer
+  M::AbstractManifold # ProductManifold or ProductGroup
+  buffers::OrderedDict{DataType, GraphSolveBuffers}
+  varTypes::Vector{DataType}
+  varTypesIds::OrderedDict{DataType, Vector{Symbol}}
+  cfdict::OrderedDict{Symbol, CalcFactorMahalanobis}
+  varOrderDict::OrderedDict{Symbol, Tuple{Int, Vararg{Int,}}}
+end
+
+
+function GraphSolveContainer(fg)
+
+  M, varTypes, varTypesIds = buildGraphSolveManifold(fg)
+  varTypesIndexes = ArrayPartition(values(varTypesIds)...)
+  buffs = OrderedDict{DataType,GraphSolveBuffers}()
+  cfd = calcFactorMahalanobisDict(fg)
+
+  varOrderDict = OrderedDict{Symbol, Tuple{Int, Vararg{Int,}}}()
+  for (fid, cfp) in cfd 
+    varOrder = cfp.varOrder
+    var_idx = map(varOrder) do v
+      findfirst(==(v), varTypesIndexes)
+    end
+    varOrderDict[fid] = tuple(var_idx...)
+  end
+
+  return GraphSolveContainer(M, buffs, varTypes, varTypesIds, cfd, varOrderDict)
+end
+
+function getGraphSolveCache!(gsc::GraphSolveContainer, ::Type{T}) where T<:Real
+  cache = gsc.buffers
+  M = gsc.M
+  val = get!(cache, T) do 
+    @debug "cache miss, cacheing" T
+    GraphSolveBuffers(M, T)
+  end
+  return val
+end
+
+function _toPoints2!(M::AbstractManifold, buffs::GraphSolveBuffers{T,U}, Xc::Vector{T}) where {T,U}
+  ϵ = buffs.ϵ
+  p = buffs.p
+  X = buffs.X
+  get_vector!(M, X, ϵ, Xc, DefaultOrthogonalBasis())
+  exp!(M, p, ϵ, X)
+  return p::U
+end
+
+cost_cfp(cfp::CalcFactorMahalanobis, p, vi::NTuple{1,Int}) = cfp(p[vi[1]])
+cost_cfp(cfp::CalcFactorMahalanobis, p, vi::NTuple{2,Int}) = cfp(p[vi[1]], p[vi[2]])
+cost_cfp(cfp::CalcFactorMahalanobis, p, vi::NTuple{3,Int}) = cfp(p[vi[1]], p[vi[2]], p[vi[3]])
+
+# the cost function
+function (gsc::GraphSolveContainer)(Xc::Vector{T}) where T <: Real
   #
-  obj = 0
+  buffs = getGraphSolveCache!(gsc, T)
+
+  cfdict = gsc.cfdict
+  varOrderDict = gsc.varOrderDict
+
+  M = gsc.M 
+
+  p = _toPoints2!(M, buffs, Xc)
+
+  #NOTE multi threaded option
+  obj = zeros(T,(Threads.nthreads()))
+  Threads.@threads for fid in collect(keys(cfdict))
+    cfp = cfdict[fid]
+
+  #NOTE single thread option
+  # obj::T = zero(T)
+  # for (fid, cfp) in cfdict 
+
+    varOrder_idx = varOrderDict[fid]
+
+    # call the user function
+    retval = cost_cfp(cfp, p, varOrder_idx)
+
+    #NOTE multi threaded option
+    obj[Threads.threadid()] += retval
+    # NOTE single thread option
+    # obj += retval
+  end
+
+  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+
+  #NOTE multi threaded option
+  return sum(obj)/2
+  # NOTE single thread option
+  # return obj/2
+end
+
+#fg = generateCanonicalFG_Honeycomb!()
+
+  # copy variables from graph
+function initPoints!(p, gsc, fg::AbstractDFG, solveKey=:parametric)
+  for (i, vartype) in enumerate(gsc.varTypes)
+    varIds = gsc.varTypesIds[vartype]
+    for (j,vId) in enumerate(varIds)
+      p[gsc.M, i][j] = getVariableSolverData(fg, vId, solveKey).val[1]
+    end
+  end
+end
+
+#NOTE this only works with a product of power manifolds
+function getComponentsCovar(PM::ProductManifold, Σ::AbstractMatrix)
+
+  dims = manifold_dimension.(PM.manifolds)
+  dim_ranges = Manifolds._get_dim_ranges(dims)
+
+  subsigmas = map(zip(dim_ranges, PM.manifolds)) do v
+    r = v[1]
+    M = v[2]
+    _getComponentsCovar(M, view(Σ, r, r)) 
+  end
+
+  return ArrayPartition(subsigmas...)
+
+end
+
+function _getComponentsCovar(PM::PowerManifold, Σ::AbstractMatrix)
+
+  M = PM.manifold
+  dim = manifold_dimension(M)
+  subsigmas = map(Manifolds.get_iterator(PM)) do i
+    r = (i-1)*dim+1:i*dim
+    Σ[r, r]
+  end
+
+  return subsigmas
+end
+
+# using ForwardDiff
+function solveGraphParametric(fg::AbstractDFG;
+                              computeCovariance::Bool = true,
+                              solveKey::Symbol=:parametric,
+                              autodiff = :forward,
+                              algorithm=Optim.BFGS,
+                              algorithmkwargs=(), # add manifold to overwrite computed one
+                              options = Optim.Options(allow_f_increases=true,
+                                                      time_limit = 100,
+                                                      # show_trace = true,
+                                                      # show_every = 1,
+                                                      ))
+# 
+  # Build the container  
+  gsc = GraphSolveContainer(fg)
+  # buffs = getGraphSolveCache!(gsc, ForwardDiff.Dual{ForwardDiff.Tag{IncrementalInference.GraphSolveContainer, Float64}, Float64, 12})
+  buffs = getGraphSolveCache!(gsc, Float64)
+
+  M = gsc.M
+  ϵ = buffs.ϵ
+  p = buffs.p
+  X = buffs.X
+  Xc = buffs.Xc
+
+  #initialize points in buffer from fg, TODO maybe do in constructor
+  initPoints!(p, gsc, fg, solveKey)
+
+  # log!(M, X, Identity(ProductOperation), p)
+  # calculate initial coordinates vector for Optim
+  log!(M, X, ϵ, p)
+  get_coordinates!(M, Xc, ϵ, X, DefaultOrthogonalBasis())
+
+  initValues = Xc
+  #FIXME, for some reason we get NANs and adding a small random value works
+  initValues .+= randn(length(Xc))*0.0001
+
+  #optim setup and solve
+  alg = algorithm(; algorithmkwargs...)
+  tdtotalCost = Optim.TwiceDifferentiable(gsc, initValues, autodiff = autodiff)
+
+  result = Optim.optimize(tdtotalCost, initValues, alg, options)
+  rv = Optim.minimizer(result)
+
+  # optionally compute hessian for covariance
+  Σ = if computeCovariance
+    H = Optim.hessian!(tdtotalCost, rv)
+    pinv(H)
+  else
+    N = length(initValues)
+    zeros(N,N)
+  end
+
+  #TODO better return 
+
+  #get point (p) values form results
+  get_vector!(M, X, ϵ, rv, DefaultOrthogonalBasis())
+  exp!(M, p, ϵ, X)
+
+  #extract covariances from result
+  sigmas = getComponentsCovar(M, Σ)
+
+  # d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
+  d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{AbstractArray,Matrix{Float64}}}}()
+
+  varIds = vcat(values(gsc.varTypesIds)...)
+  for (i,key) in enumerate(varIds)
+    push!(d,key=>(val=p[i],cov=sigmas[i]))
+  end
+
+  varIdDict = FlatVariables(fg, varIds).idx
+
+  return (opti=d, stat=result, varIds=varIdDict, Σ=Σ)
+end
+
+
+## Original
+# ==============================
+
+function _totalCost(fg, 
+                    cfdict::OrderedDict{Symbol, <:CalcFactorMahalanobis},
+                    flatvar,
+                    Xc )
+  #
+  obj = zero(eltype(Xc))
   for (fid, cfp) in cfdict
 
     varOrder = cfp.varOrder
 
-    Xparams = [getPoint(getVariableType(fg, varId), view(X, flatvar.idx[varId])) for varId in varOrder]
+    Xparams = [getPoint(getVariableType(fg, varId), view(Xc, flatvar.idx[varId])) for varId in varOrder]
 
     # call the user function
     retval = cfp(Xparams...)
@@ -216,7 +512,6 @@ function _totalCost(fg,
 end
 
 
-export solveGraphParametric
 
 """
     $SIGNATURES
@@ -225,7 +520,8 @@ Batch solve a Gaussian factor graph using Optim.jl. Parameters can be passed dir
 Notes:
   - Only :Euclid and :Circular manifolds are currently supported, own manifold are supported with `algorithmkwargs` (code may need updating though)
 """
-function solveGraphParametric(fg::AbstractDFG;
+function solveGraphParametric2(fg::AbstractDFG;
+                              computeCovariance::Bool = true,
                               solvekey::Symbol=:parametric,
                               autodiff = :forward,
                               algorithm=Optim.BFGS,
@@ -251,7 +547,7 @@ function solveGraphParametric(fg::AbstractDFG;
 
   varIds = listVariables(fg)
 
-  #TODO mabye remove sorting, just for convenience
+  #TODO maybe remove sorting, just for convenience
   sort!(varIds, lt=natural_lt)
 
   flatvar = FlatVariables(fg, varIds)
@@ -262,7 +558,7 @@ function solveGraphParametric(fg::AbstractDFG;
   end
 
   initValues = flatvar.X
-
+  # initValues .+= randn(length(initValues))*0.0001
 
   alg = algorithm(; algorithmkwargs...)
 
@@ -272,9 +568,13 @@ function solveGraphParametric(fg::AbstractDFG;
   result = Optim.optimize(tdtotalCost, initValues, alg, options)
   rv = Optim.minimizer(result)
 
-  H = Optim.hessian!(tdtotalCost, rv)
-
-  Σ = pinv(H)
+  Σ = if computeCovariance
+    H = Optim.hessian!(tdtotalCost, rv)
+    pinv(H)
+  else
+    N = length(initValues)
+    zeros(N,N)
+  end
 
   d = Dict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
 
@@ -343,7 +643,7 @@ function solveConditionalsParametric(fg::AbstractDFG,
 
   Σ = pinv(H)
 
-  d = Dict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
+  d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
 
   for key in frontals
     r = flatvar.idx[key]
@@ -623,7 +923,7 @@ end
 # To sort out how to dispatch on specialized functions.
 # related to #931 and #1069
 
-struct MaxMixture
+struct MaxMixture <: AbstractMaxMixtureSolver
   p::Vector{Float64}
   # the chosen component to be used for the optimization
   choice::Base.RefValue{Int}
@@ -671,7 +971,7 @@ end
 
 # end
 
-function (cfp::CalcFactorMahalanobis{<:CalcFactor, MaxMixture})(variables...)
+function (cfp::CalcFactorMahalanobis{N, MaxMixture})(variables...) where N
   
   r = [_calcFactorMahalanobis(cfp, cfp.meas[i], cfp.iΣ[i], variables...) for i = 1:length(cfp.meas)]
 
@@ -693,14 +993,14 @@ end
 ## ================================================================================================
 #TODO better dispatch
 
-struct MaxMultihypo
+struct MaxMultihypo <: AbstractMaxMixtureSolver
   multihypo::Vector{Float64}
 end
-struct MaxNullhypo
+struct MaxNullhypo <: AbstractMaxMixtureSolver
   nullhypo::Float64
 end
 
-function (cfp::CalcFactorMahalanobis{<:CalcFactor, MaxMultihypo})(X1, L1, L2)
+function (cfp::CalcFactorMahalanobis{N, MaxMultihypo})(X1, L1, L2) where N
   mh = cfp.specialAlg.multihypo
   @assert length(mh) == 3 "multihypo $mh  not supported with parametric, length should be 3"
   @assert mh[1] == 0 "multihypo $mh  not supported with parametric, first should be 0"
@@ -718,7 +1018,7 @@ function (cfp::CalcFactorMahalanobis{<:CalcFactor, MaxMultihypo})(X1, L1, L2)
   
 end
 
-function (cfp::CalcFactorMahalanobis{<:CalcFactor, MaxNullhypo})(X1, X2) 
+function (cfp::CalcFactorMahalanobis{N, MaxNullhypo})(X1, X2) where N
   nh = cfp.specialAlg.nullhypo
   @assert nh > 0 "nullhypo $nh not as expected"
   

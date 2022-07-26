@@ -45,23 +45,6 @@ struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,AbstractVec
 end
 
 
-"""
-    $TYPEDEF
-
-Internal parametric extension to [`CalcFactor`](@ref) used for buffering measurement and calculating Mahalanobis distance
-
-Related
-
-[`CalcFactor`](@ref)
-"""
-struct CalcFactorMahalanobis{CF<:CalcFactor, S, N}
-  calcfactor!::CF
-  varOrder::Vector{Symbol}
-  meas#::NTuple{N, <:AbstractVector{Float64}}
-  iΣ::NTuple{N, Matrix{Float64}}
-  specialAlg::S
-end
-
 
 abstract type _AbstractThreadModel end
 
@@ -92,7 +75,7 @@ DevNotes
 """
 mutable struct FactorMetadata{FV<:AbstractVector{<:DFGVariable}, 
                               VL<:AbstractVector{Symbol}, 
-                              AR<:NamedTuple, 
+                              AR<:Tuple, 
                               CD}
   # full list of Vector{DFGVariable} connected to the factor
   fullvariables::FV # Vector{<:DFGVariable}
@@ -159,7 +142,7 @@ Related
 mutable struct CommonConvWrapper{ T<:AbstractFactor,
                                   H<:Union{Nothing, Distributions.Categorical},
                                   C<:Union{Nothing, Vector{Int}},
-                                  NTP <: NamedTuple,
+                                  NTP <: Tuple,
                                   G,
                                   MT,
                                   CT} <: FactorOperationalMemory

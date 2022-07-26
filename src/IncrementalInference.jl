@@ -16,8 +16,10 @@ using Manifolds
 using RecursiveArrayTools: ArrayPartition
 export ArrayPartition
 
+using OrderedCollections: OrderedDict
+
 export ℝ, AbstractManifold
-export ProductRepr
+# export ProductRepr
 # common groups -- preferred defaults at this time.
 export TranslationGroup, RealCircleGroup
 # common non-groups -- TODO still teething problems to sort out in IIF v0.25-v0.26.

@@ -26,7 +26,7 @@ options = Optim.Options(time_limit = 100,
                     )
 
 algorithm = Optim.NelderMead
-vardict, result, varIds, Σ = solveGraphParametric(fg; options, algorithm)
+vardict, result, varIds, Σ = IIF.solveGraphParametric(fg; options, algorithm)
 
 @test isapprox(vardict[:x0].val[1], 1, atol = 0.05)
 @test isapprox(vardict[:x0].cov[1], 0.01, atol = 0.001)
@@ -50,7 +50,7 @@ addFactor!(fg, [:l1], p)
 
 addFactor!(fg, [:x1,:l1], LinearRelative(Normal(0.0,0.1)))
 
-vardict, result, varIds, Σ = solveGraphParametric(fg)
+vardict, result, varIds, Σ = IIF.solveGraphParametric(fg)
 @test isapprox(vardict[:x0].val[1], 0, atol = 0.1)
 @test isapprox(vardict[:x1].val[1], 1, atol = 0.1)
 @test isapprox(vardict[:l1].val[1], 1, atol = 0.1)
@@ -66,7 +66,7 @@ p = Mixture(Prior(MvNormal(2,1.0)), [MvNormal([0.8, 0.5], [0.4, 0.4]), MvNormal(
 f = addFactor!(fg, [:x0], p)
 
 
-vardict, result, varIds, Σ = solveGraphParametric(fg)
+vardict, result, varIds, Σ = IIF.solveGraphParametric(fg)
 vardict
 @test isapprox(vardict[:x0].val[1], 1.0, atol = 0.01)
 @test isapprox(vardict[:x0].val[2], 0.5, atol = 0.01)
@@ -160,7 +160,7 @@ algorithm = Optim.NelderMead
 algorithm = Optim.BFGS
 algorithmkwargs=(linesearch = Optim.LineSearches.HagerZhang(),)
 # algorithmkwargs=(linesearch = Optim.LineSearches.Static(),)
-vardict, result, varIds, Σ = solveGraphParametric(fg; algorithm, options, algorithmkwargs)
+vardict, result, varIds, Σ = IIF.solveGraphParametric(fg; algorithm, options, algorithmkwargs)
 vardict
 
 ##
@@ -233,7 +233,7 @@ options = Optim.Options(time_limit = 100,
                     )
 
 algorithm = Optim.NelderMead
-vardict, result, varIds, Σ = solveGraphParametric(fg; algorithm, autodiff=:finite)
+vardict, result, varIds, Σ = IIF.solveGraphParametric(fg; algorithm, autodiff=:finite)
 vardict
 
 
