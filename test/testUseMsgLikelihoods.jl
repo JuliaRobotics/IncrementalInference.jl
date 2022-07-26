@@ -9,6 +9,14 @@ using IncrementalInference
 fg = generateGraph_CaesarRing1D()
 getSolverParams(fg).useMsgLikelihoods = true
 
+## test getSample
+
+z = sampleFactor(fg[:x0x1f1])[1]
+
+@test z isa Vector{<:Real}
+
+##
+
 initAll!(fg)
 
 ##
@@ -47,6 +55,14 @@ cfg = buildCliqSubgraph(fg, tree[2])
 IIF.addMsgFactors!(cfg, beliefMsg4, IIF.UpwardPass)
 IIF.addMsgFactors!(cfg, beliefMsg5, IIF.UpwardPass)
 @test 2 === length(lsf(cfg))
+
+##
+
+z = sampleFactor(cfg, :x0x6f1)[1]
+
+@test z isa Vector{<:Real}
+
+##
 
 childmsgs = LikelihoodMessage[]
 retdict = IIF.upGibbsCliqueDensity(cfg, tree[2], :default, childmsgs)
