@@ -11,9 +11,19 @@ getSolverParams(fg).useMsgLikelihoods = true
 
 ## test getSample
 
-z = sampleFactor(fg[:x0x1f1])[1]
+fct = fg[:x0x1f1]
+fT = getFactorType(fct)
+@test fT isa LinearRelative
+@test fT.Z isa Normal
 
+z = sampleFactor(fct)[1]
 @test z isa Vector{<:Real}
+
+##
+
+M = getManifold(fT)
+X = sampleTangent(M, fT.Z)
+@test X isa Vector{<:Real}
 
 ##
 
@@ -58,9 +68,20 @@ IIF.addMsgFactors!(cfg, beliefMsg5, IIF.UpwardPass)
 
 ##
 
-z = sampleFactor(cfg, :x0x6f1)[1]
+fct = cfg[:x0x6f1]
+fT = getFactorType(fct)
+@test fT isa LinearRelative
+@test fT.Z isa Normal
+
+z = sampleFactor(fct)[1]
 
 @test z isa Vector{<:Real}
+
+##
+
+M = getManifold(fT.Z)
+X = sampleTangent(M, fT.Z)
+@test X isa Vector{<:Real}
 
 ##
 
