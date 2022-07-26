@@ -10,16 +10,18 @@ Notes
 function sampleTangent end
 
 # Sampling MKD
-function sampleTangent(M::AbstractDecoratorManifold, x::ManifoldKernelDensity, p=mean(x))
-    # get legacy matrix of coordinates and selected labels
-    coords, lbls = sample(x.belief,1)
-    X = hat(x.manifold, Identity(x.manifold), coords)
+function sampleTangent(M::AbstractDecoratorManifold, x::ManifoldKernelDensity, p=getPointIdentity(M) )
+  _maybeVec(xv) = xv
+  _maybeVec(xv::AbstractMatrix) = 1 === size(xv,2) ? xv[:] : xv
 
-    X_ = 1 === size(X,2) ? X[:] : X
-    return X_
+  # get legacy matrix of coordinates and selected labels
+  coords, lbls = sample(x.belief,1)
+  X = hat(x.manifold, p, coords)
+  
+  return _maybeVec(X)
 end
 
-function sampleTangent(x::ManifoldKernelDensity, p=mean(x)) 
+function sampleTangent(x::ManifoldKernelDensity, p=getPointIdentity(x.manifold)) 
   return sampleTangent(x.manifold, x, p)
 end
 
@@ -34,7 +36,7 @@ end
 
 #TODO, re-evaluate this. special case for the RealCircleGroup to return a vector see https://github.com/JuliaManifolds/Manifolds.jl/issues/489 
 function sampleTangent(M::RealCircleGroup, z::Distribution, p=getPointIdentity(M)) 
-  return hat(M, [0.0], rand(z,1))
+  return hat(M, p, rand(z,1)) # [0.0]
 end
 
 """
@@ -54,12 +56,12 @@ function samplePoint(M::AbstractDecoratorManifold, sbelief, p=getPointIdentity(M
   return retract(M, p, X, retraction_method)
 end
 
-function samplePoint(M::AbstractDecoratorManifold, sbelief::ManifoldKernelDensity, p=identity_element(M, mean(sbelief)), retraction_method::AbstractRetractionMethod=ExponentialRetraction())
+function samplePoint(M::AbstractDecoratorManifold, sbelief::ManifoldKernelDensity, p=getPointIdentity(M), retraction_method::AbstractRetractionMethod=ExponentialRetraction())
   X = sampleTangent(M, sbelief, p)
   return retract(M, p, X, retraction_method)
 end
 
-function samplePoint(x::ManifoldKernelDensity, p=mean(x)) 
+function samplePoint(x::ManifoldKernelDensity, p=getPointIdentity(x)) 
   return samplePoint(x.manifold, x, p)
 end
 
