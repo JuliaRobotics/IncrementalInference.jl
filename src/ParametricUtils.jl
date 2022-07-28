@@ -257,7 +257,8 @@ function buildGraphSolveManifold(fg::AbstractDFG)
   PMs = map(vartypes) do vartype
       N = vartypecount[vartype] 
       G = getManifold(vartype)
-      PowerManifold(G, NestedReplacingPowerRepresentation(), N)
+      NPowerManifold(G, N)
+      # PowerManifold(G, NestedReplacingPowerRepresentation(), N)
       # PowerManifold(G, NestedPowerRepresentation(), N) #TODO investigate as it does not converge
   end
   M = ProductManifold(PMs...)    
@@ -410,7 +411,6 @@ function _getComponentsCovar(@nospecialize(PM::PowerManifold), Σ::AbstractMatri
   return subsigmas
 end
 
-# using ForwardDiff
 function solveGraphParametric(fg::AbstractDFG;
                               computeCovariance::Bool = true,
                               solveKey::Symbol=:parametric,
@@ -425,7 +425,6 @@ function solveGraphParametric(fg::AbstractDFG;
 # 
   # Build the container  
   gsc = GraphSolveContainer(fg)
-  # buffs = getGraphSolveCache!(gsc, ForwardDiff.Dual{ForwardDiff.Tag{IncrementalInference.GraphSolveContainer, Float64}, Float64, 12})
   buffs = getGraphSolveCache!(gsc, Float64)
 
   M = gsc.M
@@ -548,9 +547,6 @@ function solveGraphParametric2(fg::AbstractDFG;
 
   varIds = listVariables(fg)
 
-  #TODO maybe remove sorting, just for convenience
-  sort!(varIds, lt=natural_lt)
-
   flatvar = FlatVariables(fg, varIds)
 
   for vId in varIds
@@ -607,8 +603,6 @@ function solveConditionalsParametric(fg::AbstractDFG,
 
   varIds = listVariables(fg)
 
-  #TODO mabye remove sorting, just for convenience
-  sort!(varIds, lt=natural_lt)
   separators = setdiff(varIds, frontals)
 
   varIds = [frontals; separators]
