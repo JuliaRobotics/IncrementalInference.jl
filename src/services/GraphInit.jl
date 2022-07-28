@@ -383,9 +383,8 @@ end
 
 Perform `graphinit` over all variables with `solvable=1` (default).
 
-Related
 
-ensureSolvable!, (EXPERIMENTAL 'treeinit')
+See also: [`ensureSolvable!`](@ref), (EXPERIMENTAL 'treeinit')
 """
 function initAll!(dfg::AbstractDFG,
                   solveKey::Symbol=:default; 
