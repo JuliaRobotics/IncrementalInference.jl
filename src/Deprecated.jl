@@ -29,7 +29,30 @@ end
 
 
 ##==============================================================================
+## Deprecate code below before v0.32
+##==============================================================================
+
+
+# """
+#     $SIGNATURES
+# Get `.factormetadata` for each CPT in CCW for a specific factor in `fg`. 
+# """
+# _getFMdThread(ccw::CommonConvWrapper, 
+#               thrid::Int=Threads.threadid()) = ccw.cpt[thrid].factormetadata
+# #
+# _getFMdThread(fc::Union{GenericFunctionNodeData,DFGFactor}, 
+#               thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(fc), thrid)
+# #
+# _getFMdThread(dfg::AbstractDFG,
+#               lbl::Symbol,
+#               thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(dfg, lbl), thrid)
+# #
+
+
+##==============================================================================
 ## Deprecate code below before v0.31
 ##==============================================================================
 
 @deprecate initManual!(w...;kw...) initVariable!(w...;kw...)
+
+
