@@ -78,7 +78,7 @@ solveGraph!(fg)
 
 ##
 
-for i in 1:1
+for i in 1:3
   solveGraph!(fg);
 end
 
@@ -153,7 +153,6 @@ solveGraph!(fg)
 
 @error "diabling final tests for now, see #1570"
 
-if false
 # check the PPEs are the same
 @test isapprox(getPPE(fg, :x0).suggested[1], x0; atol = 2.0)
 @test isapprox(getPPE(fg, :x1).suggested[1], x1; atol = 2.0)
@@ -164,7 +163,6 @@ if false
 @test isapprox(getPPE(fg, :l1).suggested[1], l1; atol = 3.0)
 @test isapprox(getPPE(fg, :l2).suggested[1], l2; atol = 3.0)
 @test isapprox(getPPE(fg, :l3).suggested[1], l3; atol = 3.0)
-end
 
 
 ##
