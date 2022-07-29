@@ -101,7 +101,6 @@ getFactorDim(w...) = getDimension(w...)
 getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid))
 
 
-
 # function _getDimensionsPartial(ccw::CommonConvWrapper)
 #   # @warn "_getDimensionsPartial not ready for use yet"
 #   ccw.partialDims
@@ -111,31 +110,26 @@ getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid)
 # _getDimensionsPartial(fg::AbstractDFG, lbl::Symbol) = _getDimensionsPartial(getFactor(fg, lbl))
 
 
-# """
-#     $SIGNATURES
-# Get `.factormetadata` for each CPT in CCW for a specific factor in `fg`. 
-# """
-# _getFMdThread(ccw::CommonConvWrapper, 
-#               thrid::Int=Threads.threadid()) = ccw.cpt[thrid].factormetadata
-# #
-# _getFMdThread(fc::Union{GenericFunctionNodeData,DFGFactor}, 
-#               thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(fc), thrid)
-# #
-# _getFMdThread(dfg::AbstractDFG,
-#               lbl::Symbol,
-#               thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(dfg, lbl), thrid)
-# #
-
-
 
 # extend convenience function (Matrix or Vector{P})
-function manikde!(variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
-                  pts::AbstractVector{P};
-                  kw... ) where {P <: Union{<:AbstractArray,<:Number,<:ProductRepr,<:Manifolds.ArrayPartition} }
+function manikde!(
+    variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
+    pts::AbstractVector{P};
+    kw... 
+  ) where {P <: Union{<:AbstractArray,<:Number,<:ProductRepr,<:Manifolds.ArrayPartition} }
   #
   M = getManifold(variableType)
   infoPerCoord=ones(AMP.getNumberCoords(M, pts[1]))
   return AMP.manikde!(M, pts; infoPerCoord, kw...)
+end
+
+function manikde!(
+    varT::InstanceType{<:InferenceVariable}, 
+    pts::AbstractVector{<:Tuple}; 
+    kw...
+  )
+  #
+  manikde!(varT, (t->ArrayPartition(t...)).(pts); kw...)
 end
 
 
