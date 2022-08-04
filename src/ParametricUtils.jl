@@ -805,9 +805,11 @@ function autoinitParametric!(dfg::AbstractDFG,
 
     # updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent=false)    
     # updateVariableSolverData!(dfg, xi.label, getSolverData(xi, solveKey), :graphinit, true, Symbol[]; warn_if_absent=false)
+  else
+    result = nothing
   end
 
-  return isInitialized(xi, solveKey)
+  return result#isInitialized(xi, solveKey)
 end
 
 ## ================================================================================================

@@ -78,15 +78,16 @@ function getSample(cf::CalcFactor{<:ManifoldFactor{M,Z}}) where {M,Z}
   else
     ret = rand(cf.factor.Z)
   end
-  #FIXME parametric wants a tangent vector and not coordinates
-  # I updated calc factor but this will now break, 
-  # perhaps as note suggest to do Lie Group seperately
   #return coordinates as we do not know the point here #TODO separate Lie group
   return ret
 end
 
-function (cf::CalcFactor{<:ManifoldFactor})(X, p, q)
+# function (cf::CalcFactor{<:ManifoldFactor{<:AbstractDecoratorManifold}})(Xc, p, q)
+function (cf::CalcFactor{<:ManifoldFactor})(Xc, p, q)
+  # function (cf::ManifoldFactor)(X, p, q)
   M = cf.factor.M
+  # M = cf.M
+  X = hat(M, p, Xc)
   return distanceTangent2Point(M, X, p, q)
 end
 
