@@ -1,4 +1,18 @@
 ## ================================================================================================
+## AbstractPowerManifold with N as field to avoid excessive compiling time.
+## ================================================================================================
+struct NPowerManifold{𝔽, M<:AbstractManifold{𝔽}} <: AbstractPowerManifold{𝔽, M, NestedReplacingPowerRepresentation}
+  manifold::M
+  N::Int
+end
+
+Manifolds.get_iterator(M::NPowerManifold) = Base.OneTo(M.N)
+
+function Manifolds.manifold_dimension(M::NPowerManifold)
+  return manifold_dimension(M.manifold) * M.N
+end
+
+## ================================================================================================
 ## ArrayPartition getPointIdentity (identity_element)
 ## ================================================================================================
 # NOTE This will be removed once moved upstream to Manifolds.jl
@@ -16,18 +30,17 @@ function getPointIdentity(G::GroupManifold,::Type{T}=Float64) where T<:Real
   return error("getPointIdentity not implemented on G")
 end
 
-function getPointIdentity(G::ProductManifold,::Type{T}=Float64) where T<:Real
+function getPointIdentity(@nospecialize(G::ProductManifold),::Type{T}=Float64) where T<:Real
   return ArrayPartition(map(x->getPointIdentity(x,T), G.manifolds))
 end
 
-function getPointIdentity(M::Manifolds.PowerManifoldNestedReplacing,::Type{T}=Float64) where T<:Real
+function getPointIdentity(@nospecialize(M::PowerManifold),::Type{T}=Float64) where T<:Real
   N = Manifolds.get_iterator(M).stop
   return fill(getPointIdentity(M.manifold, T), N)
 end
 
-function getPointIdentity(M::PowerManifold,::Type{T}=Float64) where T<:Real
-  N = Manifolds.get_iterator(M).stop
-  return fill(getPointIdentity(M.manifold, T), N)
+function getPointIdentity(M::NPowerManifold,::Type{T}=Float64) where T<:Real
+  return fill(getPointIdentity(M.manifold, T), M.N)
 end
 
 function getPointIdentity(G::SemidirectProductGroup,::Type{T}=Float64) where T<:Real
