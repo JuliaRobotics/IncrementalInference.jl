@@ -110,7 +110,7 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   # else
   #   Optim.optimize(cost, X0c, Optim.NelderMead())
   # end
-  alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
+  alg = islen1 ? Optim.BFGS() : Optim.NelderMead(initial_simplex = Optim.AffineSimplexer(1.0,0.5))
   X0 = hat(M, ϵ, X0c)
   p0 = exp(M, ϵ, X0)
   r = Optim.optimize(Xc->cost(p0, X0, Xc), X0c, alg)
