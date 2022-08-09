@@ -140,6 +140,9 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
   
   if typeof(_meas) <: Tuple
     _measX = map(m->hat(M, ϵ, m), _meas)
+  # TODO perhaps better consolidate manifold prior 
+  elseif fac_func isa ManifoldPrior
+    _measX = (_meas,)
   else
     _measX = (hat(M, ϵ, _meas),)
   end
@@ -257,7 +260,8 @@ function buildGraphSolveManifold(fg::AbstractDFG)
   PMs = map(vartypes) do vartype
       N = vartypecount[vartype] 
       G = getManifold(vartype)
-      PowerManifold(G, NestedReplacingPowerRepresentation(), N)
+      NPowerManifold(G, N)
+      # PowerManifold(G, NestedReplacingPowerRepresentation(), N)
       # PowerManifold(G, NestedPowerRepresentation(), N) #TODO investigate as it does not converge
   end
   M = ProductManifold(PMs...)    
@@ -271,7 +275,7 @@ struct GraphSolveBuffers{T<:Real, U}
   Xc::Vector{T}
 end
 
-function GraphSolveBuffers(M, ::Type{T}) where T
+function GraphSolveBuffers(@nospecialize(M), ::Type{T}) where T
   ϵ = getPointIdentity(M, T)
   p = deepcopy(ϵ)# allocate_result(M, getPointIdentity)
   X = deepcopy(ϵ) #allcoate(p)
@@ -318,7 +322,7 @@ function getGraphSolveCache!(gsc::GraphSolveContainer, ::Type{T}) where T<:Real
   return val
 end
 
-function _toPoints2!(M::AbstractManifold, buffs::GraphSolveBuffers{T,U}, Xc::Vector{T}) where {T,U}
+function _toPoints2!(@nospecialize(M::AbstractManifold), buffs::GraphSolveBuffers{T,U}, Xc::Vector{T}) where {T,U}
   ϵ = buffs.ϵ
   p = buffs.p
   X = buffs.X
@@ -384,7 +388,7 @@ function initPoints!(p, gsc, fg::AbstractDFG, solveKey=:parametric)
 end
 
 #NOTE this only works with a product of power manifolds
-function getComponentsCovar(PM::ProductManifold, Σ::AbstractMatrix)
+function getComponentsCovar(@nospecialize(PM::ProductManifold), Σ::AbstractMatrix)
 
   dims = manifold_dimension.(PM.manifolds)
   dim_ranges = Manifolds._get_dim_ranges(dims)
@@ -399,8 +403,7 @@ function getComponentsCovar(PM::ProductManifold, Σ::AbstractMatrix)
 
 end
 
-function _getComponentsCovar(PM::PowerManifold, Σ::AbstractMatrix)
-
+function _getComponentsCovar(@nospecialize(PM::PowerManifold), Σ::AbstractMatrix)
   M = PM.manifold
   dim = manifold_dimension(M)
   subsigmas = map(Manifolds.get_iterator(PM)) do i
@@ -411,7 +414,6 @@ function _getComponentsCovar(PM::PowerManifold, Σ::AbstractMatrix)
   return subsigmas
 end
 
-# using ForwardDiff
 function solveGraphParametric(fg::AbstractDFG;
                               computeCovariance::Bool = true,
                               solveKey::Symbol=:parametric,
@@ -426,7 +428,6 @@ function solveGraphParametric(fg::AbstractDFG;
 # 
   # Build the container  
   gsc = GraphSolveContainer(fg)
-  # buffs = getGraphSolveCache!(gsc, ForwardDiff.Dual{ForwardDiff.Tag{IncrementalInference.GraphSolveContainer, Float64}, Float64, 12})
   buffs = getGraphSolveCache!(gsc, Float64)
 
   M = gsc.M
@@ -470,17 +471,19 @@ function solveGraphParametric(fg::AbstractDFG;
   exp!(M, p, ϵ, X)
 
   #extract covariances from result
-  sigmas = getComponentsCovar(M, Σ)
+  # sigmas = getComponentsCovar(M, Σ)
 
   # d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
   d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{AbstractArray,Matrix{Float64}}}}()
 
   varIds = vcat(values(gsc.varTypesIds)...)
+  varIdDict = FlatVariables(fg, varIds).idx
   for (i,key) in enumerate(varIds)
-    push!(d,key=>(val=p[i],cov=sigmas[i]))
+    r = varIdDict[key]
+    push!(d,key=>(val=p[i], cov=Σ[r,r]))
+    # push!(d,key=>(val=p[i], cov=sigmas[i]))
   end
 
-  varIdDict = FlatVariables(fg, varIds).idx
 
   return (opti=d, stat=result, varIds=varIdDict, Σ=Σ)
 end
@@ -512,80 +515,6 @@ function _totalCost(fg,
 end
 
 
-
-"""
-    $SIGNATURES
-
-Batch solve a Gaussian factor graph using Optim.jl. Parameters can be passed directly to optim.
-Notes:
-  - Only :Euclid and :Circular manifolds are currently supported, own manifold are supported with `algorithmkwargs` (code may need updating though)
-"""
-function solveGraphParametric2(fg::AbstractDFG;
-                              computeCovariance::Bool = true,
-                              solvekey::Symbol=:parametric,
-                              autodiff = :forward,
-                              algorithm=Optim.BFGS,
-                              algorithmkwargs=(), # add manifold to overwrite computed one
-                              options = Optim.Options(allow_f_increases=true,
-                                                      time_limit = 100,
-                                                      # show_trace = true,
-                                                      # show_every = 1,
-                                                      ))
-
-  #Other options
-  # options = Optim.Options(time_limit = 100,
-  #                     iterations = 1000,
-  #                     show_trace = true,
-  #                     show_every = 1,
-  #                     allow_f_increases=true,
-  #                     g_tol = 1e-6,
-  #                     )
-  # Example for useing Optim's manifold functions
-  # mc_mani = IIF.MixedCircular(fg, varIds)
-  # alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
-
-
-  varIds = listVariables(fg)
-
-  #TODO maybe remove sorting, just for convenience
-  sort!(varIds, lt=natural_lt)
-
-  flatvar = FlatVariables(fg, varIds)
-
-  for vId in varIds
-    p = getVariableSolverData(fg, vId, solvekey).val[1]
-    flatvar[vId] = getCoordinates(getVariableType(fg,vId), p)
-  end
-
-  initValues = flatvar.X
-  # initValues .+= randn(length(initValues))*0.0001
-
-  alg = algorithm(; algorithmkwargs...)
-
-  cfd = calcFactorMahalanobisDict(fg)
-  tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(fg, cfd, flatvar, x), initValues, autodiff = autodiff)
-
-  result = Optim.optimize(tdtotalCost, initValues, alg, options)
-  rv = Optim.minimizer(result)
-
-  Σ = if computeCovariance
-    H = Optim.hessian!(tdtotalCost, rv)
-    pinv(H)
-  else
-    N = length(initValues)
-    zeros(N,N)
-  end
-
-  d = Dict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
-
-  for key in varIds
-    r = flatvar.idx[key]
-    push!(d,key=>(val=rv[r],cov=Σ[r,r]))
-  end
-
-  return d, result, flatvar.idx, Σ
-end
-
 #TODO maybe consolidate with solveGraphParametric
 #TODO WIP
 ```
@@ -593,7 +522,8 @@ end
 Solve for frontal values only with values in seprarators fixed
 ```
 function solveConditionalsParametric(fg::AbstractDFG,
-                                    frontals::Vector{Symbol};
+                                    frontals::Vector{Symbol},
+                                    separators::Vector{Symbol} = setdiff(listVariables(fg), frontals);
                                     solvekey::Symbol=:parametric,
                                     autodiff = :forward,
                                     algorithm=Optim.BFGS,
@@ -604,13 +534,9 @@ function solveConditionalsParametric(fg::AbstractDFG,
                                                             # show_every = 1,
                                                             ))
 
-  varIds = listVariables(fg)
-
-  #TODO mabye remove sorting, just for convenience
-  sort!(varIds, lt=natural_lt)
-  separators = setdiff(varIds, frontals)
-
   varIds = [frontals; separators]
+
+  sfg = issetequal(varIds, listVariables(fg)) ? fg : buildSubgraph(fg, varIds, 1)
 
   flatvar = FlatVariables(fg, varIds)
 
@@ -631,7 +557,7 @@ function solveConditionalsParametric(fg::AbstractDFG,
 
   alg = algorithm(; algorithmkwargs...)
   # alg = algorithm(; algorithmkwargs...)
-  cfd = calcFactorMahalanobisDict(fg)
+  cfd = calcFactorMahalanobisDict(sfg)
   tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(fg, cfd, flatvar, [x;sX]), fX, autodiff = autodiff)
 
   # result = Optim.optimize((x)->_totalCost(fg, flatvar, [x;sX]), fX, alg, options)
@@ -643,82 +569,18 @@ function solveConditionalsParametric(fg::AbstractDFG,
 
   Σ = pinv(H)
 
-  d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
+  d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{AbstractArray,Matrix{Float64}}}}()
 
   for key in frontals
     r = flatvar.idx[key]
-    push!(d,key=>(val=rv[r],cov=Σ[r,r]))
+    p = getPoint(getVariableType(fg, key), rv[r])
+    push!(d,key=>(val=p,cov=Σ[r,r]))
   end
-
-  return d, result, flatvar.idx, Σ
+  
+  return (opti=d, stat=result, varIds=flatvar.idx, Σ=Σ)
 end
 
-## ================================================================================================
-## MixedCircular Manifold for Optim.jl
-## ================================================================================================
 
-"""
-    MixedCircular
-Mixed Circular Manifold. Simple manifold for circular and cartesian mixed for use in optim
-
-DevNotes
-- Consolidate around `ManifoldsBase.AbstractManifold` instead, with possible wrapper-type solution for `Optim.Manifold`
-"""
-struct MixedCircular <: Optim.Manifold
-  isCircular::BitArray
-end
-
-function MixedCircular(fg::AbstractDFG, varIds::Vector{Symbol})
-  circMask = Bool[]
-  for k = varIds
-    append!(circMask, convert(Tuple, getManifold(getVariableType(fg, k))) .== :Circular)
-  end
-  MixedCircular(circMask)
-end
-
-# https://github.com/JuliaNLSolvers/Optim.jl/blob/e439de4c997a727f3f724ae76da54b9cc08456b2/src/Manifolds.jl#L3
-# retract!(m, x): map x back to a point on the manifold m
-function Optim.retract!(c::MixedCircular, x)
-  for (i,v) = enumerate(x)
-    c.isCircular[i] && (x[i] = rem2pi(v, RoundNearest))
-  end
-  return x
-end
-# https://github.com/JuliaNLSolvers/Optim.jl/blob/e439de4c997a727f3f724ae76da54b9cc08456b2/src/Manifolds.jl#L2
-# project_tangent!(m, g, x): project g on the tangent space to m at x
-Optim.project_tangent!(S::MixedCircular,g,x) = g
-
-## ================================================================================================
-## Manifolds.jl Consolidation
-## TODO: Still to be completed and tested.
-## ================================================================================================
-# struct ManifoldsVector <: Optim.Manifold
-#   manis::Vector{Manifold}
-# end
-
-# Base.getindex(mv::ManifoldsVector, inds...) = getindex(mv.mani, inds...)
-# Base.setindex!(mv, X, inds...) =  setindex!(mv.mani, X, inds...)
-
-# function ManifoldsVector(fg::AbstractDFG, varIds::Vector{Symbol})
-#   manis = Bool[]
-#   for k = varIds
-#     push!(manis, getVariableType(fg, k) |> getManifold)
-#   end
-#   ManifoldsVector(manis)
-# end
-
-# function Optim.retract!(manis::ManifoldsVector, x)
-#   for (i,M) = enumerate(manis)
-#     x[i] = project(M, x[i])
-#   end
-#   return x 
-# end
-# function Optim.project_tangent!(manis::ManifoldsVector, G, x)
-#   for (i, M) = enumerate(manis)
-#     G[i] = project(M, x[i], G)
-#   end
-#   return G
-# end
 
 ## ================================================================================================
 ## UNDER DEVELOPMENT Parametric solveTree utils
@@ -739,6 +601,7 @@ end
 """
     $SIGNATURES
 Calculate the marginal distribution for a clique over subsetVarIds.
+#FIXME update to support manifolds
 """
 function calculateMarginalCliqueLikelihood(vardict, Σ, varindxs, subsetVarIds)
 
@@ -863,19 +726,6 @@ function addParametricSolver!(fg; init=true)
   nothing
 end
 
-#TODO Delete?
-function updateVariablesFromParametricSolution!(fg::AbstractDFG, vardict)
-  for (v,val) in vardict
-    vnd = getVariableSolverData(fg, v, :parametric)
-    vnd.val .= val.val
-    if size(vnd.bw) != size(val.cov)
-      vnd.bw = val.cov
-    else
-      vnd.bw .= val.cov
-    end
-  end
-end
-
 """
     $SIGNATURES
 Update the fg from solution in vardict and add MeanMaxPPE (all just mean). Usefull for plotting
@@ -885,12 +735,13 @@ function updateParametricSolution!(sfg, vardict)
   for (v,val) in vardict
       vnd = getSolverData(getVariable(sfg, v), :parametric)
       # fill in the variable node data value
-      p = getPoint(getVariableType(sfg, v), val.val)
-      vnd.val[1] = p
+      vnd.val[1] = val.val
       #calculate and fill in covariance
       vnd.bw = val.cov
       #fill in ppe as mean
-      ppe = MeanMaxPPE(:parametric, val.val, val.val, val.val)
+      Xc = getCoordinates(getVariableType(sfg, v), val.val)
+
+      ppe = MeanMaxPPE(:parametric, Xc, Xc, Xc)
       getPPEDict(getVariable(sfg, v))[:parametric] = ppe
   end
 end
@@ -915,6 +766,50 @@ function createMvNormal(v::DFGVariable, key=:parametric)
         @warn "Trying MvNormal Fit, replace with PPE fits in future"
         return fit(MvNormal,getSolverData(v, key).val)
     end
+end
+
+
+function autoinitParametric!(dfg::AbstractDFG,
+                             initme::Symbol;
+                             reinit::Bool=false)
+  #
+  solveKey = :parametric
+
+  xi = getVariable(dfg, initme)
+  vnd = getSolverData(xi, solveKey)
+  # don't initialize a variable more than once
+  if reinit || !isInitialized(xi, solveKey)
+
+    # frontals - initme
+    # separators - inifrom
+
+    initfrom = ls2(dfg, initme)
+    filter!(initfrom) do vl
+      isInitialized(dfg, vl, solveKey)
+    end
+
+    vardict, result, flatvars, Σ = solveConditionalsParametric(dfg, [initme], initfrom)
+
+    val,cov = vardict[initme]
+
+    # fill in the variable node data value
+    vnd.val[1] = val
+    #calculate and fill in covariance
+    vnd.bw = cov
+
+    vnd.initialized = true
+    #fill in ppe as mean
+    Xc = getCoordinates(getVariableType(xi), val)
+    ppe = MeanMaxPPE(:parametric, Xc, Xc, Xc)
+    getPPEDict(xi)[:parametric] = ppe
+
+    # updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent=false)    
+    # updateVariableSolverData!(dfg, xi.label, getSolverData(xi, solveKey), :graphinit, true, Symbol[]; warn_if_absent=false)
+  else
+    result = nothing
+  end
+
+  return result#isInitialized(xi, solveKey)
 end
 
 ## ================================================================================================
