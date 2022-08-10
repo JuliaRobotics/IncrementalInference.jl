@@ -354,4 +354,7 @@ export filterHistAllToArray, cliqHistFilterTransitions, printCliqSummary
 export printHistoryLine, printHistoryLane, printCliqHistorySummary
 export printCSMHistoryLogical, printCSMHistorySequential
 
+export MetaBayesTree, BayesTree
+export CSMHistoryTuple
+
 #
