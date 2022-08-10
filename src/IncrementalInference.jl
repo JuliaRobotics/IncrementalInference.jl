@@ -142,6 +142,7 @@ include("Factors/MsgPrior.jl")
 include("entities/CliqueTypes.jl")
 include("entities/JunctionTreeTypes.jl")
 
+include("services/JunctionTree.jl")
 include("services/GraphInit.jl")
 include("services/FactorGraph.jl")
 include("services/BayesNet.jl")
