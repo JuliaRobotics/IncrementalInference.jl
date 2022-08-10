@@ -188,9 +188,9 @@ include("services/CliqueTypes.jl")
 
 # solving graphs
 include("services/SolverUtilities.jl")
-include("NumericalCalculations.jl")
+include("services/NumericalCalculations.jl")
 include("services/DeconvUtils.jl")
-include("ExplicitDiscreteMarginalizations.jl")
+include("services/ExplicitDiscreteMarginalizations.jl")
 # include("InferDimensionUtils.jl")
 include("services/EvalFactor.jl")
 include("services/ApproxConv.jl")
