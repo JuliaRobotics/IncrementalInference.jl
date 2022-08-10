@@ -1,10 +1,5 @@
 # init utils for tree based inference
 
-export resetCliqSolve!
-export addLikelihoodsDifferential!
-export addLikelihoodsDifferentialCHILD!
-
-
 ## =============================================================================
 # short preamble funcions
 ## =============================================================================

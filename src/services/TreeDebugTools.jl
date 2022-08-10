@@ -1,12 +1,6 @@
 
 #
 
-export repeatCSMStep!
-export attachCSM!
-export filterHistAllToArray, cliqHistFilterTransitions, printCliqSummary
-export printHistoryLine, printHistoryLane, printCliqHistorySummary
-export printCSMHistoryLogical, printCSMHistorySequential
-
 
 """
     $SIGNATURES

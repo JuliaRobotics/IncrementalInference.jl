@@ -143,7 +143,7 @@ include("entities/CliqueTypes.jl")
 include("entities/JunctionTreeTypes.jl")
 
 include("services/GraphInit.jl")
-include("FactorGraph.jl")
+include("services/FactorGraph.jl")
 include("services/BayesNet.jl")
 
 # Serialization helpers
@@ -153,16 +153,17 @@ include("Serialization/services/SerializingDistributions.jl")
 include("Serialization/services/SerializationMKD.jl")
 include("Serialization/services/DispatchPackedConversions.jl")
 
-include("FGOSUtils.jl")
-include("CompareUtils.jl")
+include("services/FGOSUtils.jl")
+include("services/CompareUtils.jl")
+
 include("NeedsResolution.jl")
 
 # tree and init related functions
-include("SubGraphFunctions.jl")
+include("services/SubGraphFunctions.jl")
 include("JunctionTree.jl")
-include("TreeMessageAccessors.jl")
-include("TreeMessageUtils.jl")
-include("TreeBasedInitialization.jl")
+include("services/TreeMessageAccessors.jl")
+include("services/TreeMessageUtils.jl")
+include("services/TreeBasedInitialization.jl")
 
 
 # included variables of IIF, easy to extend in user's context
@@ -178,7 +179,10 @@ include("Factors/EuclidDistance.jl")
 include("Factors/Circular.jl")
 include("Factors/PartialPrior.jl")
 include("Factors/PartialPriorPassThrough.jl")
-include("DefaultNodeTypes.jl") # older file
+
+
+# older file
+include("services/DefaultNodeTypes.jl") 
 
 # Refactoring in progress
 include("services/CalcFactor.jl")
@@ -187,21 +191,22 @@ include("services/FactorGradients.jl")
 include("services/CliqueTypes.jl")
 
 # solving graphs
-include("SolverUtilities.jl")
-include("NumericalCalculations.jl")
-include("DeconvUtils.jl")
-include("ExplicitDiscreteMarginalizations.jl")
+include("services/SolverUtilities.jl")
+include("services/NumericalCalculations.jl")
+include("services/DeconvUtils.jl")
+include("services/ExplicitDiscreteMarginalizations.jl")
 # include("InferDimensionUtils.jl")
 include("services/EvalFactor.jl")
 include("services/ApproxConv.jl")
 
-include("ConsolidateParametricRelatives.jl") # FIXME CONSOLIDATE
+# FIXME CONSOLIDATE
+include("ConsolidateParametricRelatives.jl") 
 
-include("GraphProductOperations.jl")
-include("SolveTree.jl")
-include("TetherUtils.jl")
-include("TreeDebugTools.jl")
-include("CliqStateMachineUtils.jl")
+include("services/GraphProductOperations.jl")
+include("services/SolveTree.jl")
+include("services/TetherUtils.jl")
+include("services/TreeDebugTools.jl")
+include("services/CliqStateMachineUtils.jl")
 
 #EXPERIMENTAL parametric
 include("ParametricCSMFunctions.jl")

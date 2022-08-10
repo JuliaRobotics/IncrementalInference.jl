@@ -1,11 +1,4 @@
 
-export
-  getCliqueStatus,
-  setCliqueStatus!
-
-export
-  stackCliqUpMsgsByVariable,
-  getCliqDownMsgsAfterDownSolve
 
 # likely to be deleted at some point
 

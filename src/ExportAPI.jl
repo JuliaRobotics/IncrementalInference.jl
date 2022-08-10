@@ -326,3 +326,35 @@ export samplePoint
 
 export  buildCliqSubgraph_StateMachine
 
+export
+  getCliqueStatus,
+  setCliqueStatus!
+
+export
+  stackCliqUpMsgsByVariable,
+  getCliqDownMsgsAfterDownSolve
+
+export resetCliqSolve!
+export addLikelihoodsDifferential!
+export addLikelihoodsDifferentialCHILD!
+
+export selectFactorType
+export approxDeconv, deconvSolveKey
+export approxDeconvBelief
+
+export cont2disc
+export rebaseFactorVariable!
+export accumulateFactorMeans
+export solveFactorParameteric
+
+
+export repeatCSMStep!
+export attachCSM!
+export filterHistAllToArray, cliqHistFilterTransitions, printCliqSummary
+export printHistoryLine, printHistoryLane, printCliqHistorySummary
+export printCSMHistoryLogical, printCSMHistorySequential
+
+export MetaBayesTree, BayesTree
+export CSMHistoryTuple
+
+#
