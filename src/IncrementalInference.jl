@@ -160,9 +160,9 @@ include("NeedsResolution.jl")
 # tree and init related functions
 include("services/SubGraphFunctions.jl")
 include("JunctionTree.jl")
-include("TreeMessageAccessors.jl")
-include("TreeMessageUtils.jl")
-include("TreeBasedInitialization.jl")
+include("services/TreeMessageAccessors.jl")
+include("services/TreeMessageUtils.jl")
+include("services/TreeBasedInitialization.jl")
 
 
 # included variables of IIF, easy to extend in user's context
@@ -187,7 +187,7 @@ include("services/FactorGradients.jl")
 include("services/CliqueTypes.jl")
 
 # solving graphs
-include("SolverUtilities.jl")
+include("services/SolverUtilities.jl")
 include("NumericalCalculations.jl")
 include("DeconvUtils.jl")
 include("ExplicitDiscreteMarginalizations.jl")
