@@ -342,4 +342,9 @@ export selectFactorType
 export approxDeconv, deconvSolveKey
 export approxDeconvBelief
 
+export cont2disc
+export rebaseFactorVariable!
+export accumulateFactorMeans
+export solveFactorParameteric
+
 #
