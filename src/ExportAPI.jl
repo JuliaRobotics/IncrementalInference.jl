@@ -326,3 +326,10 @@ export samplePoint
 
 export  buildCliqSubgraph_StateMachine
 
+export
+  getCliqueStatus,
+  setCliqueStatus!
+
+export
+  stackCliqUpMsgsByVariable,
+  getCliqDownMsgsAfterDownSolve
