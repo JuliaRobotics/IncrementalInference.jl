@@ -357,4 +357,14 @@ export printCSMHistoryLogical, printCSMHistorySequential
 export MetaBayesTree, BayesTree
 export CSMHistoryTuple
 
+export getVariableOrder, calcCliquesRecycled
+export getCliquePotentials
+export getClique, getCliques, getCliqueIds, getCliqueData
+export hasClique
+export setCliqueDrawColor!, getCliqueDrawColor
+export appendSeparatorToClique!
+
+export buildTreeFromOrdering! # TODO make internal and deprecate external use to only `buildTreeReset!``
+
+
 #

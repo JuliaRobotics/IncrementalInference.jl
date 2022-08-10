@@ -161,7 +161,7 @@ include("NeedsResolution.jl")
 
 # tree and init related functions
 include("services/SubGraphFunctions.jl")
-include("JunctionTree.jl")
+include("services/JunctionTreeUtils.jl")
 include("services/TreeMessageAccessors.jl")
 include("services/TreeMessageUtils.jl")
 include("services/TreeBasedInitialization.jl")
