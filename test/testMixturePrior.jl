@@ -50,7 +50,7 @@ smpls_ = approxConv(fg, :x0f1, :x0)
 
 # should be a balance of particles
 # @test sum(lb .== 1) - sum(lb .== 2) |> abs < 0.3*N
-@test sum(smpls .< -2.5) - sum(-2.5 .< smpls) |> abs < 0.3*N
+@test sum(smpls .< -2.5) - sum(-2.5 .< smpls) |> abs < 0.35*N
 
 # solve
 solveTree!(fg);
@@ -61,7 +61,7 @@ marginalPts_ = getBelief(fg, :x0) |> getPoints
 @cast marginalPts[i,j] := marginalPts_[j][i]
 
 # check solver solution consistent too
-@test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.3*N
+@test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.35*N
 
 ##
 
@@ -85,7 +85,7 @@ marginalPts_ = getBelief(fg_, :x0) |> getPoints
 @cast marginalPts[i,j] := marginalPts_[j][i]
 
 # check solver solution consistent too
-@test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.3*N
+@test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.35*N
 
 
 # cleanup

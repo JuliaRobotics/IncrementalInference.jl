@@ -79,7 +79,7 @@ solveTree!(fg);
 
 @warn "WIP testPartialNH.jl during transition to Manifolds.jl"
 @test isapprox( getPPE(fg, :x0).suggested, [0;0;0], atol=1)
-@test isapprox( getPPE(fg, :x1).suggested, [10;0;0], atol=1)
+@test isapprox( getPPE(fg, :x1).suggested, [10;0;0], atol=2)
 
 ##
 
