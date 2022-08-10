@@ -155,6 +155,7 @@ include("Serialization/services/DispatchPackedConversions.jl")
 
 include("services/FGOSUtils.jl")
 include("services/CompareUtils.jl")
+
 include("NeedsResolution.jl")
 
 # tree and init related functions
@@ -178,7 +179,10 @@ include("Factors/EuclidDistance.jl")
 include("Factors/Circular.jl")
 include("Factors/PartialPrior.jl")
 include("Factors/PartialPriorPassThrough.jl")
-include("DefaultNodeTypes.jl") # older file
+
+
+# older file
+include("services/DefaultNodeTypes.jl") 
 
 # Refactoring in progress
 include("services/CalcFactor.jl")
@@ -195,11 +199,12 @@ include("services/ExplicitDiscreteMarginalizations.jl")
 include("services/EvalFactor.jl")
 include("services/ApproxConv.jl")
 
-include("ConsolidateParametricRelatives.jl") # FIXME CONSOLIDATE
+# FIXME CONSOLIDATE
+include("ConsolidateParametricRelatives.jl") 
 
-include("GraphProductOperations.jl")
-include("SolveTree.jl")
-include("TetherUtils.jl")
+include("services/GraphProductOperations.jl")
+include("services/SolveTree.jl")
+include("services/TetherUtils.jl")
 include("TreeDebugTools.jl")
 include("CliqStateMachineUtils.jl")
 
