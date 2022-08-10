@@ -48,7 +48,7 @@ pts_ = sample(hgd,1000)[1]
 f = fit(MvNormal, hcat(pts_x,pts_y)')
 
 @test isapprox([0;0], f.μ; atol=0.15)
-@test isapprox([1 0; 0 1], f.Σ.mat; atol=0.25)
+@test isapprox([1 0; 0 1], f.Σ.mat; atol=0.4)
 
 ##
 end
