@@ -143,7 +143,7 @@ include("entities/CliqueTypes.jl")
 include("entities/JunctionTreeTypes.jl")
 
 include("services/GraphInit.jl")
-include("FactorGraph.jl")
+include("services/FactorGraph.jl")
 include("services/BayesNet.jl")
 
 # Serialization helpers
@@ -153,12 +153,12 @@ include("Serialization/services/SerializingDistributions.jl")
 include("Serialization/services/SerializationMKD.jl")
 include("Serialization/services/DispatchPackedConversions.jl")
 
-include("FGOSUtils.jl")
-include("CompareUtils.jl")
+include("services/FGOSUtils.jl")
+include("services/CompareUtils.jl")
 include("NeedsResolution.jl")
 
 # tree and init related functions
-include("SubGraphFunctions.jl")
+include("services/SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeMessageAccessors.jl")
 include("TreeMessageUtils.jl")
