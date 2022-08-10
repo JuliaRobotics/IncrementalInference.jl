@@ -515,12 +515,18 @@ function _totalCost(fg,
 end
 
 
-#TODO maybe consolidate with solveGraphParametric
-#TODO WIP
-```
-    $SIGNATURES
+"""
+$SIGNATURES
 Solve for frontal values only with values in seprarators fixed
-```
+  
+DevNotes
+- WIP
+- Relates to: https://github.com/JuliaRobotics/IncrementalInference.jl/issues/466#issuecomment-562556953
+- Consolidation
+  - Definitely with [`solveFactorParameteric`](@ref)
+  - Maybe with [`solveGraphParametric`](@ref)
+    - https://github.com/JuliaRobotics/IncrementalInference.jl/pull/1588#issuecomment-1210406683
+"""
 function solveConditionalsParametric(fg::AbstractDFG,
                                     frontals::Vector{Symbol},
                                     separators::Vector{Symbol} = setdiff(listVariables(fg), frontals);
