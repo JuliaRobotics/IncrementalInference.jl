@@ -347,4 +347,11 @@ export rebaseFactorVariable!
 export accumulateFactorMeans
 export solveFactorParameteric
 
+
+export repeatCSMStep!
+export attachCSM!
+export filterHistAllToArray, cliqHistFilterTransitions, printCliqSummary
+export printHistoryLine, printHistoryLane, printCliqHistorySummary
+export printCSMHistoryLogical, printCSMHistorySequential
+
 #
