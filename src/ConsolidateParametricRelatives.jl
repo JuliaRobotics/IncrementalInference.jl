@@ -17,10 +17,9 @@ Notes
 DevNotes
 - TODO ensure type stability, likely returning types `Any` at this time.
 - TODO MeanMaxPPE currently stored as coordinates, complicating fast calculation.
+- TODO consolidate with [`solveConditionalsParametric`](@ref)
 
-Related:
-
-[`getMeasurementParametric`](@ref), [`approxConv`](@ref), [`MutablePose2Pose2Gaussian`](@ref)
+See also: [`getMeasurementParametric`](@ref), [`solveConditionalsParametric`](@ref), [`approxConvBelief`](@ref), [`MutablePose2Pose2Gaussian`](@ref)
 """
 function solveFactorParameteric(dfg::AbstractDFG,
                                 fct::DFGFactor,
