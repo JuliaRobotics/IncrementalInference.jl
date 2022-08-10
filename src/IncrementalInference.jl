@@ -219,7 +219,7 @@ include("CliqueStateMachine/services/CliqueStateMachine.jl")
 
 include("CanonicalGraphExamples.jl")
 
-include("AdditionalUtils.jl")
+include("services/AdditionalUtils.jl")
 include("SolverAPI.jl")
 
 # Symbolic tree analysis files.
