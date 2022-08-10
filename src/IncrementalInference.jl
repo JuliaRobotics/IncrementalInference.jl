@@ -142,6 +142,7 @@ include("Factors/MsgPrior.jl")
 include("entities/CliqueTypes.jl")
 include("entities/JunctionTreeTypes.jl")
 
+include("services/JunctionTree.jl")
 include("services/GraphInit.jl")
 include("services/FactorGraph.jl")
 include("services/BayesNet.jl")
@@ -160,7 +161,7 @@ include("NeedsResolution.jl")
 
 # tree and init related functions
 include("services/SubGraphFunctions.jl")
-include("JunctionTree.jl")
+include("services/JunctionTreeUtils.jl")
 include("services/TreeMessageAccessors.jl")
 include("services/TreeMessageUtils.jl")
 include("services/TreeBasedInitialization.jl")
@@ -206,7 +207,7 @@ include("services/GraphProductOperations.jl")
 include("services/SolveTree.jl")
 include("services/TetherUtils.jl")
 include("services/TreeDebugTools.jl")
-include("services/CliqStateMachineUtils.jl")
+include("CliqueStateMachine/services/CliqStateMachineUtils.jl")
 
 #EXPERIMENTAL parametric
 include("ParametricCSMFunctions.jl")
@@ -214,11 +215,11 @@ include("ParametricUtils.jl")
 include("services/MaxMixture.jl")
 
 #X-stroke
-include("CliqueStateMachine.jl")
+include("CliqueStateMachine/services/CliqueStateMachine.jl")
 
 include("CanonicalGraphExamples.jl")
 
-include("AdditionalUtils.jl")
+include("services/AdditionalUtils.jl")
 include("SolverAPI.jl")
 
 # Symbolic tree analysis files.
