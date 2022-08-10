@@ -207,7 +207,7 @@ include("services/GraphProductOperations.jl")
 include("services/SolveTree.jl")
 include("services/TetherUtils.jl")
 include("services/TreeDebugTools.jl")
-include("services/CliqStateMachineUtils.jl")
+include("CliqueStateMachine/services/CliqStateMachineUtils.jl")
 
 #EXPERIMENTAL parametric
 include("ParametricCSMFunctions.jl")
@@ -215,7 +215,7 @@ include("ParametricUtils.jl")
 include("services/MaxMixture.jl")
 
 #X-stroke
-include("CliqueStateMachine.jl")
+include("CliqueStateMachine/services/CliqueStateMachine.jl")
 
 include("CanonicalGraphExamples.jl")
 
