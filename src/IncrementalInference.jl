@@ -205,8 +205,8 @@ include("ConsolidateParametricRelatives.jl")
 include("services/GraphProductOperations.jl")
 include("services/SolveTree.jl")
 include("services/TetherUtils.jl")
-include("TreeDebugTools.jl")
-include("CliqStateMachineUtils.jl")
+include("services/TreeDebugTools.jl")
+include("services/CliqStateMachineUtils.jl")
 
 #EXPERIMENTAL parametric
 include("ParametricCSMFunctions.jl")
