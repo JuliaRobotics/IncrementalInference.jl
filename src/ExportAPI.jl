@@ -333,3 +333,13 @@ export
 export
   stackCliqUpMsgsByVariable,
   getCliqDownMsgsAfterDownSolve
+
+export resetCliqSolve!
+export addLikelihoodsDifferential!
+export addLikelihoodsDifferentialCHILD!
+
+export selectFactorType
+export approxDeconv, deconvSolveKey
+export approxDeconvBelief
+
+#
