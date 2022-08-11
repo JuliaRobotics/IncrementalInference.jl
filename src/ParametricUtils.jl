@@ -135,7 +135,7 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
   
   _meas, _iΣ = getMeasurementParametric(fac_func)
   M = getManifold(getFactorType(fct))
-
+  dims = manifold_dimension(M)
   ϵ = getPointIdentity(M)
   
   if typeof(_meas) <: Tuple
@@ -144,12 +144,12 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
   elseif fac_func isa ManifoldPrior
     _measX = (_meas,)
   else
-    _measX = (hat(M, ϵ, _meas),)
+    _measX = (convert(typeof(ϵ), get_vector(M, ϵ, _meas, DefaultOrthogonalBasis())),)
   end
 
   meas = fac_func isa AbstractPrior ? map(X->exp(M, ϵ, X), _measX) : _measX
 
-  iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
+  iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (convert(SMatrix{dims,dims},_iΣ),)
 
   cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
 
@@ -177,7 +177,7 @@ end
 
 
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
-function (cfp::CalcFactorMahalanobis{1,Nothing})(variables...) # AbstractArray{T} where T <: Real
+function (cfp::CalcFactorMahalanobis{1,D,L,Nothing})(variables...) where {D,L}# AbstractArray{T} where T <: Real
   # call the user function 
   res = cfp.calcfactor!(cfp.meas[1], variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
@@ -322,7 +322,7 @@ function getGraphSolveCache!(gsc::GraphSolveContainer, ::Type{T}) where T<:Real
   return val
 end
 
-function _toPoints2!(@nospecialize(M::AbstractManifold), buffs::GraphSolveBuffers{T,U}, Xc::Vector{T}) where {T,U}
+function _toPoints2!(M::AbstractManifold, buffs::GraphSolveBuffers{T,U}, Xc::Vector{T}) where {T,U}
   ϵ = buffs.ϵ
   p = buffs.p
   X = buffs.X
@@ -331,9 +331,9 @@ function _toPoints2!(@nospecialize(M::AbstractManifold), buffs::GraphSolveBuffer
   return p::U
 end
 
-cost_cfp(cfp::CalcFactorMahalanobis, p, vi::NTuple{1,Int}) = cfp(p[vi[1]])
-cost_cfp(cfp::CalcFactorMahalanobis, p, vi::NTuple{2,Int}) = cfp(p[vi[1]], p[vi[2]])
-cost_cfp(cfp::CalcFactorMahalanobis, p, vi::NTuple{3,Int}) = cfp(p[vi[1]], p[vi[2]], p[vi[3]])
+cost_cfp(@nospecialize(cfp::CalcFactorMahalanobis), @nospecialize(p::AbstractArray), vi::NTuple{1,Int}) = cfp(p[vi[1]])
+cost_cfp(@nospecialize(cfp::CalcFactorMahalanobis), @nospecialize(p::AbstractArray), vi::NTuple{2,Int}) = cfp(p[vi[1]], p[vi[2]])
+cost_cfp(@nospecialize(cfp::CalcFactorMahalanobis), @nospecialize(p::AbstractArray), vi::NTuple{3,Int}) = cfp(p[vi[1]], p[vi[2]], p[vi[3]])
 
 # the cost function
 function (gsc::GraphSolveContainer)(Xc::Vector{T}) where T <: Real
@@ -694,6 +694,7 @@ Initialize the parametric solver data from a different solution in `fromkey`.
 function initParametricFrom!(fg::AbstractDFG, fromkey::Symbol = :default; parkey::Symbol = :parametric, onepoint=false)
   if onepoint
     for v in getVariables(fg)
+      isInitialized(v, parkey) && continue
       fromvnd = getSolverData(v, fromkey)
       dims = getDimension(v)
       getSolverData(v, parkey).val[1] .= fromvnd.val[1]
@@ -701,6 +702,7 @@ function initParametricFrom!(fg::AbstractDFG, fromkey::Symbol = :default; parkey
     end
   else
     for var in getVariables(fg)
+        isInitialized(var, parkey) && continue
         dims = getDimension(var)
         μ,Σ = calcMeanCovar(var, fromkey)
         getSolverData(var, parkey).val[1] .= μ
@@ -739,8 +741,7 @@ function updateParametricSolution!(sfg, vardict)
       #calculate and fill in covariance
       vnd.bw = val.cov
       #fill in ppe as mean
-      Xc = getCoordinates(getVariableType(sfg, v), val.val)
-
+      Xc = collect(getCoordinates(getVariableType(sfg, v), val.val))
       ppe = MeanMaxPPE(:parametric, Xc, Xc, Xc)
       getPPEDict(getVariable(sfg, v))[:parametric] = ppe
   end
@@ -771,7 +772,8 @@ end
 
 function autoinitParametric!(dfg::AbstractDFG,
                              initme::Symbol;
-                             reinit::Bool=false)
+                             reinit::Bool=false,
+                             kwargs...)
   #
   solveKey = :parametric
 
@@ -788,7 +790,7 @@ function autoinitParametric!(dfg::AbstractDFG,
       isInitialized(dfg, vl, solveKey)
     end
 
-    vardict, result, flatvars, Σ = solveConditionalsParametric(dfg, [initme], initfrom)
+    vardict, result, flatvars, Σ = solveConditionalsParametric(dfg, [initme], initfrom; kwargs...)
 
     val,cov = vardict[initme]
 
