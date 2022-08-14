@@ -775,47 +775,5 @@ function createMvNormal(v::DFGVariable, key=:parametric)
 end
 
 
-function autoinitParametric!(dfg::AbstractDFG,
-                             initme::Symbol;
-                             reinit::Bool=false)
-  #
-  solveKey = :parametric
-
-  xi = getVariable(dfg, initme)
-  vnd = getSolverData(xi, solveKey)
-  # don't initialize a variable more than once
-  if reinit || !isInitialized(xi, solveKey)
-
-    # frontals - initme
-    # separators - inifrom
-
-    initfrom = ls2(dfg, initme)
-    filter!(initfrom) do vl
-      isInitialized(dfg, vl, solveKey)
-    end
-
-    vardict, result, flatvars, Σ = solveConditionalsParametric(dfg, [initme], initfrom)
-
-    val,cov = vardict[initme]
-
-    # fill in the variable node data value
-    vnd.val[1] = val
-    #calculate and fill in covariance
-    vnd.bw = cov
-
-    vnd.initialized = true
-    #fill in ppe as mean
-    Xc = getCoordinates(getVariableType(xi), val)
-    ppe = MeanMaxPPE(:parametric, Xc, Xc, Xc)
-    getPPEDict(xi)[:parametric] = ppe
-
-    # updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent=false)    
-    # updateVariableSolverData!(dfg, xi.label, getSolverData(xi, solveKey), :graphinit, true, Symbol[]; warn_if_absent=false)
-  else
-    result = nothing
-  end
-
-  return result#isInitialized(xi, solveKey)
-end
 
 #

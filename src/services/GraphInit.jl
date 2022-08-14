@@ -70,6 +70,60 @@ function factorCanInitFromOtherVars(dfg::AbstractDFG,
 end
 
 
+function autoinitParametric!(
+    dfg::AbstractDFG,
+    xi::DFGVariable;
+    solveKey = :parametric,
+    reinit::Bool=false,
+  )
+  #
+
+  initme = getLabel(xi)
+  vnd = getSolverData(xi, solveKey)
+  # don't initialize a variable more than once
+  if reinit || !isInitialized(xi, solveKey)
+
+    # frontals - initme
+    # separators - inifrom
+
+    initfrom = ls2(dfg, initme)
+    filter!(initfrom) do vl
+      isInitialized(dfg, vl, solveKey)
+    end
+
+    vardict, result, flatvars, Σ = solveConditionalsParametric(dfg, [initme], initfrom)
+
+    val,cov = vardict[initme]
+
+    # fill in the variable node data value
+    vnd.val[1] = val
+    #calculate and fill in covariance
+    vnd.bw = cov
+
+    vnd.initialized = true
+    #fill in ppe as mean
+    Xc = getCoordinates(getVariableType(xi), val)
+    ppe = MeanMaxPPE(:parametric, Xc, Xc, Xc)
+    getPPEDict(xi)[:parametric] = ppe
+
+    # updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent=false)    
+    # updateVariableSolverData!(dfg, xi.label, getSolverData(xi, solveKey), :graphinit, true, Symbol[]; warn_if_absent=false)
+  else
+    result = nothing
+  end
+
+  return result#isInitialized(xi, solveKey)
+end
+
+
+function autoinitParametric!(
+    dfg::AbstractDFG,
+    initme::Symbol;
+    kwargs...
+  )
+  autoinitParametric!(dfg, getVariable(dfg,initme); kwargs...)
+end
+
 """
     $(SIGNATURES)
 
@@ -388,8 +442,9 @@ See also: [`ensureSolvable!`](@ref), (EXPERIMENTAL 'treeinit')
 """
 function initAll!(dfg::AbstractDFG,
                   solveKey::Symbol=:default; 
+                  _parametricInit::Bool = solveKey === :parametric,
                   solvable::Int=1,
-                  N::Int=getSolverParams(dfg).N )
+                  N::Int = _parametricInit ? 1 : getSolverParams(dfg).N )
   #
   # allvarnodes = getVariables(dfg)
   syms = intersect(getAddHistory(dfg), ls(dfg, solvable=solvable) )
@@ -422,7 +477,11 @@ function initAll!(dfg::AbstractDFG,
       # is this SolverData initialized?
       if !isInitialized(var, solveKey)
         @info "$(var.label) is not initialized, and will do so now..."
-        doautoinit!(dfg, [var;], solveKey=solveKey, singles=true)
+        if _parametricInit
+          autoinitParametric!(dfg, var; solveKey)
+        else
+          doautoinit!(dfg, [var;]; solveKey, singles=true)
+        end
         !isInitialized(var, solveKey) ? (repeatFlag = true) : nothing
       end
     end

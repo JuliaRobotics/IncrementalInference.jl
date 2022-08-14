@@ -255,4 +255,20 @@ end
 end
 
 
+@testset "initAll!(fg, :parametric)" begin
+##
+
+fg = generateGraph_LineStep(7, poseEvery=1, landmarkEvery=0, posePriorsAt=collect(0:7), sightDistance=2, solverParams=SolverParams(graphinit=false), graphinit=false)
+
+@test (l->!isInitialized(fg, l, :parametric)).(ls(fg)) |> all
+
+initAll!(fg, :parametric)
+
+@test (l->isInitialized(fg, l, :parametric)).(ls(fg)) |> all
+
+
+##
+end
+
+
 #
