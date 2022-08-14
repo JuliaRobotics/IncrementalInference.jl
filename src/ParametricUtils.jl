@@ -515,12 +515,18 @@ function _totalCost(fg,
 end
 
 
-#TODO maybe consolidate with solveGraphParametric
-#TODO WIP
-```
-    $SIGNATURES
+"""
+$SIGNATURES
 Solve for frontal values only with values in seprarators fixed
-```
+  
+DevNotes
+- WIP
+- Relates to: https://github.com/JuliaRobotics/IncrementalInference.jl/issues/466#issuecomment-562556953
+- Consolidation
+  - Definitely with [`solveFactorParameteric`](@ref)
+  - Maybe with [`solveGraphParametric`](@ref)
+    - https://github.com/JuliaRobotics/IncrementalInference.jl/pull/1588#issuecomment-1210406683
+"""
 function solveConditionalsParametric(fg::AbstractDFG,
                                     frontals::Vector{Symbol},
                                     separators::Vector{Symbol} = setdiff(listVariables(fg), frontals);
@@ -769,170 +775,5 @@ function createMvNormal(v::DFGVariable, key=:parametric)
 end
 
 
-function autoinitParametric!(dfg::AbstractDFG,
-                             initme::Symbol;
-                             reinit::Bool=false)
-  #
-  solveKey = :parametric
 
-  xi = getVariable(dfg, initme)
-  vnd = getSolverData(xi, solveKey)
-  # don't initialize a variable more than once
-  if reinit || !isInitialized(xi, solveKey)
-
-    # frontals - initme
-    # separators - inifrom
-
-    initfrom = ls2(dfg, initme)
-    filter!(initfrom) do vl
-      isInitialized(dfg, vl, solveKey)
-    end
-
-    vardict, result, flatvars, Σ = solveConditionalsParametric(dfg, [initme], initfrom)
-
-    val,cov = vardict[initme]
-
-    # fill in the variable node data value
-    vnd.val[1] = val
-    #calculate and fill in covariance
-    vnd.bw = cov
-
-    vnd.initialized = true
-    #fill in ppe as mean
-    Xc = getCoordinates(getVariableType(xi), val)
-    ppe = MeanMaxPPE(:parametric, Xc, Xc, Xc)
-    getPPEDict(xi)[:parametric] = ppe
-
-    # updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent=false)    
-    # updateVariableSolverData!(dfg, xi.label, getSolverData(xi, solveKey), :graphinit, true, Symbol[]; warn_if_absent=false)
-  else
-    result = nothing
-  end
-
-  return result#isInitialized(xi, solveKey)
-end
-
-## ================================================================================================
-## Experimental specialized dispatch for Mixture
-## ================================================================================================
-# To sort out how to dispatch on specialized functions.
-# related to #931 and #1069
-
-struct MaxMixture <: AbstractMaxMixtureSolver
-  p::Vector{Float64}
-  # the chosen component to be used for the optimization
-  choice::Base.RefValue{Int}
-end
-
-function getMeasurementParametric(s::Mixture{N,F,S,T}) where {N,F,S,T}
-  meas = map(c->getMeasurementParametric(c)[1], values(s.components))
-  iΣ = map(c->getMeasurementParametric(c)[2], values(s.components))
-  return meas, iΣ
-end
-
-function _calcFactorMahalanobis(cfp, meas, iΣ, variables...)
-  res = cfp.calcfactor!(meas, variables...)
-  r = res' * iΣ * res
-  return r
-end
-
-# DEV NOTE: function with other options including select once and use
-# function (cfp::CalcFactorMahalanobis{<:CalcFactor, MaxMixture})(variables...)
-#   if cfp.specialAlg.choice[] == 0
-#     #calculate all mixture options
-#     r = [_calcFactorMahalanobis(cfp, cfp.meas[i], cfp.iΣ[i], variables...) for i = 1:length(cfp.meas)]
-
-#     p = cfp.specialAlg.p
-
-#     k = size(cfp.iΣ[1], 2)
-#     # α = 1 ./ sqrt.(2pi .* k .* det.(inv.(cfp.iΣ)))
-#     α = sqrt.(det.(cfp.iΣ) ./ ((2pi)^k))
-
-#     # mm, at = findmax(α .* p .* exp.(-0.5 .* r))
-#     # mm = sum(α .* p .* exp.(-0.5 .* r) )
-    
-#     mm, at = findmin( 0.5 .* r .- log.(α .* p))
-#     # mm = -log(sum(α .* p .* exp.(-0.5 .* r) ))
-#     # return mm + maximum(log.(α .* p))
-    
-#     cfp.specialAlg.choice[] = at
-
-#     return r[at] 
-
-#   else
-#     at = cfp.specialAlg.choice[]
-#     return _calcFactorMahalanobis(cfp, cfp.meas[at], cfp.iΣ[at], variables...)
-#   end
-
-# end
-
-function (cfp::CalcFactorMahalanobis{N, MaxMixture})(variables...) where N
-  
-  r = [_calcFactorMahalanobis(cfp, cfp.meas[i], cfp.iΣ[i], variables...) for i = 1:length(cfp.meas)]
-
-  p = cfp.specialAlg.p
-
-  k = size(cfp.iΣ[1], 2)
-  # α = 1 ./ sqrt.(2pi .* k .* det.(inv.(cfp.iΣ)))
-  α = sqrt.(det.(cfp.iΣ) ./ ((2pi)^k))
-
-  mm, at = findmin(r .- log.(α .* p))
-  # mm = -log(sum(α .* p .* exp.(-0.5 .* r) ))
-  return mm + maximum(log.(α .* p))
-    
-end
-
-
-## ================================================================================================
-## Experimental specialised dispatch for multihypo and nullhypo
-## ================================================================================================
-#TODO better dispatch
-
-struct MaxMultihypo <: AbstractMaxMixtureSolver
-  multihypo::Vector{Float64}
-end
-struct MaxNullhypo <: AbstractMaxMixtureSolver
-  nullhypo::Float64
-end
-
-function (cfp::CalcFactorMahalanobis{N, MaxMultihypo})(X1, L1, L2) where N
-  mh = cfp.specialAlg.multihypo
-  @assert length(mh) == 3 "multihypo $mh  not supported with parametric, length should be 3"
-  @assert mh[1] == 0 "multihypo $mh  not supported with parametric, first should be 0"
-  
-  #calculate both multihypo options
-  r1 = cfp(X1, L1)
-  r2 = cfp(X1, L2)
-  r = [r1, r2]
-
-  # hacky multihypo to start of with 
-  mm, at = findmin(r .* (1 .- mh[2:end]))
-  nat = at == 1 ? 1 : 2
-  k = length(X1)*one(r1) * 1e-3
-  return r[at] + r[nat]*k
-  
-end
-
-function (cfp::CalcFactorMahalanobis{N, MaxNullhypo})(X1, X2) where N
-  nh = cfp.specialAlg.nullhypo
-  @assert nh > 0 "nullhypo $nh not as expected"
-  
-  #calculate factor residual
-  res = cfp.calcfactor!(cfp.meas[1], X1, X2)
-  r1 =  res' * cfp.iΣ * res
-
-  # compare to uniform nullhypo
-  r2 = length(res)*one(r1)
-  r = [r1,r2]
-  mm, at = findmin(r .* [nh, (1-nh)])
-
-  residual = at == 1 ? r1 : r1*1e-3
-
-  return residual
-
-  # rand residual option
-  # idx = rand(Categorical([(1-nh), nh]))
-  # nh == 0.05 && cfp.varOrder==[:x1,:l1] && println("$idx -> $(r1.value), $r2")
-  # return r[idx] 
-
-end
+#

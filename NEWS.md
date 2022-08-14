@@ -15,6 +15,10 @@ The list below highlights breaking changes according to normal semver workflow -
 
 - `ArrayPartition` should be used instead of `ProductRepr`, see issue #1537.
 - Remove old deprecated option keywords in `addVariable` and `addFactor`.
+- Improve `IIF.solveGraphParametric`.
+- Introduce `IIF.autoinitParametric!`.
+- Upgrade `initAll!(dfg, :parametric)`.
+- Refactor many files to subfolders `src/services` or `src/entities`.
 
 # Changes in v0.29
 

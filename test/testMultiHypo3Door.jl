@@ -141,11 +141,11 @@ solveGraph!(fg)
 
 ##
 
-@test isapprox(mean(getBelief(fg, :x0))[1], x0; atol = 2.0)
-@test isapprox(mean(getBelief(fg, :x1))[1], x1; atol = 2.0)
+@test isapprox(mean(getBelief(fg, :x0))[1], x0; atol = 3.0)
+@test isapprox(mean(getBelief(fg, :x1))[1], x1; atol = 3.0)
 @error "disabled test"
-# @test isapprox(mean(getBelief(fg, :x2))[1], x2; atol = 2.0)
-@test isapprox(mean(getBelief(fg, :x3))[1], x3; atol = 2.0)
+# @test isapprox(mean(getBelief(fg, :x2))[1], x2; atol = 3.0)
+@test isapprox(mean(getBelief(fg, :x3))[1], x3; atol = 3.0)
 
 @test isapprox(mean(getBelief(fg, :l0))[1], l0; atol = 3.0)
 @test isapprox(mean(getBelief(fg, :l1))[1], l1; atol = 3.0)
@@ -154,13 +154,12 @@ solveGraph!(fg)
 
 ##
 
-@error "diabling final tests for now, see #1570"
 
 # check the PPEs are the same
-@test isapprox(getPPE(fg, :x0).suggested[1], x0; atol = 2.0)
-@test isapprox(getPPE(fg, :x1).suggested[1], x1; atol = 2.0)
-@test isapprox(getPPE(fg, :x2).suggested[1], x2; atol = 2.0)
-@test isapprox(getPPE(fg, :x3).suggested[1], x3; atol = 2.0)
+@test isapprox(getPPE(fg, :x0).suggested[1], x0; atol = 3.0)
+@test isapprox(getPPE(fg, :x1).suggested[1], x1; atol = 3.0)
+@test isapprox(getPPE(fg, :x2).suggested[1], x2; atol = 3.0)
+@test isapprox(getPPE(fg, :x3).suggested[1], x3; atol = 3.0)
 
 @test isapprox(getPPE(fg, :l0).suggested[1], l0; atol = 3.0)
 @test isapprox(getPPE(fg, :l1).suggested[1], l1; atol = 3.0)

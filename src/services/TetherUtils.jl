@@ -1,10 +1,5 @@
 # tether utils
 
-export cont2disc
-export rebaseFactorVariable!
-export accumulateFactorMeans
-export solveFactorParameteric
-
 """
     $SIGNATURES
 
