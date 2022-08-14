@@ -534,11 +534,11 @@ vnd = getVariableSolverData(fg, :x0)
 #FIXME I would expect close to 50% of particles to land on the correct place
 # Currently software works so that 33% should land there so testing 20 for now
 pnt = getPoints(fg, :x1a)
-@test sum(isapprox.(pnt, Ref([1.0,2.0]), atol=0.1)) > 20
+@test sum(isapprox.(pnt, Ref([1.0,2.0]), atol=0.1)) > 15
 
 #FIXME I would expect close to 50% of particles to land on the correct place
 pnt = getPoints(fg, :x1b)
-@test sum(isapprox.(pnt, Ref([1.0,2.0]), atol=0.1)) > 20
+@test sum(isapprox.(pnt, Ref([1.0,2.0]), atol=0.1)) > 15
 
 
 ## other way around

@@ -326,3 +326,45 @@ export samplePoint
 
 export  buildCliqSubgraph_StateMachine
 
+export
+  getCliqueStatus,
+  setCliqueStatus!
+
+export
+  stackCliqUpMsgsByVariable,
+  getCliqDownMsgsAfterDownSolve
+
+export resetCliqSolve!
+export addLikelihoodsDifferential!
+export addLikelihoodsDifferentialCHILD!
+
+export selectFactorType
+export approxDeconv, deconvSolveKey
+export approxDeconvBelief
+
+export cont2disc
+export rebaseFactorVariable!
+export accumulateFactorMeans
+export solveFactorParameteric
+
+
+export repeatCSMStep!
+export attachCSM!
+export filterHistAllToArray, cliqHistFilterTransitions, printCliqSummary
+export printHistoryLine, printHistoryLane, printCliqHistorySummary
+export printCSMHistoryLogical, printCSMHistorySequential
+
+export MetaBayesTree, BayesTree
+export CSMHistoryTuple
+
+export getVariableOrder, calcCliquesRecycled
+export getCliquePotentials
+export getClique, getCliques, getCliqueIds, getCliqueData
+export hasClique
+export setCliqueDrawColor!, getCliqueDrawColor
+export appendSeparatorToClique!
+
+export buildTreeFromOrdering! # TODO make internal and deprecate external use to only `buildTreeReset!``
+
+
+#
