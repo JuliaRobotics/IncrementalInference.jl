@@ -30,8 +30,9 @@ function Base.deepcopy(bt::MetaBayesTree)
   
   graph = deepcopy(mg.graph)
   vprops = deepcopy(mg.vprops)
+  T = eltype(mg)
   # dropping all edge data
-  eprops = Dict{Int,MetaGraphs.PropDict}()
+  eprops = Dict{MetaGraphs.SimpleEdge{T},MetaGraphs.PropDict}()
   gprops = deepcopy(mg.gprops)
   weightfield = deepcopy(mg.weightfield)
   defaultweight = deepcopy(mg.defaultweight)
