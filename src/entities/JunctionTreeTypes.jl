@@ -22,6 +22,28 @@ end
 
 const BayesTree = MetaBayesTree
 
+# NOTE overwrite deepcopy on MetaBayesTree to strip out copying the channels. 
+# see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/1530
+function Base.deepcopy(bt::MetaBayesTree)
+  
+  mg = bt.bt
+  
+  graph = deepcopy(mg.graph)
+  vprops = deepcopy(mg.vprops)
+  # dropping all edge data
+  eprops = Dict{Int,MetaGraphs.PropDict}()
+  gprops = deepcopy(mg.gprops)
+  weightfield = deepcopy(mg.weightfield)
+  defaultweight = deepcopy(mg.defaultweight)
+  metaindex = deepcopy(mg.metaindex)
+  indices = deepcopy(mg.indices)
+
+  mg_cpy = MetaDiGraph(graph,vprops,eprops,gprops,weightfield,defaultweight,metaindex,indices)
+
+  return MetaBayesTree(mg_cpy, bt.btid, deepcopy(bt.frontals), deepcopy(bt.eliminationOrder), bt.buildTime)
+end
+
+
 """
     $TYPEDEF
 
