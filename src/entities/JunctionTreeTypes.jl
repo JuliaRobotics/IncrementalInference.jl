@@ -22,28 +22,36 @@ end
 
 const BayesTree = MetaBayesTree
 
-# NOTE overwrite deepcopy on MetaBayesTree to strip out copying the channels. 
+# NOTE Temporary fix? Overwrite deepcopy on MetaBayesTree to strip out copying the channels. 
 # see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/1530
-function Base.deepcopy(bt::MetaBayesTree)
-  
+# possible fix in https://github.com/JuliaLang/julia/pull/46406
+import Base.deepcopy_internal
+function Base.deepcopy_internal(bt::MetaBayesTree, stackdict::IdDict)
+ 
+  if haskey(stackdict, bt)
+      return stackdict[bt]
+  end
+
   mg = bt.bt
   
-  graph = deepcopy(mg.graph)
-  vprops = deepcopy(mg.vprops)
+  graph = deepcopy_internal(mg.graph, stackdict)
+  vprops = deepcopy_internal(mg.vprops, stackdict)
   T = eltype(mg)
   # dropping all edge data
   eprops = Dict{MetaGraphs.SimpleEdge{T},MetaGraphs.PropDict}()
-  gprops = deepcopy(mg.gprops)
-  weightfield = deepcopy(mg.weightfield)
-  defaultweight = deepcopy(mg.defaultweight)
-  metaindex = deepcopy(mg.metaindex)
-  indices = deepcopy(mg.indices)
+  gprops = deepcopy_internal(mg.gprops, stackdict)
+  weightfield = deepcopy_internal(mg.weightfield, stackdict)
+  defaultweight = deepcopy_internal(mg.defaultweight, stackdict)
+  metaindex = deepcopy_internal(mg.metaindex, stackdict)
+  indices = deepcopy_internal(mg.indices, stackdict)
 
-  mg_cpy = MetaDiGraph(graph,vprops,eprops,gprops,weightfield,defaultweight,metaindex,indices)
+  mg_cpy = MetaDiGraph(graph, vprops, eprops, gprops, weightfield, defaultweight, metaindex, indices)
 
-  return MetaBayesTree(mg_cpy, bt.btid, deepcopy(bt.frontals), deepcopy(bt.eliminationOrder), bt.buildTime)
+  bt_cpy = MetaBayesTree(mg_cpy, bt.btid, deepcopy_internal(bt.frontals, stackdict), deepcopy_internal(bt.eliminationOrder, stackdict), bt.buildTime)
+
+  stackdict[bt] = bt_cpy
+  return bt_cpy
 end
-
 
 """
     $TYPEDEF
