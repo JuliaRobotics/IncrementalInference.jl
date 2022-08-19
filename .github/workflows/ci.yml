@@ -30,6 +30,7 @@ jobs:
           - 'tmp_debug_group'
         exclude:
           - group: 'tmp_debug_group'
+            branches: release**
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
