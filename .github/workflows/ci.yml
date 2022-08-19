@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 jobs:
   test-stable:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ matrix.group }}
+    name: JL${{ matrix.version }} - ${{ matrix.arch }} - ${{ matrix.group }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
       JULIA_PKG_SERVER: ""
@@ -47,7 +47,7 @@ jobs:
         if: ${{ matrix.version != 'nightly' }}
 
   test-debug-group:
-    name: Julia ${{ matrix.version }} - ${{ matrix.group }}
+    name: JL${{ matrix.version }} - ${{ matrix.group }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
       JULIA_PKG_SERVER: ""
