@@ -47,7 +47,7 @@ jobs:
         if: ${{ matrix.version != 'nightly' }}
 
   test-debug-group:
-    name: Julia ${{ version }} - ${{ matrix.group }}
+    name: Julia 1.8 - ${{ matrix.group }}
     runs-on: ${{ matrix.os }}
     arch: 'x64'
     version: '1.8'
@@ -63,13 +63,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
-        with:
-          version: ${{ matrix.version }}
-          arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
-        continue-on-error: ${{ matrix.version == 'nightly' }}
         env:
           IIF_TEST_GROUP: ${{ matrix.group }}
       - uses: julia-actions/julia-processcoverage@v1
