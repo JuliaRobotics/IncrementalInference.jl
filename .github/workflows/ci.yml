@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 jobs:
   test-stable:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ matrix.group }}
+    name: JL${{ matrix.version }} - ${{ matrix.arch }} - ${{ matrix.group }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
       JULIA_PKG_SERVER: ""
@@ -19,7 +19,6 @@ jobs:
         version:
           - '1.6'
           - '1.8'
-          - 'nightly'
         os:
           - ubuntu-latest
         arch:
@@ -27,7 +26,6 @@ jobs:
         group:
           - 'basic_functional_group'
           - 'test_cases_group'
-          - 'tmp_debug_group'
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
@@ -47,20 +45,58 @@ jobs:
           fail_ci_if_error: false
         if: ${{ matrix.version != 'nightly' }}
 
+  test-debug-group:
+    name: JL${{ matrix.version }} - ${{ matrix.group }} - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    env:
+      JULIA_PKG_SERVER: ""
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+        version:
+          - '1.8'
+        arch:
+          - x64
+        group:
+          - 'tmp_debug_group'
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/cache@v1
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+        env:
+          IIF_TEST_GROUP: ${{ matrix.group }}
+
   upstream-dev:
-    #if: github.ref != 'refs/heads/release**'
+    needs: [ test-debug-group ]
     name: Upstream Dev
     runs-on: ubuntu-latest
     env: 
       JULIA_PKG_SERVER: ""
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: 
+          - x64
+        version:
+          - '1.8'
+          - 'nightly'
+        group:
+          - 'basic_functional_group'
+          - 'test_cases_group'
     steps:
       - uses: actions/checkout@v2
-
       - uses: julia-actions/setup-julia@v1
         with:
-          version: 1.7
-          arch: x64
-
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
       - uses: actions/cache@v1
         env:
           cache-name: cache-artifacts
@@ -71,12 +107,12 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-
       - run: |
           git config --global user.name Tester
           git config --global user.email te@st.er
-      
       - name: Upstream Dev
+        env:
+          IIF_TEST_GROUP: ${{ matrix.group }}
         run: |
           julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="master"));'
           julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs",rev="master"));' 
