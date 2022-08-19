@@ -27,6 +27,7 @@ jobs:
         group:
           - 'basic_functional_group'
           - 'test_cases_group'
+          - 'tmp_debug_group'
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
