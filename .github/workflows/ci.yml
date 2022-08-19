@@ -8,7 +8,7 @@ on:
       - release**
   workflow_dispatch:
 jobs:
-  test-stable:
+    test-stable:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ matrix.group }}
     runs-on: ${{ matrix.os }}
     env:
@@ -27,6 +27,40 @@ jobs:
         group:
           - 'basic_functional_group'
           - 'test_cases_group'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/cache@v1
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+        continue-on-error: ${{ matrix.version == 'nightly' }}
+        env:
+          IIF_TEST_GROUP: ${{ matrix.group }}
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v2
+        with:
+          files: lcov.info
+          fail_ci_if_error: false
+        if: ${{ matrix.version != 'nightly' }}
+
+  test-debug-group:
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ matrix.group }}
+    runs-on: ${{ matrix.os }}
+    env:
+      JULIA_PKG_SERVER: ""
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.8'
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+        group:
           - 'tmp_debug_group'
     steps:
       - uses: actions/checkout@v2
@@ -49,18 +83,27 @@ jobs:
 
   upstream-dev:
     #if: github.ref != 'refs/heads/release**'
+    needs: [ test-debug-group ]
     name: Upstream Dev
     runs-on: ubuntu-latest
     env: 
       JULIA_PKG_SERVER: ""
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.8'
+          - 'nightly'
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+        group:
+          - 'basic_functional_group'
+          - 'test_cases_group'
     steps:
       - uses: actions/checkout@v2
-
       - uses: julia-actions/setup-julia@v1
-        with:
-          version: 1.7
-          arch: x64
-
       - uses: actions/cache@v1
         env:
           cache-name: cache-artifacts
@@ -71,11 +114,9 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-
       - run: |
           git config --global user.name Tester
           git config --global user.email te@st.er
-      
       - name: Upstream Dev
         run: |
           julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="master"));'
