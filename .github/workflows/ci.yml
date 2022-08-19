@@ -84,12 +84,13 @@ jobs:
     needs: [ test-debug-group ]
     name: Upstream Dev
     runs-on: ubuntu-latest
-    arch: x64
     env: 
       JULIA_PKG_SERVER: ""
     strategy:
       fail-fast: false
       matrix:
+        arch: 
+          - x64
         version:
           - '1.8'
           - 'nightly'
@@ -99,6 +100,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
       - uses: actions/cache@v1
         env:
           cache-name: cache-artifacts
