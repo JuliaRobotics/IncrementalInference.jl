@@ -8,7 +8,7 @@ on:
       - release**
   workflow_dispatch:
 jobs:
-    test-stable:
+  test-stable:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ matrix.group }}
     runs-on: ${{ matrix.os }}
     env:
@@ -47,19 +47,17 @@ jobs:
         if: ${{ matrix.version != 'nightly' }}
 
   test-debug-group:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ matrix.group }}
+    name: Julia ${{ version }} - ${{ matrix.group }}
     runs-on: ${{ matrix.os }}
+    arch: 'x64'
+    version: '1.8'
     env:
       JULIA_PKG_SERVER: ""
     strategy:
       fail-fast: false
       matrix:
-        version:
-          - '1.8'
         os:
           - ubuntu-latest
-        arch:
-          - x64
         group:
           - 'tmp_debug_group'
     steps:
@@ -82,10 +80,10 @@ jobs:
         if: ${{ matrix.version != 'nightly' }}
 
   upstream-dev:
-    #if: github.ref != 'refs/heads/release**'
     needs: [ test-debug-group ]
     name: Upstream Dev
     runs-on: ubuntu-latest
+    arch: x64
     env: 
       JULIA_PKG_SERVER: ""
     strategy:
@@ -94,10 +92,6 @@ jobs:
         version:
           - '1.8'
           - 'nightly'
-        os:
-          - ubuntu-latest
-        arch:
-          - x64
         group:
           - 'basic_functional_group'
           - 'test_cases_group'
