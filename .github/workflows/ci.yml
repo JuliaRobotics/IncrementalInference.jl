@@ -18,7 +18,7 @@ jobs:
       matrix:
         version:
           - '1.6'
-          - '1.7'
+          - '1.8'
           - 'nightly'
         os:
           - ubuntu-latest
@@ -27,6 +27,7 @@ jobs:
         group:
           - 'basic_functional_group'
           - 'test_cases_group'
+          - 'tmp_debug_group'
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
