@@ -61,6 +61,7 @@ jobs:
           - x64
         group:
           - 'tmp_debug_group'
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
@@ -110,6 +111,8 @@ jobs:
           git config --global user.name Tester
           git config --global user.email te@st.er
       - name: Upstream Dev
+        env:
+          IIF_TEST_GROUP: ${{ matrix.group }}
         run: |
           julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="master"));'
           julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs",rev="master"));' 
