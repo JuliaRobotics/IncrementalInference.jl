@@ -49,8 +49,8 @@ jobs:
   test-debug-group:
     name: Julia 1.8 - ${{ matrix.group }}
     runs-on: ${{ matrix.os }}
-    arch: 'x64'
-    version: '1.8'
+    arch: x64
+    version: 1.8
     env:
       JULIA_PKG_SERVER: ""
     strategy:
