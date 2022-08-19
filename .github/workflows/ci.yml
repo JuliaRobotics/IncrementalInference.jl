@@ -47,10 +47,8 @@ jobs:
         if: ${{ matrix.version != 'nightly' }}
 
   test-debug-group:
-    name: Julia 1.8 - ${{ matrix.group }}
+    name: Julia ${{ matrix.version }} - ${{ matrix.group }}
     runs-on: ${{ matrix.os }}
-    arch: x64
-    version: 1.8
     env:
       JULIA_PKG_SERVER: ""
     strategy:
@@ -58,11 +56,18 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
+        version:
+          - '1.8'
+        arch:
+          - x64
         group:
           - 'tmp_debug_group'
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
