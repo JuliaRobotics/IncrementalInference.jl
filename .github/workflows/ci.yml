@@ -45,37 +45,7 @@ jobs:
           fail_ci_if_error: false
         if: ${{ matrix.version != 'nightly' }}
 
-  test-debug-group:
-    name: JL${{ matrix.version }} - ${{ matrix.group }} - ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    env:
-      JULIA_PKG_SERVER: ""
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-        version:
-          - '1.8'
-        arch:
-          - x64
-        group:
-          - 'tmp_debug_group'
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
-        with:
-          version: ${{ matrix.version }}
-          arch: ${{ matrix.arch }}
-      - uses: julia-actions/cache@v1
-      - uses: julia-actions/julia-buildpkg@v1
-      - uses: julia-actions/julia-runtest@v1
-        env:
-          IIF_TEST_GROUP: ${{ matrix.group }}
-
   upstream-dev:
-    needs: [ test-debug-group ]
     name: Upstream Dev
     runs-on: ubuntu-latest
     env: 
@@ -118,3 +88,33 @@ jobs:
           julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs",rev="master"));' 
           julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.test("IncrementalInference"; coverage=false)'
         shell: bash
+
+  test-debug-group:
+    needs: [ upstream-dev ]
+    name: JL${{ matrix.version }} - ${{ matrix.group }} - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    env:
+      JULIA_PKG_SERVER: ""
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+        version:
+          - '1.8'
+        arch:
+          - x64
+        group:
+          - 'tmp_debug_group'
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/cache@v1
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+        env:
+          IIF_TEST_GROUP: ${{ matrix.group }}
