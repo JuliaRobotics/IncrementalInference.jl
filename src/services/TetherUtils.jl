@@ -109,7 +109,8 @@ Notes
 - Returns mean value as coordinates
 
 DevNotes
-- TODO consolidate with similar `approxConv`
+- TODO consolidate with similar [`approxConvBelief`](@ref)
+- TODO compare consolidate with [`solveParametricConditionals`](@ref)
 
 Related:
 
