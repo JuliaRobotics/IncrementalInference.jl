@@ -111,6 +111,7 @@ Notes
 DevNotes
 - TODO consolidate with similar [`approxConvBelief`](@ref)
 - TODO compare consolidate with [`solveParametricConditionals`](@ref)
+- TODO compare consolidate with [`solveFactorParametric`](@ref)
 
 Related:
 
