@@ -824,7 +824,7 @@ function updateParametricSolution!(sfg, vardict; solveKey::Symbol=:parametric)
   for (v,val) in vardict
       vnd = getSolverData(getVariable(sfg, v), solveKey)
       # Update the variable node data value and covariance
-      updateSolverDataParametric!(vnd, val, cov)
+      updateSolverDataParametric!(vnd, val.val, val.cov)
       #fill in ppe as mean
       Xc = collect(getCoordinates(getVariableType(sfg, v), val.val))
       ppe = MeanMaxPPE(solveKey, Xc, Xc, Xc)
