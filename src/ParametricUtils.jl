@@ -150,7 +150,7 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
 
   meas = fac_func isa AbstractPrior ? map(X->exp(M, ϵ, X), _measX) : _measX
 
-  iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (convert(SMatrix{dims,dims},_iΣ),)
+  iΣ = convert.(SMatrix{dims,dims}, typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,))
 
   cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
 
