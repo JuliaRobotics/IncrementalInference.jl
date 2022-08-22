@@ -77,16 +77,16 @@ end
 
 #FIXME fix back to SA
 function getPointIdentity(G::SpecialOrthogonal{N},::Type{T}=Float64) where {N,T<:Real}
-  return SMatrix{N,N, T}(I)
-  # return Matrix{T}(I, N, N)
+  # return SMatrix{N,N, T}(I)
+  return Matrix{T}(I, N, N)
 end
 
 function getPointIdentity(G::TranslationGroup{Tuple{N}},::Type{T}=Float64) where{N,T<:Real}
-  return zeros(SVector{N,T})
-  # return zeros(T,N)
+  # return zeros(SVector{N,T})
+  return zeros(T,N)
 end
 
 function getPointIdentity(G::RealCircleGroup,::Type{T}=Float64) where T<:Real
-    return zero(T)
-    # return [zero(T)]
+    # return zero(T)
+    return [zero(T)]
 end
