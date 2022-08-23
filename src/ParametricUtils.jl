@@ -781,7 +781,6 @@ Initialize the parametric solver data from a different solution in `fromkey`.
 function initParametricFrom!(fg::AbstractDFG, fromkey::Symbol = :default; parkey::Symbol = :parametric, onepoint=false)
   if onepoint
     for v in getVariables(fg)
-      isInitialized(v, parkey) && continue
       fromvnd = getSolverData(v, fromkey)
       dims = getDimension(v)
       getSolverData(v, parkey).val[1] .= fromvnd.val[1]
@@ -789,7 +788,6 @@ function initParametricFrom!(fg::AbstractDFG, fromkey::Symbol = :default; parkey
     end
   else
     for var in getVariables(fg)
-        isInitialized(var, parkey) && continue
         dims = getDimension(var)
         μ,Σ = calcMeanCovar(var, fromkey)
         getSolverData(var, parkey).val[1] .= μ
