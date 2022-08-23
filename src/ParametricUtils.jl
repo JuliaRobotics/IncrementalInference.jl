@@ -13,11 +13,12 @@ Related
 
 [`CalcFactor`](@ref)
 """
-struct CalcFactorMahalanobis{N, S<:Union{Nothing,AbstractMaxMixtureSolver}}
+struct CalcFactorMahalanobis{N, D, L, S<:Union{Nothing,AbstractMaxMixtureSolver}}
+  faclbl::Symbol
   calcfactor!::CalcFactor
   varOrder::Vector{Symbol}
   meas::NTuple{N, <:AbstractArray}
-  iΣ::NTuple{N, Matrix{Float64}}
+  iΣ::NTuple{N, SMatrix{D,D,Float64,L}}
   specialAlg::S
 end
 # struct CalcFactorMahalanobis{CF<:CalcFactor, S<:Union{Nothing,AbstractMaxMixtureSolver}, N}
@@ -135,7 +136,7 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
   
   _meas, _iΣ = getMeasurementParametric(fac_func)
   M = getManifold(getFactorType(fct))
-
+  dims = manifold_dimension(M)
   ϵ = getPointIdentity(M)
   
   if typeof(_meas) <: Tuple
@@ -144,12 +145,12 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
   elseif fac_func isa ManifoldPrior
     _measX = (_meas,)
   else
-    _measX = (hat(M, ϵ, _meas),)
+    _measX = (convert(typeof(ϵ), get_vector(M, ϵ, _meas, DefaultOrthogonalBasis())),)
   end
 
   meas = fac_func isa AbstractPrior ? map(X->exp(M, ϵ, X), _measX) : _measX
 
-  iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
+  iΣ = convert.(SMatrix{dims,dims}, typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,))
 
   cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
 
@@ -172,14 +173,14 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
     special = nothing
   end
 
-  return CalcFactorMahalanobis(calcf, varOrder, meas, iΣ, special)
+  return CalcFactorMahalanobis(fct.label, calcf, varOrder, meas, iΣ, special)
 end
 
 
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
-function (cfp::CalcFactorMahalanobis{1,Nothing})(variables...) # AbstractArray{T} where T <: Real
+function (cfp::CalcFactorMahalanobis{1,D,L,Nothing})(variables...) where {D,L}# AbstractArray{T} where T <: Real
   # call the user function 
-  res = cfp.calcfactor!(cfp.meas[1], variables...)
+  res = cfp.calcfactor!(cfp.meas..., variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
   return res' * cfp.iΣ[1] * res
 end
@@ -192,6 +193,21 @@ function calcFactorMahalanobisDict(fg)
   end
   return calcFactors
 end
+
+# Base.eltype(::Type{<:CalcFactorMahalanobis}) = CalcFactorMahalanobis
+
+# function calcFactorMahalanobisArray(fg)
+#   cfps = map(getFactors(fg)) do fct
+#     CalcFactorMahalanobis(fg, fct)
+#   end
+#   types = collect(Set(typeof.(cfps)))
+#   cfparr = ArrayPartition(map(x->Vector{x}(), types)...)
+#   for cfp in cfps
+#     idx = findfirst(==(typeof(cfp)), types)
+#     push!(cfparr.x[idx], cfp)
+#   end
+#   return cfparr
+# end
 
 ## ================================================================================================
 ## ================================================================================================
@@ -290,6 +306,7 @@ struct GraphSolveContainer
   varTypesIds::OrderedDict{DataType, Vector{Symbol}}
   cfdict::OrderedDict{Symbol, CalcFactorMahalanobis}
   varOrderDict::OrderedDict{Symbol, Tuple{Int, Vararg{Int,}}}
+  # cfarr::AbstractVector # TODO maybe <: AbstractVector(CalcFactorMahalanobis)
 end
 
 
@@ -309,6 +326,8 @@ function GraphSolveContainer(fg)
     varOrderDict[fid] = tuple(var_idx...)
   end
 
+  # cfarr = calcFactorMahalanobisArray(fg)
+  # return GraphSolveContainer(M, buffs, varTypes, varTypesIds, cfd, varOrderDict, cfarr)
   return GraphSolveContainer(M, buffs, varTypes, varTypesIds, cfd, varOrderDict)
 end
 
@@ -322,7 +341,7 @@ function getGraphSolveCache!(gsc::GraphSolveContainer, ::Type{T}) where T<:Real
   return val
 end
 
-function _toPoints2!(@nospecialize(M::AbstractManifold), buffs::GraphSolveBuffers{T,U}, Xc::Vector{T}) where {T,U}
+function _toPoints2!(M::AbstractManifold, buffs::GraphSolveBuffers{T,U}, Xc::Vector{T}) where {T,U}
   ϵ = buffs.ϵ
   p = buffs.p
   X = buffs.X
@@ -331,12 +350,56 @@ function _toPoints2!(@nospecialize(M::AbstractManifold), buffs::GraphSolveBuffer
   return p::U
 end
 
-cost_cfp(cfp::CalcFactorMahalanobis, p, vi::NTuple{1,Int}) = cfp(p[vi[1]])
-cost_cfp(cfp::CalcFactorMahalanobis, p, vi::NTuple{2,Int}) = cfp(p[vi[1]], p[vi[2]])
-cost_cfp(cfp::CalcFactorMahalanobis, p, vi::NTuple{3,Int}) = cfp(p[vi[1]], p[vi[2]], p[vi[3]])
+cost_cfp(@nospecialize(cfp::CalcFactorMahalanobis), @nospecialize(p::AbstractArray), vi::NTuple{1,Int}) = cfp(p[vi[1]])
+cost_cfp(@nospecialize(cfp::CalcFactorMahalanobis), @nospecialize(p::AbstractArray), vi::NTuple{2,Int}) = cfp(p[vi[1]], p[vi[2]])
+cost_cfp(@nospecialize(cfp::CalcFactorMahalanobis), @nospecialize(p::AbstractArray), vi::NTuple{3,Int}) = cfp(p[vi[1]], p[vi[2]], p[vi[3]])
+
+# function (gsc::GraphSolveContainer)(f::Vector{T}, Xc::Vector{T}, ::Val{true}) where T <: Real
+#   #
+#   buffs = getGraphSolveCache!(gsc, T)
+
+#   cfdict = gsc.cfdict
+#   varOrderDict = gsc.varOrderDict
+
+#   M = gsc.M 
+
+#   p = _toPoints2!(M, buffs, Xc)
+
+  
+#   for (i,(fid, cfp)) in enumerate(cfdict)
+#     varOrder_idx = varOrderDict[fid]
+
+#     # call the user function
+#     f[i] = cost_cfp(cfp, p, varOrder_idx)/2
+#   end
+
+#   return f
+# end
+
 
 # the cost function
 function (gsc::GraphSolveContainer)(Xc::Vector{T}) where T <: Real
+  #
+  buffs = getGraphSolveCache!(gsc, T)
+
+  cfdict = gsc.cfdict
+  varOrderDict = gsc.varOrderDict
+
+  M = gsc.M 
+
+  p = _toPoints2!(M, buffs, Xc)
+
+  obj = mapreduce(+, cfdict) do (fid, cfp)
+
+    varOrder_idx = varOrderDict[fid]
+    # call the user function
+    cost_cfp(cfp, p, varOrder_idx)
+  end
+
+  return obj/2
+end
+
+function (gsc::GraphSolveContainer)(Xc::Vector{T}, ::MultiThreaded) where T <: Real
   #
   buffs = getGraphSolveCache!(gsc, T)
 
@@ -673,6 +736,24 @@ end
 ## ================================================================================================
 
 ## SANDBOX of usefull development functions to be cleaned up
+"""
+    $SIGNATURES
+Update the parametric solver data value and covariance.
+"""
+function updateSolverDataParametric! end
+
+function updateSolverDataParametric!(v::DFGVariable, val::AbstractArray{<:Real}, cov::Matrix; solveKey::Symbol=:parametric )
+  vnd = getSolverData(v, solveKey)
+  return updateSolverDataParametric!(vnd, val, cov)
+end
+
+function updateSolverDataParametric!(vnd::VariableNodeData, val::AbstractArray{<:Real}, cov::Matrix)
+  # fill in the variable node data value
+  vnd.val[1] = val
+  #calculate and fill in covariance
+  vnd.bw .= cov
+  return vnd
+end
 
 """
     $SIGNATURES
@@ -736,19 +817,16 @@ end
     $SIGNATURES
 Update the fg from solution in vardict and add MeanMaxPPE (all just mean). Usefull for plotting
 """
-function updateParametricSolution!(sfg, vardict)
+function updateParametricSolution!(sfg, vardict; solveKey::Symbol=:parametric)
 
   for (v,val) in vardict
-      vnd = getSolverData(getVariable(sfg, v), :parametric)
-      # fill in the variable node data value
-      vnd.val[1] = val.val
-      #calculate and fill in covariance
-      vnd.bw = val.cov
+      vnd = getSolverData(getVariable(sfg, v), solveKey)
+      # Update the variable node data value and covariance
+      updateSolverDataParametric!(vnd, val.val, val.cov)
       #fill in ppe as mean
-      Xc = getCoordinates(getVariableType(sfg, v), val.val)
-
-      ppe = MeanMaxPPE(:parametric, Xc, Xc, Xc)
-      getPPEDict(getVariable(sfg, v))[:parametric] = ppe
+      Xc = collect(getCoordinates(getVariableType(sfg, v), val.val))
+      ppe = MeanMaxPPE(solveKey, Xc, Xc, Xc)
+      getPPEDict(getVariable(sfg, v))[solveKey] = ppe
   end
 end
 
@@ -774,6 +852,81 @@ function createMvNormal(v::DFGVariable, key=:parametric)
     end
 end
 
+#TODO this is still experimental and a POC
+function getInitOrderParametric(fg; startIdx::Symbol = lsfPriors(fg)[1])
+
+  order = DFG.traverseGraphTopologicalSort(fg, startIdx)
+  filter!(order) do l
+    isVariable(fg, l)    
+  end
+  return order
+
+end
+
+function autoinitParametric!(
+    fg,
+    varorderIds=getInitOrderParametric(fg);
+    reinit=false,
+    algorithm=Optim.NelderMead,
+    algorithmkwargs = (initial_simplex = Optim.AffineSimplexer(0.025, 0.1),)
+  )    
+  @showprogress for vIdx=varorderIds
+      autoinitParametric!(fg, vIdx; reinit, algorithm, algorithmkwargs)
+  end
+  return nothing
+end
+
+function autoinitParametric!(
+    dfg::AbstractDFG,
+    initme::Symbol;
+    kwargs...
+  )
+  autoinitParametric!(dfg, getVariable(dfg,initme); kwargs...)
+end
+
+
+function autoinitParametric!(
+    dfg::AbstractDFG,
+    xi::DFGVariable;
+    solveKey = :parametric,
+    reinit::Bool=false,
+    kwargs...
+  )
+  #
+
+  initme = getLabel(xi)
+  vnd = getSolverData(xi, solveKey)
+  # don't initialize a variable more than once
+  if reinit || !isInitialized(xi, solveKey)
+
+    # frontals - initme
+    # separators - inifrom
+
+    initfrom = ls2(dfg, initme)
+    filter!(initfrom) do vl
+      isInitialized(dfg, vl, solveKey)
+    end
+
+    vardict, result, flatvars, Σ = solveConditionalsParametric(dfg, [initme], initfrom; kwargs...)
+
+    val,cov = vardict[initme]
+
+    updateSolverDataParametric!(vnd, val, cov)
+
+    vnd.initialized = true
+    #fill in ppe as mean
+    Xc = getCoordinates(getVariableType(xi), val)
+    ppe = MeanMaxPPE(:parametric, Xc, Xc, Xc)
+    getPPEDict(xi)[:parametric] = ppe
+
+    # updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent=false)    
+    # updateVariableSolverData!(dfg, xi.label, getSolverData(xi, solveKey), :graphinit, true, Symbol[]; warn_if_absent=false)
+  else
+    result = nothing
+  end
+
+  return result#isInitialized(xi, solveKey)
+end
 
 
 #

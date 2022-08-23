@@ -53,7 +53,7 @@ end
 
 # end
 
-function (cfp::CalcFactorMahalanobis{N, MaxMixture})(variables...) where N
+function (cfp::CalcFactorMahalanobis{N, D, L, MaxMixture})(variables...) where {N,D,L}
   
   r = [_calcFactorMahalanobis(cfp, cfp.meas[i], cfp.iΣ[i], variables...) for i = 1:length(cfp.meas)]
 
@@ -82,7 +82,7 @@ struct MaxNullhypo <: AbstractMaxMixtureSolver
   nullhypo::Float64
 end
 
-function (cfp::CalcFactorMahalanobis{N, MaxMultihypo})(X1, L1, L2) where N
+function (cfp::CalcFactorMahalanobis{N, D, L, MaxMultihypo})(X1, L1, L2) where {N,D,L}
   mh = cfp.specialAlg.multihypo
   @assert length(mh) == 3 "multihypo $mh  not supported with parametric, length should be 3"
   @assert mh[1] == 0 "multihypo $mh  not supported with parametric, first should be 0"
@@ -100,7 +100,7 @@ function (cfp::CalcFactorMahalanobis{N, MaxMultihypo})(X1, L1, L2) where N
   
 end
 
-function (cfp::CalcFactorMahalanobis{N, MaxNullhypo})(X1, X2) where N
+function (cfp::CalcFactorMahalanobis{N, D, L, MaxNullhypo})(X1, X2) where {N,D,L}
   nh = cfp.specialAlg.nullhypo
   @assert nh > 0 "nullhypo $nh not as expected"
   
