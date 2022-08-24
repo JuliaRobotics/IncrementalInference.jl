@@ -166,27 +166,25 @@ _getindextuple(tup::Tuple, ind1::Int) = [getindex(t, ind1) for t in tup]
 
 
 function _buildCalcFactorMixture( ccwl::CommonConvWrapper,
-                                  _fmd_,
                                   smpid,
                                   measurement_,
                                   varParams )
   #
   # FIXME, make thread safe (cache)
-  CalcFactor( ccwl.usrfnc!, _fmd_, smpid, 
-              length(measurement_), measurement_, varParams, true, ccwl.dummyCache)
+  CalcFactor( ccwl.usrfnc!, smpid, 
+              length(measurement_), measurement_, varParams, true, ccwl.dummyCache, ccwl.fullvariables, ccwl.varidx)
 end
 
 
 function _buildCalcFactorMixture( ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
-                                  _fmd_,
                                   smpid,
                                   measurement_,
                                   varParams ) where {N_,F <: AbstractFactor,S,T}
   #
   # just a passthrough similar to pre-v0.20
   # FIXME, make thread safe (cache)
-  CalcFactor( ccwl.usrfnc!.mechanics, _fmd_, smpid, 
-              length(measurement_), measurement_, varParams, true, ccwl.dummyCache)
+  CalcFactor( ccwl.usrfnc!.mechanics, smpid, 
+              length(measurement_), measurement_, varParams, true, ccwl.dummyCache, ccwl.fullvariables, ccwl.varidx)
 end
 
 
@@ -211,8 +209,8 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
                                       smpid::Integer,
                                       cpt_::ConvPerThread = ccwl.cpt[Threads.threadid()],
                                       target = view(ccwl.params[ccwl.varidx][smpid], ccwl.partialDims),
-                                      measurement_ = ccwl.measurement,
-                                      fmd_::FactorMetadata = cpt_.factormetadata;
+                                      measurement_ = ccwl.measurement;
+                                      # fmd_::FactorMetadata = cpt_.factormetadata;
                                       _slack = nothing  )
   #
 
@@ -229,14 +227,14 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   # prepare fmd according to hypo selection
   # FIXME must refactor (memory waste) and consolidate with CCW CPT FMd CF
   # FIXME move up out of smpid loop and only update bare minimal fields
-  _fmd_ = FactorMetadata( view(fmd_.fullvariables, cpt_.activehypo), 
-                          view(fmd_.variablelist, cpt_.activehypo),
-                          varValsHypo, #varParams, # view(fmd_.arrRef, cpt_.activehypo),
-                          fmd_.solvefor,
-                          fmd_.cachedata  )
+  # _fmd_ = FactorMetadata( view(fmd_.fullvariables, cpt_.activehypo), 
+  #                         view(fmd_.variablelist, cpt_.activehypo),
+  #                         varValsHypo, #varParams, # view(fmd_.arrRef, cpt_.activehypo),
+  #                         fmd_.solvefor,
+  #                         fmd_.cachedata  )
   #
   # get the operational CalcFactor object
-  cf = _buildCalcFactorMixture(ccwl, _fmd_, smpid, measurement_, varValsHypo)
+  cf = _buildCalcFactorMixture(ccwl, smpid, measurement_, varValsHypo)
   # new dev work on CalcFactor
   # cf = CalcFactor(ccwl.usrfnc!, _fmd_, smpid, 
   #                 length(measurement_), measurement_, varValsHypo)

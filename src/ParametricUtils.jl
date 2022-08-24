@@ -155,9 +155,7 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
   cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
 
   # calcf = CalcFactor(getFactorMechanics(fac_func), nothing, 0, 0, nothing, nothing, true, nothing)
-  calcf = CalcFactor(getFactorMechanics(fac_func), nothing, 0, 0, nothing, nothing, true, cache)
-  #FactorMetadata is not type stable
-  # calcf = CalcFactor(getFactorMechanics(fac_func), _getFMdThread(fct), 0, 0, nothing, nothing, true, cache)
+  calcf = CalcFactor(getFactorMechanics(fac_func), 0, 0, nothing, nothing, true, cache, DFGVariable[], 0)
   
   multihypo = getSolverData(fct).multihypo
   nullhypo = getSolverData(fct).nullhypo

@@ -72,7 +72,7 @@ initAll!(fg2)
 
 tree = buildTreeReset!(fg2)
 
-@test compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=true)
+@test compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=true, skip=[:fullvariables])
 
 @test !compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=false)
 

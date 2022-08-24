@@ -1,5 +1,4 @@
 
-
 """
 $TYPEDEF
 
@@ -23,13 +22,11 @@ DevNotes
 
 Related 
 
-[`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref), [`FactorMetadata`](@ref), [`ConvPerThread`](@ref)
+[`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref), [`ConvPerThread`](@ref)
 """
-struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,AbstractVector}, X, C}
+struct CalcFactor{T <: AbstractFactor, P <: Union{<:Tuple,Nothing,AbstractVector}, X, C}
   """ the interface compliant user object functor containing the data and logic """
   factor::T
-  """ the metadata to be passed to the user residual function """
-  metadata::M
   """ what is the sample (particle) id for which the residual is being calculated """
   _sampleIdx::Int
   """ legacy support when concerned with how many measurement tuple elements are used by user  """
@@ -42,6 +39,12 @@ struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,AbstractVec
   _allowThreads::Bool
   """ user cache of arbitrary type, overload the [`preambleCache`](@ref) function. NOT YET THREADSAFE """
   cache::C
+
+  ## TODO Consolidation WIP with FactorMetadata
+  # full list of variables connected to the factor
+  fullvariables::Vector{DFGVariable}
+  # which index is being solved for?
+  solvefor::Int 
 end
 
 
@@ -64,35 +67,6 @@ end
 """
 $(TYPEDEF)
 
-Notes
-- type-stable `usercache`, see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/783#issuecomment-665080114 
-
-DevNotes
-- TODO why not just a NamedTuple? Perhaps part of #467
-- Follow the Github project in IIF to better consolidate CCW FMD CPT CF CFM
-- TODO standardize -- #927, #1025, #784, #692, #640
-- TODO make immutable #825
-"""
-mutable struct FactorMetadata{FV<:AbstractVector{<:DFGVariable}, 
-                              VL<:AbstractVector{Symbol}, 
-                              AR<:Tuple, 
-                              CD}
-  # full list of Vector{DFGVariable} connected to the factor
-  fullvariables::FV # Vector{<:DFGVariable}
-  #TODO full variable can perhaps replace this
-  variablelist::VL # Vector{Symbol} 
-  # TODO rename/consolidate field in CCW,
-  arrRef::AR
-  # label of which variable is being solved for
-  solvefor::Symbol 
-  # for type specific user data, see (? #784)
-  # OBSOLETE? Replaced by CalcFactor.cache
-  cachedata::CD
-end
-
-"""
-$(TYPEDEF)
-
 DevNotes
 - FIXME consolidate with CalcFactor
 - TODO consolidate with CCW, FMd, CalcFactor
@@ -102,12 +76,10 @@ DevNotes
 - TODO make static params {XDIM, ZDIM, P}
 - TODO make immutable
 """
-mutable struct ConvPerThread{R,F<:FactorMetadata,P}
+mutable struct ConvPerThread{R,P}
   thrid_::Int
   # the actual particle being solved at this moment
   particleidx::Int
-  # additional/optional data passed to user function
-  factormetadata::F
   # subsection indices to select which params should be used for this hypothesis evaluation
   activehypo::Vector{Int}
   # slight numerical perturbation for degenerate solver cases such as division by zero
@@ -137,7 +109,7 @@ DevNotes
 
 Related 
 
-[`CalcFactor`](@ref), [`CalcFactorMahalanobis`](@ref), [`FactorMetadata`](@ref), [`ConvPerThread`](@ref)
+[`CalcFactor`](@ref), [`CalcFactorMahalanobis`](@ref), [`ConvPerThread`](@ref)
 """
 mutable struct CommonConvWrapper{ T<:AbstractFactor,
                                   H<:Union{Nothing, Distributions.Categorical},
@@ -181,6 +153,8 @@ mutable struct CommonConvWrapper{ T<:AbstractFactor,
   _gradients::G
   # type used for cache
   dummyCache::CT
+  #
+  fullvariables::Vector{DFGVariable}
 end
 
 

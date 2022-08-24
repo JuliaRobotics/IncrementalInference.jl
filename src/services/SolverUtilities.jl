@@ -47,8 +47,7 @@ end
 
 # part of consolidation, see #927
 function sampleFactor!( ccwl::CommonConvWrapper, 
-                        N::Int, 
-                        fmd::FactorMetadata=_getFMdThread(ccwl))
+                        N::Int)
   #
   ccwl.measurement = sampleFactor(ccwl, N)
   # # build a CalcFactor object and get fresh samples.

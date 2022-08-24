@@ -542,11 +542,6 @@ function evalFactor(dfg::AbstractDFG,
   variablelist = getVariableOrder(fct)
   Xi = getVariable.(dfg, variablelist)
 
-  # setup operational values before compute (likely to be refactored) 
-  for i in 1:Threads.nthreads()
-    ccw.cpt[i].factormetadata.variablelist = variablelist
-    ccw.cpt[i].factormetadata.solvefor = solvefor
-  end
 
   return evalPotentialSpecific( Xi, ccw, solvefor, measurement; needFreshMeasurements,
                                 solveKey, N, dbg, spreadNH=getSolverParams(dfg).spreadNH, 
