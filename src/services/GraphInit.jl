@@ -455,7 +455,7 @@ function initAll!(dfg::AbstractDFG,
     vari = getVariable(dfg, sym)
     varType = getVariableType(vari) |> _variableType
     # does SolverData exist for this solveKey?
-    vsolveKeys = listSolveKeys(vari,sym)
+    vsolveKeys = listSolveKeys(vari)
     if !_parametricInit && !( solveKey in vsolveKeys )
       # accept complete defaults for a novel solveKey
       setDefaultNodeData!(vari, 0, N, getDimension(varType); solveKey, 
