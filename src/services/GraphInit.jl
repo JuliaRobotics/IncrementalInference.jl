@@ -398,13 +398,17 @@ function initAll!(dfg::AbstractDFG,
   
   # May have to first add the solveKey VNDs if they are not yet available
   for sym in syms
-    var = getVariable(dfg, sym)
+    vari = getVariable(dfg, sym)
+    varType = getVariableType(vari) |> _variableType
     # does SolverData exist for this solveKey?
-    if !( solveKey in listSolveKeys(var) )
-      varType = getVariableType(var)
+    vsolveKeys = listSolveKeys(vari)
+    if !_parametricInit && !( solveKey in vsolveKeys )
       # accept complete defaults for a novel solveKey
-      setDefaultNodeData!(var, 0, N, getDimension(varType), solveKey=solveKey, 
-                          initialized=false, varType=varType, dontmargin=false)
+      setDefaultNodeData!(vari, 0, N, getDimension(varType); solveKey, 
+                          initialized=false, varType)
+    end
+    if _parametricInit && !(:parametric in vsolveKeys)
+        setDefaultNodeDataParametric!(vari, varType; initialized=false)
     end
   end
 

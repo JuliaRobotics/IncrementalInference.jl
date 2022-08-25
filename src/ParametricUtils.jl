@@ -777,8 +777,18 @@ end
 """
     $SIGNATURES
 Initialize the parametric solver data from a different solution in `fromkey`.
+
+DevNotes
+- TODO, keyword `force` not wired up yet.
 """
-function initParametricFrom!(fg::AbstractDFG, fromkey::Symbol = :default; parkey::Symbol = :parametric, onepoint=false)
+function initParametricFrom!(
+    fg::AbstractDFG, 
+    fromkey::Symbol = :default; 
+    parkey::Symbol = :parametric, 
+    onepoint=false,
+    force::Bool=false
+  )
+  #
   if onepoint
     for v in getVariables(fg)
       fromvnd = getSolverData(v, fromkey)
