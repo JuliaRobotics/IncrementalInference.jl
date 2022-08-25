@@ -209,7 +209,8 @@ end
 function CommonConvWrapper( usrfnc::T,
                             X::AbstractVector{P},
                             zDim::Int,
-                            varValsLink::Tuple;
+                            varValsLink::Tuple,
+                            fullvariables::Vector{DFGVariable};
                             partial::Bool=false,
                             hypotheses::H=nothing,
                             certainhypo=nothing,
@@ -224,10 +225,10 @@ function CommonConvWrapper( usrfnc::T,
                             res::AbstractVector{<:Real}=zeros(zDim),
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
                             inflation::Real=3.0,
-                            vartypes=DataType[],
+                            vartypes::Vector{DataType}=typeof.(getVariableType.(fullvariables)),
                             gradients=nothing,
                             userCache::CT = nothing,
-                            fullvariables=DFGVariable[] ) where {T<:AbstractFactor,P,H,CT}
+                          ) where {T<:AbstractFactor,P,H,CT}
   #
   return  CommonConvWrapper(usrfnc,
                             xDim,
@@ -450,7 +451,8 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
           usrfnc,
           PointType[],
           calcZDim(_cf),
-          _varValsQuick;
+          _varValsQuick,
+          fullvariables;
           partial,
           measurement,
           hypotheses = multihypo,
@@ -462,7 +464,6 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
           vartypes = varTypes,
           gradients,
           userCache,
-          fullvariables
         )
 end
 
