@@ -164,27 +164,29 @@ end
 # internal function to dispatch view on either vector or matrix, rows are dims and samples are columns
 _getindextuple(tup::Tuple, ind1::Int) = [getindex(t, ind1) for t in tup]
 
+_getusrfnc(ccwl::CommonConvWrapper) = ccwl.usrfnc!
+_getusrfnc(ccwl::CommonConvWrapper{<:Mixture}) = ccwl.usrfnc!.mechanics
 
-function _buildCalcFactorMixture( ccwl::CommonConvWrapper,
-                                  smpid,
-                                  measurement_,
-                                  varParams )
+function _buildCalcFactor(ccwl::CommonConvWrapper, smpid, measurement_, varParams, activehypo)
   #
   # FIXME, make thread safe (cache)
-  CalcFactor( ccwl.usrfnc!, smpid, 
-              length(measurement_), measurement_, varParams, true, ccwl.dummyCache, ccwl.fullvariables, ccwl.varidx)
-end
+  # activevariables = view(ccwl.fullvariables, activehypo)
+  activevariables = ccwl.fullvariables[activehypo]
 
+  solveforidx = findfirst(==(ccwl.varidx), activehypo)
+  
+  return CalcFactor(
+    _getusrfnc(ccwl),
+    smpid,
+    length(measurement_),
+    measurement_,
+    varParams,
+    true,
+    ccwl.dummyCache,
+    activevariables,
+    solveforidx,
+  )
 
-function _buildCalcFactorMixture( ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
-                                  smpid,
-                                  measurement_,
-                                  varParams ) where {N_,F <: AbstractFactor,S,T}
-  #
-  # just a passthrough similar to pre-v0.20
-  # FIXME, make thread safe (cache)
-  CalcFactor( ccwl.usrfnc!.mechanics, smpid, 
-              length(measurement_), measurement_, varParams, true, ccwl.dummyCache, ccwl.fullvariables, ccwl.varidx)
 end
 
 
@@ -234,7 +236,7 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   #                         fmd_.cachedata  )
   #
   # get the operational CalcFactor object
-  cf = _buildCalcFactorMixture(ccwl, smpid, measurement_, varValsHypo)
+  cf = _buildCalcFactor(ccwl, smpid, measurement_, varValsHypo, cpt_.activehypo)
   # new dev work on CalcFactor
   # cf = CalcFactor(ccwl.usrfnc!, _fmd_, smpid, 
   #                 length(measurement_), measurement_, varValsHypo)

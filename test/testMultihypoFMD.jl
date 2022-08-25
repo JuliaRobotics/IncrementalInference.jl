@@ -22,8 +22,7 @@ function getSample( cf::CalcFactor{<:MyFactor})
 end
 
 function (cf::CalcFactor{<:MyFactor})(z, X1, X2)
-  length(cf.fullvariables) < 3 && @warn("this factor is only between two variables. solvefor=$(cf.solvefor)", maxlog=1)
-
+  @assert length(cf.fullvariables) < 3 "this factor is only between two variables. solvefor=$(cf.solvefor)"
   # just a linear difference to complete the test
   return X2 - (X1 + z)
 end
@@ -64,6 +63,11 @@ f1 = addFactor!(fg, [:x0;:x1_a;:x1_b], mf, multihypo=[1;1/2;1/2])
 ##
 
 meas = sampleFactor(fg, :x0x1_ax1_bf1, 10)
+
+# initAll!(fg)
+# pts = approxConv(fg, :x0x1_ax1_bf1, :x1_a)
+# pts = approxConv(fg, :x0x1_ax1_bf1, :x1_b)
+# pts = approxConv(fg, :x0x1_ax1_bf1, :x0)
 
 ##
 
