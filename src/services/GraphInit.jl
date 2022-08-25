@@ -70,60 +70,6 @@ function factorCanInitFromOtherVars(dfg::AbstractDFG,
 end
 
 
-function autoinitParametric!(
-    dfg::AbstractDFG,
-    xi::DFGVariable;
-    solveKey = :parametric,
-    reinit::Bool=false,
-  )
-  #
-
-  initme = getLabel(xi)
-  vnd = getSolverData(xi, solveKey)
-  # don't initialize a variable more than once
-  if reinit || !isInitialized(xi, solveKey)
-
-    # frontals - initme
-    # separators - inifrom
-
-    initfrom = ls2(dfg, initme)
-    filter!(initfrom) do vl
-      isInitialized(dfg, vl, solveKey)
-    end
-
-    vardict, result, flatvars, Σ = solveConditionalsParametric(dfg, [initme], initfrom)
-
-    val,cov = vardict[initme]
-
-    # fill in the variable node data value
-    vnd.val[1] = val
-    #calculate and fill in covariance
-    vnd.bw = cov
-
-    vnd.initialized = true
-    #fill in ppe as mean
-    Xc = getCoordinates(getVariableType(xi), val)
-    ppe = MeanMaxPPE(:parametric, Xc, Xc, Xc)
-    getPPEDict(xi)[:parametric] = ppe
-
-    # updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent=false)    
-    # updateVariableSolverData!(dfg, xi.label, getSolverData(xi, solveKey), :graphinit, true, Symbol[]; warn_if_absent=false)
-  else
-    result = nothing
-  end
-
-  return result#isInitialized(xi, solveKey)
-end
-
-
-function autoinitParametric!(
-    dfg::AbstractDFG,
-    initme::Symbol;
-    kwargs...
-  )
-  autoinitParametric!(dfg, getVariable(dfg,initme); kwargs...)
-end
-
 """
     $(SIGNATURES)
 
@@ -452,13 +398,17 @@ function initAll!(dfg::AbstractDFG,
   
   # May have to first add the solveKey VNDs if they are not yet available
   for sym in syms
-    var = getVariable(dfg, sym)
+    vari = getVariable(dfg, sym)
+    varType = getVariableType(vari) |> _variableType
     # does SolverData exist for this solveKey?
-    if !( solveKey in listSolveKeys(var) )
-      varType = getVariableType(var)
+    vsolveKeys = listSolveKeys(vari)
+    if !_parametricInit && !( solveKey in vsolveKeys )
       # accept complete defaults for a novel solveKey
-      setDefaultNodeData!(var, 0, N, getDimension(varType), solveKey=solveKey, 
-                          initialized=false, varType=varType, dontmargin=false)
+      setDefaultNodeData!(vari, 0, N, getDimension(varType); solveKey, 
+                          initialized=false, varType)
+    end
+    if _parametricInit && !(:parametric in vsolveKeys)
+        setDefaultNodeDataParametric!(vari, varType; initialized=false)
     end
   end
 

@@ -12,6 +12,30 @@ function Manifolds.manifold_dimension(M::NPowerManifold)
   return manifold_dimension(M.manifold) * M.N
 end
 
+function Manifolds.get_vector!(M::NPowerManifold, Y, p, c, B::AbstractBasis)
+  dim = manifold_dimension(M.manifold)
+  rep_size = representation_size(M.manifold)
+  v_iter = 1
+  for i in Manifolds.get_iterator(M)
+      Y[i] = get_vector(
+          M.manifold,
+          Manifolds._read(M, rep_size, p, i),
+          view(c,v_iter:(v_iter + dim - 1)),
+          B,
+      )
+      v_iter += dim
+  end
+  return Y
+end
+
+function Manifolds.exp!(M::NPowerManifold, q, p, X)
+  rep_size = representation_size(M.manifold)
+  for i in Manifolds.get_iterator(M)
+      q[i] = exp(M.manifold, Manifolds._read(M, rep_size, p, i), Manifolds._read(M, rep_size, X, i))
+  end
+  return q
+end
+
 ## ================================================================================================
 ## ArrayPartition getPointIdentity (identity_element)
 ## ================================================================================================
