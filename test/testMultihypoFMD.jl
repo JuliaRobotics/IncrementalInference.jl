@@ -16,14 +16,13 @@ end
 
 function getSample( cf::CalcFactor{<:MyFactor})
   #
-  @warn "getSample(cf::CalcFactor{<:MyFactor},::Int) does not get hypo sub-selected FMD data"
-  @show DFG.getLabel.(cf.metadata.fullvariables)
+  @warn "getSample(cf::CalcFactor{<:MyFactor},::Int) does not get hypo sub-selected FMD data: $(DFG.getLabel.(cf.fullvariables))" cf.solvefor maxlog=1
   # @assert DFG.getLabel.(fmd_[1].fullvariables) |> length < 3 "this factor is only between two variables"
   return rand(cf.factor.Z, 1)
 end
 
 function (cf::CalcFactor{<:MyFactor})(z, X1, X2)
-  @assert DFG.getLabel.(cf.metadata.fullvariables) |> length < 3 "this factor is only between two variables"
+  @assert length(cf.fullvariables) < 3 "this factor is only between two variables. solvefor=$(cf.solvefor)"
   # just a linear difference to complete the test
   return X2 - (X1 + z)
 end
@@ -64,6 +63,11 @@ f1 = addFactor!(fg, [:x0;:x1_a;:x1_b], mf, multihypo=[1;1/2;1/2])
 ##
 
 meas = sampleFactor(fg, :x0x1_ax1_bf1, 10)
+
+# initAll!(fg)
+# pts = approxConv(fg, :x0x1_ax1_bf1, :x1_a)
+# pts = approxConv(fg, :x0x1_ax1_bf1, :x1_b)
+# pts = approxConv(fg, :x0x1_ax1_bf1, :x0)
 
 ##
 

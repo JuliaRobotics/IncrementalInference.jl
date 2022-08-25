@@ -123,37 +123,33 @@ end
 # FIXME see #1025, `multihypo=` will not work properly yet
 function sampleFactor( cf::CalcFactor{<:DERelative}, N::Int=1)
   #
-
   oder = cf.factor
-  fmd_ = cf.metadata
-
 
   # how many trajectories to propagate?
-  # @show getLabel(fmd_.fullvariables[2]), getDimension(fmd_.fullvariables[2])
-  meas = [zeros(getDimension(fmd_.fullvariables[2])) for _ in 1:N]
+  # @show getLabel(cf.fullvariables[2]), getDimension(cf.fullvariables[2])
+  meas = [zeros(getDimension(cf.fullvariables[2])) for _ in 1:N]
   
   # pick forward or backward direction
-  prob = oder.forwardProblem
-  # buffer manifold operations for use during factor evaluation
-  addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( convert(Tuple, getManifold(getVariableType(fmd_.fullvariables[2]))) )
-  
   # set boundary condition
-  u0pts = if fmd_.solvefor == DFG.getLabel(fmd_.fullvariables[1])
+  u0pts = if cf.solvefor == 1
     # backward direction
     prob = oder.backwardProblem
-    addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( convert(Tuple, getManifold(getVariableType(fmd_.fullvariables[1]))) )
-    getBelief( fmd_.fullvariables[2] ) |> getPoints
+    addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( convert(Tuple, getManifold(getVariableType(cf.fullvariables[1]))) )
+    getBelief( cf.fullvariables[2] ) |> getPoints
   else
     # forward backward
-    getBelief( fmd_.fullvariables[1] ) |> getPoints
+    prob = oder.forwardProblem
+    # buffer manifold operations for use during factor evaluation
+    addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( convert(Tuple, getManifold(getVariableType(cf.fullvariables[2]))) )
+    getBelief( cf.fullvariables[1] ) |> getPoints
   end
 
   # solve likely elements
   for i in 1:N
     # TODO, does this respect hyporecipe ???
-    idxArr = (k->fmd_.arrRef[k][i]).(1:length(fmd_.arrRef))
+    idxArr = (k->cf._legacyParams[k][i]).(1:length(cf._legacyParams))
     _solveFactorODE!(meas[i], prob, u0pts[i], _maketuplebeyond2args(idxArr...)...)
-    # _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(fmd_.arrRef...)...)
+    # _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(cf._legacyParams...)...)
   end
 
   return map(x->(x, diffOp), meas)
@@ -174,15 +170,14 @@ function (cf::CalcFactor{<:DERelative})(measurement, X...)
   # if backwardSolve else forward
   
   # check direction
-  # TODO put solveforIdx in FMD?
-  solveforIdx = 1
-  if cf.metadata.solvefor == DFG.getLabel(cf.metadata.fullvariables[2])
-    solveforIdx = 2
-  elseif cf.metadata.solvefor in _maketuplebeyond2args(cf.metadata.variablelist...)
+
+  solveforIdx = cf.solvefor
+
+  if solveforIdx > 2
     # need to recalculate new ODE (forward) for change in parameters (solving for 3rd or higher variable)
     solveforIdx = 2
     # use forward solve for all solvefor not in [1;2]
-    u0pts = getBelief(cf.metadata.fullvariables[1]) |> getPoints
+    u0pts = getBelief(cf.fullvariables[1]) |> getPoints
     # update parameters for additional variables
     _solveFactorODE!(meas1, oderel.forwardProblem, u0pts[cf._sampleIdx], _maketuplebeyond2args(X...)...)
   end

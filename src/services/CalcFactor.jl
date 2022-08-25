@@ -20,44 +20,31 @@ _getDimensionsPartial(fct::DFGFactor) = _getDimensionsPartial(_getCCW(fct))
 _getDimensionsPartial(fg::AbstractDFG, lbl::Symbol) = _getDimensionsPartial(getFactor(fg, lbl))
 
 
-"""
-    $SIGNATURES
-Get `.factormetadata` for each CPT in CCW for a specific factor in `fg`. 
-"""
-_getFMdThread(ccw::CommonConvWrapper, 
-              thrid::Int=Threads.threadid()) = ccw.cpt[thrid].factormetadata
-#
-_getFMdThread(fc::Union{GenericFunctionNodeData,DFGFactor}, 
-              thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(fc), thrid)
-#
-_getFMdThread(dfg::AbstractDFG,
-              lbl::Symbol,
-              thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(dfg, lbl), thrid)
-#
-
 
 
 
 # Helper function to construct CF from a CCW
 function CalcFactor(ccwl::CommonConvWrapper;
-                    factor = ccwl.usrfnc!, 
-                    metadata = _getFMdThread(ccwl), 
+                    factor = ccwl.usrfnc!,
                     _sampleIdx = 0, 
                     _measCount = length(ccwl.measurement),
                     _legacyMeas = ccwl.measurement, 
                     _legacyParams = ccwl.params, 
                     _allowThreads = true,
-                    cache = ccwl.dummyCache )
+                    cache = ccwl.dummyCache,
+                    fullvariables=ccwl.fullvariables,
+                    solvefor=ccwl.varidx)
   #
   # FIXME using ccwl.dummyCache is not thread-safe
   CalcFactor( factor,
-              metadata,
               _sampleIdx,
               _measCount,
               _legacyMeas,
               _legacyParams,
               _allowThreads,
-              cache )
+              cache,
+              fullvariables,
+              solvefor )
 end
 
 
@@ -203,17 +190,15 @@ end
 
 
 function ConvPerThread( X::AbstractVector{P},
-                        zDim::Int,
-                        factormetadata::FactorMetadata;
+                        zDim::Int;
                         particleidx::Int=1,
                         activehypo= 1:length(params),
                         perturb=zeros(zDim),
                         res=zeros(zDim),
                         thrid_ = 0  ) where P
   #
-  return ConvPerThread{typeof(res), typeof(factormetadata), Any}( thrid_,
+  return ConvPerThread{typeof(res), Any}( thrid_,
                         particleidx,
-                        factormetadata,
                         Int[activehypo;],
                         perturb,
                         X,
@@ -225,7 +210,7 @@ function CommonConvWrapper( usrfnc::T,
                             X::AbstractVector{P},
                             zDim::Int,
                             varValsLink::Tuple,
-                            factormetadata::FactorMetadata;
+                            fullvariables::Vector{DFGVariable};
                             partial::Bool=false,
                             hypotheses::H=nothing,
                             certainhypo=nothing,
@@ -240,11 +225,11 @@ function CommonConvWrapper( usrfnc::T,
                             res::AbstractVector{<:Real}=zeros(zDim),
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
                             inflation::Real=3.0,
-                            vartypes=typeof.(getVariableType.(factormetadata.fullvariables)),
+                            vartypes::Vector{DataType}=typeof.(getVariableType.(fullvariables)),
                             gradients=nothing,
-                            userCache::CT = nothing ) where {T<:AbstractFactor,P,H,CT}
+                            userCache::CT = nothing,
+                          ) where {T<:AbstractFactor,P,H,CT}
   #
-
   return  CommonConvWrapper(usrfnc,
                             xDim,
                             zDim,
@@ -256,14 +241,15 @@ function CommonConvWrapper( usrfnc::T,
                             varidx,
                             measurement,
                             threadmodel,
-                            (i->ConvPerThread(X, zDim,factormetadata, particleidx=particleidx,
+                            (i->ConvPerThread(X, zDim, particleidx=particleidx,
                                               activehypo=activehypo, 
                                               perturb=perturb, res=res )).(1:Threads.nthreads()),
                             inflation,
                             partialDims,
                             DataType[vartypes...],
                             gradients,
-                            userCache )
+                            userCache,
+                            fullvariables )
 end
 
 
@@ -424,14 +410,15 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
   _varValsQuick, maxlen, sfidx, varTypes = _prepParamVec( Xi, nothing, 0; solveKey ) # Nothing for init.
 
   # standard factor metadata
-  sflbl = 0 == length(Xi) ? :null : getLabel(Xi[end])
-  lbs = getLabel.(Xi)
-  fmd = FactorMetadata(Xi, lbs, _varValsQuick, sflbl, nothing)
-  
+  solvefor = length(Xi)
+  # sflbl = 0 == length(Xi) ? :null : getLabel(Xi[end])
+  # lbs = getLabel.(Xi)
+  # fmd = FactorMetadata(Xi, lbs, _varValsQuick, sflbl, nothing)
+  fullvariables = convert(Vector{DFGVariable}, Xi)
   # create a temporary CalcFactor object for extracting the first sample
   # TODO, deprecate this:  guess measurement points type
   # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
-  _cf = CalcFactor( usrfnc, fmd, 0, 1, nothing, _varValsQuick, false, userCache)
+  _cf = CalcFactor( usrfnc, 0, 1, nothing, _varValsQuick, false, userCache, fullvariables, solvefor)
   
   # get a measurement sample
   meas_single = sampleFactor(_cf, 1)[1]
@@ -465,7 +452,7 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
           PointType[],
           calcZDim(_cf),
           _varValsQuick,
-          fmd;
+          fullvariables;
           partial,
           measurement,
           hypotheses = multihypo,
@@ -476,7 +463,7 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
           partialDims,
           vartypes = varTypes,
           gradients,
-          userCache
+          userCache,
         )
 end
 
@@ -518,6 +505,9 @@ function _updateCCW!( F_::Type{<:AbstractRelative},
   # TODO, should this not be part of `prepareCommonConvWrapper` -- only here do we look for .partial
   _setCCWDecisionDimsConv!(ccwl)
   
+  # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
+  ccwl.varidx = sfidx
+
   # get factor metadata -- TODO, populate, also see #784
   # TODO consolidate with ccwl??
   # FIXME do not divert Mixture for sampling
@@ -527,8 +517,6 @@ function _updateCCW!( F_::Type{<:AbstractRelative},
   @assert ccwl.zDim == calcZDim( cf ) "refactoring in progress, cannot drop assignment ccwl.zDim:$(ccwl.zDim) = calcZDim( cf ):$(calcZDim( cf ))"
   # ccwl.zDim = calcZDim( cf )  # CalcFactor(ccwl) )
 
-  # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
-  ccwl.varidx = sfidx
   
   # option to disable fresh samples
   if needFreshMeasurements

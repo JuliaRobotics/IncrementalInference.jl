@@ -50,7 +50,6 @@ function approxDeconv(fcto::DFGFactor,
   res_ = zeros(zDim)
   # TODO, consolidate fmd with getSample/sampleFactor and _buildLambda
   fctSmpls = deepcopy(measurement)
-  fmd = _getFMdThread(ccw)
   
   # TODO assuming vector on only first container in measurement::Tuple
   makeTarget = (i) -> measurement[i] # TODO does not support copy-primitive types like Float64, only Ref()

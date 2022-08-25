@@ -1,5 +1,5 @@
 using IncrementalInference
-
+using Test
 ##
 
 @testset "test fourdoor early example" begin

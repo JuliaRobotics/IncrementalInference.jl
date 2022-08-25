@@ -107,7 +107,6 @@ export
   getSolverData,
 
   # using either dictionary or cloudgraphs
-  FactorMetadata,
   FunctionNodeData,
   PackedFunctionNodeData, # moved to DFG
   normalfromstring,

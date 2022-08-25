@@ -41,7 +41,6 @@ include("testFactorGradients.jl")
 include("testSpecialSampler.jl") # TODO, rename, refine
 include("testNLsolve.jl")
 include("testCommonConvWrapper.jl")
-include("testFactorMetadata.jl")
 
 include("testApproxConv.jl")
 include("testBasicForwardConvolve.jl")
