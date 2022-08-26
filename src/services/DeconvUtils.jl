@@ -82,12 +82,13 @@ function approxDeconv(fcto::DFGFactor,
     #
     
     # lambda with which to find best measurement values
-    hypoObj = (tgt) -> (targeti_.=tgt; onehypo!() )
+    #TODO this will also break when we allow bitstypes
+    hypoObj = (tgt) -> (measurement[idx]=tgt; onehypo!() )
 
     # find solution via SubArray view pointing to original memory location
     if fcttype isa AbstractManifoldMinimize
       sfidx = ccw.varidx
-      targeti_ .= _solveLambdaNumericMeas(fcttype, hypoObj, res_, measurement[idx], ccw.vartypes[sfidx](), islen1)
+      measurement[idx] = _solveLambdaNumericMeas(fcttype, hypoObj, res_, measurement[idx], ccw.vartypes[sfidx](), islen1)
     else
       targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx], islen1)
     end

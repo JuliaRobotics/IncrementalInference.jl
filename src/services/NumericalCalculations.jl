@@ -86,17 +86,30 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   # 
   #TODO this is not general to all manifolds, should work for lie groups.
   # ϵ = identity_element(M, u0)
-  ϵ = getPointIdentity(variableType)
+  ϵ = getPointIdentity(M)
   # X0c = get_coordinates(M, u0, log(M, ϵ, u0), DefaultOrthogonalBasis()) 
-  X0c = vee(M, u0, log(M, ϵ, u0)) 
+  X0c = convert(Vector{Float64},vee(M, u0, log(M, ϵ, u0)))
 
   # objResX(p) returns tangent vector at p, X=log(M, p, ...)
   # norm(M, p, X) == distance(M, p, X)
   #TODO fix closure for performance
   fM = getManifold(fcttype)
-  function cost(p, X, Xc)
-    hat!(M, X, ϵ, Xc)
-    retract!(M, p, ϵ, X)  
+
+#FIXME OLD
+# function cost(p, X, Xc)
+#   hat!(M, X, ϵ, Xc)
+#   retract!(M, p, ϵ, X)  
+#   # X = objResX(p)
+#   # return norm(fM, p, X)^2 #TODO the manifold of p and X are not always the same
+#   #options getPointIdentity or leave it to factor 
+#   residual = objResX(p)
+#   return sum(residual.^2)
+# end
+#TODO check performance
+#FIXME new
+  function cost(Xc)
+    X = hat(M, ϵ, Xc)
+    p = exp(M, ϵ, X)  
     # X = objResX(p)
     # return norm(fM, p, X)^2 #TODO the manifold of p and X are not always the same
     #options getPointIdentity or leave it to factor 
@@ -111,11 +124,14 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   #   Optim.optimize(cost, X0c, Optim.NelderMead())
   # end
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
-  X0 = hat(M, ϵ, X0c)
-  p0 = exp(M, ϵ, X0)
-  r = Optim.optimize(Xc->cost(p0, X0, Xc), X0c, alg)
+  #FIXME OLD
+  # X0 = hat(M, ϵ, X0c)
+  # p0 = exp(M, ϵ, X0)
+  # r = Optim.optimize(Xc->cost(p0, X0, Xc), X0c, alg)
+  #FIXME NEW
+  r = Optim.optimize(cost, X0c, alg)
   if !Optim.converged(r)
-    @debug "Optim did not converge:" r
+    @warn "Optim did not converge:" r
   end
   return exp(M, ϵ, hat(M, ϵ, r.minimizer)) 
 
@@ -348,8 +364,9 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   # broadcast updates original view memory location
   ## using CalcFactor legacy path inside (::CalcFactor)
   # _hypoObj = (x) -> (target.=x; unrollHypo!())
+
   function _hypoObj(x)
-    target[] .= x
+    ccwl.params[ccwl.varidx][smpid] = x
     return unrollHypo!()
   end
   
@@ -370,7 +387,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   # end
 
   # FIXME insert result back at the correct variable element location
-  ccwl.params[sfidx][smpid] .= retval
+  ccwl.params[sfidx][smpid] = retval
   
   nothing
 end

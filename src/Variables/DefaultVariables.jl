@@ -46,7 +46,9 @@ $(TYPEDEF)
 
 Circular is a `Manifolds.Circle{ℝ}` mechanization of one rotation, with `theta in [-pi,pi)`.
 """
-@defVariable Circular RealCircleGroup() [0.0;]
+# @defVariable Circular RealCircleGroup() [0.0;]
+#TODO This is an example of what we want working
+@defVariable Circular RealCircleGroup() Scalar(0.0)
 
 
 #

@@ -9,10 +9,10 @@ import Rotations as _Rot
 
 ## define new local variable types for testing
 
-@defVariable TranslationGroup2 TranslationGroup(2) [0.0, 0.0]
+@defVariable TranslationGroup2 TranslationGroup(2) SA[0.0, 0.0]
 
-# @defVariable SpecialEuclidean2 SpecialEuclidean(2) ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0]))
-@defVariable SpecialEuclidean2 SpecialEuclidean(2) ArrayPartition([0.0,0.0], [1.0 0.0; 0.0 1.0])
+@defVariable SpecialEuclidean2 SpecialEuclidean(2) ArrayPartition(@SVector([0.0,0.0]), @SMatrix([1.0 0.0; 0.0 1.0]))
+# @defVariable SpecialEuclidean2 SpecialEuclidean(2) ArrayPartition([0.0,0.0], [1.0 0.0; 0.0 1.0])
 
 ##
 
@@ -22,11 +22,11 @@ import Rotations as _Rot
 M = getManifold(SpecialEuclidean2)
 @test M == SpecialEuclidean(2)
 pT = getPointType(SpecialEuclidean2)
-@test pT == ArrayPartition{Float64,Tuple{Vector{Float64}, Matrix{Float64}}}
-# @test pT == ArrayPartition{Tuple{MVector{2, Float64}, MMatrix{2, 2, Float64, 4}}}
+# @test pT == ArrayPartition{Float64,Tuple{Vector{Float64}, Matrix{Float64}}}
+@test pT == ArrayPartition{Float64, Tuple{SVector{2, Float64}, SMatrix{2, 2, Float64, 4}}}
 pϵ = getPointIdentity(SpecialEuclidean2)
 # @test_broken pϵ == ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0]))
-@test all(isapprox.(pϵ,ArrayPartition([0.0,0.0], [1.0 0.0; 0.0 1.0])))
+@test all(isapprox.(pϵ,ArrayPartition(SA[0.0,0.0], SA[1.0 0.0; 0.0 1.0])))
 
 @test is_point(getManifold(SpecialEuclidean2), getPointIdentity(SpecialEuclidean2))
 
@@ -36,8 +36,8 @@ fg = initfg()
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 
 # mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
-# mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal(Diagonal(abs2.([0.01, 0.01, 0.01]))))
-mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition([0.0,0.0], [1.0 0.0; 0.0 1.]), MvNormal(Diagonal(abs2.([0.01, 0.01, 0.01]))))
+mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(@SVector([0.0,0.0]), @SMatrix([1.0 0.0; 0.0 1.0])), MvNormal(Diagonal(abs2.([0.01, 0.01, 0.01]))))
+# mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition([0.0,0.0], [1.0 0.0; 0.0 1.]), MvNormal(Diagonal(abs2.([0.01, 0.01, 0.01]))))
 p = addFactor!(fg, [:x0], mp)
 
 
@@ -47,7 +47,7 @@ doautoinit!(fg, :x0)
 
 ##
 vnd = getVariableSolverData(fg, :x0)
-@test all(isapprox.(mean(vnd.val), ArrayPartition([0.0,0.0], [1.0 0.0; 0.0 1.0]), atol=0.1))
+@test all(isapprox.(mean(vnd.val), ArrayPartition(SA[0.0,0.0], SA[1.0 0.0; 0.0 1.0]), atol=0.1))
 @test all(is_point.(Ref(M), vnd.val))
 
 ##
@@ -67,11 +67,11 @@ solveTree!(fg; smtasks, verbose=true) #, recordcliqs=ls(fg))
 # hists = fetchCliqHistoryAll!(smtasks);
 
 vnd = getVariableSolverData(fg, :x0)
-@test all(isapprox.(mean(vnd.val), ArrayPartition([0.0,0.0], [1.0 0.0; 0.0 1.0]), atol=0.1))
+@test all(isapprox.(mean(vnd.val), ArrayPartition(SA[0.0,0.0], SA[1.0 0.0; 0.0 1.0]), atol=0.1))
 @test all(is_point.(Ref(M), vnd.val))
 
 vnd = getVariableSolverData(fg, :x1)
-@test all(isapprox.(mean(vnd.val), ArrayPartition([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071]), atol=0.1))
+@test all(isapprox.(mean(vnd.val), ArrayPartition(SA[1.0,2.0], SA[0.7071 -0.7071; 0.7071 0.7071]), atol=0.1))
 @test all(is_point.(Ref(M), vnd.val))
 
 v1 = addVariable!(fg, :x2, SpecialEuclidean2)
@@ -91,7 +91,7 @@ result = solveTree!(fg; smtasks, verbose=true)
 fg = initfg()
 
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
-mp = PartialPrior(MvNormal([0.01, 0.01]), (1,2))
+mp = PartialPrior(MvNormal(SA[0.01, 0.01]), (1,2))
 
 p = addFactor!(fg, [:x0], mp, graphinit=false)
 

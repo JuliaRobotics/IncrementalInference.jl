@@ -123,8 +123,9 @@ function addEntropyOnManifold!( M::ManifoldsBase.AbstractManifold,
   # preallocate 
   T = number_eltype(points[1])
   Xc = zeros(T, manifold_dimension(M))
-  X = get_vector(M, points[1], Xc, DefaultOrthogonalBasis())  
-  
+  # X = get_vector(M, points[1], Xc, DefaultOrthogonalBasis())  
+  X = allocate(points[1])
+
   for idx in 1:length(points)
     # build tangent coordinate random
     for dim in dimIdx
@@ -136,8 +137,8 @@ function addEntropyOnManifold!( M::ManifoldsBase.AbstractManifold,
     get_vector!(M, X, points[idx], Xc, DefaultOrthogonalBasis())  
     #update point
     # exp!(M, points[idx], points[idx], X)
-    retract!(M, points[idx], points[idx], X)
-    # points[idx] = exp(M, points[idx], X)
+    # retract!(M, points[idx], points[idx], X)
+    points[idx] = retract(M, points[idx], X)
     
   end
   #
@@ -363,6 +364,16 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   return ccwl.params[ccwl.varidx], ipc
 end
 
+#TODO workaround for supporting bitstypes, need rewrite, can do with `PowerManifoldNestedReplacing` or similar
+function AMP.setPointsMani!(dest::AbstractArray{T}, src::AbstractArray{U}, destIdx, srcIdx=destIdx) where {T<:AbstractArray,U<:AbstractArray}
+  if isbitstype(T)
+    dest[destIdx] = src[srcIdx]
+  else
+    setPointsMani!(dest[destIdx],src[srcIdx])
+  end
+end
+
+
 
 # TODO `measurement` might not be properly wired up yet
 # TODO consider 1051 here to inflate proposals as general behaviour
@@ -439,7 +450,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
     for m in (1:length(addEntr))[ahmask]
       # FIXME, selection for all measurement::Tuple elements
       # @info "check broadcast" ccwl.usrfnc! addEntr[m] ccwl.measurement[1][m]
-      setPointsMani!(addEntr[m], ccwl.measurement[m])
+      setPointsMani!(addEntr, ccwl.measurement, m)
       # addEntr[m] = ccwl.measurement[m][1]
     end
     # ongoing part of RoME.jl #244
