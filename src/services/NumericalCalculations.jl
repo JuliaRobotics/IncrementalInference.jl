@@ -196,14 +196,6 @@ end
     $SIGNATURES
 Internal function to build lambda pre-objective function for finding factor residuals. 
 
-Notes  
-- Unless passed in as separate arguments, this assumes already valid in `ccwl`:
-  - `ccwl.p`
-  - `ccwl.activehypo`
-  - `ccwl.factormetadata`
-  - `ccwl.params`
-  - `ccwl.measurement`
-
 DevNotes
 - TODO refactor relationship and common fields between (CCW, FMd, CPT, CalcFactor)
 """
