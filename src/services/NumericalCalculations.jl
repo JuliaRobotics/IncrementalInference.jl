@@ -197,10 +197,10 @@ end
 Internal function to build lambda pre-objective function for finding factor residuals. 
 
 Notes  
-- Unless passed in as separate arguments, this assumes already valid in `cpt_`:
-  - `cpt_.p`
-  - `cpt_.activehypo`
-  - `cpt_.factormetadata`
+- Unless passed in as separate arguments, this assumes already valid in `ccwl`:
+  - `ccwl.p`
+  - `ccwl.activehypo`
+  - `ccwl.factormetadata`
   - `ccwl.params`
   - `ccwl.measurement`
 
@@ -209,7 +209,6 @@ DevNotes
 """
 function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
                                       smpid::Integer,
-                                      cpt_::ConvPerThread = ccwl.cpt[Threads.threadid()],
                                       target = view(ccwl.params[ccwl.varidx][smpid], ccwl.partialDims),
                                       measurement_ = ccwl.measurement;
                                       # fmd_::FactorMetadata = cpt_.factormetadata;
@@ -221,7 +220,7 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   # DevNotes, also see new `hyporecipe` approach (towards consolidation CCW CPT FMd CF...)
   
   # build a view to the decision variable memory
-  varValsHypo = ccwl.params[cpt_.activehypo]
+  varValsHypo = ccwl.params[ccwl.activehypo]
   # tup = tuple(varParams...)
   # nms = keys(ccwl.params)[cpt_.activehypo]
   # varValsHypo = NamedTuple{nms,typeof(tup)}(tup)
@@ -236,14 +235,14 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   #                         fmd_.cachedata  )
   #
   # get the operational CalcFactor object
-  cf = _buildCalcFactor(ccwl, smpid, measurement_, varValsHypo, cpt_.activehypo)
+  cf = _buildCalcFactor(ccwl, smpid, measurement_, varValsHypo, ccwl.activehypo)
   # new dev work on CalcFactor
   # cf = CalcFactor(ccwl.usrfnc!, _fmd_, smpid, 
   #                 length(measurement_), measurement_, varValsHypo)
   #
 
   # reset the residual vector
-  fill!(cpt_.res, 0.0) # Roots->xDim | Minimize->zDim
+  fill!(ccwl.res, 0.0) # Roots->xDim | Minimize->zDim
 
   # build static lambda
   unrollHypo! = if _slack === nothing
@@ -267,8 +266,6 @@ Solve free variable x by root finding residual function `fgr.usrfnc(res, x)`.  T
 penultimate step before calling numerical operations to move actual estimates, which is 
 done by an internally created lambda function.
 
-ccw.X must be set to memory ref the param[varidx] being solved, at creation of ccw
-
 Notes
 - Assumes `cpt_.p` is already set to desired X decision variable dimensions and size. 
 - Assumes only `ccw.particleidx` will be solved for
@@ -288,16 +285,15 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   #
 
   #
-  thrid = Threads.threadid()
-  cpt_ = ccwl.cpt[thrid]
+  # thrid = Threads.threadid()
 
-  smpid = cpt_.particleidx
+  smpid = ccwl.particleidx
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
   islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
   # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
 
   # build the pre-objective function for this sample's hypothesis selection
-  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, cpt_, _slack=_slack )
+  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid; _slack=_slack )
   
   # broadcast updates original view memory location
   ## using CalcFactor legacy path inside (::CalcFactor)
@@ -307,8 +303,10 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   # use all element dimensions : ==> 1:ccwl.xDim
   target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
 
+  sfidx = ccwl.varidx
   # do the parameter search over defined decision variables using Minimization
-  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid][ccwl.partialDims], islen1 )
+  X = ccwl.params[sfidx][smpid][ccwl.partialDims]
+  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, ccwl.res, X, islen1 )
   
   # Check for NaNs
   if sum(isnan.(retval)) != 0
@@ -317,9 +315,9 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   end
 
   # insert result back at the correct variable element location
-  cpt_.X[smpid][ccwl.partialDims] .= retval
-  
-  nothing
+  ccwl.params[sfidx][smpid][ccwl.partialDims] .= retval
+
+  return nothing
 end
 # brainstorming
 # should only be calling a new arg list according to activehypo at start of particle
@@ -339,14 +337,13 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
 
   #
   thrid = Threads.threadid()
-  cpt_ = ccwl.cpt[thrid]
 
-  smpid = cpt_.particleidx
+  smpid = ccwl.particleidx
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
   islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
 
   # build the pre-objective function for this sample's hypothesis selection
-  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, cpt_, view(ccwl.params[ccwl.varidx], smpid), _slack=_slack)
+  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, view(ccwl.params[ccwl.varidx], smpid), _slack=_slack)
   
   # broadcast updates original view memory location
   ## using CalcFactor legacy path inside (::CalcFactor)
@@ -361,9 +358,9 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   # F <: AbstractRelativeRoots && (target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb))
 
   # do the parameter search over defined decision variables using Minimization
-  # retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid][cpt_.p], islen1 )
   sfidx = ccwl.varidx
-  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid], ccwl.vartypes[sfidx](), islen1)
+  X = ccwl.params[sfidx][smpid]
+  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, ccwl.res, X, ccwl.vartypes[sfidx](), islen1)
   
   # Check for NaNs
   # FIXME isnan for manifold ProductRepr
@@ -373,7 +370,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   # end
 
   # FIXME insert result back at the correct variable element location
-  cpt_.X[smpid] .= retval
+  ccwl.params[sfidx][smpid] .= retval
   
   nothing
 end
