@@ -182,13 +182,13 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
       
       addEntr = view(ccwl.params[sfidx], allelements[count])
-      # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
-      spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=ccwl.inflation)
       
       # do proposal inflation step, see #1051
       # consider duplicate convolution approximations for inflation off-zero
       # ultimately set by dfg.params.inflateCycles
       for iflc in 1:inflateCycles
+        # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
+        spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=ccwl.inflation)
         addEntropyOnManifold!(mani, addEntr, 1:getDimension(mani), spreadDist, ccwl.partialDims)
         # no calculate new proposal belief on kernels `allelements[count]`
           _checkErrorCCWNumerics(ccwl, testshuffle)
