@@ -188,40 +188,21 @@ end
 ## FactorOperationalMemory helper constructors
 ## =============================================================================================
 
-
-function ConvPerThread( X::AbstractVector{P},
-                        zDim::Int;
-                        particleidx::Int=1,
-                        activehypo= 1:length(params),
-                        perturb=zeros(zDim),
-                        res=zeros(zDim),
-                        thrid_ = 0  ) where P
-  #
-  return ConvPerThread{typeof(res), Any}( thrid_,
-                        particleidx,
-                        Int[activehypo;],
-                        perturb,
-                        X,
-                        res )
-end
-
-
 function CommonConvWrapper( usrfnc::T,
-                            X::AbstractVector{P},
+                            X::AbstractVector{P}, #TODO remove X completely
                             zDim::Int,
                             varValsLink::Tuple,
                             fullvariables::Vector{DFGVariable};
                             partial::Bool=false,
                             hypotheses::H=nothing,
                             certainhypo=nothing,
-                            activehypo= 1:length(varValsLink),
+                            activehypo=collect(1:length(varValsLink)),
                             nullhypo::Real=0,
                             varidx::Int=1,
                             measurement::AbstractVector=Vector(Vector{Float64}(),),
                             particleidx::Int=1,
                             xDim::Int=size(X,1),
                             partialDims::AbstractVector{<:Integer}=1:length(X),
-                            perturb=zeros(zDim),
                             res::AbstractVector{<:Real}=zeros(zDim),
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
                             inflation::Real=3.0,
@@ -241,15 +222,16 @@ function CommonConvWrapper( usrfnc::T,
                             varidx,
                             measurement,
                             threadmodel,
-                            (i->ConvPerThread(X, zDim, particleidx=particleidx,
-                                              activehypo=activehypo, 
-                                              perturb=perturb, res=res )).(1:Threads.nthreads()),
                             inflation,
                             partialDims,
                             DataType[vartypes...],
                             gradients,
                             userCache,
-                            fullvariables )
+                            fullvariables,
+                            particleidx,
+                            activehypo,
+                            res,
+  )
 end
 
 
@@ -342,19 +324,6 @@ function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
     Int[1:ccwl.xDim...]
   end
   
-  nothing
-end
-
-
-function _updateCPTs!(ccwl, sfidx)
-  for thrid in 1:Threads.nthreads()
-    cpt_ = ccwl.cpt[thrid] 
-    cpt_.X = ccwl.params[sfidx]
-    # used in ccw functor for AbstractRelativeMinimize
-    # TODO JT - Confirm it should be updated here. Testing in _prepCCW
-    resize!(cpt_.res, ccwl.zDim) 
-    fill!(cpt_.res, 0.0)
-  end
   nothing
 end
 
@@ -525,7 +494,9 @@ function _updateCCW!( F_::Type{<:AbstractRelative},
   end
   
   # set each CPT
-  _updateCPTs!(ccwl, sfidx)
+  # used in ccw functor for AbstractRelativeMinimize
+  resize!(ccwl.res, ccwl.zDim) 
+  fill!(ccwl.res, 0.0)
     
   # calculate new gradients perhaps
   # J = ccwl.gradients(measurement..., pts...)

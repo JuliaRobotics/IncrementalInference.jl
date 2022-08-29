@@ -18,14 +18,15 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                 ::Type{<:MultiThreaded},
                                 _slack=nothing ) where {N_,F<:AbstractRelative,S,T}
   #
-  Threads.@threads for n in elements
-    # ccwl.thrid_ = Threads.threadid()
-    ccwl.cpt[Threads.threadid()].particleidx = n
+  error("MultiThreaded `approxConvOnElements!` is depricated and will soon be replaced")
+  # Threads.@threads for n in elements
+  #   # ccwl.thrid_ = Threads.threadid()
+  #   ccwl.cpt[Threads.threadid()].particleidx = n
     
-    # ccall(:jl_, Nothing, (Any,), "starting loop, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx)")
-    _solveCCWNumeric!( ccwl, _slack=_slack)
-  end
-  nothing
+  #   # ccall(:jl_, Nothing, (Any,), "starting loop, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx)")
+  #   _solveCCWNumeric!( ccwl, _slack=_slack)
+  # end
+  # nothing
 end
 
 
@@ -36,7 +37,7 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                 _slack=nothing ) where {N_,F<:AbstractRelative,S,T}
   #
   for n in elements
-    ccwl.cpt[Threads.threadid()].particleidx = n
+    ccwl.particleidx = n
     _solveCCWNumeric!( ccwl, _slack=_slack)
   end
   nothing
@@ -170,7 +171,6 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
   activehypo  = hyporecipe.activehypo
   certainidx  = hyporecipe.certainidx
 
-  cpt_ = ccwl.cpt[Threads.threadid()]
   
   @assert ccwl.certainhypo == hyporecipe.certainidx "expected hyporecipe.certainidx to be the same as cached in ccw"
   for (hypoidx, vars) in activehypo
@@ -179,7 +179,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
     # now do hypothesis specific
     if sfidx in certainidx && hypoidx != 0 || hypoidx in certainidx || hypoidx == sfidx
       # hypo case hypoidx, sfidx = $hypoidx, $sfidx
-      for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
+      for i in 1:Threads.nthreads()  ccwl.activehypo = vars; end
       
       addEntr = view(ccwl.params[sfidx], allelements[count])
       

@@ -70,16 +70,13 @@ function approxDeconv(fcto::DFGFactor,
   
   for idx in 1:N
     # towards each particle in their own thread (not 100% ready yet, factors should be separate memory)
-    thrid = Threads.threadid()
-    cpt_ = ccw.cpt[thrid]
     targeti_ = makeTarget(idx)
     
     # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
-    cpt_.activehypo = hyporecipe.activehypo[2][2]
+    ccw.activehypo = hyporecipe.activehypo[2][2]
 
     onehypo!, _ = _buildCalcFactorLambdaSample( ccw,
                                                 idx,
-                                                cpt_,
                                                 targeti_,
                                                 measurement  )
     #
