@@ -137,6 +137,33 @@ end
 
 
 ##
+#test one clique as in RoME
+N=100
+points = [[100.0;0.0],[0.0;100.0]]
+fg = IIF.generateGraph_EuclidDistance(points)
+fg.solverParams.graphinit = false
+
+M = getManifold(fg, :l1)
+TP = false
+for i in 1:3
+  # global TP, N
+  tree = solveTree!(fg);
+
+  L1 = getBelief(fg, :l1) |> getPoints
+
+  # check that two modes exist
+  am1 = sum(isapprox.(Ref(M), L1, Ref([0.0,0.0]), atol=10))
+  am2 = sum(isapprox.(Ref(M), L1, Ref([100.0,100.0]), atol=10))
+
+  TP  = am1 > N*0.03
+  TP &= am2 > N*0.03
+  if TP 
+    @info "test passed in $i"
+    break
+  end
+end
+@test TP
+##
 
 end
 
