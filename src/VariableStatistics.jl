@@ -1,16 +1,25 @@
 
+function Statistics.mean(vartype::InferenceVariable, args...; kwargs...)
+  return mean(getManifold(vartype), args...; kwargs...)
+end
+function Statistics.std(vartype::InferenceVariable, args...; kwargs...)
+  return std(getManifold(vartype), args...; kwargs...)
+end
+function Statistics.var(vartype::InferenceVariable, args...; kwargs...)
+  return var(getManifold(vartype), args...; kwargs...)
+end
 
-
-Statistics.mean(vartype::InferenceVariable, args...; kwargs...) = mean(getManifold(vartype), args...; kwargs...)
-Statistics.std(vartype::InferenceVariable, args...; kwargs...) = std(getManifold(vartype), args...; kwargs...)
-Statistics.var(vartype::InferenceVariable, args...; kwargs...) = var(getManifold(vartype), args...; kwargs...)
-
-function Statistics.cov(vartype::InferenceVariable, ptsArr::AbstractVector; basis::Manifolds.AbstractBasis = Manifolds.DefaultOrthogonalBasis(), kwargs...)
-  return cov(getManifold(vartype), ptsArr; basis, kwargs... )
+function Statistics.cov(
+  vartype::InferenceVariable,
+  ptsArr::AbstractVector;
+  basis::Manifolds.AbstractBasis = Manifolds.DefaultOrthogonalBasis(),
+  kwargs...,
+)
+  return cov(getManifold(vartype), ptsArr; basis, kwargs...)
 end
 
 # To replace calcCovarianceBasic
-function calcStdBasicSpread(vartype::InferenceVariable, ptsArr::Vector{P}) where P
+function calcStdBasicSpread(vartype::InferenceVariable, ptsArr::Vector{P}) where {P}
   σ = std(vartype, ptsArr)
 
   #if no std yet, set to 1
@@ -19,12 +28,9 @@ function calcStdBasicSpread(vartype::InferenceVariable, ptsArr::Vector{P}) where
 end
 
 #TODO consolidate
-function calcMeanCovar(vari::DFGVariable, solvekey=:default)
-
+function calcMeanCovar(vari::DFGVariable, solvekey = :default)
   pts = getSolverData(vari, solvekey).val
   μ = mean(getManifold(vari), pts)
   Σ = cov(getVariableType(vari), pts)
   return μ, Σ
 end
-
-

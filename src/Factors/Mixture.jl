@@ -1,8 +1,5 @@
 
-
-
-_defaultNamesMixtures(N::Int) = ((Symbol[Symbol("c$i") for i in 1:N])...,)
-
+_defaultNamesMixtures(N::Int) = ((Symbol[Symbol("c$i") for i = 1:N])...,)
 
 """
 $(TYPEDEF)
@@ -37,38 +34,75 @@ mlr = Mixture(LinearRelative,
 addFactor!(fg, [:x0;:x1], mlr)
 ```
 """
-struct Mixture{N, F<:AbstractFactor, S, T<:Tuple} <: AbstractFactor
+struct Mixture{N, F <: AbstractFactor, S, T <: Tuple} <: AbstractFactor
   """ factor mechanics """
   mechanics::F
-  components::NamedTuple{S,T}
+  components::NamedTuple{S, T}
   diversity::Distributions.Categorical
   """ dimension of factor, so range measurement would be dims=1 """
   dims::Int
   labels::Vector{Int}
 end
 
-
-Mixture(f::Type{F},
-        z::NamedTuple{S,T}, 
-        c::Distributions.DiscreteNonParametric ) where {F<:AbstractFactor, S, T} = Mixture{length(z),F,S,T}(f(LinearAlgebra.I), z, c, size( rand(z[1],1), 1), zeros(Int, 0))
-Mixture(f::F,
-        z::NamedTuple{S,T}, 
-        c::Distributions.DiscreteNonParametric ) where {F<:AbstractFactor, S, T} = Mixture{length(z),F,S,T}(f, z, c, size( rand(z[1],1), 1), zeros(Int, 0))
-Mixture(f::Union{F,Type{F}},z::NamedTuple{S,T}, 
-        c::AbstractVector{<:Real}) where {F<:AbstractFactor,S,T} = Mixture(f, z, Categorical([c...]) )
-Mixture(f::Union{F,Type{F}},
-        z::NamedTuple{S,T}, 
-        c::NTuple{N,<:Real}) where {N,F<:AbstractFactor,S,T} = Mixture(f, z, [c...] )
-Mixture(f::Union{F,Type{F}},
-        z::Tuple, 
-        c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F<:AbstractFactor, N} = Mixture(f,NamedTuple{_defaultNamesMixtures(length(z))}(z), c )
-Mixture(f::Union{F,Type{F}},
-        z::AbstractVector{<:SamplableBelief}, 
-        c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F <: AbstractFactor, N} = Mixture(f,(z...,), c )
-
+function Mixture(
+  f::Type{F},
+  z::NamedTuple{S, T},
+  c::Distributions.DiscreteNonParametric,
+) where {F <: AbstractFactor, S, T}
+  return Mixture{length(z), F, S, T}(
+    f(LinearAlgebra.I),
+    z,
+    c,
+    size(rand(z[1], 1), 1),
+    zeros(Int, 0),
+  )
+end
+function Mixture(
+  f::F,
+  z::NamedTuple{S, T},
+  c::Distributions.DiscreteNonParametric,
+) where {F <: AbstractFactor, S, T}
+  return Mixture{length(z), F, S, T}(f, z, c, size(rand(z[1], 1), 1), zeros(Int, 0))
+end
+function Mixture(
+  f::Union{F, Type{F}},
+  z::NamedTuple{S, T},
+  c::AbstractVector{<:Real},
+) where {F <: AbstractFactor, S, T}
+  return Mixture(f, z, Categorical([c...]))
+end
+function Mixture(
+  f::Union{F, Type{F}},
+  z::NamedTuple{S, T},
+  c::NTuple{N, <:Real},
+) where {N, F <: AbstractFactor, S, T}
+  return Mixture(f, z, [c...])
+end
+function Mixture(
+  f::Union{F, Type{F}},
+  z::Tuple,
+  c::Union{
+    <:Distributions.DiscreteNonParametric,
+    <:AbstractVector{<:Real},
+    <:NTuple{N, <:Real},
+  },
+) where {F <: AbstractFactor, N}
+  return Mixture(f, NamedTuple{_defaultNamesMixtures(length(z))}(z), c)
+end
+function Mixture(
+  f::Union{F, Type{F}},
+  z::AbstractVector{<:SamplableBelief},
+  c::Union{
+    <:Distributions.DiscreteNonParametric,
+    <:AbstractVector{<:Real},
+    <:NTuple{N, <:Real},
+  },
+) where {F <: AbstractFactor, N}
+  return Mixture(f, (z...,), c)
+end
 
 function Base.resize!(mp::Mixture, s::Int)
-  resize!(mp.labels, s)
+  return resize!(mp.labels, s)
 end
 
 _lengthOrNothing(val) = length(val)
@@ -77,33 +111,40 @@ _lengthOrNothing(val::Nothing) = 0
 getManifold(m::Mixture) = getManifold(m.mechanics)
 
 # TODO make in-place memory version
-function sampleFactor( cf::CalcFactor{<:Mixture}, N::Int=1)
+function sampleFactor(cf::CalcFactor{<:Mixture}, N::Int = 1)
   #
   # TODO consolidate #927, case if mechanics has a special sampler
   # TODO slight bit of waste in computation, but easiest way to ensure special tricks in s.mechanics::F are included
   ## example case is old FluxModelsPose2Pose2 requiring velocity
   # FIXME better consolidation of when to pass down .mechanics, also see #1099 and #1094 and #1069
-  
-  cf_ = CalcFactor( cf.factor.mechanics, 0, _lengthOrNothing(cf._legacyMeas), cf._legacyMeas, cf._legacyParams, cf._allowThreads, cf.cache, cf.fullvariables, cf.solvefor)
-  smpls = [getSample(cf_) for _=1:N]
-    # smpls = Array{Float64,2}(undef,s.dims,N)
+
+  cf_ = CalcFactor(
+    cf.factor.mechanics,
+    0,
+    _lengthOrNothing(cf._legacyMeas),
+    cf._legacyMeas,
+    cf._legacyParams,
+    cf._allowThreads,
+    cf.cache,
+    cf.fullvariables,
+    cf.solvefor,
+  )
+  smpls = [getSample(cf_) for _ = 1:N]
+  # smpls = Array{Float64,2}(undef,s.dims,N)
   #out memory should be right size first
   length(cf.factor.labels) != N ? resize!(cf.factor.labels, N) : nothing
   cf.factor.labels .= rand(cf.factor.diversity, N)
-  for i in 1:N
+  for i = 1:N
     mixComponent = cf.factor.components[cf.factor.labels[i]]
     # measurements relate to the factor's manifold (either tangent vector or manifold point)
-    setPointsMani!(smpls[i], rand(mixComponent,1))
+    setPointsMani!(smpls[i], rand(mixComponent, 1))
   end
 
   # TODO only does first element of meas::Tuple at this stage, see #1099
-  smpls
+  return smpls
 end
 
-
-
-
-function DistributedFactorGraphs.isPrior(::Mixture{N, F, S, T}) where {N,F,S,T}
+function DistributedFactorGraphs.isPrior(::Mixture{N, F, S, T}) where {N, F, S, T}
   return F <: AbstractPrior
 end
 
@@ -115,14 +156,13 @@ Serialization type for `Mixture`.
 Base.@kwdef mutable struct PackedMixture <: AbstractPackedFactor
   N::Int
   # store the packed type for later unpacking
-  F_::String 
+  F_::String
   S::Vector{String}
   components::Vector{PackedSamplableBelief}
   diversity::PackedSamplableBelief
 end
 
-
-function convert(::Type{<:PackedMixture}, obj::Mixture{N,F,S,T}) where {N,F,S,T}
+function convert(::Type{<:PackedMixture}, obj::Mixture{N, F, S, T}) where {N, F, S, T}
   allcomp = PackedSamplableBelief[]
   for val in obj.components
     dtr_ = convert(PackedSamplableBelief, val)
@@ -133,7 +173,7 @@ function convert(::Type{<:PackedMixture}, obj::Mixture{N,F,S,T}) where {N,F,S,T}
   pm_ = convert(pm, obj.mechanics)
   sT = string(typeof(pm_))
   dvst = convert(PackedSamplableBelief, obj.diversity)
-  PackedMixture( N, sT, string.(collect(S)), allcomp, dvst )
+  return PackedMixture(N, sT, string.(collect(S)), allcomp, dvst)
 end
 
 function convert(::Type{<:Mixture}, obj::PackedMixture)
@@ -141,16 +181,12 @@ function convert(::Type{<:Mixture}, obj::PackedMixture)
   F1 = getfield(Main, Symbol(obj.F_))
   S = (Symbol.(obj.S)...,)
   F2 = DFG.convertStructType(F1)
-  
-  components = map(c->convert(SamplableBelief,c), obj.components)
+
+  components = map(c -> convert(SamplableBelief, c), obj.components)
   diversity = convert(SamplableBelief, obj.diversity)
   # tupcomp = (components...,)
   ntup = NamedTuple{S}(components) # ,typeof(tupcomp)
-  Mixture(F2, ntup, diversity)
+  return Mixture(F2, ntup, diversity)
 end
 
-
-
-
-
-  #
+#

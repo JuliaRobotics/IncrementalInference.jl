@@ -1,5 +1,4 @@
 
-
 """
     $SIGNATURES
 
@@ -12,19 +11,20 @@ Related
 
 drawGraphCliq, spyCliqMat, drawTree, buildCliqSubgraphUp, buildSubgraphFromLabels!
 """
-function drawCliqSubgraphUpMocking(fgl::G,
-                                   treel::AbstractBayesTree,
-                                   frontalSym::Symbol;
-                                   show::Bool=true,
-                                   filepath::String="/tmp/caesar/random/cliq_sfg.dot",
-                                   engine::AS1="sfdp",
-                                   viewerapp::AS2="xdot"  ) where {G <: AbstractDFG, AS1 <: AbstractString, AS2 <: AbstractString}
+function drawCliqSubgraphUpMocking(
+  fgl::G,
+  treel::AbstractBayesTree,
+  frontalSym::Symbol;
+  show::Bool = true,
+  filepath::String = "/tmp/caesar/random/cliq_sfg.dot",
+  engine::AS1 = "sfdp",
+  viewerapp::AS2 = "xdot",
+) where {G <: AbstractDFG, AS1 <: AbstractString, AS2 <: AbstractString}
   #
   sfg = buildCliqSubgraphUp(fgl, treel, frontalSym)
-  drawGraph(sfg, show=show, viewerapp=viewerapp, engine=engine, filepath=filepath)
-  nothing
+  drawGraph(sfg; show = show, viewerapp = viewerapp, engine = engine, filepath = filepath)
+  return nothing
 end
-
 
 """
     $SIGNATURES
@@ -46,19 +46,21 @@ Related
 
 drawGraphCliq, [`drawTree`](@ref), printCliqSummary, spyCliqMat
 """
-function drawGraph( fgl::AbstractDFG;
-                    viewerapp::AbstractString="xdot",
-                    filepath::AbstractString="/tmp/caesar/random/fg.dot",
-                    engine::AbstractString="neato", #sfdp
-                    show::Bool=true )
+function drawGraph(
+  fgl::AbstractDFG;
+  viewerapp::AbstractString = "xdot",
+  filepath::AbstractString = "/tmp/caesar/random/fg.dot",
+  engine::AbstractString = "neato", #sfdp
+  show::Bool = true,
+)
   #
   mkpath(dirname(filepath))
   #   mkpath(joinpath( "/", (split(filepath, '/')[1:(end-1)])...) )  
 
   @debug "Writing factor graph file"
   fext = split(filepath, '.')[end]
-  fpwoext = filepath[1:(end-length(fext)-1)] # split(filepath, '.')[end-1]
-  dotfile = fpwoext*".dot"
+  fpwoext = filepath[1:(end - length(fext) - 1)] # split(filepath, '.')[end-1]
+  dotfile = fpwoext * ".dot"
 
   # create the dot file
   DFG.toDotFile(fgl, dotfile)
@@ -69,7 +71,7 @@ function drawGraph( fgl::AbstractDFG;
   catch e
     @warn "not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)"
   end
-  nothing
+  return nothing
 end
 
 """
@@ -81,17 +83,18 @@ Related
 
 drawCliqSubgraphUpMocking, drawGraph, drawTree
 """
-function drawGraphCliq( hists::Dict{Int, <: Tuple},
-                        step::Int,
-                        tree::AbstractBayesTree,
-                        frontal::Symbol;
-                        show::Bool=true  )
+function drawGraphCliq(
+  hists::Dict{Int, <:Tuple},
+  step::Int,
+  tree::AbstractBayesTree,
+  frontal::Symbol;
+  show::Bool = true,
+)
   #
   cid = getId(getClique(tree, frontal))
   cfg = hists[cid][step][4].cliqSubFg
-  drawGraph(cfg, show=show)
+  return drawGraph(cfg; show = show)
 end
-
 
 """
     $SIGNATURES
@@ -102,15 +105,17 @@ Related
 
 printCliqHistorySummary
 """
-function printCliqSummary(dfg::G,
-                          cliq::TreeClique,
-                          logger=ConsoleLogger() ) where G <: AbstractDFG
+function printCliqSummary(
+  dfg::G,
+  cliq::TreeClique,
+  logger = ConsoleLogger(),
+) where {G <: AbstractDFG}
   #
   frtl = getCliqFrontalVarIds(cliq)
   seps = getCliqSeparatorVarIds(cliq)
   fcts = getCliqFactorIdsAll(cliq)
 
-  isinit = map(x->isInitialized(dfg,x), [frtl;seps])
+  isinit = map(x -> isInitialized(dfg, x), [frtl; seps])
   # infdim = map(x->getVariableInferredDim(dfg, x), [frtl;seps])
 
   with_logger(logger) do
@@ -126,10 +131,7 @@ function printCliqSummary(dfg::G,
     @info "  init'ed:   $(Int.(isinit))"
     # @info "  infr'dims: $(infdim)"
   end
-  nothing
+  return nothing
 end
-
-
-
 
 #

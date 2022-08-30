@@ -9,17 +9,18 @@
 #
 # 2018/6/01 @dehann
 
-
 """
     $SIGNATURES
 
 Return common vectors `(allmhp, certainidx,uncertnidx)` used for dealing with multihypo cases.
 """
-function getHypothesesVectors(mhp::Vector{Float64})::Tuple{Vector{Int},Vector{Int},Vector{Int}}
+function getHypothesesVectors(
+  mhp::Vector{Float64},
+)::Tuple{Vector{Int}, Vector{Int}, Vector{Int}}
   allmhp = 1:length(mhp)
   certainidx = allmhp[mhp .== 0.0]  # TODO remove after gwp removed
   uncertnidx = allmhp[0.0 .< mhp]
-  return (allmhp,certainidx,uncertnidx)
+  return (allmhp, certainidx, uncertnidx)
 end
 
 """
@@ -136,25 +137,25 @@ sfidx=3, allelements=allidx[nhidx.==0], activehypo=(0,[3;])
 
 TODO still need to compensate multihypo case for user nullhypo addition.
 """
-function _prepareHypoRecipe!( 
-    mh::Categorical,
-    maxlen::Int,
-    sfidx::Int,
-    lenXi::Int,
-    isinit::Vector{Bool}=ones(Bool, lenXi),
-    nullhypo::Real=0  
-  )
+function _prepareHypoRecipe!(
+  mh::Categorical,
+  maxlen::Int,
+  sfidx::Int,
+  lenXi::Int,
+  isinit::Vector{Bool} = ones(Bool, lenXi),
+  nullhypo::Real = 0,
+)
   #
   allelements = []
   activehypo = []
   mhidx = Int[]
-  
+
   allidx = 1:maxlen
   allmhp, certainidx, uncertnidx = getHypothesesVectors(mh.p)
-  
+
   # select only hypotheses that can be used (ie variables have been initialized)
   @assert !(sum(isinit) == 0 && sfidx == certainidx) # cannot init from nothing for any hypothesis
-  
+
   mhh = if sum(isinit) < lenXi - 1
     @assert isLeastOneHypoAvailable(sfidx, certainidx, uncertnidx, isinit)
     @info "not all hypotheses initialized, but at least one available -- see #427"
@@ -167,18 +168,18 @@ function _prepareHypoRecipe!(
   else
     mh
   end
-  
+
   # FIXME consolidate with addEntropyOnManifolds approach in `computeAcrossHypothesis!`
   # prepend for the mhidx=0, bad-init-null-hypothesis case (if solving a fractional variable)
   mhh = if sfidx in uncertnidx
-    nhw = (length(uncertnidx)+1)
-    nmhw = [1/nhw; length(uncertnidx)/nhw*mhh.p]
+    nhw = (length(uncertnidx) + 1)
+    nmhw = [1 / nhw; length(uncertnidx) / nhw * mhh.p]
     nmhw ./= sum(nmhw) # renormalize (should not be necessary)
     Categorical(nmhw)
   else
     mhh
   end
-  
+
   # prep mm-nultihypothesis selection values
   mhidx = rand(mhh, maxlen)  # selection of which hypothesis is correct
   pidx = 0
@@ -198,11 +199,11 @@ function _prepareHypoRecipe!(
     if !pidxincer && sfincer && pidx != 0 # 1e-15 <= pval && mh.p[sfidx] < 1e-10  # proxy for sfidx in certainidx
       # solve for one of the certain variables containing uncertain hypotheses in others
       iterah = sort(union(certainidx, pidx)) # sort([sfidx;pidx])
-      # DONE -- supports n-ary factors in multihypo mode
+    # DONE -- supports n-ary factors in multihypo mode
     elseif (pidxincer && !sfincer || sfidx == pidx) && pidx != 0 # pval < 1e-15 && mh.p[sfidx] >= 1e-10
       # solve for one of the uncertain variables
       iterah = sort(union(certainidx, sfidx)) # sort([sfidx;pidx])
-      # EXPERIMENTAL -- support more than binary factors in multihypo mode
+    # EXPERIMENTAL -- support more than binary factors in multihypo mode
     elseif pidxincer && sfincer && pidx != 0 # pval < 1e-15 && mh.p[sfidx] < 1e-10
       iterarr = Int[]
       iterah = Int[] # may be moot anyway, but double check first
@@ -215,7 +216,7 @@ function _prepareHypoRecipe!(
       error("Unknown hypothesis case, got sfidx=$(sfidx) with mh.p=$(mh.p), pidx=$(pidx)")
     end
     push!(allelements, iterarr)
-    push!(activehypo, (pidx,iterah))
+    push!(activehypo, (pidx, iterah))
   end
 
   # # retroactively add nullhypo case (the 0 case)
@@ -224,16 +225,17 @@ function _prepareHypoRecipe!(
   # end
 
   # hyporecipe::NamedTuple
-  return (;certainidx, allelements, activehypo, mhidx)
+  return (; certainidx, allelements, activehypo, mhidx)
 end
 
-
-function _prepareHypoRecipe!( mh::Nothing,
-                                      maxlen::Int,
-                                      sfidx::Int,
-                                      lenXi::Int,
-                                      isinit::Vector{Bool}=ones(Bool, lenXi),
-                                      nullhypo::Real=0  )
+function _prepareHypoRecipe!(
+  mh::Nothing,
+  maxlen::Int,
+  sfidx::Int,
+  lenXi::Int,
+  isinit::Vector{Bool} = ones(Bool, lenXi),
+  nullhypo::Real = 0,
+)
   #
   # FIXME, consolidate with the general multihypo case
 
@@ -246,13 +248,13 @@ function _prepareHypoRecipe!( mh::Nothing,
   activehypo = []
 
   # TODO add cases where nullhypo occurs, see DFG #536, and IIF #237
-  nmhw = [nullhypo; (1-nullhypo)]
+  nmhw = [nullhypo; (1 - nullhypo)]
   nhh = Categorical(nmhw)
 
   # prep mmultihypothesis selection values
   # mhidx = Int[]
   # NOTE, must do something special to get around Categorical([0;10]) error
-    # selection of which hypothesis is correct
+  # selection of which hypothesis is correct
   mhidx = nullhypo == 0 ? ones(Int, maxlen) : (rand(nhh, maxlen) .- 1)
 
   allidx = 1:maxlen
@@ -261,31 +263,25 @@ function _prepareHypoRecipe!( mh::Nothing,
   nullarr = allidx[mhidx .== 0]
   # mhidx == 1 case is regular -- this will be all elements if nullhypo=0.0
   reguarr = allidx[mhidx .!= 0]
-  pidxAll = [0;certainidx]
+  pidxAll = [0; certainidx]
   for pidx in pidxAll
     if pidx == 0
       # elements that occur during nullhypo active
       push!(allelements, nullarr)
-      push!(activehypo, (pidx,[sfidx;]))
+      push!(activehypo, (pidx, [sfidx;]))
     elseif pidx == 1
       # elements that occur during regular hypothesis true
       push!(allelements, reguarr)
-      push!(activehypo, (pidx,certainidx))
+      push!(activehypo, (pidx, certainidx))
     else
       # all remaining collections are empty (part of multihypo support)
       push!(allelements, Int[])
-      push!(activehypo, (pidx,Int[]))
+      push!(activehypo, (pidx, Int[]))
     end
   end
 
   # return hyporecipe::NamedTuple
-  return (;certainidx, allelements, activehypo, mhidx)
+  return (; certainidx, allelements, activehypo, mhidx)
 end
-
-
-
-
-
-
 
 #

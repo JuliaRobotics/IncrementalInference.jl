@@ -1,10 +1,8 @@
 
 # FIXME move to DFG
-getPointDefault(V::InferenceVariable) = getPointIdentity(V) 
+getPointDefault(V::InferenceVariable) = getPointIdentity(V)
 
-function compare( c1::Channel,
-                  c2::Channel;
-                  skip::Vector{Symbol}=[] )
+function compare(c1::Channel, c2::Channel; skip::Vector{Symbol} = [])
   #
   TP = true
   TP = TP && c1.state == c2.state
@@ -13,8 +11,8 @@ function compare( c1::Channel,
   # exit early if tests already failed
   !TP && (return false)
   # now check contents of data
-  for i in 1:length(c1.data)
-  TP = TP && c1.data[i] == c2.data[i]
+  for i = 1:length(c1.data)
+    TP = TP && c1.data[i] == c2.data[i]
   end
   return TP
 end

@@ -1,76 +1,86 @@
 
-
 @info "IncrementalInference is adding Flux related functionality."
-
 
 # the factor definitions
 export FluxModelsDistribution
 export MixtureFluxModels
-
 
 # Required packages
 using .Flux
 using DataStructures: OrderedDict
 using Random, Statistics
 
-
 # import Base: convert
 import Random: rand
 
 const _IIFListTypes = Union{<:AbstractVector, <:Tuple, <:NTuple, <:NamedTuple}
 
-
-function Random.rand(nfb::FluxModelsDistribution, N::Integer=1 )
+function Random.rand(nfb::FluxModelsDistribution, N::Integer = 1)
   #
-  
+
   # number of predictors to choose from, and choose random subset
   numModels = length(nfb.models)
   allPreds = 1:numModels |> collect
   # TODO -- compensate when there arent enough prediction models
   if !(N isa Nothing) && numModels < N
     reps = (N ÷ numModels) + 1
-    allPreds = repeat(allPreds, reps  )
+    allPreds = repeat(allPreds, reps)
     resize!(allPreds, N)
   end
   # samples for the order in which to use models, dont shuffle if N models
   # can suppress shuffle for NN training purposes
   selPred = 1 < numModels && nfb.shuffle[] ? rand(allPreds, N) : view(allPreds, 1:N)
-  
+
   # dev function, TODO simplify to direct call 
-  _sample() = map( pred->(nfb.models[pred])(nfb.data), selPred )
-  
+  _sample() = map(pred -> (nfb.models[pred])(nfb.data), selPred)
+
   return _sample()
   # return [_sample() for _ in 1:N]
 end
 
+sampleTangent(M::AbstractManifold, fmd::FluxModelsDistribution, p = 0) = rand(fmd, 1)[1]
+samplePoint(M::AbstractManifold, fmd::FluxModelsDistribution, p = 0) = rand(fmd, 1)[1]
+function samplePoint(M::AbstractDecoratorManifold, fmd::FluxModelsDistribution, p = 0)
+  return rand(fmd, 1)[1]
+end
 
-sampleTangent(M::AbstractManifold, fmd::FluxModelsDistribution, p=0) = rand(fmd, 1)[1]
-samplePoint(M::AbstractManifold, fmd::FluxModelsDistribution, p=0) = rand(fmd, 1)[1]
-samplePoint(M::AbstractDecoratorManifold, fmd::FluxModelsDistribution, p=0) = rand(fmd, 1)[1]
-
-
-FluxModelsDistribution( inDim::NTuple{ID,Int},
-                        outDim::NTuple{OD,Int},
-                        models::Vector{P},
-                        data::D,
-                        shuffle::Bool=true,
-                        serializeHollow::Bool=false ) where {ID,OD,P,D<:AbstractArray} = FluxModelsDistribution{ID,OD,P,D}(inDim, outDim, models, data, Ref(shuffle), Ref(serializeHollow) )
+function FluxModelsDistribution(
+  inDim::NTuple{ID, Int},
+  outDim::NTuple{OD, Int},
+  models::Vector{P},
+  data::D,
+  shuffle::Bool = true,
+  serializeHollow::Bool = false,
+) where {ID, OD, P, D <: AbstractArray}
+  return FluxModelsDistribution{ID, OD, P, D}(
+    inDim,
+    outDim,
+    models,
+    data,
+    Ref(shuffle),
+    Ref(serializeHollow),
+  )
+end
 #
 
-FluxModelsDistribution( models::Vector{P}, 
-                        inDim::NTuple{ID,Int}, 
-                        data::D,
-                        outDim::NTuple{OD,Int};
-                        shuffle::Bool=true,
-                        serializeHollow::Bool=false ) where {ID,OD,P,D<:AbstractArray} = FluxModelsDistribution{ID,OD,P,D}(inDim, outDim, models, data, Ref(shuffle), Ref(serializeHollow) )
+function FluxModelsDistribution(
+  models::Vector{P},
+  inDim::NTuple{ID, Int},
+  data::D,
+  outDim::NTuple{OD, Int};
+  shuffle::Bool = true,
+  serializeHollow::Bool = false,
+) where {ID, OD, P, D <: AbstractArray}
+  return FluxModelsDistribution{ID, OD, P, D}(
+    inDim,
+    outDim,
+    models,
+    data,
+    Ref(shuffle),
+    Ref(serializeHollow),
+  )
+end
 #
-
-
-
-
-
-
-
 
 """
     $SIGNATURES
@@ -112,45 +122,45 @@ Related
 
 Mixture, FluxModelsDistribution
 """
-function MixtureFluxModels( F_::AbstractFactor,
-                            nnModels::Vector{P}, 
-                            inDim::NTuple{ID,Int}, 
-                            data::D,
-                            outDim::NTuple{OD,Int},
-                            otherComp::_IIFListTypes,
-                            diversity::Union{<:AbstractVector, <:NTuple, <:DiscreteNonParametric}; 
-                            shuffle::Bool=true,
-                            serializeHollow::Bool=false ) where {P,ID,D<:AbstractArray,OD}
+function MixtureFluxModels(
+  F_::AbstractFactor,
+  nnModels::Vector{P},
+  inDim::NTuple{ID, Int},
+  data::D,
+  outDim::NTuple{OD, Int},
+  otherComp::_IIFListTypes,
+  diversity::Union{<:AbstractVector, <:NTuple, <:DiscreteNonParametric};
+  shuffle::Bool = true,
+  serializeHollow::Bool = false,
+) where {P, ID, D <: AbstractArray, OD}
   #
   # must preserve order
   allComp = OrderedDict{Symbol, Any}()
-  
+
   # always add the Flux model first
-  allComp[:fluxnn] = FluxModelsDistribution(nnModels,
-                                            inDim,
-                                            data,
-                                            outDim,
-                                            shuffle=shuffle,
-                                            serializeHollow=serializeHollow)
+  allComp[:fluxnn] = FluxModelsDistribution(
+    nnModels,
+    inDim,
+    data,
+    outDim;
+    shuffle = shuffle,
+    serializeHollow = serializeHollow,
+  )
   #
   isNT = otherComp isa NamedTuple
-  for idx in 1:length(otherComp)
+  for idx = 1:length(otherComp)
     nm = isNT ? keys(otherComp)[idx] : Symbol("c$(idx+1)")
     allComp[nm] = otherComp[idx]
   end
   # convert to named tuple
-  ntup = (;allComp...)
-  
+  ntup = (; allComp...)
+
   # construct all the internal objects
   return Mixture(F_, ntup, diversity)
 end
 
-MixtureFluxModels(::Type{F}, 
-                  w...;
-                  kw...) where F <: AbstractFactor = MixtureFluxModels(F(LinearAlgebra.I),w...;kw...)
-
-
-
-
+function MixtureFluxModels(::Type{F}, w...; kw...) where {F <: AbstractFactor}
+  return MixtureFluxModels(F(LinearAlgebra.I), w...; kw...)
+end
 
 #

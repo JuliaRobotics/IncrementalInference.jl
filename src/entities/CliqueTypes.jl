@@ -1,13 +1,12 @@
 # Clique types
 
-
-
 # this is a developmental type, will be standardized after conclusion of #1010
 # TODO resolve type instability
-const MsgRelativeType = Vector{NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol},<:DFG.AbstractRelative}}}
+const MsgRelativeType = Vector{
+  NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol}, <:DFG.AbstractRelative}},
+}
 
 const MsgPriorType = Dict{Symbol, MsgPrior{<:ManifoldKernelDensity}}
-
 
 """
     $TYPEDEF
@@ -19,7 +18,6 @@ mutable struct _MsgJointLikelihood
   relatives::IIF.MsgRelativeType
   priors::IIF.MsgPriorType
 end
-
 
 """
   $(TYPEDEF)
@@ -41,20 +39,19 @@ DevNotes:
 $(TYPEDFIELDS)
 """
 mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
-  sender::NamedTuple{(:id,:step),Tuple{Int,Int}}
+  sender::NamedTuple{(:id, :step), Tuple{Int, Int}}
   status::CliqStatus
   belief::Dict{Symbol, TreeBelief} # will eventually be deprecated
   variableOrder::Vector{Symbol}
-  cliqueLikelihood::Union{Nothing,SamplableBelief}  # TODO drop the Union
+  cliqueLikelihood::Union{Nothing, SamplableBelief}  # TODO drop the Union
   msgType::T
   hasPriors::Bool
   # this is different from belief[].inferdim, as the total available infer dims remaining during down msgs -- see #910
-  childSolvDims::Dict{Int, Float64} 
+  childSolvDims::Dict{Int, Float64}
   # calc differential factors for joint in the child clique
   jointmsg::_MsgJointLikelihood
   # diffJoints::Vector{NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol},DFG.AbstractRelative}}}
 end
-
 
 """
     $TYPEDEF
@@ -66,21 +63,19 @@ Notes
 """
 mutable struct MessageBuffer
   # up receive message buffer (multiple children, multiple messages)
-  upRx::Dict{Int, LikelihoodMessage} 
+  upRx::Dict{Int, LikelihoodMessage}
   # down receive message buffer (one parent)
-  downRx::Union{Nothing, LikelihoodMessage} 
+  downRx::Union{Nothing, LikelihoodMessage}
   # RESERVED up outgoing message buffer (one parent)
-  upTx::Union{Nothing, LikelihoodMessage} 
+  upTx::Union{Nothing, LikelihoodMessage}
   # RESERVED down outgoing message buffer (multiple children but one message)
-  downTx::Union{Nothing, LikelihoodMessage} 
+  downTx::Union{Nothing, LikelihoodMessage}
 end
 MessageBuffer() = MessageBuffer(Dict{Int, LikelihoodMessage}(), nothing, nothing, nothing)
-
 
 ##==============================================================================
 ## BayesTreeNodeData
 ##==============================================================================
-
 
 """
 $(TYPEDEF)
@@ -99,15 +94,15 @@ mutable struct BayesTreeNodeData
   dwnPotentials::Vector{Symbol}
   dwnPartialPotential::Vector{Bool}
 
-  cliqAssocMat::Array{Bool,2}
-  cliqMsgMat::Array{Bool,2}
+  cliqAssocMat::Array{Bool, 2}
+  cliqMsgMat::Array{Bool, 2}
   directvarIDs::Vector{Symbol}
   directFrtlMsgIDs::Vector{Symbol}
   msgskipIDs::Vector{Symbol}
   itervarIDs::Vector{Symbol}
   directPriorMsgIDs::Vector{Symbol}
-  debug
-  debugDwn
+  debug::Any
+  debugDwn::Any
 
   allmarginalized::Bool
   initialized::Symbol
@@ -119,10 +114,7 @@ mutable struct BayesTreeNodeData
   messages::MessageBuffer
 end
 
-
-
 ## Packed types for serialization
-
 
 mutable struct PackedBayesTreeNodeData
   frontalIDs::Vector{Symbol}
@@ -133,8 +125,8 @@ mutable struct PackedBayesTreeNodeData
   partialpotential::Vector{Bool}
   dwnPotentials::Vector{Symbol}
   dwnPartialPotential::Vector{Bool}
-  cliqAssocMat::Array{Bool,2}
-  cliqMsgMat::Array{Bool,2}
+  cliqAssocMat::Array{Bool, 2}
+  cliqMsgMat::Array{Bool, 2}
   directvarIDs::Vector{Symbol} # Int
   directFrtlMsgIDs::Vector{Symbol} # Int
   msgskipIDs::Vector{Symbol} # Int
@@ -142,9 +134,7 @@ mutable struct PackedBayesTreeNodeData
   directPriorMsgIDs::Vector{Symbol} # Int
 end
 
-
 ## Full Clique Types
-
 
 struct CliqueId{T}
   value::T
@@ -160,11 +150,10 @@ mutable struct TreeClique
   "Interger id unique within a tree with userId, robotId, sessionId"
   id::CliqueId{Int64} # not to be confused with the underlying index used by LightGraphs.jl, see issue #540
   "Data as `BayesTreeNodeData`"
-  data::BayesTreeNodeData 
+  data::BayesTreeNodeData
   "Drawing attributes"
-  attributes::Dict{String, Any} 
+  attributes::Dict{String, Any}
   #solveInProgress #on a clique level a "solve in progress" might be very handy
 end
-
 
 #

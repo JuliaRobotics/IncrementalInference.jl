@@ -1,5 +1,4 @@
 
-
 function isCliqInitialized(cliq::TreeClique)::Bool
   return getCliqueData(cliq).initialized in [INITIALIZED; UPSOLVED]
 end
@@ -7,7 +6,6 @@ end
 function isCliqUpSolved(cliq::TreeClique)::Bool
   return getCliqueData(cliq).initialized == UPSOLVED
 end
-
 
 """
     $SIGNATURES
@@ -23,7 +21,7 @@ function getCliqVarInitOrderUp(subfg::AbstractDFG)
 
   # get all variable ids and number of associated factors
   B, varLabels, facLabels = getBiadjacencyMatrix(subfg)
-  nfcts = sum(B, dims=1)[:]
+  nfcts = sum(B; dims = 1)[:]
 
   # variables with priors
   varswithpriors = getNeighbors.(subfg, lsfPriors(subfg))
@@ -58,9 +56,11 @@ Dev Notes
 - Streamline add/delete msg priors from calling function and csm.
 - TODO replace with nested 'minimum degree' type variable ordering.
 """
-function getCliqInitVarOrderDown( dfg::AbstractDFG,
-                                  cliq::TreeClique,
-                                  dwnkeys::Vector{Symbol} )   # downmsgs
+function getCliqInitVarOrderDown(
+  dfg::AbstractDFG,
+  cliq::TreeClique,
+  dwnkeys::Vector{Symbol},
+)   # downmsgs
   #
   allsyms = getCliqAllVarIds(cliq)
   # convert input downmsg var symbols to integers (also assumed as prior beliefs)
@@ -104,13 +104,24 @@ function getCliqInitVarOrderDown( dfg::AbstractDFG,
   return initorder::Vector{Symbol}
 end
 
-
-function _isInitializedOrInitSolveKey(var::DFGVariable, solveKey::Symbol=:default; N::Int=100)
+function _isInitializedOrInitSolveKey(
+  var::DFGVariable,
+  solveKey::Symbol = :default;
+  N::Int = 100,
+)
   # TODO, this solveKey existence test should probably be removed?
   if !(solveKey in listSolveKeys(var))
     varType = getVariableType(var)
-    setDefaultNodeData!(var, 0, N, getDimension(varType), solveKey=solveKey, 
-                        initialized=false, varType=varType, dontmargin=false)
+    setDefaultNodeData!(
+      var,
+      0,
+      N,
+      getDimension(varType);
+      solveKey = solveKey,
+      initialized = false,
+      varType = varType,
+      dontmargin = false,
+    )
     #
     # data = getSolverData(var, solveKey)
     # if data === nothing
@@ -129,30 +140,29 @@ Return true if clique has completed the local upward direction inference procedu
 """
 isUpInferenceComplete(cliq::TreeClique) = getCliqueData(cliq).upsolved
 
-function areCliqVariablesAllInitialized(dfg::AbstractDFG, 
-                                        cliq::TreeClique,
-                                        solveKey::Symbol=:default;
-                                        N::Int=getSolverParams(dfg).N  )
+function areCliqVariablesAllInitialized(
+  dfg::AbstractDFG,
+  cliq::TreeClique,
+  solveKey::Symbol = :default;
+  N::Int = getSolverParams(dfg).N,
+)
   #
   allids = getCliqAllVarIds(cliq)
   isallinit = true
   for vid in allids
     var = DFG.getVariable(dfg, vid)
-    isallinit &= _isInitializedOrInitSolveKey(var, solveKey, N=N)
+    isallinit &= _isInitializedOrInitSolveKey(var, solveKey; N = N)
     # isallinit &= isInitialized(var, solveKey)
   end
-  isallinit
+  return isallinit
 end
-
-
 
 """
     $SIGNATURES
 
 Return true if all variables in clique are considered marginalized (and initialized).
 """
-function areCliqVariablesAllMarginalized( subfg::AbstractDFG,
-                                          cliq::TreeClique)
+function areCliqVariablesAllMarginalized(subfg::AbstractDFG, cliq::TreeClique)
   for vsym in getCliqAllVarIds(cliq)
     vert = getVariable(subfg, vsym)
     if !isMarginalized(vert) || !isInitialized(vert)
@@ -162,22 +172,23 @@ function areCliqVariablesAllMarginalized( subfg::AbstractDFG,
   return true
 end
 
-
-function printCliqInitPartialInfo(subfg, cliq, solveKey::Symbol=:default, logger=ConsoleLogger())
+function printCliqInitPartialInfo(
+  subfg,
+  cliq,
+  solveKey::Symbol = :default,
+  logger = ConsoleLogger(),
+)
   varids = getCliqAllVarIds(cliq)
   initstatus = Vector{Bool}(undef, length(varids))
   initpartial = Vector{Float64}(undef, length(varids))
-  for i in 1:length(varids)
+  for i = 1:length(varids)
     initstatus[i] = isInitialized(subfg, varids[i], solveKey) # getSolverData(getVariable(subfg, varids[i]), solveKey).initialized
     initpartial[i] = -1 # getSolverData(getVariable(subfg, varids[i]), solveKey).inferdim
   end
   with_logger(logger) do
-    tt = split(string(now()),'T')[end]
+    tt = split(string(now()), 'T')[end]
     @info "$tt, cliq $(cliq.id), PARINIT: $varids | $initstatus | $initpartial"
   end
 end
-
-
-
 
 #

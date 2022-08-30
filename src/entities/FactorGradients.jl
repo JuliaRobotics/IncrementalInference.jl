@@ -75,6 +75,4 @@ mutable struct FactorGradientsCached!{F <: AbstractRelative, S, M, P, G, L}
   _h::Float64
 end
 
-
-
 #

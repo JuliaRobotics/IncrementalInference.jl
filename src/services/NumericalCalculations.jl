@@ -1,85 +1,117 @@
 
-
 # TODO deprecate testshuffle
-_checkErrorCCWNumerics(ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}}, testshuffle::Bool=false)  where {N_,F<:AbstractRelativeMinimize,S,T} = nothing
-_checkErrorCCWNumerics(ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}}, testshuffle::Bool=false)  where {N_,F<:AbstractManifoldMinimize,S,T} = nothing
+function _checkErrorCCWNumerics(
+  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  testshuffle::Bool = false,
+) where {N_, F <: AbstractRelativeMinimize, S, T}
+  return nothing
+end
+function _checkErrorCCWNumerics(
+  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  testshuffle::Bool = false,
+) where {N_, F <: AbstractManifoldMinimize, S, T}
+  return nothing
+end
 
-function _checkErrorCCWNumerics(ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}},
-                                testshuffle::Bool=false)  where {N_,F<:AbstractRelativeRoots,S,T}
+function _checkErrorCCWNumerics(
+  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  testshuffle::Bool = false,
+) where {N_, F <: AbstractRelativeRoots, S, T}
   #
   # @info "ccwl zDim and xDim" ccwl.zDim ccwl.xDim
   if testshuffle || ccwl.partial || (!ccwl.partial && ccwl.zDim < ccwl.xDim)
-    error("<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.")
-  elseif !( ccwl.zDim >= ccwl.xDim && !ccwl.partial )
+    error(
+      "<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.",
+    )
+  elseif !(ccwl.zDim >= ccwl.xDim && !ccwl.partial)
     error("Unresolved numeric <:AbstractRelativeRoots solve case")
   end
-  nothing
+  return nothing
 end
 
+function _perturbIfNecessary(
+  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  len::Int = 1,
+  perturbation::Real = 1e-10,
+) where {N_, F <: AbstractRelativeMinimize, S, T}
+  return 0
+end
 
-_perturbIfNecessary(fcttype::Union{F,<:Mixture{N_,F,S,T}},
-                    len::Int=1,
-                    perturbation::Real=1e-10 ) where {N_,F<:AbstractRelativeMinimize,S,T} = 0
-
-_perturbIfNecessary(fcttype::Union{F,<:Mixture{N_,F,S,T}},
-                    len::Int=1,
-                    perturbation::Real=1e-10 ) where {N_,F<:AbstractManifoldMinimize,S,T} = 0
+function _perturbIfNecessary(
+  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  len::Int = 1,
+  perturbation::Real = 1e-10,
+) where {N_, F <: AbstractManifoldMinimize, S, T}
+  return 0
+end
 #
 
-_perturbIfNecessary(fcttype::Union{F,<:Mixture{N_,F,S,T}},
-                    len::Int=1,
-                    perturbation::Real=1e-10 ) where {N_,F<:AbstractRelativeRoots,S,T} = perturbation*randn(len)
+function _perturbIfNecessary(
+  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  len::Int = 1,
+  perturbation::Real = 1e-10,
+) where {N_, F <: AbstractRelativeRoots, S, T}
+  return perturbation * randn(len)
+end
 #
-
 
 # internal use only, and selected out from approxDeconv functions
-_solveLambdaNumeric(fcttype::AbstractPrior,
-                    objResX::Function,
-                    residual::AbstractVector{<:Real},
-                    u0::AbstractVector{<:Real},
-                    islen1::Bool=false;
-                    perturb::Real=1e-10 ) = u0
+function _solveLambdaNumeric(
+  fcttype::AbstractPrior,
+  objResX::Function,
+  residual::AbstractVector{<:Real},
+  u0::AbstractVector{<:Real},
+  islen1::Bool = false;
+  perturb::Real = 1e-10,
+)
+  return u0
+end
 #
 
-function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
-                              objResX::Function,
-                              residual::AbstractVector{<:Real},
-                              u0::AbstractVector{<:Real},
-                              islen1::Bool=false )  where {N_,F<:AbstractRelativeRoots,S,T}
+function _solveLambdaNumeric(
+  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  objResX::Function,
+  residual::AbstractVector{<:Real},
+  u0::AbstractVector{<:Real},
+  islen1::Bool = false,
+) where {N_, F <: AbstractRelativeRoots, S, T}
   #
 
   #
-  r = NLsolve.nlsolve( (res, x) -> res .= objResX(x), u0, inplace=true) #, ftol=1e-14)
+  r = NLsolve.nlsolve((res, x) -> res .= objResX(x), u0; inplace = true) #, ftol=1e-14)
 
   #
   return r.zero
 end
 
-function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
-                              objResX::Function,
-                              residual::AbstractVector{<:Real},
-                              u0::AbstractVector{<:Real},
-                              islen1::Bool=false  )  where {N_,F<:AbstractRelativeMinimize,S,T}
-                              # retries::Int=3 )
+function _solveLambdaNumeric(
+  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  objResX::Function,
+  residual::AbstractVector{<:Real},
+  u0::AbstractVector{<:Real},
+  islen1::Bool = false,
+) where {N_, F <: AbstractRelativeMinimize, S, T}
+  # retries::Int=3 )
   #
   # wrt #467 allow residual to be standardize for Roots and Minimize and Parametric cases.
   r = if islen1
-    Optim.optimize((x) -> (residual .= objResX(x); sum(residual.^2)), u0, Optim.BFGS() )
+    Optim.optimize((x) -> (residual .= objResX(x); sum(residual .^ 2)), u0, Optim.BFGS())
   else
-    Optim.optimize((x) -> (residual .= objResX(x); sum(residual.^2)), u0)
+    Optim.optimize((x) -> (residual .= objResX(x); sum(residual .^ 2)), u0)
   end
 
   # 
   return r.minimizer
 end
 
-
-function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
-                              objResX::Function,
-                              residual::AbstractVector{<:Real},
-                              u0,#::AbstractVector{<:Real},
-                              variableType::InferenceVariable,  
-                              islen1::Bool=false)  where {N_,F<:AbstractManifoldMinimize,S,T}
+function _solveLambdaNumeric(
+  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  objResX::Function,
+  residual::AbstractVector{<:Real},
+  u0,#::AbstractVector{<:Real},
+  variableType::InferenceVariable,
+  islen1::Bool = false,
+) where {N_, F <: AbstractManifoldMinimize, S, T}
   #
   M = getManifold(variableType)#fcttype.M
   # the variable is a manifold point, we are working on the tangent plane in optim for now.
@@ -88,7 +120,7 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   # ϵ = identity_element(M, u0)
   ϵ = getPointIdentity(variableType)
   # X0c = get_coordinates(M, u0, log(M, ϵ, u0), DefaultOrthogonalBasis()) 
-  X0c = vee(M, u0, log(M, ϵ, u0)) 
+  X0c = vee(M, u0, log(M, ϵ, u0))
 
   # objResX(p) returns tangent vector at p, X=log(M, p, ...)
   # norm(M, p, X) == distance(M, p, X)
@@ -96,12 +128,12 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   fM = getManifold(fcttype)
   function cost(p, X, Xc)
     hat!(M, X, ϵ, Xc)
-    retract!(M, p, ϵ, X)  
+    retract!(M, p, ϵ, X)
     # X = objResX(p)
     # return norm(fM, p, X)^2 #TODO the manifold of p and X are not always the same
     #options getPointIdentity or leave it to factor 
     residual = objResX(p)
-    return sum(residual.^2)
+    return sum(residual .^ 2)
   end
 
   # # separate statements to try improve type-stability 
@@ -113,53 +145,48 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
   X0 = hat(M, ϵ, X0c)
   p0 = exp(M, ϵ, X0)
-  r = Optim.optimize(Xc->cost(p0, X0, Xc), X0c, alg)
+  r = Optim.optimize(Xc -> cost(p0, X0, Xc), X0c, alg)
   if !Optim.converged(r)
     @debug "Optim did not converge:" r
   end
-  return exp(M, ϵ, hat(M, ϵ, r.minimizer)) 
-
+  return exp(M, ϵ, hat(M, ϵ, r.minimizer))
 end
 
-
 #TODO Consolidate with _solveLambdaNumeric, see #1374
-function _solveLambdaNumericMeas( fcttype::Union{F,<:Mixture{N_,F,S,T}},
-                                  objResX::Function,
-                                  residual::AbstractVector{<:Real},
-                                  u0,#::AbstractVector{<:Real},
-                                  variableType::InferenceVariable,  
-                                  islen1::Bool=false)  where {N_,F<:AbstractManifoldMinimize,S,T}
+function _solveLambdaNumericMeas(
+  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  objResX::Function,
+  residual::AbstractVector{<:Real},
+  u0,#::AbstractVector{<:Real},
+  variableType::InferenceVariable,
+  islen1::Bool = false,
+) where {N_, F <: AbstractManifoldMinimize, S, T}
   #
   # Assume measurement is on the tangent
   M = getManifold(variableType)#fcttype.M
   # the variable is a manifold point, we are working on the tangent plane in optim for now.
   ϵ = getPointIdentity(variableType)
-  X0c = vee(M, ϵ, u0) 
+  X0c = vee(M, ϵ, u0)
 
   function cost(X, Xc)
     hat!(M, X, ϵ, Xc)
     residual = objResX(X)
-    return sum(residual.^2)
+    return sum(residual .^ 2)
   end
 
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
   X0 = hat(M, ϵ, X0c)
-  r = Optim.optimize(Xc->cost(X0, Xc), X0c, alg)
+  r = Optim.optimize(Xc -> cost(X0, Xc), X0c, alg)
   if !Optim.converged(r)
     @debug "Optim did not converge:" r
   end
 
   return hat(M, ϵ, r.minimizer)
-
 end
-
-
 
 ## ================================================================================================
 ## Heavy dispatch for all AbstractFactor / Mixture cases below
 ## ================================================================================================
-
-
 
 # internal function to dispatch view on either vector or matrix, rows are dims and samples are columns
 _getindextuple(tup::Tuple, ind1::Int) = [getindex(t, ind1) for t in tup]
@@ -167,14 +194,20 @@ _getindextuple(tup::Tuple, ind1::Int) = [getindex(t, ind1) for t in tup]
 _getusrfnc(ccwl::CommonConvWrapper) = ccwl.usrfnc!
 _getusrfnc(ccwl::CommonConvWrapper{<:Mixture}) = ccwl.usrfnc!.mechanics
 
-function _buildCalcFactor(ccwl::CommonConvWrapper, smpid, measurement_, varParams, activehypo)
+function _buildCalcFactor(
+  ccwl::CommonConvWrapper,
+  smpid,
+  measurement_,
+  varParams,
+  activehypo,
+)
   #
   # FIXME, make thread safe (cache)
   # activevariables = view(ccwl.fullvariables, activehypo)
   activevariables = ccwl.fullvariables[activehypo]
 
   solveforidx = findfirst(==(ccwl.varidx), activehypo)
-  
+
   return CalcFactor(
     _getusrfnc(ccwl),
     smpid,
@@ -186,11 +219,7 @@ function _buildCalcFactor(ccwl::CommonConvWrapper, smpid, measurement_, varParam
     activevariables,
     solveforidx,
   )
-
 end
-
-
-
 
 """
     $SIGNATURES
@@ -199,18 +228,20 @@ Internal function to build lambda pre-objective function for finding factor resi
 DevNotes
 - TODO refactor relationship and common fields between (CCW, FMd, CPT, CalcFactor)
 """
-function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
-                                      smpid::Integer,
-                                      target = view(ccwl.params[ccwl.varidx][smpid], ccwl.partialDims),
-                                      measurement_ = ccwl.measurement;
-                                      # fmd_::FactorMetadata = cpt_.factormetadata;
-                                      _slack = nothing  )
+function _buildCalcFactorLambdaSample(
+  ccwl::CommonConvWrapper,
+  smpid::Integer,
+  target = view(ccwl.params[ccwl.varidx][smpid], ccwl.partialDims),
+  measurement_ = ccwl.measurement;
+  # fmd_::FactorMetadata = cpt_.factormetadata;
+  _slack = nothing,
+)
   #
 
   # TODO from obsolete _view:
   # Should be replaced with ccw.hypoParams::Tuple(hypo1, hypo2,...), made at construction and allows direct hypo lookup
   # DevNotes, also see new `hyporecipe` approach (towards consolidation CCW CPT FMd CF...)
-  
+
   # build a view to the decision variable memory
   varValsHypo = ccwl.params[ccwl.activehypo]
   # tup = tuple(varParams...)
@@ -238,18 +269,18 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
 
   # build static lambda
   unrollHypo! = if _slack === nothing
-    () -> cf( measurement_[smpid], map(vvh->getindex(vvh, smpid), varValsHypo)... )
+    () -> cf(measurement_[smpid], map(vvh -> getindex(vvh, smpid), varValsHypo)...)
   else
     # slack is used to shift the residual away from the natural "zero" tension position of a factor, 
     # this is useful when calculating factor gradients at a variety of param locations resulting in "non-zero slack" of the residual.
     # see `IIF.calcFactorResidualTemporary`
     # NOTE this minus operation assumes _slack is either coordinate or tangent vector element (not a manifold or group element)
-    () -> cf( measurement_[smpid], map(vvh->getindex(vvh, smpid), varValsHypo)... ) .- _slack
+    () ->
+      cf(measurement_[smpid], map(vvh -> getindex(vvh, smpid), varValsHypo)...) .- _slack
   end
 
   return unrollHypo!, target
 end
-
 
 """
     $(SIGNATURES)
@@ -269,11 +300,12 @@ DevNotes
 - TODO testshuffle is now obsolete, should be removed
 - TODO perhaps consolidate perturbation with inflation or nullhypo
 """
-function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
-                                        CommonConvWrapper{Mixture{N_,F,S,T}}};
-                            perturb::Real=1e-10,
-                            # testshuffle::Bool=false,
-                            _slack=nothing  ) where {N_,F<:AbstractRelative,S,T}
+function _solveCCWNumeric!(
+  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}};
+  perturb::Real = 1e-10,
+  # testshuffle::Bool=false,
+  _slack = nothing,
+) where {N_, F <: AbstractRelative, S, T}
   #
 
   #
@@ -285,12 +317,12 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
 
   # build the pre-objective function for this sample's hypothesis selection
-  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid; _slack=_slack )
-  
+  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid; _slack = _slack)
+
   # broadcast updates original view memory location
   ## using CalcFactor legacy path inside (::CalcFactor)
-  _hypoObj = (x) -> (target.=x; unrollHypo!())
-  
+  _hypoObj = (x) -> (target .= x; unrollHypo!())
+
   # TODO small off-manifold perturbation is a numerical workaround only, make on-manifold requires RoME.jl #244
   # use all element dimensions : ==> 1:ccwl.xDim
   target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
@@ -298,8 +330,8 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   sfidx = ccwl.varidx
   # do the parameter search over defined decision variables using Minimization
   X = ccwl.params[sfidx][smpid][ccwl.partialDims]
-  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, ccwl.res, X, islen1 )
-  
+  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, ccwl.res, X, islen1)
+
   # Check for NaNs
   if sum(isnan.(retval)) != 0
     @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(retval)\n"
@@ -318,11 +350,12 @@ end
 # need to shuffle content inside .cpt.fmd as well as .params accordingly
 #
 
-function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
-                                        CommonConvWrapper{Mixture{N_,F,S,T}}};
-                            perturb::Real=1e-10,
-                            # testshuffle::Bool=false,
-                            _slack=nothing  ) where {N_,F<:AbstractManifoldMinimize,S,T}
+function _solveCCWNumeric!(
+  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}};
+  perturb::Real = 1e-10,
+  # testshuffle::Bool=false,
+  _slack = nothing,
+) where {N_, F <: AbstractManifoldMinimize, S, T}
   #
   #   # FIXME, move this check higher and out of smpid loop
   # _checkErrorCCWNumerics(ccwl, testshuffle)
@@ -335,8 +368,13 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
 
   # build the pre-objective function for this sample's hypothesis selection
-  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, view(ccwl.params[ccwl.varidx], smpid), _slack=_slack)
-  
+  unrollHypo!, target = _buildCalcFactorLambdaSample(
+    ccwl,
+    smpid,
+    view(ccwl.params[ccwl.varidx], smpid);
+    _slack = _slack,
+  )
+
   # broadcast updates original view memory location
   ## using CalcFactor legacy path inside (::CalcFactor)
   # _hypoObj = (x) -> (target.=x; unrollHypo!())
@@ -344,7 +382,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
     target[] .= x
     return unrollHypo!()
   end
-  
+
   # TODO small off-manifold perturbation is a numerical workaround only, make on-manifold requires RoME.jl #244
   # use all element dimensions : ==> 1:ccwl.xDim
   # F <: AbstractRelativeRoots && (target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb))
@@ -352,22 +390,26 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   # do the parameter search over defined decision variables using Minimization
   sfidx = ccwl.varidx
   X = ccwl.params[sfidx][smpid]
-  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, ccwl.res, X, ccwl.vartypes[sfidx](), islen1)
-  
+  retval = _solveLambdaNumeric(
+    getFactorType(ccwl),
+    _hypoObj,
+    ccwl.res,
+    X,
+    ccwl.vartypes[sfidx](),
+    islen1,
+  )
+
   # Check for NaNs
   # FIXME isnan for manifold ProductRepr
   # if sum(isnan.(retval)) != 0
-    # @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(retval)\n"
-    # return nothing
+  # @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(retval)\n"
+  # return nothing
   # end
 
   # FIXME insert result back at the correct variable element location
   ccwl.params[sfidx][smpid] .= retval
-  
-  nothing
+
+  return nothing
 end
-
-
-
 
 #

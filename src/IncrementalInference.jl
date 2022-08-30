@@ -29,8 +29,7 @@ import NLsolve
 import NLSolversBase
 import Optim
 
-using
-  Dates,
+using Dates,
   TimeZones,
   DistributedFactorGraphs,
   DelimitedFiles,
@@ -86,7 +85,6 @@ import DistributedFactorGraphs: getFactorType
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable
 
-
 # must be moved to their own repos
 const KDE = KernelDensityEstimate
 const MB = ManifoldsBase
@@ -94,10 +92,9 @@ const AMP = ApproxManifoldProducts
 const FSM = FunctionalStateMachine
 const IIF = IncrementalInference
 
-
-const InstanceType{T} = Union{Type{<:T},<:T}
+const InstanceType{T} = Union{Type{<:T}, <:T}
 const NothingUnion{T} = Union{Nothing, <:T}
-const BeliefArray{T} = Union{<:AbstractMatrix{<:T}, <:Adjoint{<:T, AbstractMatrix{<:T}} } # TBD deprecate?
+const BeliefArray{T} = Union{<:AbstractMatrix{<:T}, <:Adjoint{<:T, AbstractMatrix{<:T}}} # TBD deprecate?
 
 ## =============================
 # API Exports
@@ -110,7 +107,6 @@ KDE.setForceEvalDirect!(true)
 
 include("ExportAPI.jl")
 
-
 ## =============================
 # Source code
 
@@ -122,7 +118,6 @@ include("ManifoldsExtentions.jl")
 # regular
 include("entities/SolverParams.jl")
 
-
 include("entities/FactorOperationalMemory.jl")
 
 include("Factors/GenericMarginal.jl")
@@ -131,7 +126,6 @@ include("entities/AliasScalarSampling.jl")
 include("entities/OptionalDensities.jl")
 include("entities/BeliefTypes.jl")
 include("entities/FactorGradients.jl")
-
 
 # Statistics helpers on manifolds
 include("VariableStatistics.jl")
@@ -166,7 +160,6 @@ include("services/TreeMessageAccessors.jl")
 include("services/TreeMessageUtils.jl")
 include("services/TreeBasedInitialization.jl")
 
-
 # included variables of IIF, easy to extend in user's context
 include("Variables/DefaultVariables.jl")
 include("Variables/Circular.jl")
@@ -181,9 +174,8 @@ include("Factors/Circular.jl")
 include("Factors/PartialPrior.jl")
 include("Factors/PartialPriorPassThrough.jl")
 
-
 # older file
-include("services/DefaultNodeTypes.jl") 
+include("services/DefaultNodeTypes.jl")
 
 # Refactoring in progress
 include("services/CalcFactor.jl")
@@ -201,7 +193,7 @@ include("services/EvalFactor.jl")
 include("services/ApproxConv.jl")
 
 # FIXME CONSOLIDATE
-include("ConsolidateParametricRelatives.jl") 
+include("ConsolidateParametricRelatives.jl")
 
 include("services/GraphProductOperations.jl")
 include("services/SolveTree.jl")
@@ -230,23 +222,28 @@ include("ManifoldSampling.jl")
 # deprecation legacy support
 include("Deprecated.jl")
 
-
-
 exportimg(pl) = error("Please do `using Gadfly` to allow image export.")
 function __init__()
-  @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" include("RequireInteractiveUtils.jl")
-  @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" include("EmbeddedPlottingUtils.jl")
-  @require DifferentialEquations="0c46a032-eb83-5123-abaf-570d42b7fbaa" include("ODE/DERelative.jl")
-  @require Interpolations="a98d9a8b-a2ab-59e6-89dd-64a1c18fca59" include("services/HeatmapSampler.jl")
+  @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" include(
+    "RequireInteractiveUtils.jl",
+  )
+  @require Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004" include(
+    "EmbeddedPlottingUtils.jl",
+  )
+  @require DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa" include(
+    "ODE/DERelative.jl",
+  )
+  @require Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59" include(
+    "services/HeatmapSampler.jl",
+  )
 
   # combining neural networks natively into the non-Gaussian  factor graph object
-  @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
+  @require Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c" begin
     include("Flux/FluxModelsDistribution.jl")
     include("Serialization/entities/FluxModelsSerialization.jl")
     include("Serialization/services/FluxModelsSerialization.jl") # uses BSON
   end
 end
-
 
 export setSerializationNamespace!, getSerializationModule, getSerializationModules
 

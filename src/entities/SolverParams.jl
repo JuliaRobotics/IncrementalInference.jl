@@ -1,5 +1,4 @@
 
-
 """
 $(TYPEDEF)
 
@@ -14,7 +13,7 @@ Base.@kwdef mutable struct SolverParams <: DFG.AbstractParams
   dimID::Int = 0
   reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}} = nothing
   stateless::Bool = false
-  qfl::Int = (2^(Sys.WORD_SIZE-1)-1)# Quasi fixed length
+  qfl::Int = (2^(Sys.WORD_SIZE - 1) - 1)# Quasi fixed length
   isfixedlag::Bool = false          # true when adhering to qfl window size for solves
   limitfixeddown::Bool = false      # if true, then fixed lag will not update marginalized during down pass on tree
   incremental::Bool = true          # use incremental tree updates, TODO consolidate with recycling
@@ -32,7 +31,7 @@ Base.@kwdef mutable struct SolverParams <: DFG.AbstractParams
   multiproc::Bool = 1 < nprocs()    # should Distributed.jl tree solve compute features be used
   logpath::String = "/tmp/caesar/$(now())" # unique temporary file storage location for a solve
   graphinit::Bool = true            # default to graph-based initialization of variables
-  treeinit::Bool =false             # init variables on the tree
+  treeinit::Bool = false             # init variables on the tree
   limittreeinit_iters::Int = 10
   algorithms::Vector{Symbol} = [:default, :parametric] # list of algorithms to run [:default] is mmisam
   spreadNH::Float64 = 3.0           # entropy spread adjustment used for both null hypo cases.
@@ -43,10 +42,8 @@ Base.@kwdef mutable struct SolverParams <: DFG.AbstractParams
   maxincidence::Int = 500           # maximum incidence to a variable in an effort to enhance sparsity
   alwaysFreshMeasurements::Bool = true # Development feature on whether new samples should be sampled at each Gibbs cycle convolution
   attemptGradients::Bool = false    # should factor gradients be calculated or attempted (UNDER DEVELOPMENT, 21Q3)
-  devParams::Dict{Symbol,String} = Dict{Symbol,String}() # empty container for new features, allowing workaround for breaking changes and legacy
+  devParams::Dict{Symbol, String} = Dict{Symbol, String}() # empty container for new features, allowing workaround for breaking changes and legacy
   #
 end
-
-
 
 #
