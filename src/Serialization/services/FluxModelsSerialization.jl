@@ -6,7 +6,6 @@ using Base64
 
 import Base: convert
 
-
 function _serializeFluxModelBase64(model::Flux.Chain)
   io = IOBuffer()
   iob64 = Base64EncodePipe(io)
@@ -37,12 +36,11 @@ function _deserializeFluxDataBase64(sdata::AbstractString)
   return data
 end
 
-
 function packDistribution(obj::FluxModelsDistribution)
   #
 
-    # and the specialSampler function -- likely to be deprecated
-    # specialSampler = Symbol(obj.specialSampler)
+  # and the specialSampler function -- likely to be deprecated
+  # specialSampler = Symbol(obj.specialSampler)
   # fields to persist
   inputDim = collect(obj.inputDim)
   outputDim = collect(obj.outputDim)
@@ -57,64 +55,67 @@ function packDistribution(obj::FluxModelsDistribution)
     mimeTypeData = "application/octet-stream/bson/base64"
   else
     # store one just model to preserve the type (allows resizing on immutable Ref after deserialize)
-    push!(models,_serializeFluxModelBase64(obj.models[1]))
+    push!(models, _serializeFluxModelBase64(obj.models[1]))
     # at least capture the type of how the data looks for future deserialization
     sdata = string(typeof(obj.data))
     mimeTypeData = "application/text"
   end
   mimeTypeModel = "application/octet-stream/bson/base64"
-  
+
   # and build the JSON-able object
-  return PackedFluxModelsDistribution("IncrementalInference.PackedFluxModelsDistribution",
-                                      inputDim, 
-                                      outputDim, 
-                                      mimeTypeModel,
-                                      models, 
-                                      mimeTypeData,
-                                      sdata, 
-                                      obj.shuffle[], 
-                                      obj.serializeHollow[], 
-                                      "IncrementalInference.PackedFluxModelsDistribution" )
+  return PackedFluxModelsDistribution(
+    "IncrementalInference.PackedFluxModelsDistribution",
+    inputDim,
+    outputDim,
+    mimeTypeModel,
+    models,
+    mimeTypeData,
+    sdata,
+    obj.shuffle[],
+    obj.serializeHollow[],
+    "IncrementalInference.PackedFluxModelsDistribution",
+  )
   #
 end
-
-
 
 function unpackDistribution(obj::PackedFluxModelsDistribution)
   #
-  obj.serializeHollow && @warn("Deserialization of FluxModelsDistribution.serializationHollow=true is not yet well developed, please open issues at IncrementalInference.jl accordingly.")
-  
+  obj.serializeHollow && @warn(
+    "Deserialization of FluxModelsDistribution.serializationHollow=true is not yet well developed, please open issues at IncrementalInference.jl accordingly."
+  )
+
   # deserialize
   # @assert obj.mimeTypeModel == "application/octet-stream/bson/base64"
   models = _deserializeFluxModelBase64.(obj.models)
-  
+
   # @assert obj.mimeTypeData == "application/octet-stream/bson/base64"
   data = !obj.serializeHollow ? _deserializeFluxDataBase64.(obj.data) : zeros(0)
 
-  return FluxModelsDistribution(models, 
-                                (obj.inputDim...,), 
-                                data, 
-                                (obj.outputDim...,), 
-                                shuffle=obj.shuffle, 
-                                serializeHollow=obj.serializeHollow  )
+  return FluxModelsDistribution(
+    models,
+    (obj.inputDim...,),
+    data,
+    (obj.outputDim...,);
+    shuffle = obj.shuffle,
+    serializeHollow = obj.serializeHollow,
+  )
 end
 
-
-
-function Base.convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedFluxModelsDistribution}}, 
-                      obj::FluxModelsDistribution)
+function Base.convert(
+  ::Union{Type{<:PackedSamplableBelief}, Type{<:PackedFluxModelsDistribution}},
+  obj::FluxModelsDistribution,
+)
   #
   # convert to packed type first
   return packDistribution(obj)
 end
 
-
-
-function convert( ::Union{Type{<:SamplableBelief},Type{<:FluxModelsDistribution}}, 
-                  obj::PackedFluxModelsDistribution )
+function convert(
+  ::Union{Type{<:SamplableBelief}, Type{<:FluxModelsDistribution}},
+  obj::PackedFluxModelsDistribution,
+)
   #
   return unpackDistribution(obj)
 end
-
 
 #

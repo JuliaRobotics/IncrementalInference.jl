@@ -1,5 +1,4 @@
 
-
 """
     $SIGNATURES
 
@@ -7,7 +6,6 @@ Notes
 - Parametric state machine function nr. 3
 """
 function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
-
   infocsm(csmc, "Par-3, Solving Up")
 
   setCliqueDrawColor!(csmc.cliq, "red")
@@ -16,13 +14,13 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #TODO maybe change to symbols
   msgfcts = DFGFactor[]
   # LITTLE WEIRD get previously set up msgs (stored in this clique)
-    # FIXME, fetch message buffered in channels
+  # FIXME, fetch message buffered in channels
   # see #855
-  for (idx,upmsg) in getMessageBuffer(csmc.cliq).upRx #get cached messages taken from children saved in this clique
+  for (idx, upmsg) in getMessageBuffer(csmc.cliq).upRx #get cached messages taken from children saved in this clique
     #TODO remove temp msgfcts container
-    append!(msgfcts, addMsgFactors!(csmc.cliqSubFg, upmsg, UpwardPass) ) # addMsgFactors_Parametric!
+    append!(msgfcts, addMsgFactors!(csmc.cliqSubFg, upmsg, UpwardPass)) # addMsgFactors_Parametric!
   end
-  logCSM(csmc,  "length mgsfcts=$(length(msgfcts))")
+  logCSM(csmc, "length mgsfcts=$(length(msgfcts))")
   infocsm(csmc, "length mgsfcts=$(length(msgfcts))")
 
   # store the cliqSubFg for later debugging
@@ -36,7 +34,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   # FIXME test f_converged, ls_success, confirm convergence check
   if result.f_converged || result.g_converged
     logCSM(csmc, "$(csmc.cliq.id): subfg optim converged updating variables")
-    for (v,val) in vardict
+    for (v, val) in vardict
       vnd = getSolverData(getVariable(csmc.cliqSubFg, v), :parametric)
       # fill in the variable node data value
       logCSM(csmc, "$(csmc.cliq.id) up: updating $v : $val")
@@ -45,8 +43,8 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
       #TODO rather broadcast than make new memory
       vnd.bw = val.cov
     end
-  # elseif length(lsfPriors(csmc.cliqSubFg)) == 0 #FIXME
-  #   @error "Par-3, clique $(csmc.cliq.id) failed to converge in upsolve, but ignoring since no priors" result
+    # elseif length(lsfPriors(csmc.cliqSubFg)) == 0 #FIXME
+    #   @error "Par-3, clique $(csmc.cliq.id) failed to converge in upsolve, but ignoring since no priors" result
   else
     @error "Par-3, clique $(csmc.cliq.id) failed to converge in upsolve" result
     # propagate error to cleanly exit all cliques
@@ -70,12 +68,16 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #TODO createBeliefMessageParametric(csmc.cliqSubFg, csmc.cliq, solvekey=opts.solvekey)
   cliqSeparatorVarIds = getCliqSeparatorVarIds(csmc.cliq)
   #Fill in CliqueLikelihood
-  cliqlikelihood = calculateMarginalCliqueLikelihood(vardict, Σ, varIds, cliqSeparatorVarIds)
+  cliqlikelihood =
+    calculateMarginalCliqueLikelihood(vardict, Σ, varIds, cliqSeparatorVarIds)
   # @info "$(csmc.cliq.id) clique likelihood message $(cliqlikelihood)"
-  beliefMsg = LikelihoodMessage(sender=(; id=csmc.cliq.id.value,
-                                          step=csmc._csm_iter), 
-                                status=UPSOLVED, variableOrder=cliqSeparatorVarIds, 
-                                cliqueLikelihood=cliqlikelihood, msgType=ParametricMessage() )
+  beliefMsg = LikelihoodMessage(;
+    sender = (; id = csmc.cliq.id.value, step = csmc._csm_iter),
+    status = UPSOLVED,
+    variableOrder = cliqSeparatorVarIds,
+    cliqueLikelihood = cliqlikelihood,
+    msgType = ParametricMessage(),
+  )
 
   #FIXME bit of a hack, only fill in variable beliefs if there are priors or for now more than one seperator
   if length(lsfPriors(csmc.cliqSubFg)) > 0 || length(cliqSeparatorVarIds) > 1
@@ -94,7 +96,6 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   return waitForDown_StateMachine
 end
 
-
 """
     $SIGNATURES
 
@@ -102,7 +103,6 @@ Notes
 - Parametric state machine function nr. 5
 """
 function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
-
   infocsm(csmc, "Par-5, Solving down")
 
   setCliqueDrawColor!(csmc.cliq, "red")
@@ -137,9 +137,13 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     # vardict, result = solveGraphParametric(csmc.cliqSubFg)
     # Pack all results in variables
     if result.g_converged || result.f_converged
-      logCSM(csmc, "$(csmc.cliq.id): subfg optim converged updating variables"; loglevel=Logging.Info)
-      for (v,val) in vardict
-        logCSM(csmc, "$(csmc.cliq.id) down: updating $v : $val"; loglevel=Logging.Info)
+      logCSM(
+        csmc,
+        "$(csmc.cliq.id): subfg optim converged updating variables";
+        loglevel = Logging.Info,
+      )
+      for (v, val) in vardict
+        logCSM(csmc, "$(csmc.cliq.id) down: updating $v : $val"; loglevel = Logging.Info)
         vnd = getSolverData(getVariable(csmc.cliqSubFg, v), :parametric)
         #Update subfg variables
         vnd.val[1] .= val.val
@@ -157,13 +161,15 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   cliqFrontalVarIds = getCliqFrontalVarIds(csmc.cliq)
   #TODO createBeliefMessageParametric
   # beliefMsg = createBeliefMessageParametric(csmc.cliqSubFg, cliqFrontalVarIds, solvekey=opts.solvekey)
-  beliefMsg = LikelihoodMessage(sender=(; id=csmc.cliq.id.value,
-                                          step=csmc._csm_iter),
-                                status=DOWNSOLVED, msgType=ParametricMessage())
+  beliefMsg = LikelihoodMessage(;
+    sender = (; id = csmc.cliq.id.value, step = csmc._csm_iter),
+    status = DOWNSOLVED,
+    msgType = ParametricMessage(),
+  )
   for fi in cliqFrontalVarIds
     vnd = getSolverData(getVariable(csmc.cliqSubFg, fi), :parametric)
     beliefMsg.belief[fi] = TreeBelief(vnd)
-    logCSM(csmc, "$(csmc.cliq.id): down message $fi : $beliefMsg"; loglevel=Logging.Info)
+    logCSM(csmc, "$(csmc.cliq.id): down message $fi : $beliefMsg"; loglevel = Logging.Info)
   end
 
   # pass through the frontal variables that were sent from above
@@ -171,14 +177,14 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     pass_through_separators = intersect(svars, keys(downmsg.belief))
     for si in pass_through_separators
       beliefMsg.belief[si] = downmsg.belief[si]
-      logCSM(csmc, "adding parent message"; sym=si, msg=downmsg.belief[si])
+      logCSM(csmc, "adding parent message"; sym = si, msg = downmsg.belief[si])
     end
   end
 
   #TODO sendBeliefMessageParametric(csmc, beliefMsg)
   #TODO maybe send a specific message to only the child that needs it
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-    logCSM(csmc,  "$(csmc.cliq.id): put! on edge $(e)")
+    logCSM(csmc, "$(csmc.cliq.id): put! on edge $(e)")
     @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messageChannels[e.index].downMsg, beliefMsg)
   end
 

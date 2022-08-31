@@ -7,28 +7,30 @@ Dev notes:
 - TODO Send in clique and then extract frontals, separators and factors
 - TODO ability to limit which solveKeys to copy.
 """
-function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
-                            dfg::AbstractDFG,
-                            frontals::Vector{Symbol},
-                            separators::Vector{Symbol};
-                            solvable::Int = 0,
-                            verbose::Bool=false,
-                            solveKey::Symbol=:NOTUSEDYET )
-
-
+function buildCliqSubgraph!(
+  cliqSubFg::AbstractDFG,
+  dfg::AbstractDFG,
+  frontals::Vector{Symbol},
+  separators::Vector{Symbol};
+  solvable::Int = 0,
+  verbose::Bool = false,
+  solveKey::Symbol = :NOTUSEDYET,
+)
   allvars = union(frontals, separators)
   lenbefore = length(allvars)
   # filter variables by solvable
-  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  allvars)
+  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable), allvars)
 
   # Potential problem... what are variables doing in the clique if they are not solvable?
-  solvable != 0 && lenbefore != length(allvars) && @info("Not all variables are included in subgraph due to solvable $solvable")
+  solvable != 0 &&
+    lenbefore != length(allvars) &&
+    @info("Not all variables are included in subgraph due to solvable $solvable")
 
   #get list of factors to possibly add, ie. frontal neighbors
   #todo replace with the factor list (potentials) from the clique
   addfac = Symbol[]
   for sym in frontals
-    union!(addfac, getNeighbors(dfg,sym))
+    union!(addfac, getNeighbors(dfg, sym))
   end
 
   allfacs = Symbol[]
@@ -40,36 +42,36 @@ function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
   end
 
   # filter factors by solvable
-  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  allfacs)
+  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable), allfacs)
 
   # add all the factors and variables to the new subgraph
-  DFG.deepcopyGraph!(cliqSubFg, dfg, allvars, allfacs, verbose=verbose)
+  DFG.deepcopyGraph!(cliqSubFg, dfg, allvars, allfacs; verbose = verbose)
 
   return cliqSubFg
 end
 
-function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
-                            dfg::AbstractDFG,
-                            cliq::TreeClique;
-                            solvable::Int = 0,
-                            verbose::Bool=false,
-                            solveKey::Symbol=:NOTUSEDYET )
-
+function buildCliqSubgraph!(
+  cliqSubFg::AbstractDFG,
+  dfg::AbstractDFG,
+  cliq::TreeClique;
+  solvable::Int = 0,
+  verbose::Bool = false,
+  solveKey::Symbol = :NOTUSEDYET,
+)
   vars = getCliqVarIdsAll(cliq)
   facs = getCliqFactorIdsAll(cliq)
   # Potential problem... what are variables/factors doing in the clique if they are not solvable?
-  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  vars)
-  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  facs)
+  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable), vars)
+  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable), facs)
 
   # fix for issue #681
   # @show ls(cliqSubFg), vars
   if length(intersect(ls(cliqSubFg), vars)) != length(vars)
-    DFG.deepcopyGraph!(cliqSubFg, dfg, vars, facs, verbose=verbose)
+    DFG.deepcopyGraph!(cliqSubFg, dfg, vars, facs; verbose = verbose)
   end
 
   return cliqSubFg
 end
-
 
 """
     $SIGNATURES
@@ -86,30 +88,39 @@ Notes
 DevNotes
 - TODO review, are all updates atomic?? Then perhaps in-memory only can be reduced to references back to csmc.dfg.
 """
-function buildCliqSubgraph( dfg::AbstractDFG,
-                            cliq::TreeClique,
-                            subfg::InMemoryDFGTypes=LocalDFG(solverParams=getSolverParams(dfg));
-                            solvable::Int=1,
-                            verbose::Bool=false )
+function buildCliqSubgraph(
+  dfg::AbstractDFG,
+  cliq::TreeClique,
+  subfg::InMemoryDFGTypes = LocalDFG(; solverParams = getSolverParams(dfg));
+  solvable::Int = 1,
+  verbose::Bool = false,
+)
 
   #TODO why was solvable hardcoded to 1?
-  buildCliqSubgraph!(subfg, dfg, cliq, solvable=solvable, verbose=verbose)
+  buildCliqSubgraph!(subfg, dfg, cliq; solvable = solvable, verbose = verbose)
   return subfg
 end
 
-function buildCliqSubgraph( fgl::AbstractDFG,
-                            treel::AbstractBayesTree,
-                            cliqsym::Symbol,
-                            subfg::InMemoryDFGTypes=LocalDFG(solverParams=getSolverParams(fgl));
-                            solvable::Int=1,
-                            verbose::Bool=false )
+function buildCliqSubgraph(
+  fgl::AbstractDFG,
+  treel::AbstractBayesTree,
+  cliqsym::Symbol,
+  subfg::InMemoryDFGTypes = LocalDFG(; solverParams = getSolverParams(fgl));
+  solvable::Int = 1,
+  verbose::Bool = false,
+)
   #
-  buildCliqSubgraph!(subfg, fgl, getClique(treel, cliqsym), solvable=solvable, verbose=verbose)
+  buildCliqSubgraph!(
+    subfg,
+    fgl,
+    getClique(treel, cliqsym);
+    solvable = solvable,
+    verbose = verbose,
+  )
   return subfg
 end
 
 #
-
 
 """
     $SIGNATURES
@@ -117,35 +128,42 @@ Transfer contents of `src::AbstractDFG` variables `syms::Vector{Symbol}` to `des
 Notes
 - Reads, `dest` := `src`, for all `syms`
 """
-function transferUpdateSubGraph!( dest::AbstractDFG,
-                                  src::AbstractDFG,
-                                  syms::Vector{Symbol}=union(ls(src)...),
-                                  logger=ConsoleLogger();
-                                  updatePPE::Bool=true,
-                                  solveKey::Symbol=:default)
+function transferUpdateSubGraph!(
+  dest::AbstractDFG,
+  src::AbstractDFG,
+  syms::Vector{Symbol} = union(ls(src)...),
+  logger = ConsoleLogger();
+  updatePPE::Bool = true,
+  solveKey::Symbol = :default,
+)
   #
   with_logger(logger) do
     @info "transferUpdateSubGraph! -- syms=$syms"
   end
 
   # transfer specific fields into dest from src
-  for var in (x->getVariable(src, x)).(syms)
+  for var in (x -> getVariable(src, x)).(syms)
     # copy not required since a broadcast is used internally
-    updateVariableSolverData!(dest, var, solveKey, false, [:val; :bw; :infoPerCoord; :solvedCount; :initialized]; warn_if_absent=false)
-    if updatePPE 
+    updateVariableSolverData!(
+      dest,
+      var,
+      solveKey,
+      false,
+      [:val; :bw; :infoPerCoord; :solvedCount; :initialized];
+      warn_if_absent = false,
+    )
+    if updatePPE
       # create ppe on new key using defaults, TODO improve
       if haskey(getPPEDict(var), solveKey)
-        DFG.updatePPE!(dest, var, solveKey; warn_if_absent=false)
+        DFG.updatePPE!(dest, var, solveKey; warn_if_absent = false)
       else
-        ppe = calcPPE(var, ppeKey=solveKey)
+        ppe = calcPPE(var; ppeKey = solveKey)
         addPPE!(dest, var.label, ppe)
       end
     end
   end
 
-  nothing
+  return nothing
 end
-
-
 
 #

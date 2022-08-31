@@ -4,16 +4,22 @@
 ## Possible type piracy, but also standardizing to common API across repos
 ## ======================================================================================
 
-
 DFG.getDimension(::Distributions.Uniform) = 1
 DFG.getDimension(::Normal) = 1
 DFG.getDimension(Z::MvNormal) = Z |> cov |> diag |> length
 
-DFG.getDimension(Z::FluxModelsDistribution) = length(Z.outputDim)==1 ? Z.outputDim[1] : error("can only do single index tensor at this time, please open an issue with Caesar.jl")
+function DFG.getDimension(Z::FluxModelsDistribution)
+  return if length(Z.outputDim) == 1
+    Z.outputDim[1]
+  else
+    error(
+    "can only do single index tensor at this time, please open an issue with Caesar.jl",
+  )
+  end
+end
 DFG.getDimension(Z::ManifoldKernelDensity) = getManifold(Z) |> getDimension
 # TODO deprecate
 DFG.getDimension(Z::BallTreeDensity) = Ndim(Z)
-
 
 ## ======================================================================================
 ## Generic manifold cost functions
@@ -39,7 +45,7 @@ end
 
 # ::MeasurementOnTangent
 function distanceTangent2Point(M::AbstractManifold, X, p, q)
-  q̂ = exp(M, p, X) 
+  q̂ = exp(M, p, X)
   # return log(M, q, q̂)
   return vee(M, q, log(M, q, q̂))
   # return distance(M, q, q̂)
@@ -49,7 +55,7 @@ end
     $SIGNATURES
 Generic function that can be used in prior factors to calculate distance on Lie Groups. 
 """
-function distancePrior(M::AbstractManifold, meas, p)	
+function distancePrior(M::AbstractManifold, meas, p)
   return log(M, p, meas)
   # return distance(M, p, meas)
 end
@@ -63,14 +69,15 @@ export ManifoldFactor
 # For now, `Z` is on the tangent space in coordinates at the point used in the factor.
 # For groups just the lie algebra
 # As transition it will be easier this way, we can reevaluate
-struct ManifoldFactor{M <: AbstractManifold, T <: SamplableBelief} <: AbstractManifoldMinimize #AbstractFactor
+struct ManifoldFactor{M <: AbstractManifold, T <: SamplableBelief} <:
+       AbstractManifoldMinimize #AbstractFactor
   M::M
   Z::T
 end
 
 DFG.getManifold(f::ManifoldFactor) = f.M
 
-function getSample(cf::CalcFactor{<:ManifoldFactor{M,Z}}) where {M,Z}
+function getSample(cf::CalcFactor{<:ManifoldFactor{M, Z}}) where {M, Z}
   #TODO @assert dim == cf.factor.Z's dimension
   #TODO investigate use of SVector if small dims
   if M isa ManifoldKernelDensity
@@ -98,15 +105,18 @@ export ManifoldPrior, PackedManifoldPrior
 
 # `p` is a point on manifold `M`
 # `Z` is a measurement at the tangent space of `p` on manifold `M` 
-struct ManifoldPrior{M <: AbstractManifold, T <: SamplableBelief, P, B <: AbstractBasis} <: AbstractPrior
-  M::M 
+struct ManifoldPrior{M <: AbstractManifold, T <: SamplableBelief, P, B <: AbstractBasis} <:
+       AbstractPrior
+  M::M
   p::P #NOTE This is a fixed point from where the measurement `Z` is made in coordinates on tangent TpM
   Z::T
   basis::B
   retract_method::AbstractRetractionMethod
 end
 
-ManifoldPrior(M::AbstractDecoratorManifold, p, Z) = ManifoldPrior(M, p, Z, ManifoldsBase.VeeOrthogonalBasis(), ExponentialRetraction())
+function ManifoldPrior(M::AbstractDecoratorManifold, p, Z)
+  return ManifoldPrior(M, p, Z, ManifoldsBase.VeeOrthogonalBasis(), ExponentialRetraction())
+end
 
 DFG.getManifold(f::ManifoldPrior) = f.M
 
@@ -126,7 +136,7 @@ function getSample(cf::CalcFactor{<:ManifoldPrior})
   basis = cf.factor.basis
   retract_method = cf.factor.retract_method
   point = samplePoint(M, Z, p, basis, retract_method)
-  
+
   return point
 end
 
@@ -137,7 +147,7 @@ end
 function (cf::CalcFactor{<:ManifoldPrior})(m, p)
   M = cf.factor.M
   # return log(M, p, m)
-  return vee(M,p,log(M, p, m))
+  return vee(M, p, log(M, p, m))
   # return distancePrior(M, m, p)
 end
 
@@ -154,36 +164,37 @@ function mahalanobus_distance2(M, X, inv_Σ)
   return Xc' * inv_Σ * Xc
 end
 
-
 Base.@kwdef mutable struct PackedManifoldPrior <: AbstractPackedFactor
-  varType::String 
+  varType::String
   p::Vector{Float64}  #NOTE This is a fixed point from where the measurement `Z` likely stored as a coordinate
   Z::PackedSamplableBelief
 end
 
-
-function convert(::Union{Type{<:AbstractPackedFactor}, Type{<:PackedManifoldPrior}},
-                obj::ManifoldPrior )
+function convert(
+  ::Union{Type{<:AbstractPackedFactor}, Type{<:PackedManifoldPrior}},
+  obj::ManifoldPrior,
+)
   #
-  
+
   varT = DFG.typeModuleName(getVariableType(obj.M))
 
   c = AMP.makeCoordsFromPoint(obj.M, obj.p)
-  
+
   # TODO convert all distributions to JSON
   Zst = convert(PackedSamplableBelief, obj.Z) # String
-  
-  PackedManifoldPrior(varT, c, Zst)
+
+  return PackedManifoldPrior(varT, c, Zst)
 end
 
-
-function convert(::Union{Type{<:AbstractFactor}, Type{<:ManifoldPrior}},
-                obj::PackedManifoldPrior )
+function convert(
+  ::Union{Type{<:AbstractFactor}, Type{<:ManifoldPrior}},
+  obj::PackedManifoldPrior,
+)
   #
-  
+
   # piggy back on serialization of InferenceVariable rather than try serialize anything Manifolds.jl
   M = DFG.getTypeFromSerializationModule(obj.varType) |> getManifold
-  
+
   # TODO this is too excessive
   e0 = getPointIdentity(M)
   # u0 = getPointIdentity(obj.varType)
@@ -191,41 +202,40 @@ function convert(::Union{Type{<:AbstractFactor}, Type{<:ManifoldPrior}},
 
   Z = convert(SamplableBelief, obj.Z)
 
-  ManifoldPrior(M, p, Z)
+  return ManifoldPrior(M, p, Z)
 end
-
-
-
 
 ## ======================================================================================
 ## Generic Manifold Partial Prior
 ## ======================================================================================
 
-function samplePointPartial(M::AbstractDecoratorManifold,
-                            z::Distribution,
-                            partial::Vector{Int}, 
-                            p=getPointIdentity(M), 
-                            retraction_method::AbstractRetractionMethod=ExponentialRetraction())
+function samplePointPartial(
+  M::AbstractDecoratorManifold,
+  z::Distribution,
+  partial::Vector{Int},
+  p = getPointIdentity(M),
+  retraction_method::AbstractRetractionMethod = ExponentialRetraction(),
+)
   dim = manifold_dimension(M)
   Xc = zeros(dim)
   Xc[partial] .= rand(z)
-  X =  hat(M, p, Xc)
+  X = hat(M, p, Xc)
   return retract(M, p, X, retraction_method)
 end
 
-struct ManifoldPriorPartial{M <: AbstractManifold, T <: SamplableBelief, P <: Tuple} <: AbstractPrior
-    M::M
-    Z::T
-    partial::P
-end 
-  
-DFG.getManifold(f::ManifoldPriorPartial) = f.M
-
-function getSample(cf::CalcFactor{<:ManifoldPriorPartial}) 
-    Z = cf.factor.Z
-    M = getManifold(cf.factor)
-    partial = collect(cf.factor.partial)
-
-    return (samplePointPartial(M, Z, partial), )
+struct ManifoldPriorPartial{M <: AbstractManifold, T <: SamplableBelief, P <: Tuple} <:
+       AbstractPrior
+  M::M
+  Z::T
+  partial::P
 end
 
+DFG.getManifold(f::ManifoldPriorPartial) = f.M
+
+function getSample(cf::CalcFactor{<:ManifoldPriorPartial})
+  Z = cf.factor.Z
+  M = getManifold(cf.factor)
+  partial = collect(cf.factor.partial)
+
+  return (samplePointPartial(M, Z, partial),)
+end

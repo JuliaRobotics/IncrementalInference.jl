@@ -1,22 +1,18 @@
 
-
-
 Base.@kwdef struct PackedManifoldKernelDensity <: PackedSamplableBelief
-  _type::String            = "IncrementalInference.PackedManifoldKernelDensity"
+  _type::String = "IncrementalInference.PackedManifoldKernelDensity"
   varType::String
   pts::Vector{Vector{Float64}}
-  bw::Vector{Float64}      = Float64[]
-  partial::Vector{Int}     = Int[]
+  bw::Vector{Float64} = Float64[]
+  partial::Vector{Int} = Int[]
   infoPerCoord::Vector{Float64} = zeros(length(pts[1]))
 end
 
-
 Base.@kwdef struct PackedAliasingScalarSampler <: PackedSamplableBelief
-  _type::String           = "IncrementalInference.PackedAliasingScalarSampler"
-  domain::Vector{Float64} = [0;1.0;]
-  weights::Vector{Float64}= [0.5;0.5;]
+  _type::String = "IncrementalInference.PackedAliasingScalarSampler"
+  domain::Vector{Float64} = [0; 1.0]
+  weights::Vector{Float64} = [0.5; 0.5]
 end
-
 
 Base.@kwdef mutable struct PackedHeatmapGridDensity <: PackedSamplableBelief
   _type::String = "IncrementalInference.PackedHeatmapGridDensity"
@@ -27,7 +23,6 @@ Base.@kwdef mutable struct PackedHeatmapGridDensity <: PackedSamplableBelief
   N::Int
   # _densityFnc::String = "" # only use if storing parched belief data entry label/id
 end
-
 
 Base.@kwdef mutable struct PackedLevelSetGridNormal <: PackedSamplableBelief
   _type::String = "IncrementalInference.PackedLevelSetGridNormal"

@@ -1,7 +1,6 @@
 
 export CircularCircular, PriorCircular, PackedCircularCircular, PackedPriorCircular
 
-
 """
 $(TYPEDEF)
 
@@ -11,7 +10,7 @@ Related
 
 [`Sphere1`](@ref), [`PriorSphere1`](@ref), [`Polar`](@ref), [`ContinuousEuclid`](@ref)
 """
-mutable struct CircularCircular{T<: SamplableBelief} <: AbstractManifoldMinimize
+mutable struct CircularCircular{T <: SamplableBelief} <: AbstractManifoldMinimize
   Z::T
   # Sphere1Sphere1(z::T=Normal()) where {T <: SamplableBelief} = new{T}(z)
 end
@@ -28,9 +27,9 @@ function (cf::CalcFactor{<:CircularCircular})(X, p, q)
   return distanceTangent2Point(M, X, p, q)
 end
 
-
-Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{CircularCircular}) = Manifolds.RealCircleGroup()
-
+function Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{CircularCircular})
+  return Manifolds.RealCircleGroup()
+end
 
 """
 $(TYPEDEF)
@@ -47,7 +46,7 @@ Related
 
 [`Circular`](@ref), [`Prior`](@ref), [`PartialPrior`](@ref)
 """
-mutable struct PriorCircular{T<: SamplableBelief} <: AbstractPrior
+mutable struct PriorCircular{T <: SamplableBelief} <: AbstractPrior
   Z::T
 end
 
@@ -68,16 +67,16 @@ function (cf::CalcFactor{<:PriorCircular})(m, p)
   return Xc
 end
 
-Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{PriorCircular}) = Manifolds.RealCircleGroup()
-
-
+function Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{PriorCircular})
+  return Manifolds.RealCircleGroup()
+end
 
 """
 $(TYPEDEF)
 
 Serialized object for storing PriorCircular.
 """
-Base.@kwdef struct PackedPriorCircular  <: AbstractPackedFactor
+Base.@kwdef struct PackedPriorCircular <: AbstractPackedFactor
   Z::PackedSamplableBelief
 end
 function convert(::Type{PackedPriorCircular}, d::PriorCircular)
@@ -88,19 +87,14 @@ function convert(::Type{PriorCircular}, d::PackedPriorCircular)
   return PriorCircular{typeof(distr)}(distr)
 end
 
-
 # --------------------------------------------
-
-
-
-
 
 """
 $(TYPEDEF)
 
 Serialized object for storing CircularCircular.
 """
-Base.@kwdef struct PackedCircularCircular  <: AbstractPackedFactor
+Base.@kwdef struct PackedCircularCircular <: AbstractPackedFactor
   Z::PackedSamplableBelief
 end
 function convert(::Type{CircularCircular}, d::PackedCircularCircular)
@@ -109,7 +103,5 @@ end
 function convert(::Type{PackedCircularCircular}, d::CircularCircular)
   return PackedCircularCircular(convert(PackedSamplableBelief, d.Z))
 end
-
-
 
 # --------------------------------------------

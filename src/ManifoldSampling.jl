@@ -10,27 +10,30 @@ Notes
 function sampleTangent end
 
 # Sampling MKD
-function sampleTangent(M::AbstractDecoratorManifold, x::ManifoldKernelDensity, p=mean(x))
+function sampleTangent(M::AbstractDecoratorManifold, x::ManifoldKernelDensity, p = mean(x))
   # get legacy matrix of coordinates and selected labels
   #TODO make sure that when `sample` is replaced in MKD, coordinates is a vector
-  coords, lbls = sample(x.belief,1)
+  coords, lbls = sample(x.belief, 1)
   X = hat(x.manifold, p, coords[:])
   return X
 end
 
-function sampleTangent(x::ManifoldKernelDensity, p=mean(x)) 
+function sampleTangent(x::ManifoldKernelDensity, p = mean(x))
   return sampleTangent(x.manifold, x, p)
 end
 
 # Sampling Distributions
-function sampleTangent(M::AbstractManifold, z::Distribution, p, basis::AbstractBasis) 
+function sampleTangent(M::AbstractManifold, z::Distribution, p, basis::AbstractBasis)
   return get_vector(M, p, rand(z), basis)
 end
 
-function sampleTangent(M::AbstractDecoratorManifold, z::Distribution, p=getPointIdentity(M)) 
-  return hat(M, p, rand(z,1)[:]) #TODO find something better than (z,1)[:]
+function sampleTangent(
+  M::AbstractDecoratorManifold,
+  z::Distribution,
+  p = getPointIdentity(M),
+)
+  return hat(M, p, rand(z, 1)[:]) #TODO find something better than (z,1)[:]
 end
-
 
 """
     $SIGNATURES
@@ -40,28 +43,47 @@ Return a random sample point on a manifold from a belief represented by coordina
 Notes
 
 """
-function samplePoint(M::AbstractManifold, sbelief, p, basis::AbstractBasis, retraction_method::AbstractRetractionMethod=ExponentialRetraction())
+function samplePoint(
+  M::AbstractManifold,
+  sbelief,
+  p,
+  basis::AbstractBasis,
+  retraction_method::AbstractRetractionMethod = ExponentialRetraction(),
+)
   X = sampleTangent(M, sbelief, p, basis)
   return retract(M, p, X, retraction_method)
 end
-function samplePoint(M::AbstractDecoratorManifold, sbelief, p=getPointIdentity(M), retraction_method::AbstractRetractionMethod=ExponentialRetraction())
+function samplePoint(
+  M::AbstractDecoratorManifold,
+  sbelief,
+  p = getPointIdentity(M),
+  retraction_method::AbstractRetractionMethod = ExponentialRetraction(),
+)
   X = sampleTangent(M, sbelief, p)
   return retract(M, p, X, retraction_method)
 end
 
-function samplePoint(M::AbstractDecoratorManifold, sbelief::ManifoldKernelDensity, p=identity_element(M, mean(sbelief)), retraction_method::AbstractRetractionMethod=ExponentialRetraction())
+function samplePoint(
+  M::AbstractDecoratorManifold,
+  sbelief::ManifoldKernelDensity,
+  p = identity_element(M, mean(sbelief)),
+  retraction_method::AbstractRetractionMethod = ExponentialRetraction(),
+)
   X = sampleTangent(M, sbelief, p)
   return retract(M, p, X, retraction_method)
 end
 
-function samplePoint(x::ManifoldKernelDensity, p=mean(x)) 
+function samplePoint(x::ManifoldKernelDensity, p = mean(x))
   return samplePoint(x.manifold, x, p)
 end
 
 # FIXME: rather use manifolds
 function samplePoint(distr::SamplableBelief)
-  Base.depwarn("samplePoint(distr::SamplableBelief) should be replaced by samplePoint(M<:AbstractManifold, distr::SamplableBelief, ...)", :samplePoint)
-  rand(distr,1)
+  Base.depwarn(
+    "samplePoint(distr::SamplableBelief) should be replaced by samplePoint(M<:AbstractManifold, distr::SamplableBelief, ...)",
+    :samplePoint,
+  )
+  return rand(distr, 1)
 end
 
 ## default getSample
@@ -92,19 +114,23 @@ function getSample(cf::CalcFactor{<:AbstractPrior})
   if hasfield(typeof(cf.factor), :Z)
     X = samplePoint(M, cf.factor.Z)
   else
-    error("""Factor $(typeof(cf.factor)) does not have a field `Z`, to use the default `getSample` method, use `Z` for the measurement. 
-              Alternatively, provide a `getSample` method. See IIF issue #1441 and Custom Factors in the Caesar documentation.""")
+    error(
+      """Factor $(typeof(cf.factor)) does not have a field `Z`, to use the default `getSample` method, use `Z` for the measurement. 
+          Alternatively, provide a `getSample` method. See IIF issue #1441 and Custom Factors in the Caesar documentation.""",
+    )
   end
   return X
 end
 
-function getSample(cf::CalcFactor{<:AbstractRelative}) 
+function getSample(cf::CalcFactor{<:AbstractRelative})
   M = getManifold(cf.factor)
   if hasfield(typeof(cf.factor), :Z)
     X = sampleTangent(M, cf.factor.Z)
   else
-    error("""Factor $(typeof(cf.factor)) does not have a field `Z`, to use the default `getSample` method, use `Z` for the measurement. 
-              Alternatively, provide a `getSample` method. See IIF issue #1441 and Custom Factors in the Caesar documentation.""")
+    error(
+      """Factor $(typeof(cf.factor)) does not have a field `Z`, to use the default `getSample` method, use `Z` for the measurement. 
+          Alternatively, provide a `getSample` method. See IIF issue #1441 and Custom Factors in the Caesar documentation.""",
+    )
   end
   return X
 end

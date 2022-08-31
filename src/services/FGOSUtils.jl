@@ -2,16 +2,21 @@
 #  IIF methods should direclty detect extended types from user import
 # of convert in their namespace
 
-
 # FIXME, upgrade to AMP instead
 KDE.getPoints(dfg::AbstractDFG, lbl::Symbol) = getBelief(dfg, lbl) |> getPoints
 
-clampStringLength(st::AbstractString, len::Int=5) = st[1:minimum([len; length(st)])]
+clampStringLength(st::AbstractString, len::Int = 5) = st[1:minimum([len; length(st)])]
 
-function clampBufferString(st::AbstractString, max::Int, len::Int=minimum([max,length(st)]))
+function clampBufferString(
+  st::AbstractString,
+  max::Int,
+  len::Int = minimum([max, length(st)]),
+)
   @assert 0 <= max "max must be greater or equal to zero"
   st = clampStringLength(st, len)
-  for i in len:max-1  st *= " "; end
+  for i = len:(max - 1)
+    st *= " "
+  end
   return st
 end
 
@@ -25,10 +30,10 @@ Related
 
 [`incrSuffix`](@ref)
 """
-function _getSuffix(lbl::Symbol; pattern::Regex=r"\d+")
+function _getSuffix(lbl::Symbol; pattern::Regex = r"\d+")
   slbl = string(lbl)
-  phrase_ = slbl |> reverse |> x->match(pattern,x).match 
-  slbl, reverse(phrase_)
+  phrase_ = slbl |> reverse |> x -> match(pattern, x).match
+  return slbl, reverse(phrase_)
 end
 
 """
@@ -49,11 +54,11 @@ incrSuffix(:x45_4, -1)
 Notes
 - Change `pattern::Regex=r"\\d+"` for alternative behaviour.
 """
-function incrSuffix(lbl::Symbol, val::Integer=+1; pattern::Regex=r"\d+")
-  slbl, phrase = _getSuffix(lbl, pattern=pattern)
-  nint = phrase |> x->(parse(Int,x)+val)
-  prefix = slbl[1:(end-length(phrase))]
-  Symbol(prefix, nint)
+function incrSuffix(lbl::Symbol, val::Integer = +1; pattern::Regex = r"\d+")
+  slbl, phrase = _getSuffix(lbl; pattern = pattern)
+  nint = phrase |> x -> (parse(Int, x) + val)
+  prefix = slbl[1:(end - length(phrase))]
+  return Symbol(prefix, nint)
 end
 
 """
@@ -63,7 +68,6 @@ Get the CommonConvWrapper for this factor.
 _getCCW(gfnd::GenericFunctionNodeData) = gfnd.fnc
 _getCCW(fct::DFGFactor) = getSolverData(fct) |> _getCCW
 _getCCW(dfg::AbstractDFG, lbl::Symbol) = getFactor(dfg, lbl) |> _getCCW
-
 
 DFG.getFactorType(ccw::CommonConvWrapper) = ccw.usrfnc!
 
@@ -77,7 +81,6 @@ _getZDim(fct::DFGFactor) = _getCCW(fct) |> _getZDim
 DFG.getDimension(fct::GenericFunctionNodeData) = _getZDim(fct)
 DFG.getDimension(fct::DFGFactor) = _getZDim(fct)
 
-
 """
     $SIGNATURES
 
@@ -86,9 +89,18 @@ Return the manifold on which this ManifoldKernelDensity is defined.
 DevNotes
 - TODO currently ignores the .partial aspect (captured in parameter `L`)
 """
-getManifold(mkd::ManifoldKernelDensity{M,B,Nothing}, asPartial::Bool=false) where {M,B} = mkd.manifold
-getManifold(mkd::ManifoldKernelDensity{M,B,L}, asPartial::Bool=false) where {M,B,L <: AbstractVector} = asPartial ? mkd.manifold : getManifoldPartial(mkd.manifold, mkd._partial)
-
+function getManifold(
+  mkd::ManifoldKernelDensity{M, B, Nothing},
+  asPartial::Bool = false,
+) where {M, B}
+  return mkd.manifold
+end
+function getManifold(
+  mkd::ManifoldKernelDensity{M, B, L},
+  asPartial::Bool = false,
+) where {M, B, L <: AbstractVector}
+  return asPartial ? mkd.manifold : getManifoldPartial(mkd.manifold, mkd._partial)
+end
 
 """
     $TYPEDSIGNATURES
@@ -100,7 +112,6 @@ getFactorDim(w...) = getDimension(w...)
 # getFactorDim(fc::DFGFactor) = getFactorDim(getSolverData(fc))
 getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid))
 
-
 # function _getDimensionsPartial(ccw::CommonConvWrapper)
 #   # @warn "_getDimensionsPartial not ready for use yet"
 #   ccw.partialDims
@@ -109,37 +120,35 @@ getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid)
 # _getDimensionsPartial(fct::DFGFactor) = _getDimensionsPartial(_getCCW(fct))
 # _getDimensionsPartial(fg::AbstractDFG, lbl::Symbol) = _getDimensionsPartial(getFactor(fg, lbl))
 
-
-
 # extend convenience function (Matrix or Vector{P})
 function manikde!(
-    variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
-    pts::AbstractVector{P};
-    kw... 
-  ) where {P <: Union{<:AbstractArray,<:Number,<:ProductRepr,<:Manifolds.ArrayPartition} }
+  variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
+  pts::AbstractVector{P};
+  kw...,
+) where {P <: Union{<:AbstractArray, <:Number, <:ProductRepr, <:Manifolds.ArrayPartition}}
   #
   M = getManifold(variableType)
-  infoPerCoord=ones(AMP.getNumberCoords(M, pts[1]))
+  infoPerCoord = ones(AMP.getNumberCoords(M, pts[1]))
   return AMP.manikde!(M, pts; infoPerCoord, kw...)
 end
 
 function manikde!(
-    varT::InstanceType{<:InferenceVariable}, 
-    pts::AbstractVector{<:Tuple}; 
-    kw...
-  )
+  varT::InstanceType{<:InferenceVariable},
+  pts::AbstractVector{<:Tuple};
+  kw...,
+)
   #
-  manikde!(varT, (t->ArrayPartition(t...)).(pts); kw...)
+  return manikde!(varT, (t -> ArrayPartition(t...)).(pts); kw...)
 end
-
 
 """
     $SIGNATURES
 
 Return params.N measurement samples for a factor in `<:AbstractDFG`.
 """
-getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int=getSolverParams(dfg).N) = sampleFactor(dfg, fsym, N)
-
+function getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int = getSolverParams(dfg).N)
+  return sampleFactor(dfg, fsym, N)
+end
 
 """
     $SIGNATURES
@@ -157,7 +166,6 @@ Append `str` onto factor graph log path as convenience function.
 joinLogPath(opt::SolverParams, str...) = joinpath(getLogPath(opt), str...)
 joinLogPath(dfg::AbstractDFG, str...) = joinLogPath(getSolverParams(dfg), str...)
 
-
 """
     $(SIGNATURES)
 
@@ -171,7 +179,7 @@ function setfreeze!(dfg::AbstractDFG, sym::Symbol)
   vert = DFG.getVariable(dfg, sym)
   data = getSolverData(vert)
   data.ismargin = true
-  nothing
+  return nothing
 end
 function setfreeze!(dfg::AbstractDFG, syms::Vector{Symbol})
   for sym in syms
@@ -193,27 +201,27 @@ function fifoFreeze!(dfg::AbstractDFG)
   end
 
   # the fifo history
-  tofreeze = DFG.getAddHistory(dfg)[1:(end-DFG.getSolverParams(dfg).qfl)]
-  
+  tofreeze = DFG.getAddHistory(dfg)[1:(end - DFG.getSolverParams(dfg).qfl)]
+
   # check that the variable to freeze exists fix issue #966
-  filter!(v->exists(dfg,v), tofreeze)
+  filter!(v -> exists(dfg, v), tofreeze)
 
   if length(tofreeze) == 0
-      @info "[fifoFreeze] QFL - no nodes to freeze."
-      return nothing
+    @info "[fifoFreeze] QFL - no nodes to freeze."
+    return nothing
   end
   @info "[fifoFreeze] QFL - Freezing nodes $(tofreeze[1]) -> $(tofreeze[end])."
   setfreeze!(dfg, tofreeze)
-  nothing
+  return nothing
 end
 
-
-DFG.getPoint(typ::InferenceVariable, w...;kw...) = getPoint(typeof(typ), w...;kw...)
-DFG.getCoordinates(typ::InferenceVariable, w...;kw...) = getCoordinates(typeof(typ), w...;kw...)
+DFG.getPoint(typ::InferenceVariable, w...; kw...) = getPoint(typeof(typ), w...; kw...)
+function DFG.getCoordinates(typ::InferenceVariable, w...; kw...)
+  return getCoordinates(typeof(typ), w...; kw...)
+end
 
 # WIP
 # _getMeasurementRepresentation(::AbstractPrior, coord::AbstractVector{<:Number}) = 
-
 
 """
     $SIGNATURES
@@ -228,12 +236,14 @@ Related
 
 [`getVariablePPE`](@ref), [`setVariablePosteriorEstimates!`](@ref), [`getVariablePPE!`](@ref)
 """
-function calcPPE( var::DFGVariable,
-                  varType::InferenceVariable=getVariableType(var);
-                  ppeType::Type{<:MeanMaxPPE}=MeanMaxPPE,
-                  solveKey::Symbol=:default,
-                  ppeKey::Symbol=solveKey,
-                  timestamp=now()  )
+function calcPPE(
+  var::DFGVariable,
+  varType::InferenceVariable = getVariableType(var);
+  ppeType::Type{<:MeanMaxPPE} = MeanMaxPPE,
+  solveKey::Symbol = :default,
+  ppeKey::Symbol = solveKey,
+  timestamp = now(),
+)
   #
   P = getBelief(var, solveKey)
   maniDef = convert(MB.AbstractManifold, varType)
@@ -242,18 +252,17 @@ function calcPPE( var::DFGVariable,
   Pme = calcMean(P)  # getKDEMean(P) #, addop=ops[1], diffop=ops[2]
 
   # returns coordinates at identify
-  Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
+  Pma = getKDEMax(P; addop = ops[1], diffop = ops[2])
   # calculate point
 
   ## TODO make PPE only use getCoordinates for now (IIF v0.25)
-  Pme_ = getCoordinates(varType,Pme)
+  Pme_ = getCoordinates(varType, Pme)
   # Pma_ = getCoordinates(M,Pme)
-  
+
   # suggested, max, mean, current time
   # TODO, poor constructor argument assumptions on `ppeType`
-  ppeType(ppeKey, Pme_, Pma, Pme_, timestamp)
+  return ppeType(ppeKey, Pme_, Pma, Pme_, timestamp)
 end
-
 
 # calcPPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcPPE(var, getVariableType(var), method=method, solveKey=solveKey)
 
@@ -272,25 +281,25 @@ Related
 
 [`setPPE!`](@ref)
 """
-function calcPPE( dfg::AbstractDFG,
-                  label::Symbol;
-                  solveKey::Symbol=:default,
-                  ppeType::Type{<:AbstractPointParametricEst}=MeanMaxPPE )
+function calcPPE(
+  dfg::AbstractDFG,
+  label::Symbol;
+  solveKey::Symbol = :default,
+  ppeType::Type{<:AbstractPointParametricEst} = MeanMaxPPE,
+)
   #
   var = getVariable(dfg, label)
-  calcPPE(var, getVariableType(var), ppeType=ppeType, solveKey=solveKey)
+  return calcPPE(var, getVariableType(var); ppeType = ppeType, solveKey = solveKey)
 end
 
 const calcVariablePPE = calcPPE
 
-
-function setThreadModel!( fgl::AbstractDFG;
-                          model=IIF.SingleThreaded )
+function setThreadModel!(fgl::AbstractDFG; model = IIF.SingleThreaded)
   #
   for (key, id) in fgl.fIDs
     _getCCW(fgl, key).threadmodel = model
   end
-  nothing
+  return nothing
 end
 
 """
@@ -315,9 +324,6 @@ isMultihypo
 """
 getMultihypoDistribution(fct::DFGFactor) = _getCCW(fct).hypotheses
 
-
-
-
 """
     $SIGNATURES
 
@@ -325,12 +331,12 @@ Free all variables from marginalization.
 """
 function dontMarginalizeVariablesAll!(fgl::AbstractDFG)
   fgl.solverParams.isfixedlag = false
-  fgl.solverParams.qfl = (2^(Sys.WORD_SIZE-1)-1)
+  fgl.solverParams.qfl = (2^(Sys.WORD_SIZE - 1) - 1)
   fgl.solverParams.limitfixeddown = false
   for sym in ls(fgl)
     setMarginalized!(fgl, sym, false)
   end
-  nothing
+  return nothing
 end
 
 """
@@ -343,7 +349,7 @@ Related
 dontMarginalizeVariablesAll!
 """
 function unfreezeVariablesAll!(fgl::AbstractDFG)
-  dontMarginalizeVariablesAll!(fgl)
+  return dontMarginalizeVariablesAll!(fgl)
 end
 
 # WIP
@@ -366,7 +372,7 @@ function resetVariableAllInitializations!(fgl::AbstractDFG)
   for sym in vsyms
     setVariableInitialized!(getVariable(fgl, sym), :false)
   end
-  nothing
+  return nothing
 end
 
 """
@@ -378,14 +384,16 @@ Notes:
 - These are only default settings, and can be modified in each use case scenario.
 - Default does not update downsolve through to leaves of the tree.
 """
-function defaultFixedLagOnTree!(dfg::AbstractDFG,
-                                len::Int=30;
-                                limitfixeddown::Bool=true )
+function defaultFixedLagOnTree!(
+  dfg::AbstractDFG,
+  len::Int = 30;
+  limitfixeddown::Bool = true,
+)
   #
   getSolverParams(dfg).isfixedlag = true
   getSolverParams(dfg).qfl = len
   getSolverParams(dfg).limitfixeddown = limitfixeddown
-  getSolverParams(dfg)
+  return getSolverParams(dfg)
 end
 
 """
@@ -397,12 +405,11 @@ Related
 
 getVariablePPE
 """
-function getPPESuggestedAll(dfg::AbstractDFG,
-                            regexFilter::Union{Nothing, Regex}=nothing )
+function getPPESuggestedAll(dfg::AbstractDFG, regexFilter::Union{Nothing, Regex} = nothing)
   #
   # get values
   vsyms = listVariables(dfg, regexFilter) |> sortDFG
-  slamPPE = map(x->getVariablePPE(dfg, x).suggested, vsyms)
+  slamPPE = map(x -> getVariablePPE(dfg, x).suggested, vsyms)
   # sizes to convert to matrix
   rumax = zeros(Int, 2)
   for ppe in slamPPE
@@ -411,9 +418,9 @@ function getPPESuggestedAll(dfg::AbstractDFG,
   end
 
   # populate with values
-  XYT = zeros(length(slamPPE),rumax[1])
-  for i in 1:length(slamPPE)
-    XYT[i,1:length(slamPPE[i])] = slamPPE[i]
+  XYT = zeros(length(slamPPE), rumax[1])
+  for i = 1:length(slamPPE)
+    XYT[i, 1:length(slamPPE[i])] = slamPPE[i]
   end
   return (vsyms, XYT)
 end
@@ -427,14 +434,16 @@ Related
 
 findVariablesNearTimestamp
 """
-function findVariablesNear( dfg::AbstractDFG,
-                            loc::Vector{<:Real},
-                            regexFilter::Union{Nothing, Regex}=nothing;
-                            number::Int=3  )
+function findVariablesNear(
+  dfg::AbstractDFG,
+  loc::Vector{<:Real},
+  regexFilter::Union{Nothing, Regex} = nothing;
+  number::Int = 3,
+)
   #
 
   xy = getPPESuggestedAll(dfg, regexFilter)
-  dist = sum( (xy[2][:,1:length(loc)] .- loc').^2, dims=2) |> vec
+  dist = sum((xy[2][:, 1:length(loc)] .- loc') .^ 2; dims = 2) |> vec
   prm = (dist |> sortperm)[1:number]
   return (xy[1][prm], sqrt.(dist[prm]))
 end
@@ -446,8 +455,6 @@ Convenience wrapper to `DFG.loadDFG!` taking only one argument, the file name, t
 """
 loadDFG(filename::AbstractString) = loadDFG!(initfg(), filename)
 
-
-
 """
     $SIGNATURES
 
@@ -456,9 +463,11 @@ Find all factors that go `from` variable to any other complete variable set with
 Notes
 - Developed for downsolve in CSM, expanding the cliqSubFg to include all frontal factors.
 """
-function findFactorsBetweenFrom(dfg::G,
-                                between::Vector{Symbol},
-                                from::Symbol ) where {G <: AbstractDFG}
+function findFactorsBetweenFrom(
+  dfg::G,
+  between::Vector{Symbol},
+  from::Symbol,
+) where {G <: AbstractDFG}
   # get all associated factors
   allfcts = ls(dfg, from)
 
@@ -478,7 +487,6 @@ function findFactorsBetweenFrom(dfg::G,
   return allfcts[mask]
 end
 
-
 """
     $SIGNATURES
 
@@ -489,9 +497,11 @@ Notes
 -----
 * `unused::Bool=true` will disregard factors already used -- i.e. disregard where `potentialused=true`
 """
-function getFactorsAmongVariablesOnly(dfg::G,
-                                      varlist::Vector{Symbol};
-                                      unused::Bool=true  ) where G <: AbstractDFG
+function getFactorsAmongVariablesOnly(
+  dfg::G,
+  varlist::Vector{Symbol};
+  unused::Bool = true,
+) where {G <: AbstractDFG}
   # collect all factors attached to variables
   prefcts = Symbol[]
   for var in varlist
@@ -521,7 +531,6 @@ function getFactorsAmongVariablesOnly(dfg::G,
 
   return usefcts
 end
-
 
 """
     $SIGNATURES
@@ -553,10 +562,12 @@ Related
 
 [`calcPPE`](@ref), getVariablePPE, (updatePPE! ?)
 """
-function setPPE!( variable::DFGVariable,
-                  solveKey::Symbol = :default,
-                  ppeType::Type{T} = MeanMaxPPE,
-                  newPPEVal::T = calcPPE(variable, ppeType=ppeType, solveKey=solveKey) ) where {T <: AbstractPointParametricEst}
+function setPPE!(
+  variable::DFGVariable,
+  solveKey::Symbol = :default,
+  ppeType::Type{T} = MeanMaxPPE,
+  newPPEVal::T = calcPPE(variable; ppeType = ppeType, solveKey = solveKey),
+) where {T <: AbstractPointParametricEst}
   #
   # vnd = getSolverData(variable, solveKey)
 
@@ -566,41 +577,41 @@ function setPPE!( variable::DFGVariable,
   return variable
 end
 
-function setPPE!( subfg::AbstractDFG,
-                  label::Symbol,
-                  solveKey::Symbol = :default,
-                  ppeType::Type{T} = MeanMaxPPE,
-                  newPPEVal::NothingUnion{T} = nothing )  where {T <: AbstractPointParametricEst}
+function setPPE!(
+  subfg::AbstractDFG,
+  label::Symbol,
+  solveKey::Symbol = :default,
+  ppeType::Type{T} = MeanMaxPPE,
+  newPPEVal::NothingUnion{T} = nothing,
+) where {T <: AbstractPointParametricEst}
   #
-  variable = getVariable(subfg,label)
+  variable = getVariable(subfg, label)
   # slight optimization to avoid double variable lookup (should be optimized out during code lowering)
-  newppe = newPPEVal !== nothing ? newPPEVal : calcPPE(variable, solveKey=solveKey, ppeType=ppeType)  
-  setPPE!(variable, solveKey, ppeType, newppe)
+  newppe = if newPPEVal !== nothing
+    newPPEVal
+  else
+    calcPPE(variable; solveKey = solveKey, ppeType = ppeType)
+  end
+  return setPPE!(variable, solveKey, ppeType, newppe)
 end
 
-
 const setVariablePosteriorEstimates! = setPPE!
-
 
 ## ============================================================================
 # Starting integration with Manifolds.jl, via ApproxManifoldProducts.jl first
 ## ============================================================================
-
-
 
 """
     $SIGNATURES
 Fetch and unpack JSON dictionary stored as a data blob.
 """
 function fetchDataJSON(dfg::AbstractDFG, varsym::Symbol, lbl::Symbol)
-  gde,rawData = getData(dfg, varsym, lbl)
+  gde, rawData = getData(dfg, varsym, lbl)
   if gde.mimeType == "application/json/octet-stream"
     JSON2.read(IOBuffer(rawData))
   else
     error("Unknown JSON Blob format $(gde.mimeType)")
   end
 end
-
-
 
 #

@@ -1,55 +1,73 @@
 
-
 ## packing converters-----------------------------------------------------------
 # heavy use of multiple dispatch for converting between packed and original data types during DB usage
 
-
-function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: AbstractPackedFactor, T <: FactorOperationalMemory}
-  return PackedFunctionNodeData(d.eliminated, d.potentialused, d.edgeIDs,
-                                convert(P, _getCCW(d).usrfnc!),
-                                d.multihypo, _getCCW(d).certainhypo, d.nullhypo, 
-                                d.solveInProgress, d.inflation)  # extract two values from ccw for storage -- ccw thrown away
+function convert(
+  ::Type{PackedFunctionNodeData{P}},
+  d::FunctionNodeData{T},
+) where {P <: AbstractPackedFactor, T <: FactorOperationalMemory}
+  return PackedFunctionNodeData(
+    d.eliminated,
+    d.potentialused,
+    d.edgeIDs,
+    convert(P, _getCCW(d).usrfnc!),
+    d.multihypo,
+    _getCCW(d).certainhypo,
+    d.nullhypo,
+    d.solveInProgress,
+    d.inflation,
+  )  # extract two values from ccw for storage -- ccw thrown away
 end
-
-
 
 ## unpack converters------------------------------------------------------------
 
 # see #1424
 function reconstFactorData(
-            dfg::AbstractDFG,
-            varOrder::AbstractVector{Symbol},
-            ::Type{<:GenericFunctionNodeData{<:CommonConvWrapper{F}}},
-            packed::GenericFunctionNodeData{<:AbstractPackedFactor}  ) where {F <: AbstractFactor}
+  dfg::AbstractDFG,
+  varOrder::AbstractVector{Symbol},
+  ::Type{<:GenericFunctionNodeData{<:CommonConvWrapper{F}}},
+  packed::GenericFunctionNodeData{<:AbstractPackedFactor},
+) where {F <: AbstractFactor}
   #
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
   usrfnc = convert(F, packed.fnc)
   multihypo, nullhypo = parseusermultihypo(packed.multihypo, packed.nullhypo)
 
   # IIF #1424
-  vars = map(f->getVariable(dfg, f), varOrder)
+  vars = map(f -> getVariable(dfg, f), varOrder)
   userCache = preambleCache(dfg, vars, usrfnc)
-  
+
   # TODO -- improve _prepCCW for hypotheses and certainhypo field recovery when deserializing
   # reconstitute from stored data
   # FIXME, add threadmodel=threadmodel
   # FIXME https://github.com/JuliaRobotics/DistributedFactorGraphs.jl/issues/590#issuecomment-776838053
   # FIXME dont know what manifolds to use in ccw
-  ccw = _prepCCW( vars, usrfnc; 
-                  multihypo, nullhypo, 
-                  certainhypo=packed.certainhypo, 
-                  inflation=packed.inflation, userCache )
+  ccw = _prepCCW(
+    vars,
+    usrfnc;
+    multihypo,
+    nullhypo,
+    certainhypo = packed.certainhypo,
+    inflation = packed.inflation,
+    userCache,
+  )
   #
-  
+
   # CommonConvWrapper{typeof(usrfnc)}
-  ret = FunctionNodeData{typeof(ccw)}(packed.eliminated, packed.potentialused, packed.edgeIDs, ccw,
-                                      packed.multihypo, packed.certainhypo, packed.nullhypo, 
-                                      packed.solveInProgress, packed.inflation )
+  ret = FunctionNodeData{typeof(ccw)}(
+    packed.eliminated,
+    packed.potentialused,
+    packed.edgeIDs,
+    ccw,
+    packed.multihypo,
+    packed.certainhypo,
+    packed.nullhypo,
+    packed.solveInProgress,
+    packed.inflation,
+  )
   #
   return ret
 end
-
-
 
 ##
 
@@ -60,41 +78,47 @@ completely rebuild the factor's CCW and user data.
 Dev Notes:
 - TODO: We should only really do this in-memory if we can by without it (review this).
 """
-function rebuildFactorMetadata!(dfg::AbstractDFG{SolverParams}, 
-                                factor::DFGFactor,
-                                neighbors = map(vId->getVariable(dfg, vId), getNeighbors(dfg, factor)) )
+function rebuildFactorMetadata!(
+  dfg::AbstractDFG{SolverParams},
+  factor::DFGFactor,
+  neighbors = map(vId -> getVariable(dfg, vId), getNeighbors(dfg, factor)),
+)
   #
   # Set up the neighbor data
 
   # Rebuilding the CCW
   fsd = getSolverData(factor)
-  fnd_new = getDefaultFactorData( dfg, 
-                                  neighbors, 
-                                  getFactorType(factor), 
-                                  multihypo=fsd.multihypo,
-                                  nullhypo=fsd.nullhypo,
-                                  # special inflation override 
-                                  inflation=fsd.inflation,
-                                  eliminated=fsd.eliminated,
-                                  potentialused=fsd.potentialused,
-                                  edgeIDs=fsd.edgeIDs,
-                                  solveInProgress=fsd.solveInProgress)
+  fnd_new = getDefaultFactorData(
+    dfg,
+    neighbors,
+    getFactorType(factor);
+    multihypo = fsd.multihypo,
+    nullhypo = fsd.nullhypo,
+    # special inflation override 
+    inflation = fsd.inflation,
+    eliminated = fsd.eliminated,
+    potentialused = fsd.potentialused,
+    edgeIDs = fsd.edgeIDs,
+    solveInProgress = fsd.solveInProgress,
+  )
   #
-  
+
   factor_ = if typeof(fnd_new) != typeof(getSolverData(factor))
     # must change the type of factor solver data FND{CCW{...}}
     # create a new factor
-    factor__ = DFGFactor(getLabel(factor),
-                        getTimestamp(factor),
-                        factor.nstime,
-                        getTags(factor),
-                        fnd_new,
-                        getSolvable(factor),
-                        Tuple(getVariableOrder(factor)))
+    factor__ = DFGFactor(
+      getLabel(factor),
+      getTimestamp(factor),
+      factor.nstime,
+      getTags(factor),
+      fnd_new,
+      getSolvable(factor),
+      Tuple(getVariableOrder(factor)),
+    )
     #
 
     # replace old factor in dfg with a new one
-    deleteFactor!(dfg, factor, suppressGetFactor=true)
+    deleteFactor!(dfg, factor; suppressGetFactor = true)
     addFactor!(dfg, factor__)
 
     factor__
@@ -117,21 +141,13 @@ function rebuildFactorMetadata!(dfg::AbstractDFG{SolverParams},
   return factor_
 end
 
-
-
 ## =================================================================
 ## TODO Can code below be deprecated?
 ## =================================================================
 
-
-function convert( ::Type{Tuple{ManifoldKernelDensity,Float64}},
-                  p::TreeBelief )
+function convert(::Type{Tuple{ManifoldKernelDensity, Float64}}, p::TreeBelief)
   # 
-  (convert(ManifoldKernelDensity, p), p.infoPerCoord)
+  return (convert(ManifoldKernelDensity, p), p.infoPerCoord)
 end
-
-
-
-
 
 #

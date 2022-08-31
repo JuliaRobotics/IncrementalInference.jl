@@ -9,43 +9,43 @@ Notes
 - Does the proper continuous (Qc) to discrete process noise (Qd) calculation -- as per Farrell, 2008.
 - Used downstream for in-time Gaussian mean and covariance propagation.
 """
-function cont2disc( F::Matrix{Float64},
-                    G::Matrix{Float64},
-                    Qc::Matrix{Float64},
-                    dt::Float64,
-                    Phik::Matrix{Float64}=Matrix{Float64}(LinearAlgebra.I, 0,0) )
-    #
-    fr,fc = size(F)
-    gr,gc = size(G)
+function cont2disc(
+  F::Matrix{Float64},
+  G::Matrix{Float64},
+  Qc::Matrix{Float64},
+  dt::Float64,
+  Phik::Matrix{Float64} = Matrix{Float64}(LinearAlgebra.I, 0, 0),
+)
+  #
+  fr, fc = size(F)
+  gr, gc = size(G)
 
-    # two bits of new memory allocated
-    M1 = zeros(fc+gc,fc+gc)
-    M2 = zeros(fr+fc,fr+fc)
+  # two bits of new memory allocated
+  M1 = zeros(fc + gc, fc + gc)
+  M2 = zeros(fr + fc, fr + fc)
 
-    M1[1:fr,1:fc] = F
-    M1[1:gr,(fc+1):end] = G #1:gr,(fc+1):(fc+gc)
+  M1[1:fr, 1:fc] = F
+  M1[1:gr, (fc + 1):end] = G #1:gr,(fc+1):(fc+gc)
 
-    # must convert to propagateLinSystem call, use trapezoidal
-    Md1 = exp(M1*dt) # heavy lifting here
-    Phi = size(Phik,1) == 0 ? Md1[1:fr,1:fc] : Phik
-    Gamma = Md1[1:fr,(fc+1):end]
+  # must convert to propagateLinSystem call, use trapezoidal
+  Md1 = exp(M1 * dt) # heavy lifting here
+  Phi = size(Phik, 1) == 0 ? Md1[1:fr, 1:fc] : Phik
+  Gamma = Md1[1:fr, (fc + 1):end]
 
-    #M2 = [[-F';(G*Qc*G')']';[zeros(9,9);F]'] # easy concat
-    GQG = (G*Qc*G')
-    gqgr, gqgc = size(GQG)
-    M2[1:fc,1:fr] = -F
-    M2[1:fr,(fc+1):end] = GQG
-    M2[(fr+1):end,(fc+1):end] = F'
+  #M2 = [[-F';(G*Qc*G')']';[zeros(9,9);F]'] # easy concat
+  GQG = (G * Qc * G')
+  gqgr, gqgc = size(GQG)
+  M2[1:fc, 1:fr] = -F
+  M2[1:fr, (fc + 1):end] = GQG
+  M2[(fr + 1):end, (fc + 1):end] = F'
 
-    Md2 = exp(M2*dt) # heavy lifting here
-    Qd = Phi * Md2[1:fr,(fc+1):end] #Qd = Phi*(Md2[1:fr,(fc+1):end])
+  Md2 = exp(M2 * dt) # heavy lifting here
+  Qd = Phi * Md2[1:fr, (fc + 1):end] #Qd = Phi*(Md2[1:fr,(fc+1):end])
 
-    # Qd = GQG*dt;
+  # Qd = GQG*dt;
 
-    return Phi, Gamma, Qd
+  return Phi, Gamma, Qd
 end
-
-
 
 """
     $SIGNATURES
@@ -56,21 +56,23 @@ Notes
 - Developed for updating a dead reckoning odometry factor.
 - Arguments are order sensitive.
 """
-function rebaseFactorVariable!( dfg::AbstractDFG,
-                                fctsym::Symbol,
-                                newvars::Vector{Symbol};
-                                rmDisconnected::Bool=true,
-                                autoinit::Bool=false  )::Nothing
+function rebaseFactorVariable!(
+  dfg::AbstractDFG,
+  fctsym::Symbol,
+  newvars::Vector{Symbol};
+  rmDisconnected::Bool = true,
+  autoinit::Bool = false,
+)::Nothing
   #
   # check that all new variables are available
-  @assert sum(map(x->exists(dfg, x), newvars)) == length(newvars)
+  @assert sum(map(x -> exists(dfg, x), newvars)) == length(newvars)
 
   # get existing factor details
   fct = getFactor(dfg, fctsym)
   fcttype = getFactorType(fct)
   mh = getMultihypoDistribution(fct)
 
-  mh = isnothing(mh) ? Float64[] : mh 
+  mh = isnothing(mh) ? Float64[] : mh
 
   # get old vars
   oldvars = getVariableOrder(fct)
@@ -79,7 +81,7 @@ function rebaseFactorVariable!( dfg::AbstractDFG,
   deleteFactor!(dfg, fctsym)
 
   # add the factor back into graph against new variables
-  addFactor!(dfg, newvars, fcttype, graphinit=autoinit, multihypo=mh)
+  addFactor!(dfg, newvars, fcttype; graphinit = autoinit, multihypo = mh)
 
   # clean up disconnected variables if requested
   if rmDisconnected
@@ -93,9 +95,6 @@ function rebaseFactorVariable!( dfg::AbstractDFG,
 
   return nothing
 end
-
-
-
 
 """
     $SIGNATURES
@@ -135,18 +134,19 @@ function accumulateFactorMeans(dfg::AbstractDFG, fctsyms::AbstractVector{Symbol}
   else
     # get first value from current variable estimate
     vars = getVariableOrder(dfg, fctsyms[nextidx])
-    nextsym = 1 < length(fctsyms) ? intersect( vars, ls(dfg, fctsyms[nextidx+1]) ) : vars[end]
+    nextsym =
+      1 < length(fctsyms) ? intersect(vars, ls(dfg, fctsyms[nextidx + 1])) : vars[end]
     currsym = 1 < length(fctsyms) ? setdiff(vars, nextsym)[1] : vars[1]
     calcPPE(dfg, currsym).suggested
   end
 
   srcsym = currsym
   # Propagate the parametric value along the factor chain
-  for fct in map(x->getFactor(dfg, x), fctsyms[nextidx:end])
+  for fct in map(x -> getFactor(dfg, x), fctsyms[nextidx:end])
     # first find direction of solve
     vars = getVariableOrder(fct)
     trgsym = setdiff(vars, [srcsym])[1]
-    val = solveFactorParameteric(dfg, fct, [srcsym=>val;], trgsym)
+    val = solveFactorParameteric(dfg, fct, [srcsym => val;], trgsym)
     srcsym = trgsym
   end
 
