@@ -18,7 +18,7 @@ function forwardConvolve(X0::AbstractVector{P}, model) where P
   fg = initfg()
 
   addVariable!(fg, :x0, ContinuousScalar)
-  initManual!(fg, :x0, X0)
+  initVariable!(fg, :x0, X0)
   addVariable!(fg, :x1, ContinuousScalar)
 
   addFactor!(fg, [:x0;:x1], model)

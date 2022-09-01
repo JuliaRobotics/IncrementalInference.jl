@@ -29,193 +29,137 @@ end
 
 
 ##==============================================================================
-## Deprecate code below before v0.29
+## Deprecate code below before v0.32
 ##==============================================================================
 
-@deprecate kde!(em::TreeBelief) manikde!(em)
 
-# DFG v0.18/19
-export FunctorInferenceType, PackedInferenceType
-
-@deprecate _evalType(pt::String) DFG.getTypeFromSerializationModule(pt)
-
-# LightDFG will be replaced by GraphsDFG
-export LightDFG
-export InMemDFGType
-const InMemDFGType = DFG.LocalDFG{SolverParams}
-
-##==============================================================================
-## Deprecate code below before v0.28
-##==============================================================================
-
-function Base.convert(::Type{String}, 
-                      obj::FluxModelsDistribution)
-  #
-  @error "Obsolete, FluxModelsSerialization should not return String for general cases of PackedSamplableBelief"
-  # convert to packed type first
-  packed = convert(PackedFluxModelsDistribution, obj)
-  # FIXME, should not return String for general cases of PackedSamplableBelief 
-  return JSON2.write(packed)
-end
-
-
-# import IncrementalInference: decodefg, loadjld
-
-function veeCategorical(val::Categorical)
-  @warn "veeCategorical is obsolete and being deprecated."
-  val.p
-end
-function veeCategorical(val::Union{Nothing, Vector{Float64}})
-  @warn "veeCategorical is obsolete and being deprecated."  
-  val
-end
-
-function packmultihypo(fnc::CommonConvWrapper{T}) where {T<:AbstractFactor}
-  @warn "packmultihypo is deprecated in favor of Vector only operations"
-  fnc.hypotheses !== nothing ? string(fnc.hypotheses) : ""
-end
-function parsemultihypostr(str::AS) where {AS <: AbstractString}
-  @warn "parsemultihypostr is deprecated in favor of Vector only operations"
-  mhcat=nothing
-  if length(str) > 0
-    mhcat = convert(SamplableBelief, str)
-  end
-  return mhcat
-end
-
-# # FIXME DEPRECATE TO BETTER JSON with ._type field STANDARD
-# function convert(::Type{<:PackedSamplableBelief}, obj::SamplableBelief)
-#   # FIXME, prep for switch
-#   packDistribution(obj)
-  
-#   # FIXME must use string, because unpacking templated e.g. PackedType{T} has problems, see DFG #668
-#   string(obj)
-# end
-
-
-# New features towards standardizing distribution serialization
-# # Assumes DFG/IIF serialized distributions have a `PackedType._type::String = "MyModule.MyPackedDistributionDensityType"`
-# # also see DFG #590
-# function convert( ::Type{String}, 
-#                   obj::PackedSamplableBelief )
-#   #
-#   _typ = DFG.getTypeFromSerializationModule(obj._type)
-# end
-
-# convert(::Union{Type{<:SamplableBelief},Type{<:HeatmapGridDensity}},
-#         obj::PackedHeatmapGridDensity) = unpackDistribution(obj)
-
-# convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedHeatmapGridDensity}}, 
-#         obj::HeatmapGridDensity ) = packDistribution(obj)
+# """
+#     $SIGNATURES
+# Get `.factormetadata` for each CPT in CCW for a specific factor in `fg`. 
+# """
+# _getFMdThread(ccw::CommonConvWrapper, 
+#               thrid::Int=Threads.threadid()) = ccw.cpt[thrid].factormetadata
+# #
+# _getFMdThread(fc::Union{GenericFunctionNodeData,DFGFactor}, 
+#               thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(fc), thrid)
+# #
+# _getFMdThread(dfg::AbstractDFG,
+#               lbl::Symbol,
+#               thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(dfg, lbl), thrid)
 # #
 
-# convert(::Union{Type{<:SamplableBelief},Type{<:LevelSetGridNormal}}, 
-#         obj::PackedLevelSetGridNormal) = unpackDistribution(obj)
 
-# convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedLevelSetGridNormal}}, 
-#         obj::LevelSetGridNormal) = packDistribution(obj)
+##==============================================================================
+## Deprecate code below before v0.31
+##==============================================================================
+
+@deprecate initManual!(w...;kw...) initVariable!(w...;kw...)
 
 
-# TODO stop-gap string storage of Distrubtion types, should be upgraded to more efficient storage
-function normalfromstring(str::AbstractString)
-  meanstr = match(r"μ=[+-]?([0-9]*[.])?[0-9]+", str).match
-  mean = split(meanstr, '=')[2]
-  sigmastr = match(r"σ=[+-]?([0-9]*[.])?[0-9]+", str).match
-  sigma = split(sigmastr, '=')[2]
-  Normal{Float64}(parse(Float64,mean), parse(Float64,sigma))
-end
+##==============================================================================
+## Old parametric kept for comparason until code stabilize
+##==============================================================================
 
-function mvnormalfromstring(str::AbstractString)
-  means = split(split(split(str, 'μ')[2],']')[1],'[')[end]
-  mean = Float64[]
-  for ms in split(means, ',')
-    push!(mean, parse(Float64, ms))
+
+
+"""
+    $SIGNATURES
+
+Batch solve a Gaussian factor graph using Optim.jl. Parameters can be passed directly to optim.
+Notes:
+  - Only :Euclid and :Circular manifolds are currently supported, own manifold are supported with `algorithmkwargs` (code may need updating though)
+"""
+function solveGraphParametric2(fg::AbstractDFG;
+                              computeCovariance::Bool = true,
+                              solvekey::Symbol=:parametric,
+                              autodiff = :forward,
+                              algorithm=Optim.BFGS,
+                              algorithmkwargs=(), # add manifold to overwrite computed one
+                              options = Optim.Options(allow_f_increases=true,
+                                                      time_limit = 100,
+                                                      # show_trace = true,
+                                                      # show_every = 1,
+                                                      ))
+
+  #Other options
+  # options = Optim.Options(time_limit = 100,
+  #                     iterations = 1000,
+  #                     show_trace = true,
+  #                     show_every = 1,
+  #                     allow_f_increases=true,
+  #                     g_tol = 1e-6,
+  #                     )
+  # Example for useing Optim's manifold functions
+  # mc_mani = IIF.MixedCircular(fg, varIds)
+  # alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
+
+
+  varIds = listVariables(fg)
+
+  flatvar = FlatVariables(fg, varIds)
+
+  for vId in varIds
+    p = getVariableSolverData(fg, vId, solvekey).val[1]
+    flatvar[vId] = getCoordinates(getVariableType(fg,vId), p)
   end
-  sigs = split(split(split(str, 'Σ')[2],']')[1],'[')[end]
-  sig = Float64[]
-  for ms in split(sigs, ';')
-    for m in split(ms, ' ')
-      length(m) > 0 ? push!(sig, parse(Float64, m)) : nothing
-    end
-  end
-  len = length(mean)
-  sigm = reshape(sig, len,len)
-  MvNormal(mean, sigm)
-end
 
-function categoricalfromstring(str::AbstractString)
-  # pstr = match(r"p=\[", str).match
-  psubs = split(str, '=')[end]
-  psubs = split(psubs, '[')[end]
-  psubsub = split(psubs, ']')[1]
-  pw = split(psubsub, ',')
-  p = parse.(Float64, pw)
-  return Categorical(p ./ sum(p))
-end
+  initValues = flatvar.X
+  # initValues .+= randn(length(initValues))*0.0001
 
+  alg = algorithm(; algorithmkwargs...)
 
+  cfd = calcFactorMahalanobisDict(fg)
+  tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(fg, cfd, flatvar, x), initValues, autodiff = autodiff)
 
-# NOTE SEE EXAMPLE IN src/Flux/FluxModelsSerialization.jl
-function _extractDistributionJson(jsonstr::AbstractString, checkJson::AbstractVector{<:AbstractString})
-  # Assume first word after split is the type
-  mjs = findfirst(r"([a-zA-Z0-9._]+)\w", checkJson[2])
-  maybemodule = split(checkJson[2][mjs], '.')
-  # get dedicated Module or revert to Main
-  packmodule = 1 < length(maybemodule) ? getfield(Main, Symbol(maybemodule[1])) : Main
-  packtype = getfield(packmodule, Symbol(maybemodule[end]))
-  packed = JSON2.read(jsonstr, packtype)
-  # call the dedicated converter for this packed type using dispatch
-  convert(SamplableBelief, packed)
-end
+  result = Optim.optimize(tdtotalCost, initValues, alg, options)
+  rv = Optim.minimizer(result)
 
-
-function _legacyUnpackDistribution(str::Union{<:PackedSamplableBelief,<:AbstractString})
-  # TODO improve use of multidispatch and packing of Distribution types
-  # extractdistribution(str::AS) where {AS <: AbstractString}
-  # TODO improve use of multidispatch and packing of Distribution types
-  # TODO use startswith
-  checkJson = split(str, r"PackedSamplableTypeJSON")
-  if str == ""
-    return nothing
-  elseif length(checkJson) == 2
-    # TODO this is the new direction for serializing (pack/unpack) of <:Samplable objects
-    # NOTE uses intermediate consolidation keyword search pattern `SamplableTypeJSON`
-    return _extractDistributionJson(str, checkJson)
-  elseif occursin(r"_type", str) && occursin(r"ManifoldKernelDensity", str)
-    return convert(ManifoldKernelDensity, str)
-  elseif startswith(str, "DiagNormal")
-    # Diags are internally squared, so only option here is to sqrt on input.
-    return mvnormalfromstring(str)
-  elseif startswith(str, "ZeroMeanDiagNormal")
-    error("ZeroMeanDiagNormal not yet supported, deferring to full JSON serialization of all Distribution objects.")
-  elseif occursin(r"FullNormal", str)
-    return mvnormalfromstring(str)
-  elseif (occursin(r"Normal", str) )# && !occursin(r"FullNormal", str))
-    return normalfromstring(str)
-  elseif occursin(r"Categorical", str)
-    return categoricalfromstring(str)
-  elseif occursin(r"DiscreteNonParametric", str)
-    return categoricalfromstring(str)
-  elseif occursin(r"KDE:", str)
-    return convert(BallTreeDensity, str)
-  elseif occursin(r"AliasingScalarSampler", str)
-    return convert(AliasingScalarSampler, str)
+  Σ = if computeCovariance
+    H = Optim.hessian!(tdtotalCost, rv)
+    pinv(H)
   else
-    error("Don't know how to extract distribution from str=$(str)")
+    N = length(initValues)
+    zeros(N,N)
   end
+
+  d = Dict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
+
+  for key in varIds
+    r = flatvar.idx[key]
+    push!(d,key=>(val=rv[r],cov=Σ[r,r]))
+  end
+
+  return d, result, flatvar.idx, Σ
 end
 
-@deprecate convert(::Type{<:SamplableBelief}, str::Union{<:PackedSamplableBelief,<:AbstractString}) _legacyUnpackDistribution(str)
+## ================================================================================================
+## Manifolds.jl Consolidation
+## TODO: Still to be completed and tested.
+## ================================================================================================
+# struct ManifoldsVector <: Optim.Manifold
+#   manis::Vector{Manifold}
+# end
 
-@deprecate HeatmapDensityRegular(w...;kw...) LevelSetGridNormal(w...;kw...)
+# Base.getindex(mv::ManifoldsVector, inds...) = getindex(mv.mani, inds...)
+# Base.setindex!(mv, X, inds...) =  setindex!(mv.mani, X, inds...)
 
-@deprecate generateCanonicalFG_Kaess(w...;kw...) generateGraph_Kaess(w...;kw...)
-@deprecate generateCanonicalFG_EuclidDistance(w...;kw...) generateGraph_EuclidDistance(w...;kw...)
-@deprecate generateCanonicalFG_lineStep(w...;kw...) generateGraph_LineStep(w...;kw...)
-@deprecate generateCanonicalFG_CaesarRing1D(w...;kw...) generateGraph_CaesarRing1D(w...;kw...)
-@deprecate generateCanonicalFG_TestSymbolic(w...;kw...) generateGraph_TestSymbolic(w...;kw...)
+# function ManifoldsVector(fg::AbstractDFG, varIds::Vector{Symbol})
+#   manis = Bool[]
+#   for k = varIds
+#     push!(manis, getVariableType(fg, k) |> getManifold)
+#   end
+#   ManifoldsVector(manis)
+# end
 
-
-
-
-#
+# function Optim.retract!(manis::ManifoldsVector, x)
+#   for (i,M) = enumerate(manis)
+#     x[i] = project(M, x[i])
+#   end
+#   return x 
+# end
+# function Optim.project_tangent!(manis::ManifoldsVector, G, x)
+#   for (i, M) = enumerate(manis)
+#     G[i] = project(M, x[i], G)
+#   end
+#   return G
+# end

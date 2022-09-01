@@ -22,7 +22,7 @@ DFG.getDimension(Z::BallTreeDensity) = Ndim(Z)
     $SIGNATURES
 Generic function that can be used in binary factors to calculate distance between points on Lie Groups with measurements.
 """
-function distancePoint2Point(M::AbstractGroupManifold, m, p, q)
+function distancePoint2Point(M::SemidirectProductGroup, m, p, q)
   q̂ = Manifolds.compose(M, p, m)
   # return log(M, q, q̂)
   return vee(M, q, log(M, q, q̂))
@@ -30,7 +30,7 @@ function distancePoint2Point(M::AbstractGroupManifold, m, p, q)
 end
 
 #::MeasurementOnTangent
-function distanceTangent2Point(M::AbstractGroupManifold, X, p, q)
+function distanceTangent2Point(M::SemidirectProductGroup, X, p, q)
   q̂ = Manifolds.compose(M, p, exp(M, identity_element(M, p), X)) #for groups
   # return log(M, q, q̂)
   return vee(M, q, log(M, q, q̂))
@@ -82,7 +82,7 @@ function getSample(cf::CalcFactor{<:ManifoldFactor{M,Z}}) where {M,Z}
   return ret
 end
 
-# function (cf::CalcFactor{<:ManifoldFactor{<:AbstractGroupManifold}})(Xc, p, q)
+# function (cf::CalcFactor{<:ManifoldFactor{<:AbstractDecoratorManifold}})(Xc, p, q)
 function (cf::CalcFactor{<:ManifoldFactor})(Xc, p, q)
   # function (cf::ManifoldFactor)(X, p, q)
   M = cf.factor.M
@@ -106,12 +106,12 @@ struct ManifoldPrior{M <: AbstractManifold, T <: SamplableBelief, P, B <: Abstra
   retract_method::AbstractRetractionMethod
 end
 
-ManifoldPrior(M::AbstractGroupManifold, p, Z) = ManifoldPrior(M, p, Z, ManifoldsBase.VeeOrthogonalBasis(), ExponentialRetraction())
+ManifoldPrior(M::AbstractDecoratorManifold, p, Z) = ManifoldPrior(M, p, Z, ManifoldsBase.VeeOrthogonalBasis(), ExponentialRetraction())
 
 DFG.getManifold(f::ManifoldPrior) = f.M
 
 #TODO
-# function ManifoldPrior(M::AbstractGroupManifold, Z::SamplableBelief)
+# function ManifoldPrior(M::AbstractDecoratorManifold, Z::SamplableBelief)
 #     # p = identity_element(M, #TOOD)
 #     # similar to getPointIdentity(M)
 #     return ManifoldPrior(M, Z, p)
@@ -185,7 +185,7 @@ function convert(::Union{Type{<:AbstractFactor}, Type{<:ManifoldPrior}},
   M = DFG.getTypeFromSerializationModule(obj.varType) |> getManifold
   
   # TODO this is too excessive
-  e0 = identity_element(M)
+  e0 = getPointIdentity(M)
   # u0 = getPointIdentity(obj.varType)
   p = AMP.makePointFromCoords(M, obj.p, e0) #, u0)
 
@@ -201,10 +201,10 @@ end
 ## Generic Manifold Partial Prior
 ## ======================================================================================
 
-function samplePointPartial(M::AbstractGroupManifold,
+function samplePointPartial(M::AbstractDecoratorManifold,
                             z::Distribution,
                             partial::Vector{Int}, 
-                            p=identity_element(M), 
+                            p=getPointIdentity(M), 
                             retraction_method::AbstractRetractionMethod=ExponentialRetraction())
   dim = manifold_dimension(M)
   Xc = zeros(dim)

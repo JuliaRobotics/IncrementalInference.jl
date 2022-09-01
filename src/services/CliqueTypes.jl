@@ -222,22 +222,6 @@ Base.show(io::IO, x::CliqueId) = print(io, x.value)
 
 getId(c::TreeClique) = c.id
 
-function Base.getproperty(x::TreeClique,f::Symbol)
-  if f == :index
-    Base.depwarn("`TreeCliqe` field `index` is deprecated, use `id`", :getproperty)
-    f = :id
-  end
-  getfield(x,f)
-end
-
-function Base.setproperty!(x::TreeClique, f::Symbol, val)
-  if f == :index
-    Base.depwarn("`TreeCliqe` field `index` is deprecated, use `id`", :setproperty!)
-    f = :id
-  end
-  return setfield!(x, f, convert(fieldtype(typeof(x), f), val))
-end
-
 TreeClique(i::Int) = TreeClique(CliqueId(i), BayesTreeNodeData(), Dict{String,Any}())
 TreeClique(id::CliqueId) = TreeClique(id, BayesTreeNodeData(), Dict{String,Any}())
 

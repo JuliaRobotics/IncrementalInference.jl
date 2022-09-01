@@ -56,7 +56,7 @@ for i in 1:3
                         problemType=ODEProblem )
   #
   addFactor!( fg, [prev;nextSym], oder, graphinit=false )
-  initManual!(fg, nextSym, [zeros(1) for _ in 1:100])
+  initVariable!(fg, nextSym, [zeros(1) for _ in 1:100])
 
   prev = nextSym
 end
@@ -73,7 +73,7 @@ meas = sampleFactor(fg, :x0x1f1, 10)
 
 pts = sampleFactor(fg, :x0f1, 100)
 
-initManual!(fg, :x0, pts)
+initVariable!(fg, :x0, pts)
 pts_ = approxConv(fg, :x0x1f1, :x1)
 @cast pts[i,j] := pts_[j][i]
 @test 0.3 < Statistics.mean(pts) < 0.4
@@ -81,7 +81,7 @@ pts_ = approxConv(fg, :x0x1f1, :x1)
 
 ## check that the reverse solve also works
 
-initManual!(fg, :x1, pts_)
+initVariable!(fg, :x1, pts_)
 pts_ = approxConv(fg, :x0x1f1, :x0)
 @cast pts[i,j] := pts_[j][i]
 
@@ -121,7 +121,7 @@ sl = DifferentialEquations.solve(oder_.forwardProblem)
 
 tfg = initfg()
 pts_ = approxConv(fg, :x0f1, :x3, setPPE=true, tfg=tfg)
-# initManual!(tfg, :x3, pts)
+# initVariable!(tfg, :x3, pts)
 
 
 ##
@@ -223,7 +223,7 @@ pts_ = approxConv(fg, :x0f1, :x0)
 @cast pts[i,j] := pts_[j][i]
 @test norm(Statistics.mean(pts, dims=2) - [1;0]) < 0.3
 
-initManual!(fg, :x0, pts_)
+initVariable!(fg, :x0, pts_)
 X0_ = deepcopy(pts)
 
 pts_ = approxConv(fg, :x0x1f1, :x1)
@@ -231,7 +231,7 @@ pts_ = approxConv(fg, :x0x1f1, :x1)
 @test norm(Statistics.mean(pts, dims=2) - [0;-0.6]) < 0.4
 
 # now check the reverse direction solving
-initManual!(fg, :x1, pts_)
+initVariable!(fg, :x1, pts_)
 pts_ = approxConv(fg, :x0x1f1, :x0)
 @cast pts[i,j] := pts_[j][i]
 
@@ -242,11 +242,11 @@ pts_ = approxConv(fg, :x0x1f1, :x0)
 
 tfg = initfg()
 for s in ls(fg)
-  initManual!(fg, s, [zeros(2) for _ in 1:100])
+  initVariable!(fg, s, [zeros(2) for _ in 1:100])
 end
 
 pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg)
-# initManual!(tfg, :x7, pts)
+# initVariable!(tfg, :x7, pts)
 
 
 
@@ -395,7 +395,7 @@ pts_ = approxConv(fg, :x0f1, :x0)
 @cast pts[i,j] := pts_[j][i]
 @test norm(Statistics.mean(pts, dims=2) - [1;0]) < 0.3
 
-initManual!(fg, :x0, pts_)
+initVariable!(fg, :x0, pts_)
 X0_ = deepcopy(pts)
 
 pts_ = approxConv(fg, :x0x1ωβf1, :x1)
@@ -403,7 +403,7 @@ pts_ = approxConv(fg, :x0x1ωβf1, :x1)
 @test norm(Statistics.mean(pts, dims=2) - [0;-0.6]) < 0.4
 
 # now check the reverse direction solving
-initManual!(fg, :x1, pts_)
+initVariable!(fg, :x1, pts_)
 
 # failing here
 pts_ = approxConv(fg, :x0x1ωβf1, :x0)
@@ -416,12 +416,12 @@ pts_ = approxConv(fg, :x0x1ωβf1, :x0)
 
 tfg = initfg()
 for s in ls(fg)
-  initManual!(fg, s, [zeros(2) for _ in 1:100])
+  initVariable!(fg, s, [zeros(2) for _ in 1:100])
 end
 
 # must initialize the parameters
 pts = approxConv(fg, :ωβf1, :ωβ)
-initManual!(fg, :ωβ, pts)
+initVariable!(fg, :ωβ, pts)
 
 # project forward
 forcepath = [:x0f1;]
@@ -497,7 +497,7 @@ end
 
 # easy test with good starting points
 pts = approxConv(fg, :ωβf1, :ωβ)
-initManual!(fg, :ωβ, pts)
+initVariable!(fg, :ωβ, pts)
 
 # make sure the other variables are in the right place
 pts_ = getBelief(fg, :x0) |> getPoints
@@ -516,7 +516,7 @@ pts_ = approxConv(fg, :x0x1ωβf1, :ωβ)
 
 # repeat with more difficult starting point
 
-initManual!(fg, :ωβ, [zeros(2) for _ in 1:100])
+initVariable!(fg, :ωβ, [zeros(2) for _ in 1:100])
 
 pts_ = approxConv(fg, :x0x1ωβf1, :ωβ)
 @cast pts[i,j] := pts_[j][i]

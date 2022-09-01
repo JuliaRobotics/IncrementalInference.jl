@@ -1,7 +1,4 @@
 
-# start moving exports here and not all in IIF.jl
-export blockCliqSiblingsParentNeedDown
-
 
 function isCliqInitialized(cliq::TreeClique)::Bool
   return getCliqueData(cliq).initialized in [INITIALIZED; UPSOLVED]

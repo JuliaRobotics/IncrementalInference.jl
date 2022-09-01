@@ -49,6 +49,7 @@ function CalcFactor(ccwl::CommonConvWrapper;
                     _allowThreads = true,
                     cache = ccwl.dummyCache )
   #
+  # FIXME using ccwl.dummyCache is not thread-safe
   CalcFactor( factor,
               metadata,
               _sampleIdx,
@@ -184,13 +185,15 @@ function calcFactorResidualTemporary( fct::AbstractRelative,
     sampleFactor(cfo, 1)[1]
   end
   
+  
   # assume a single sample point is being run
-  return if doTime
+  res = if doTime
     @time res = calcFactorResidual(_dfgfct, _measurement, pts...)
     res
   else
     calcFactorResidual(_dfgfct, _measurement, pts...)
   end
+  return res
 end
 
 
@@ -221,7 +224,7 @@ end
 function CommonConvWrapper( usrfnc::T,
                             X::AbstractVector{P},
                             zDim::Int,
-                            varValsLink::NamedTuple,
+                            varValsLink::Tuple,
                             factormetadata::FactorMetadata;
                             partial::Bool=false,
                             hypotheses::H=nothing,
@@ -301,28 +304,22 @@ function _prepParamVec( Xi::Vector{<:DFGVariable},
                         N::Int=0;
                         solveKey::Symbol=:default  ) where P
   #
-  # FIXME ON FIRE, refactor to new NamedTuple instead
-  varParamsAll = Vector{Vector{Any}}()
+  # FIXME refactor to new NamedTuple instead
+  varParamsAll = getVal.(Xi; solveKey)
+  Xi_labels = getLabel.(Xi)
+  sfidx = findfirst(==(solvefor), Xi_labels)
 
-  LEN = Int[]
-  maxlen = N # FIXME see #105
-  count = 0
-  sfidx = 0
+  sfidx = isnothing(sfidx) ? 0 : sfidx
 
-  for xi in Xi
-    vecP = getVal(xi, solveKey=solveKey)
-    push!(varParamsAll, vecP)
-    LEN = length.(varParamsAll)
-    maxlen = maximum([N; LEN])
-    count += 1
-    if xi.label == solvefor
-      sfidx = count #xi.index
-    end
-  end
+  # this line does nothing...
+  # maxlen = N # FIXME see #105
 
+  LEN = length.(varParamsAll)
+  maxlen = maximum([N; LEN])
+    
   # resample variables with too few kernels (manifolds points)
   SAMP = LEN .< maxlen
-  for i in 1:count
+  for i in 1:length(Xi_labels)
     if SAMP[i]
       Pr = getBelief(Xi[i], solveKey)
       _resizePointsVector!(varParamsAll[i], Pr, maxlen)
@@ -335,19 +332,13 @@ function _prepParamVec( Xi::Vector{<:DFGVariable},
     varParamsAll[sfidx] = deepcopy(varParamsAll[sfidx]) 
   end
 
-  # get solvefor manifolds
-  # FIXME deprecate use of (:null,)
-  mani = length(Xi)==0 || sfidx==0 ? (:null,) : getManifold(Xi[sfidx])
-
   varTypes = typeof.(getVariableType.(Xi)) # previous need to force unstable, ::Vector{DataType}
 
-  tup = tuple(varParamsAll...)
-  nms = tuple(getLabel.(Xi)...)
-  ntp = NamedTuple{nms,typeof(tup)}(tup)
 
+  ntp = tuple(varParamsAll...)
   # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
   # maxlen = N == 0 ? maxlen : N
-  return ntp, maxlen, sfidx, mani, varTypes
+  return ntp, maxlen, sfidx, varTypes
 end
 
 """
@@ -430,7 +421,7 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
   length(Xi) !== 0 ? nothing : @debug("cannot prep ccw.param list with length(Xi)==0, see DFG #590")
   
   # TODO check no Anys, see #1321
-  _varValsQuick, maxlen, sfidx, mani, varTypes = _prepParamVec( Xi, nothing, 0; solveKey ) # Nothing for init.
+  _varValsQuick, maxlen, sfidx, varTypes = _prepParamVec( Xi, nothing, 0; solveKey ) # Nothing for init.
 
   # standard factor metadata
   sflbl = 0 == length(Xi) ? :null : getLabel(Xi[end])
@@ -445,8 +436,12 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
   # get a measurement sample
   meas_single = sampleFactor(_cf, 1)[1]
   
+  elT = typeof(meas_single)
+  # @info "WHAT" elT
+  elT <: ProductRepr ? @error("ProductRepr is deprecated, use ArrayPartition instead, $T") : nothing #TODO remove in v0.32
+
   #TODO preallocate measurement?
-  measurement = Vector{typeof(meas_single)}()
+  measurement = Vector{elT}()
   
   # partialDims are sensitive to both which solvefor variable index and whether the factor is partial
   partial = hasfield(T, :partial)
@@ -462,6 +457,8 @@ function _prepCCW(Xi::Vector{<:DFGVariable},
   # variable Types
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
+
+  # @info "CCW" typeof(measurement)
 
   return CommonConvWrapper(
           usrfnc,
@@ -506,7 +503,7 @@ function _updateCCW!( F_::Type{<:AbstractRelative},
   
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
-  _varValsQuick, maxlen, sfidx, mani, varTypes = _prepParamVec( Xi, solvefor, N; solveKey)
+  _varValsQuick, maxlen, sfidx, varTypes = _prepParamVec( Xi, solvefor, N; solveKey)
   
   # NOTE should be selecting for the correct multihypothesis mode
   ccwl.params = _varValsQuick
@@ -545,7 +542,7 @@ function _updateCCW!( F_::Type{<:AbstractRelative},
   # calculate new gradients perhaps
   # J = ccwl.gradients(measurement..., pts...)
   
-  return sfidx, maxlen, mani
+  return sfidx, maxlen
 end
 
 

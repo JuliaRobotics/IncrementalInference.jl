@@ -58,8 +58,8 @@ addVariable!(fg, :b, ContinuousScalar)
 
 addFactor!(fg, [:a;:b], LinearRelative(Normal(10, 1)), graphinit=false)
 
-initManual!(fg, :a, randn(1,100))
-initManual!(fg, :b, 10 .+randn(1,100))
+initVariable!(fg, :a, randn(1,100))
+initVariable!(fg, :b, 10 .+randn(1,100))
 
 A = getBelief(fg, :a)
 B = getBelief(fg, :b)
@@ -70,12 +70,12 @@ for i in 1:10
   pts = approxConv(fg, :abf1, :b)
   B_ = manikde!(ContinuousScalar, pts)
   # plotKDE([B_; B])
-  initManual!(fg, :b, B_)
+  initVariable!(fg, :b, B_)
 
   pts = approxConv(fg, :abf1, :a)
   A_ = manikde!(ContinuousScalar, pts)
   # plotKDE([A_; A])
-  initManual!(fg, :a, A_)
+  initVariable!(fg, :a, A_)
 end
 
 A_ = getBelief(fg, :a)

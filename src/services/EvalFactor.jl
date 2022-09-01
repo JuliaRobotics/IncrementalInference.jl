@@ -134,7 +134,8 @@ function addEntropyOnManifold!( M::ManifoldsBase.AbstractManifold,
     # update tangent vector X
     get_vector!(M, X, points[idx], Xc, DefaultOrthogonalBasis())  
     #update point
-    exp!(M, points[idx], points[idx], X)
+    # exp!(M, points[idx], points[idx], X)
+    retract!(M, points[idx], points[idx], X)
     # points[idx] = exp(M, points[idx], X)
     
   end
@@ -181,13 +182,13 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
       
       addEntr = view(ccwl.params[sfidx], allelements[count])
-      # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
-      spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=ccwl.inflation)
       
       # do proposal inflation step, see #1051
       # consider duplicate convolution approximations for inflation off-zero
       # ultimately set by dfg.params.inflateCycles
       for iflc in 1:inflateCycles
+        # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
+        spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=ccwl.inflation)
         addEntropyOnManifold!(mani, addEntr, 1:getDimension(mani), spreadDist, ccwl.partialDims)
         # no calculate new proposal belief on kernels `allelements[count]`
           _checkErrorCCWNumerics(ccwl, testshuffle)
@@ -299,7 +300,7 @@ end
 
 Multiple dispatch wrapper for `<:AbstractRelativeRoots` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
 
-Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
+Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceVariable`.
 """
 function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{T},
@@ -311,6 +312,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 N::Int= 0<length(measurement) ? length(measurement) : maximum(Npts.(getBelief.(Xi, solveKey))),
                                 spreadNH::Real=3.0,
                                 inflateCycles::Int=3,
+                                nullSurplus::Real=0,
                                 dbg::Bool=false,
                                 skipSolve::Bool=false,
                                 _slack=nothing  ) where {T <: AbstractFactor}
@@ -318,9 +320,10 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
 
   # Prep computation variables
   # NOTE #1025, should FMD be built here...
-  sfidx, maxlen, mani = _updateCCW!(ccwl, Xi, solvefor, N, needFreshMeasurements=needFreshMeasurements, solveKey=solveKey)
+  sfidx, maxlen = _updateCCW!(ccwl, Xi, solvefor, N; needFreshMeasurements, solveKey)
   # check for user desired measurement values
   if 0 < length(measurement)
+    # @info "HERE" typeof(ccwl.measurement) typeof(measurement)
     ccwl.measurement = measurement
   end
 
@@ -328,7 +331,9 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   isinit = map(x->isInitialized(x), Xi)
   
   # assemble how hypotheses should be computed
-  hyporecipe = _prepareHypoRecipe!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit, ccwl.nullhypo )
+  # nullSurplus see #1517
+  runnullhypo = maximum((ccwl.nullhypo,nullSurplus))
+  hyporecipe = _prepareHypoRecipe!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit, runnullhypo )
   
   # get manifold add operations
   # TODO, make better use of dispatch, see JuliaRobotics/RoME.jl#244
@@ -372,6 +377,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 dbg::Bool=false,
                                 spreadNH::Real=3.0,
                                 inflateCycles::Int=3,
+                                nullSurplus::Real=0,
                                 skipSolve::Bool=false,
                                 _slack=nothing ) where {T <: AbstractFactor}
   #
@@ -396,7 +402,9 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # Check which variables have been initialized
   # TODO not sure why forcing to Bool vs BitVector
   isinit::Vector{Bool} = Xi .|> isInitialized .|> Bool
-  hyporecipe = _prepareHypoRecipe!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, ccwl.nullhypo )
+  # nullSurplus see #1517
+  runnullhypo = maximum((ccwl.nullhypo,nullSurplus))
+  hyporecipe = _prepareHypoRecipe!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, runnullhypo )
   
   # get solvefor manifolds, FIXME ON FIRE, upgrade to new Manifolds.jl
   mani = getManifold(Xi[sfidx])
@@ -456,7 +464,9 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
         #FIXME check if getManifold is defined otherwise fall back to getManifoldPartial, JT: I would like to standardize to getManifold
         if hasmethod(getManifold, (typeof(fnc),))
           Msrc = getManifold(fnc)
-          setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m], partialCoords, false)
+          # TODO workaround until partial manifold approach is standardized, see #1492
+          asPartial = isPartial(fnc) && manifold_dimension(Msrc) < manifold_dimension(mani)
+          setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m], partialCoords, asPartial)
         else
           Msrc, = getManifoldPartial(mani, partialCoords)
           setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m], partialCoords)
@@ -521,6 +531,7 @@ function evalFactor(dfg::AbstractDFG,
                     solveKey::Symbol=:default,
                     N::Int=length(measurement),
                     inflateCycles::Int=getSolverParams(dfg).inflateCycles,
+                    nullSurplus::Real=0,
                     dbg::Bool=false,
                     skipSolve::Bool=false,
                     _slack=nothing  )
@@ -537,10 +548,9 @@ function evalFactor(dfg::AbstractDFG,
     ccw.cpt[i].factormetadata.solvefor = solvefor
   end
 
-  return evalPotentialSpecific( Xi, ccw, solvefor, measurement, needFreshMeasurements=needFreshMeasurements,
-                                solveKey=solveKey, N=N, dbg=dbg, spreadNH=getSolverParams(dfg).spreadNH, 
-                                inflateCycles=inflateCycles, skipSolve=skipSolve,
-                                _slack=_slack  )
+  return evalPotentialSpecific( Xi, ccw, solvefor, measurement; needFreshMeasurements,
+                                solveKey, N, dbg, spreadNH=getSolverParams(dfg).spreadNH, 
+                                inflateCycles, nullSurplus, skipSolve, _slack  )
   #
 end
 

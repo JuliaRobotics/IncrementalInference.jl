@@ -69,7 +69,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #fill in belief
   #TODO createBeliefMessageParametric(csmc.cliqSubFg, csmc.cliq, solvekey=opts.solvekey)
   cliqSeparatorVarIds = getCliqSeparatorVarIds(csmc.cliq)
-  #Fil in CliqueLikelihood
+  #Fill in CliqueLikelihood
   cliqlikelihood = calculateMarginalCliqueLikelihood(vardict, Σ, varIds, cliqSeparatorVarIds)
   # @info "$(csmc.cliq.id) clique likelihood message $(cliqlikelihood)"
   beliefMsg = LikelihoodMessage(sender=(; id=csmc.cliq.id.value,
@@ -185,7 +185,6 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   logCSM(csmc, "$(csmc.cliq.id): Solve completed")
 
   return updateFromSubgraph_StateMachine
-  # return updateFromSubgraph_ParametricStateMachine
 end
 
 #

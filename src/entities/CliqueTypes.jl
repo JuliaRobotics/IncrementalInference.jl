@@ -4,7 +4,7 @@
 
 # this is a developmental type, will be standardized after conclusion of #1010
 # TODO resolve type instability
-const MsgRelativeType = Vector{NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol},DFG.AbstractRelative}}}
+const MsgRelativeType = Vector{NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol},<:DFG.AbstractRelative}}}
 
 const MsgPriorType = Dict{Symbol, MsgPrior{<:ManifoldKernelDensity}}
 

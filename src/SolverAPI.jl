@@ -278,7 +278,7 @@ function solveTree!(dfgl::AbstractDFG,
                     dotreedraw = Int[1;],
                     runtaskmonitor::Bool=true,
                     algorithm::Symbol=:default,
-                    solveKey::Symbol=:default,
+                    solveKey::Symbol=algorithm,
                     multithread::Bool=false  )
   #
   # workaround in case isolated variables occur
@@ -299,10 +299,12 @@ function solveTree!(dfgl::AbstractDFG,
 
   if opt.graphinit
     @info "Ensure variables are all initialized (graphinit)"
-    initAll!(dfgl, solveKey)
     if algorithm==:parametric
       @warn "Parametric is using default graphinit (and ignoring solveKey)"
+      initAll!(dfgl)
       initParametricFrom!(dfgl)
+    else
+      initAll!(dfgl, solveKey)
     end
   end
   # construct tree

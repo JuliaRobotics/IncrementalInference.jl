@@ -1,6 +1,6 @@
 
 # TODO, add `<:` for concrete dispatch when using StringThemSamplableBeliefs
-StringThemSamplableBeliefs = Union{<:Uniform, <:Normal, <:MvNormal, <:ZeroMeanDiagNormal, <:Categorical, <:DiscreteNonParametric, <:BallTreeDensity, <:ManifoldKernelDensity, <:AliasingScalarSampler, <:HeatmapGridDensity, <:LevelSetGridNormal}
+StringThemSamplableBeliefs = Union{<:Uniform, <:Normal, <:MvNormal, <:ZeroMeanDiagNormal, <:Categorical, <:DiscreteNonParametric, <:Rayleigh, <:BallTreeDensity, <:ManifoldKernelDensity, <:AliasingScalarSampler, <:HeatmapGridDensity, <:LevelSetGridNormal}
 
 ## TODO, TBD
 # Base.@kwdef struct PackedDiscreteNonParametric <: PackedSamplableBelief
@@ -53,6 +53,9 @@ Base.@kwdef struct PackedFullNormal <: PackedSamplableBelief
   cov::Vector{Float64} = ones(1)
 end
 
-
+Base.@kwdef struct PackedRayleigh <: PackedSamplableBelief
+  _type::String = "IncrementalInference.PackedRayleigh"
+  sigma::Float64 = 1.0
+end
 
 #

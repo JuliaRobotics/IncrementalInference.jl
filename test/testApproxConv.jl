@@ -53,7 +53,7 @@ pts_ = approxConv(fg, :x1f1, :x1)
 @test 0.5 < Statistics.std(pts) < 1.5
 
 # set a value in graph to start things off
-initManual!(fg, :x1, pts_)
+initVariable!(fg, :x1, pts_)
 
 # legacy case where relative to neighbor 
 pts_ = approxConv(fg, :x1x2f1, :x2)

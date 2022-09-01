@@ -2,18 +2,8 @@
 #  IIF methods should direclty detect extended types from user import
 # of convert in their namespace
 
-import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
-import DistributedFactorGraphs: getFactorType
 
-export incrSuffix
-export calcPPE, calcVariablePPE
-export setPPE!, setVariablePosteriorEstimates!
-export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
-export loadDFG
-export fetchDataJSON
-
-
-
+# FIXME, upgrade to AMP instead
 KDE.getPoints(dfg::AbstractDFG, lbl::Symbol) = getBelief(dfg, lbl) |> getPoints
 
 clampStringLength(st::AbstractString, len::Int=5) = st[1:minimum([len; length(st)])]
@@ -111,7 +101,6 @@ getFactorDim(w...) = getDimension(w...)
 getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid))
 
 
-
 # function _getDimensionsPartial(ccw::CommonConvWrapper)
 #   # @warn "_getDimensionsPartial not ready for use yet"
 #   ccw.partialDims
@@ -121,42 +110,27 @@ getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid)
 # _getDimensionsPartial(fg::AbstractDFG, lbl::Symbol) = _getDimensionsPartial(getFactor(fg, lbl))
 
 
-# """
-#     $SIGNATURES
-# Get `.factormetadata` for each CPT in CCW for a specific factor in `fg`. 
-# """
-# _getFMdThread(ccw::CommonConvWrapper, 
-#               thrid::Int=Threads.threadid()) = ccw.cpt[thrid].factormetadata
-# #
-# _getFMdThread(fc::Union{GenericFunctionNodeData,DFGFactor}, 
-#               thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(fc), thrid)
-# #
-# _getFMdThread(dfg::AbstractDFG,
-#               lbl::Symbol,
-#               thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(dfg, lbl), thrid)
-# #
-
-
 
 # extend convenience function (Matrix or Vector{P})
-function manikde!(variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
-                  pts::AbstractVector{P},
-                  bws::Vector{<:Real} ) where {P <: Union{<:AbstractArray,<:Number,<:ProductRepr,<:Manifolds.ArrayPartition} }
+function manikde!(
+    variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
+    pts::AbstractVector{P};
+    kw... 
+  ) where {P <: Union{<:AbstractArray,<:Number,<:ProductRepr,<:Manifolds.ArrayPartition} }
   #
   M = getManifold(variableType)
   infoPerCoord=ones(AMP.getNumberCoords(M, pts[1]))
-  return AMP.manikde!(M, pts, bw=bws, infoPerCoord=infoPerCoord)
+  return AMP.manikde!(M, pts; infoPerCoord, kw...)
 end
 
-
-function manikde!(vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
-                  pts::AbstractVector{P} ) where {P <: Union{<:AbstractArray,<:Number,<:ProductRepr,<:Manifolds.ArrayPartition} }
+function manikde!(
+    varT::InstanceType{<:InferenceVariable}, 
+    pts::AbstractVector{<:Tuple}; 
+    kw...
+  )
   #
-  M = getManifold(vartype)
-  infoPerCoord=ones(manifold_dimension(M))
-  return AMP.manikde!(M, pts, infoPerCoord=infoPerCoord)
+  manikde!(varT, (t->ArrayPartition(t...)).(pts); kw...)
 end
-
 
 
 """
@@ -326,7 +300,7 @@ Return bool on whether a certain factor has user defined multihypothesis.
 
 Related
 
-getMultihypoDistribution
+[`getMultihypoDistribution`](@ref)
 """
 isMultihypo(fct::DFGFactor) = isa(_getCCW(fct).hypotheses, Distribution)
 

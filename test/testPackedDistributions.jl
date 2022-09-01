@@ -161,6 +161,24 @@ upck = unpackDistribution(packed)
 end
 
 
+@testset "Packing of Rayleigh" begin
+##
+
+r = Rayleigh(1.1)
+r_ = packDistribution(r)
+
+@test r_ isa PackedSamplableBelief
+@test r_ isa PackedRayleigh
+
+r__ = unpackDistribution(r_)
+
+@test r__ isa Rayleigh
+@test isapprox(r.σ, r__.σ)
+
+##
+end
+
+
 ## Legacy tests
 
 # @testset "hard-coded test of PackedPrior to Prior" begin

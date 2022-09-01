@@ -22,7 +22,7 @@ dfg, _dfgfct = IIF._buildGraphByFactorAndTypes!(fct, varTypes, varPts)
 
 B = IIF._evalFactorTemporary!(EuclidDistance(Normal(10,1)), varTypes, 2, [[10;]], varPts );
 
-@test_broken B isa Vector{Vector{Float64}}
+@test B isa Vector{Vector{Float64}}
 @test isapprox( B[1], [10.0;], atol=1e-6)
 
 ##

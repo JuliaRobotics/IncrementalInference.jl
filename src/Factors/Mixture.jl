@@ -12,15 +12,19 @@ A `Mixture` object for use with either a `<: AbstractPrior` or `<: AbstractRelat
 Notes
 - The internal data representation is a `::NamedTuple`, which allows total type-stability for all component types.
 - Various construction helpers can accept a variety of inputs, including `<: AbstractArray` and `Tuple`.
+- `N` is the number of components used to make the mixture, so two bumps from two Normal components means `N=2`.
 
 DevNotes
+- FIXME swap API order so Mixture of distibutions works like a distribtion, see Caesar.jl #808
+  - Should not have field mechanics.
 - TODO on sampling see #1099 and #1094 and #1069 
+
 
 Example
 ```juila
 # prior factor
-msp = Mixture(PriorSphere1, 
-              [model=Normal(0,0.1), Uniform(-pi/1,pi/2)],
+msp = Mixture(Prior, 
+              [Normal(0,0.1), Uniform(-pi/1,pi/2)],
               [0.5;0.5])
 
 addFactor!(fg, [:head], msp, tags=[:MAGNETOMETER;])
@@ -33,10 +37,12 @@ mlr = Mixture(LinearRelative,
 addFactor!(fg, [:x0;:x1], mlr)
 ```
 """
-struct Mixture{N, F<:FunctorInferenceType, S, T<:Tuple} <: FunctorInferenceType
+struct Mixture{N, F<:AbstractFactor, S, T<:Tuple} <: AbstractFactor
+  """ factor mechanics """
   mechanics::F
   components::NamedTuple{S,T}
   diversity::Distributions.Categorical
+  """ dimension of factor, so range measurement would be dims=1 """
   dims::Int
   labels::Vector{Int}
 end
@@ -44,21 +50,21 @@ end
 
 Mixture(f::Type{F},
         z::NamedTuple{S,T}, 
-        c::Distributions.DiscreteNonParametric ) where {F<:FunctorInferenceType, S, T} = Mixture{length(z),F,S,T}(f(LinearAlgebra.I), z, c, size( rand(z[1],1), 1), zeros(Int, 0))
+        c::Distributions.DiscreteNonParametric ) where {F<:AbstractFactor, S, T} = Mixture{length(z),F,S,T}(f(LinearAlgebra.I), z, c, size( rand(z[1],1), 1), zeros(Int, 0))
 Mixture(f::F,
         z::NamedTuple{S,T}, 
-        c::Distributions.DiscreteNonParametric ) where {F<:FunctorInferenceType, S, T} = Mixture{length(z),F,S,T}(f, z, c, size( rand(z[1],1), 1), zeros(Int, 0))
+        c::Distributions.DiscreteNonParametric ) where {F<:AbstractFactor, S, T} = Mixture{length(z),F,S,T}(f, z, c, size( rand(z[1],1), 1), zeros(Int, 0))
 Mixture(f::Union{F,Type{F}},z::NamedTuple{S,T}, 
-        c::AbstractVector{<:Real}) where {F<:FunctorInferenceType,S,T} = Mixture(f, z, Categorical([c...]) )
+        c::AbstractVector{<:Real}) where {F<:AbstractFactor,S,T} = Mixture(f, z, Categorical([c...]) )
 Mixture(f::Union{F,Type{F}},
         z::NamedTuple{S,T}, 
-        c::NTuple{N,<:Real}) where {N,F<:FunctorInferenceType,S,T} = Mixture(f, z, [c...] )
+        c::NTuple{N,<:Real}) where {N,F<:AbstractFactor,S,T} = Mixture(f, z, [c...] )
 Mixture(f::Union{F,Type{F}},
         z::Tuple, 
-        c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F<:FunctorInferenceType, N} = Mixture(f,NamedTuple{_defaultNamesMixtures(length(z))}(z), c )
+        c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F<:AbstractFactor, N} = Mixture(f,NamedTuple{_defaultNamesMixtures(length(z))}(z), c )
 Mixture(f::Union{F,Type{F}},
         z::AbstractVector{<:SamplableBelief}, 
-        c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F <: FunctorInferenceType, N} = Mixture(f,(z...,), c )
+        c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F <: AbstractFactor, N} = Mixture(f,(z...,), c )
 
 
 function Base.resize!(mp::Mixture, s::Int)

@@ -136,23 +136,25 @@ sfidx=3, allelements=allidx[nhidx.==0], activehypo=(0,[3;])
 
 TODO still need to compensate multihypo case for user nullhypo addition.
 """
-function _prepareHypoRecipe!( mh::Categorical,
-                                      maxlen::Int,
-                                      sfidx::Int,
-                                      lenXi::Int,
-                                      isinit::Vector{Bool}=ones(Bool, lenXi),
-                                      nullhypo::Real=0  )
+function _prepareHypoRecipe!( 
+    mh::Categorical,
+    maxlen::Int,
+    sfidx::Int,
+    lenXi::Int,
+    isinit::Vector{Bool}=ones(Bool, lenXi),
+    nullhypo::Real=0  
+  )
   #
   allelements = []
   activehypo = []
   mhidx = Int[]
-
+  
   allidx = 1:maxlen
   allmhp, certainidx, uncertnidx = getHypothesesVectors(mh.p)
-
+  
   # select only hypotheses that can be used (ie variables have been initialized)
   @assert !(sum(isinit) == 0 && sfidx == certainidx) # cannot init from nothing for any hypothesis
-
+  
   mhh = if sum(isinit) < lenXi - 1
     @assert isLeastOneHypoAvailable(sfidx, certainidx, uncertnidx, isinit)
     @info "not all hypotheses initialized, but at least one available -- see #427"
@@ -165,7 +167,7 @@ function _prepareHypoRecipe!( mh::Categorical,
   else
     mh
   end
-
+  
   # FIXME consolidate with addEntropyOnManifolds approach in `computeAcrossHypothesis!`
   # prepend for the mhidx=0, bad-init-null-hypothesis case (if solving a fractional variable)
   mhh = if sfidx in uncertnidx
@@ -176,7 +178,7 @@ function _prepareHypoRecipe!( mh::Categorical,
   else
     mhh
   end
-
+  
   # prep mm-nultihypothesis selection values
   mhidx = rand(mhh, maxlen)  # selection of which hypothesis is correct
   pidx = 0

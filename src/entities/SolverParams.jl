@@ -32,11 +32,12 @@ Base.@kwdef mutable struct SolverParams <: DFG.AbstractParams
   multiproc::Bool = 1 < nprocs()    # should Distributed.jl tree solve compute features be used
   logpath::String = "/tmp/caesar/$(now())" # unique temporary file storage location for a solve
   graphinit::Bool = true            # default to graph-based initialization of variables
-  treeinit::Bool =false             # Experimental, init variables on the tree
+  treeinit::Bool =false             # init variables on the tree
   limittreeinit_iters::Int = 10
-  algorithms::Vector{Symbol} = [:default] # list of algorithms to run [:default] is mmisam
-  spreadNH::Float64 = 3.0           # Experimental, entropy spread adjustment used for both null hypo cases.
-  inflation::Float64 = 5.0          # Experimental, how much to disperse particles before convolution solves, #1051
+  algorithms::Vector{Symbol} = [:default, :parametric] # list of algorithms to run [:default] is mmisam
+  spreadNH::Float64 = 3.0           # entropy spread adjustment used for both null hypo cases.
+  inflation::Float64 = 5.0          # how much to disperse particles before convolution solves, #1051
+  nullSurplusAdd::Float64 = 0.3     # minimum nullhypo for relative factors sibling to multihypo factors onto a specific variable.
   inflateCycles::Int = 3            # repeat convolutions for inflation to occur
   gibbsIters::Int = 3               # number of Gibbs cycles to take per clique iteration variables
   maxincidence::Int = 500           # maximum incidence to a variable in an effort to enhance sparsity

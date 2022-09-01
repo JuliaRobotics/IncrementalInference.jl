@@ -46,7 +46,7 @@ end
 
 sampleTangent(M::AbstractManifold, fmd::FluxModelsDistribution, p=0) = rand(fmd, 1)[1]
 samplePoint(M::AbstractManifold, fmd::FluxModelsDistribution, p=0) = rand(fmd, 1)[1]
-samplePoint(M::AbstractGroupManifold, fmd::FluxModelsDistribution, p=0) = rand(fmd, 1)[1]
+samplePoint(M::AbstractDecoratorManifold, fmd::FluxModelsDistribution, p=0) = rand(fmd, 1)[1]
 
 
 FluxModelsDistribution( inDim::NTuple{ID,Int},
@@ -112,7 +112,7 @@ Related
 
 Mixture, FluxModelsDistribution
 """
-function MixtureFluxModels( F_::FunctorInferenceType,
+function MixtureFluxModels( F_::AbstractFactor,
                             nnModels::Vector{P}, 
                             inDim::NTuple{ID,Int}, 
                             data::D,
@@ -147,7 +147,7 @@ end
 
 MixtureFluxModels(::Type{F}, 
                   w...;
-                  kw...) where F <: FunctorInferenceType = MixtureFluxModels(F(LinearAlgebra.I),w...;kw...)
+                  kw...) where F <: AbstractFactor = MixtureFluxModels(F(LinearAlgebra.I),w...;kw...)
 
 
 

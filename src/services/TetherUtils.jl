@@ -1,10 +1,5 @@
 # tether utils
 
-export cont2disc
-export rebaseFactorVariable!
-export accumulateFactorMeans
-export solveFactorParameteric
-
 """
     $SIGNATURES
 
@@ -114,7 +109,9 @@ Notes
 - Returns mean value as coordinates
 
 DevNotes
-- TODO consolidate with similar `approxConv`
+- TODO consolidate with similar [`approxConvBelief`](@ref)
+- TODO compare consolidate with [`solveParametricConditionals`](@ref)
+- TODO compare consolidate with [`solveFactorParametric`](@ref)
 
 Related:
 

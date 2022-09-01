@@ -18,6 +18,24 @@ Base.convert(::Type{<:SamplableBelief}, ::Type{<:PackedManifoldKernelDensity}) =
 Base.convert(::Type{<:PackedSamplableBelief}, ::Type{<:ManifoldKernelDensity}) = PackedManifoldKernelDensity
 
 
+"""
+    $SIGNATURES
+
+Parching refers to drying/hollowing out the object to reduce its memory size to the bare minimum.
+
+Notes
+- Likely to be used in combination with [stashing](@ref section_stash_unstash) where large data blobs are independently stored.
+- For example, a point cloud stored as a MKD is very large and likely to duplicate the already stored point cloud object values,
+  - When storing the MKD object, it might make sense to parch the MKD first and just persisting the context of the data.  
+  - Reconstituting a full MKD object would then require the inverse, where the parched shell is sized and filled from a separate large data blob.
+"""
+function parchDistribution(mkd::ManifoldKernelDensity)
+  pts = getPoints(mkd)
+  bw = getBW(mkd)[:,1]
+  manikde!(mkd.manifold, pts[1:1], mkd._u0; bw, partial=mkd._partial, infoPerCoord=mkd.infoPerCoord)
+end
+
+
 # Data converters for MKD
 function packDistribution( mkd::ManifoldKernelDensity )
   #
@@ -39,10 +57,10 @@ function unpackDistribution(dtr::PackedManifoldKernelDensity)
   # find InferenceVariable type from string (anything Manifolds.jl?)
   M = DFG.getTypeFromSerializationModule(dtr.varType) |> getManifold
   vecP = [AMP.makePointFromCoords(M, pt) for pt in dtr.pts]
-
-  partial = length(dtr.partial) == manifold_dimension(M) ? nothing : dtr.partial
+  bw = length(dtr.bw) === 0 ? nothing : dtr.bw
+  partial = length(dtr.partial) == manifold_dimension(M) || length(dtr.partial) === 0 ? nothing : dtr.partial
   
-  return manikde!( M, vecP; bw=dtr.bw, partial, infoPerCoord=dtr.infoPerCoord )
+  return manikde!( M, vecP; bw, partial, infoPerCoord=dtr.infoPerCoord )
 end
 
 

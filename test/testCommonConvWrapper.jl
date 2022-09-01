@@ -107,7 +107,7 @@ odo = Pose1Pose1Test(Normal(100.0,1.0))
 
 fg = initfg()
 X0 = addVariable!(fg, :x0, ContinuousEuclid{1})
-initManual!(fg, :x0, [zeros(1) for _ in 1:100])
+initVariable!(fg, :x0, [zeros(1) for _ in 1:100])
 X1 = addVariable!(fg, :x1, ContinuousEuclid{1})
 addFactor!(fg, [:x0;:x1], odo, graphinit=false)
 
@@ -129,7 +129,7 @@ ptr_ = ccw.params[1]
 
 println("and in the reverse direction")
 
-initManual!(fg, :x1, [100*ones(1) for _ in 1:100])
+initVariable!(fg, :x1, [100*ones(1) for _ in 1:100])
 
 pts = approxConv(fg, getFactor(fg, :x0x1f1), :x0)
 
@@ -154,7 +154,7 @@ end
 
 N=100
 p1 = [randn(1) for _ in 1:N]
-d1 = manikde!(Euclidean(1), p1)
+d1 = manikde!(TranslationGroup(1), p1)
 p2 = [randn(1) for _ in 1:N]
 t = Vector{Vector{Vector{Float64}}}()
 push!(t,p1)

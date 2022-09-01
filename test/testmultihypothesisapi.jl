@@ -75,9 +75,9 @@ f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=[1.0;0.5;0.5])
 @test sum(abs.(IIF._getCCW(f3).hypotheses.p[2:3] .- 0.5)) < 0.1
 
 
-initManual!(fg, :x2, [1*ones(1) for _ in 1:N])
-initManual!(fg, :x3, [2*ones(1) for _ in 1:N])
-initManual!(fg, :x4, [3*ones(1) for _ in 1:N])
+initVariable!(fg, :x2, [1*ones(1) for _ in 1:N])
+initVariable!(fg, :x3, [2*ones(1) for _ in 1:N])
+initVariable!(fg, :x4, [3*ones(1) for _ in 1:N])
 
 ##
 end
@@ -216,10 +216,10 @@ f3 = addFactor!(fg, [:x2;:x3;:x4;:x5], ppMH, multihypo=[1.0,0.333,0.333,0.334])
 @test sum(abs.(IIF._getCCW(f3).hypotheses.p[4] .- 0.334)) < 0.001
 
 
-initManual!(fg, :x2 ,[1*ones(1) for _ in 1:N])
-initManual!(fg, :x3 ,[2*ones(1) for _ in 1:N])
-initManual!(fg, :x4 ,[3*ones(1) for _ in 1:N])
-initManual!(fg, :x5 ,[4*ones(1) for _ in 1:N])
+initVariable!(fg, :x2 ,[1*ones(1) for _ in 1:N])
+initVariable!(fg, :x3 ,[2*ones(1) for _ in 1:N])
+initVariable!(fg, :x4 ,[3*ones(1) for _ in 1:N])
+initVariable!(fg, :x5 ,[4*ones(1) for _ in 1:N])
 
 
 # solve for certain idx

@@ -1,8 +1,15 @@
 using Test
 
+TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
+
 # temporarily moved to start (for debugging)
 #...
+if TEST_GROUP in ["all", "tmp_debug_group"]
+include("testMultiHypo3Door.jl")
+include("priorusetest.jl")
+end
 
+if TEST_GROUP in ["all", "basic_functional_group"]
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
 include("testSpecialEuclidean2Mani.jl")
@@ -20,6 +27,8 @@ include("saveconvertertypes.jl")
 include("testgraphpackingconverters.jl")
 include("testSaveLoadDFG.jl")
 
+include("testPackingMixtures.jl")
+
 include("testJunctionTreeConstruction.jl")
 include("testBayesTreeiSAM2Example.jl")
 include("testTreeFunctions.jl")
@@ -36,6 +45,7 @@ include("testFactorMetadata.jl")
 
 include("testApproxConv.jl")
 include("testBasicForwardConvolve.jl")
+include("testUseMsgLikelihoods.jl")
 include("testDefaultDeconv.jl")
 
 include("testPartialFactors.jl")
@@ -58,18 +68,20 @@ include("testExpXstroke.jl")
 include("testBasicRecycling.jl")
 include("testSkipUpDown.jl")
 include("testlocalconstraintexamples.jl")
+include("testManualInit.jl")
 include("testBasicTreeInit.jl")
 include("testSolveOrphanedFG.jl")
 include("testSolveSetPPE.jl")
 include("testSolveKey.jl")
 include("testEuclidDistance.jl")
-include("priorusetest.jl")
+end
+
+if TEST_GROUP in ["all", "test_cases_group"]
 include("testnullhypothesis.jl") 
 include("testVariousNSolveSize.jl")
 include("testExplicitMultihypo.jl")
 include("TestCSMMultihypo.jl")
 include("testMultihypoFMD.jl")
-include("testMultiHypo2Door.jl")
 include("testMultimodal1D.jl")
 include("testMultihypoAndChain.jl")
 include("testMultithreaded.jl")
@@ -91,7 +103,7 @@ end
 
 include("testMultiprocess.jl")
 include("testDeadReckoningTether.jl")
-
+end
 
 
 #

@@ -125,7 +125,7 @@ export
   deleteMsgFactors!,
   factorCanInitFromOtherVars,
   doautoinit!,
-  initManual!,
+  initVariable!,
   initVariableManual!,
   resetInitialValues!,
   resetInitValues!,
@@ -232,8 +232,9 @@ export
   rand,
   fastnorm,
 
-  # new wrapper (experimental)
+  # Factor operational memory
   CommonConvWrapper,
+  CalcFactor,
   
   getCliqVarInitOrderUp,
   getCliqNumAssocFactorsPerVar,
@@ -254,10 +255,8 @@ export
   getCliqSeparatorVarIds,
   getCliqAllVarIds,
   getCliqVarIdsAll,
-  getCliqAllVarSyms,
   getCliqVarIdsPriors,
   getCliqVarSingletons,
-  getCliqAllFactIds,
   getCliqFactorIdsAll,
   getCliqFactors,
   areCliqVariablesAllMarginalized,
@@ -294,8 +293,21 @@ export
   setVariableRefence!,
   reshapeVec2Mat
 
-export ContinuousScalar
-export ContinuousEuclid
+
+export incrSuffix
+
+export calcPPE, calcVariablePPE
+export setPPE!, setVariablePosteriorEstimates!
+export getPPEDict
+export getPPESuggested, getPPEMean, getPPEMax
+export getPPESuggestedAll
+export loadDFG
+export findVariablesNear, defaultFixedLagOnTree!
+export fetchDataJSON
+
+
+export Position, Position1, Position2, Position3, Position4
+export ContinuousScalar, ContinuousEuclid # TODO figure out if this will be deprecated, Caesar.jl #807
 export Circular, Circle
 
 # serializing distributions
@@ -305,6 +317,7 @@ export PackedUniform, PackedNormal
 export PackedZeroMeanDiagNormal, PackedZeroMeanFullNormal, PackedDiagNormal, PackedFullNormal
 export PackedManifoldKernelDensity
 export PackedAliasingScalarSampler, PackedHeatmapGridDensity, PackedLevelSetGridNormal
+export PackedRayleigh
 
 export Mixture, PackedMixture
 
@@ -313,3 +326,45 @@ export samplePoint
 
 export  buildCliqSubgraph_StateMachine
 
+export
+  getCliqueStatus,
+  setCliqueStatus!
+
+export
+  stackCliqUpMsgsByVariable,
+  getCliqDownMsgsAfterDownSolve
+
+export resetCliqSolve!
+export addLikelihoodsDifferential!
+export addLikelihoodsDifferentialCHILD!
+
+export selectFactorType
+export approxDeconv, deconvSolveKey
+export approxDeconvBelief
+
+export cont2disc
+export rebaseFactorVariable!
+export accumulateFactorMeans
+export solveFactorParameteric
+
+
+export repeatCSMStep!
+export attachCSM!
+export filterHistAllToArray, cliqHistFilterTransitions, printCliqSummary
+export printHistoryLine, printHistoryLane, printCliqHistorySummary
+export printCSMHistoryLogical, printCSMHistorySequential
+
+export MetaBayesTree, BayesTree
+export CSMHistoryTuple
+
+export getVariableOrder, calcCliquesRecycled
+export getCliquePotentials
+export getClique, getCliques, getCliqueIds, getCliqueData
+export hasClique
+export setCliqueDrawColor!, getCliqueDrawColor
+export appendSeparatorToClique!
+
+export buildTreeFromOrdering! # TODO make internal and deprecate external use to only `buildTreeReset!``
+
+
+#

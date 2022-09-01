@@ -41,15 +41,25 @@ addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1_a, ContinuousScalar)
 addVariable!(fg, :x1_b, ContinuousScalar)
 
-addFactor!(fg, [:x0], Prior(Normal()))
+f0 = addFactor!(fg, [:x0], Prior(Normal()))
 
 # create the object and add it to the graph
 mf = MyFactor( Normal(10,1) ) 
 
+## test #424
+
+@test_throws AssertionError addFactor!(fg, [:x0;:x1_a;:x1_b], mf, multihypo=[1/2;1/2])
+
 ##
 
+
 # this sampling might error
-addFactor!(fg, [:x0;:x1_a;:x1_b], mf, multihypo=[1;1/2;1/2])
+f1 = addFactor!(fg, [:x0;:x1_a;:x1_b], mf, multihypo=[1;1/2;1/2])
+
+##
+
+@test !isMultihypo(f0)
+@test isMultihypo(f1)
 
 ##
 

@@ -1,11 +1,3 @@
-export getVariableOrder, calcCliquesRecycled
-export getCliquePotentials
-export getClique, getCliques, getCliqueIds, getCliqueData
-export hasClique
-export setCliqueDrawColor!, getCliqueDrawColor
-export appendSeparatorToClique!
-
-export buildTreeFromOrdering! # TODO make internal and deprecate external use to only `buildTreeReset!``
 
 """
     $SIGNATURES
@@ -760,10 +752,8 @@ DevNotes
 """
 function prepBatchTreeOLD!( dfg::AbstractDFG;
                             eliminationOrder::Union{Nothing, Vector{Symbol}}=nothing,
-                            variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                             eliminationConstraints::Vector{Symbol}=Symbol[],
-                            variableConstraints::Union{Nothing, Vector{Symbol}}=nothing,
-                            ordering::Symbol= 0==length(variableConstraints) ? :qr : :ccolamd,
+                            ordering::Symbol= 0==length(eliminationConstraints) ? :qr : :ccolamd,
                             drawpdf::Bool=false,
                             show::Bool=false,
                             filepath::String="/tmp/caesar/random/bt.dot",
@@ -771,17 +761,6 @@ function prepBatchTreeOLD!( dfg::AbstractDFG;
                             imgs::Bool=false )
                             # drawbayesnet::Bool=false )
   #
-
-  # deprecations on keywords
-  if variableOrder !== nothing
-    @warn "variableOrder keyword is deprecated, use buildTreeReset!(dfg, vo; kwargs...) instead."
-    eliminationOrder = variableOrder
-  end
-  if variableConstraints !== nothing
-    @warn "variableConstraints keyword is deprecated, use eliminationConstraints instead."
-    eliminationConstraints = variableConstraints
-  end
-
   p = eliminationOrder !== nothing ? eliminationOrder : getEliminationOrder(dfg, ordering=ordering, constraints=eliminationConstraints)
 
   # for debuggin , its useful to have the elimination ordering
@@ -854,7 +833,6 @@ buildTreeFromOrdering!,
 """
 function buildTreeReset!( dfg::AbstractDFG,
                           eliminationOrder::Union{Nothing, <:AbstractVector{Symbol}}=nothing;
-                          variableOrder::Union{Nothing, <:AbstractVector{Symbol}}=nothing,
                           ordering::Symbol=:qr,
                           drawpdf::Bool=false,
                           show::Bool=false,
@@ -863,19 +841,10 @@ function buildTreeReset!( dfg::AbstractDFG,
                           imgs::Bool=false,
                           ensureSolvable::Bool=true,
                           eliminationConstraints::AbstractVector{Symbol}=Symbol[],
-                          variableConstraints=nothing  )
+                        )
   #
   if ensureSolvable
     ensureSolvable!(dfg)
-  end
-  # depcrecation
-  if variableOrder !== nothing
-    @warn "variableOrder keyword is deprecated, use buildTreeReset!(dfg, vo; kwargs...) instead."
-    eliminationOrder = variableOrder
-  end
-  if variableConstraints !== nothing
-    @warn "variableConstraints keyword is deprecated, use eliminationConstraints instead."
-    eliminationConstraints = variableConstraints
   end
 
   resetFactorGraphNewTree!(dfg);
@@ -1092,7 +1061,7 @@ Get all `cliq` variable ids`::Symbol`.
 
 Related
 
-getCliqVarIdsAll, getCliqAllFactIds, getCliqVarsWithFrontalNeighbors
+getCliqVarIdsAll, getCliqFactorIdsAll, getCliqVarsWithFrontalNeighbors
 """
 function getCliqAllVarIds(cliq::TreeClique)::Vector{Symbol}
   frtl = getCliqFrontalVarIds(cliq)
@@ -1138,7 +1107,7 @@ Get all `cliq` variable ids`::Symbol`.
 
 Related
 
-getCliqAllVarIds, getCliqAllFactIds
+getCliqAllVarIds, getCliqFactorIdsAll
 """
 getCliqVarIdsAll(cliq::TreeClique)::Vector{Symbol} = getCliqAllVarIds(cliq::TreeClique)
 
@@ -1158,40 +1127,6 @@ getCliqFactorIdsAll(cliq::TreeClique) = getCliqFactorIdsAll(getCliqueData(cliq))
 getCliqFactorIdsAll(treel::AbstractBayesTree, frtl::Symbol) = getCliqFactorIdsAll(getClique(treel, frtl))
 
 const getCliqFactors = getCliqFactorIdsAll
-
-"""
-    $SIGNATURES
-
-Get all `cliq` factor ids`::Symbol`.
-
-DEPRECATED, use getCliqFactorIdsAll instead.
-
-Related
-
-getCliqVarIdsAll
-"""
-function getCliqAllFactIds(cliqd::BayesTreeNodeData)
-    @warn "getCliqAllFactIds deprecated, use getCliqFactorIdsAll instead."
-    return getCliqFactorIdsAll(cliqd)
-end
-
-function getCliqAllFactIds(cliq::TreeClique)
-    @warn "getCliqAllFactIds deprecated, use getCliqFactorIdsAll instead."
-    return getCliqFactorIdsAll(getCliqueData(cliq))
-end
-
-
-"""
-    $SIGNATURES
-
-Get all `cliq` variable labels as `::Symbol`.
-"""
-function getCliqAllVarSyms(dfg::G, cliq::TreeClique)::Vector{Symbol} where G <: AbstractDFG
-  # Symbol[getSym(dfg, varid) for varid in getCliqAllVarIds(cliq)]
-  @warn "deprecated getCliqAllVarSyms, use getCliqAllVarIds instead."
-  getCliqAllVarIds(cliq) # not doing all frontals
-end
-
 
 """
     $SIGNATURES

@@ -471,31 +471,15 @@ function addVariable!(dfg::AbstractDFG,
                       N::Int=getSolverParams(dfg).N,
                       solvable::Int=1,
                       timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
-                      nanosecondtime::Union{Nanosecond,Int64,Nothing}=nothing,
+                      nanosecondtime::Union{Nanosecond,Int64,Nothing}=Nanosecond(0),
                       dontmargin::Bool=false,
-                      labels::Union{Vector{Symbol},Nothing}=nothing,
                       tags::Vector{Symbol}=Symbol[],
                       smalldata=Dict{Symbol, DFG.SmallDataTypes}(),
                       checkduplicates::Bool=true,
                       initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms ) where T<:InferenceVariable
   #
   varType = _variableType(varTypeU)
-  # TODO Remove deprecation in v0.16 
-  if :ut in fieldnames(T)	
-    Base.depwarn("Field `ut` (microseconds) for variable type ($T) has been deprecated please use DFGVariable.nstime, kwarg: nanosecondtime", :addVariable!)	
-    if isnothing(nanosecondtime)
-      varType.ut == -(2^(Sys.WORD_SIZE-1)-1) && error("please define a time for type $(T), use FGVariable.nstime, kwarg: nanosecondtime")
-      nanosecondtime = Nanosecond(varType.ut*1000)	
-    else 	
-      @warn "Nanosecond time has been specified as $nanosecondtime, ignoring `ut` field value: $(varType.ut)."	
-    end	
-  elseif isnothing(nanosecondtime)	
-    nanosecondtime = Nanosecond(0)	
-  end
 
-  # deprecate in v0.16
-  labels isa Vector ? (union!(tags, labels); @warn("labels is deprecated, use tags instead")) : nothing
-  
   union!(tags, [:VARIABLE])
   v = DFGVariable(label, varType; tags=Set(tags), smallData=smalldata, solvable=solvable, timestamp=timestamp, nstime=Nanosecond(nanosecondtime))
 
@@ -596,7 +580,7 @@ function getDefaultFactorData(dfg::AbstractDFG,
                               edgeIDs = Int[],
                               solveInProgress = 0,
                               inflation::Real=getSolverParams(dfg).inflation,
-                              _blockRecursion::Bool=false ) where T <: FunctorInferenceType
+                              _blockRecursion::Bool=false ) where T <: AbstractFactor
   #
 
   # prepare multihypo particulars
@@ -657,7 +641,7 @@ end
 """
     $(SIGNATURES)
 
-Add factor with user defined type <: FunctorInferenceType to the factor graph
+Add factor with user defined type `<:AbstractFactor`` to the factor graph
 object. Define whether the automatic initialization of variables should be
 performed.  Use order sensitive `multihypo` keyword argument to define if any
 variables are related to data association uncertainty.
@@ -681,21 +665,24 @@ function DFG.addFactor!(dfg::AbstractDFG,
                         _blockRecursion::Bool=!getSolverParams(dfg).attemptGradients  )
   #
 
+  @assert (suppressChecks || length(multihypo) === 0 || length(multihypo) == length(Xi)) "When using multihypo=[...], the number of variables and multihypo probabilies must match.  See documentation on how to include fractional data-association uncertainty."
+
   varOrderLabels = Symbol[v.label for v=Xi]
   solverData = getDefaultFactorData(dfg, 
                                     Xi, 
-                                    deepcopy(usrfnc), 
-                                    multihypo=multihypo, 
-                                    nullhypo=nullhypo, 
-                                    threadmodel=threadmodel,
-                                    inflation=inflation,
-                                    _blockRecursion=_blockRecursion)
+                                    deepcopy(usrfnc);
+                                    multihypo, 
+                                    nullhypo, 
+                                    threadmodel,
+                                    inflation,
+                                    _blockRecursion)
+  #
   newFactor = DFGFactor(Symbol(namestring),
                         varOrderLabels,
                         solverData;
                         tags=Set(union(tags, [:FACTOR])),
-                        solvable=solvable,
-                        timestamp=timestamp)
+                        solvable,
+                        timestamp)
   #
 
   success = addFactor!(dfg, newFactor)

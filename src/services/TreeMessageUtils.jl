@@ -1,10 +1,5 @@
 # init utils for tree based inference
 
-export resetCliqSolve!
-export addLikelihoodsDifferential!
-export addLikelihoodsDifferentialCHILD!
-
-
 ## =============================================================================
 # short preamble funcions
 ## =============================================================================
@@ -94,16 +89,16 @@ end
 
 function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
   kdePr = manikde!(getManifold(belief_.variableType), belief_.val, bw=belief_.bw[:,1])
-  MsgPrior(kdePr, belief_.infoPerCoord)
+  MsgPrior(kdePr, belief_.infoPerCoord, getManifold(belief_))
 end
 
 function generateMsgPrior(belief_::TreeBelief, ::ParametricMessage)
-  msgPrior = if length(belief_.val[1]) == 1 && length(belief_.val) == 1
-    MsgPrior(Normal(belief_.val[1][1], sqrt(belief_.bw[1])), belief_.infoPerCoord)
-  elseif length(belief_.val) == 1 && 1 != length(belief_.val[1])
+  msgPrior = if length(belief_.val[1]) == 1 #FIXME ? && length(belief_.val) == 1
+    MsgPrior(Normal(belief_.val[1][1], sqrt(belief_.bw[1])), belief_.infoPerCoord, getManifold(belief_))
+  elseif length(belief_.val[1]) > 1 #FIXME ? length(belief_.val) == 1
     mvnorm = createMvNormal(belief_.val[1], belief_.bw)
     mvnorm !== nothing ? nothing : (return DFGFactor[])
-    MsgPrior(mvnorm, belief_.infoPerCoord)
+    MsgPrior(mvnorm, belief_.infoPerCoord, getManifold(belief_))
   end
   return msgPrior
 end
@@ -226,7 +221,7 @@ function addLikelihoodsDifferential!( msgs::LikelihoodMessage,
   #     addVariable!(tfg, label, val.variableType)
   #     @debug "New variable added to subfg" _group=:check_addLHDiff #TODO JT remove debug. 
   #   end
-  #   initManual!(tfg, label, manikde!(val))
+  #   initVariable!(tfg, label, manikde!(val))
   # end
 
   # # list all variables in order of dimension size
@@ -275,7 +270,7 @@ function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
       addVariable!(tfg, label, getVariableType(cliqSubFG, label))
       @debug "New variable added to subfg" _group=:check_addLHDiff #TODO JT remove debug. 
     end
-    initManual!(tfg, label, getBelief(cliqSubFG, label, solveKey), solveKey)
+    initVariable!(tfg, label, getBelief(cliqSubFG, label, solveKey), solveKey)
   end
 
   # list all variables in order of dimension size
@@ -300,7 +295,7 @@ function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
           # calculate the general deconvolution between variables
           pred_X, = approxDeconv(tfg, afc.label, solveKey)  # solveFactorMeasurements
           M = getManifold(_sft)
-          e0 = identity_element(M)
+          e0 = getPointIdentity(M)
           pts = exp.(Ref(M), Ref(e0), pred_X)
           newBel = manikde!(sft, pts)
           # replace dummy factor with real deconv factor using manikde approx belief measurement

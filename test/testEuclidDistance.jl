@@ -112,7 +112,7 @@ N=100
 points = [[100.0;0.0],[0.0;100.0]]
 fg = IIF.generateGraph_EuclidDistance(points)
 
-# initManual!(fg, :l1, [1000.0.*randn(2) for _ in 1:100])
+# initVariable!(fg, :l1, [1000.0.*randn(2) for _ in 1:100])
 
 # check regular full solution produces two modes
 
@@ -136,6 +136,33 @@ end
 # at least one of the 3 solves should produce the right result
 
 
+##
+#test one clique as in RoME
+N=100
+points = [[100.0;0.0],[0.0;100.0]]
+fg = IIF.generateGraph_EuclidDistance(points)
+fg.solverParams.graphinit = false
+
+M = getManifold(fg, :l1)
+TP = false
+for i in 1:3
+  # global TP, N
+  tree = solveTree!(fg);
+
+  L1 = getBelief(fg, :l1) |> getPoints
+
+  # check that two modes exist
+  am1 = sum(isapprox.(Ref(M), L1, Ref([0.0,0.0]), atol=10))
+  am2 = sum(isapprox.(Ref(M), L1, Ref([100.0,100.0]), atol=10))
+
+  TP  = am1 > N*0.03
+  TP &= am2 > N*0.03
+  if TP 
+    @info "test passed in $i"
+    break
+  end
+end
+@test TP
 ##
 
 end
@@ -167,11 +194,11 @@ N = size(pts, 2)
 # IIF._getCCW(fg, :x1l1f1).inflation = 150.0 # few iters gets there
 IIF._getCCW(fg, :x1l1f1).inflation = 200.0 # One almost, second good
 pts = approxConv(fg, :x1l1f1, :l1)
-initManual!(fg, :l1, pts)
+initVariable!(fg, :l1, pts)
 # plotKDE(fg, ls(fg))
 
 pts_ = approxConv(fg, :x1l1f1, :l1)
-initManual!(fg, :l1, pts_)
+initVariable!(fg, :l1, pts_)
 # plotKDE(fg, ls(fg))
 
 @cast pts[i,j] := pts_[j][i]
@@ -206,14 +233,14 @@ points = [[0.0;100.0],[100.0;0.0]]
 fg = IIF.generateGraph_EuclidDistance(points)
 getSolverParams(fg).inflation=3.0
 
-initManual!(fg, :x1, [rand(MvNormal([100.,0], [1.,1])) for _ in 1:N])
-initManual!(fg, :x2, [rand(MvNormal([0.,100], [1.,1])) for _ in 1:N])
+initVariable!(fg, :x1, [rand(MvNormal([100.,0], [1.,1])) for _ in 1:N])
+initVariable!(fg, :x2, [rand(MvNormal([0.,100], [1.,1])) for _ in 1:N])
 
 # init = MixtureModel([MvNormal([100.,100], [10.,10]),
 #                        MvNormal([0.,0], [10.,10])],
 #                        [0.5, 0.5])
 init = MvNormal([25.,25], [1.,1])
-initManual!(fg, :l1, [rand(init) for _ in 1:N])
+initVariable!(fg, :l1, [rand(init) for _ in 1:N])
 
 # plotKDE(fg, ls(fg))
 
@@ -275,6 +302,6 @@ end
 
 ##
 
-# initManual!(sfg, :l1, pts)
+# initVariable!(sfg, :l1, pts)
 # pts = approxConv(sfg, :x2l1f1, :l1)
 # plotKDE(manikde!(ContinuousEuclid{2}, pts))

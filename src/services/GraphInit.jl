@@ -14,7 +14,7 @@ Development Notes
 
 Related
 
-doautoinit!, initManual!, isInitialized, isMultihypo
+doautoinit!, initVariable!, isInitialized, isMultihypo
 """
 function factorCanInitFromOtherVars(dfg::AbstractDFG,
                                     fct::Symbol,
@@ -123,11 +123,11 @@ function doautoinit!( dfg::AbstractDFG,
         end
         # FIXME ensure a product of only partial densities and returned pts are put to proper dimensions
         fcts = map(fx->getFactor(dfg,fx), useinitfct)
-        bel,ipc = propagateBelief(dfg, getVariable(dfg,vsym), fcts, solveKey=solveKey, logger=logger, N=N)
+        bel,ipc = propagateBelief(dfg, getVariable(dfg,vsym), fcts; solveKey, logger, N)
         # while the propagate step might allow large point counts, the graph should stay restricted to N
         bel_ = Npts(bel) == getSolverParams(dfg).N ? bel : resample(bel, getSolverParams(dfg).N)
         # @info "MANIFOLD IS" bel.manifold isPartial(bel) string(bel._partial) string(getPoints(bel, false)[1]) 
-        setValKDE!(xi, bel_, true, ipc, solveKey=solveKey) # getPoints(bel, false)
+        setValKDE!(xi, bel_, true, ipc; solveKey) # getPoints(bel, false)
         # Update the estimates (longer DFG function used so cloud is also updated)
         setVariablePosteriorEstimates!(dfg, xi.label, solveKey)
         # Update the data in the event that it's not local
@@ -199,25 +199,25 @@ addVariable!(fg, :somepoint3, ContinuousEuclid{2})
 
 # data is organized as (row,col) == (dimension, samples)
 pts = randn(2,100)
-initManual!(fg, :somepoint3, pts)
+initVariable!(fg, :somepoint3, pts)
 
 # manifold management should be done automatically.
 # note upgrades are coming to consolidate with Manifolds.jl, see RoME #244
 
-## it is also possible to initManual! by using existing factors, e.g.
-initManual!(fg, :x3, [:x2x3f1])
+## it is also possible to initVariable! by using existing factors, e.g.
+initVariable!(fg, :x3, [:x2x3f1])
 ```
 
 DevNotes
 - TODO better document graphinit and treeinit.
 """
-function initManual!( variable::DFGVariable, 
+function initVariable!( variable::DFGVariable, 
                       ptsArr::ManifoldKernelDensity,
                       solveKey::Symbol=:default;
                       dontmargin::Bool=false,
                       N::Int=length(getPoints(ptsArr)) )
   #
-  @debug "initManual! $(getLabel(variable))"
+  @debug "initVariable! $(getLabel(variable))"
   if !(solveKey in listSolveKeys(variable))
     @debug "$(getLabel(variable)) needs new VND solveKey=$(solveKey)"
     varType = getVariableType(variable)
@@ -227,7 +227,7 @@ function initManual!( variable::DFGVariable,
   setValKDE!(variable, ptsArr, true, solveKey=solveKey)
   return nothing
 end
-function initManual!( dfg::AbstractDFG, 
+function initVariable!( dfg::AbstractDFG, 
                       label::Symbol, 
                       belief::ManifoldKernelDensity,
                       solveKey::Symbol=:default;
@@ -235,38 +235,84 @@ function initManual!( dfg::AbstractDFG,
                       N::Int=getSolverParams(dfg).N  )
   #
   variable = getVariable(dfg, label)
-  initManual!(variable, belief, solveKey, dontmargin=dontmargin, N=N)
+  initVariable!(variable, belief, solveKey, dontmargin=dontmargin, N=N)
   return nothing
 end
-function initManual!( dfg::AbstractDFG, 
+
+function initVariable!( dfg::AbstractDFG, 
+                      label::Symbol, 
+                      samplable_belief::SamplableBelief,
+                      solveKey::Symbol=:default;
+                      N::Int=getSolverParams(dfg).N  )
+  #
+  variable = getVariable(dfg, label)
+  initVariable!(variable, samplable_belief, solveKey; N)
+  return nothing
+end
+
+function initVariable!(variable::DFGVariable, 
+                      samplable_belief::SamplableBelief,
+                      solveKey::Symbol=:default;
+                      N::Int=length(getVal(variable)) )
+  #
+  M = getManifold(variable)
+  if solveKey == :parametric
+    μ, iΣ = getMeasurementParametric(samplable_belief)
+    vnd = getSolverData(variable, solveKey)
+    vnd.val[1] .= getPoint(getVariableType(variable),μ)
+    vnd.bw .= inv(iΣ) 
+  else
+    points = [samplePoint(M, samplable_belief) for _ = 1:N]
+    initVariable!(variable, points, solveKey)
+  end
+  return nothing
+end
+
+
+function initVariable!( dfg::AbstractDFG, 
                       label::Symbol, 
                       usefcts::Vector{Symbol},
                       solveKey::Symbol=:default;
-                      dontmargin::Bool=false,
-                      N::Int=getSolverParams(dfg).N )
+                      N::Int=getSolverParams(dfg).N,
+                      kwargs... )
   #
   pts = predictbelief(dfg, label, usefcts, solveKey=solveKey)[1]
   vert = getVariable(dfg, label)
   Xpre = manikde!(getManifold(getVariableType(vert)), pts )
-  initManual!(vert, Xpre, solveKey, dontmargin=dontmargin, N=N )
+  initVariable!(vert, Xpre, solveKey; N, kwargs... )
   # setValKDE!(vert, Xpre, true, solveKey=solveKey)
   # return nothing
 end
 
 
-function initManual!( dfg::AbstractDFG, 
-                      sym::Symbol, 
-                      pts::AbstractVector{P}, 
-                      solveKey::Symbol=:default;
-                      bw=nothing ) where {P}
+function initVariable!( vari::DFGVariable, 
+                        pts::AbstractVector{P}, 
+                        solveKey::Symbol=:default;
+                        bw=nothing ) where {P}
   #
-  var = getVariable(dfg, sym)
-  M = getManifold(var)
-  pp = manikde!(M, pts, bw=bw)
-  initManual!(var,pp, solveKey)
+  # specializations to support generic case of Tuple rather than ProductRepr or ArrayPartition inputs
+  # TODO ArrayPartition inputs
+  _prodrepr(pt) = pt
+  # _prodrepr(pt::Tuple) = Manifolds.ProductRepr(pt...)
+  _prodrepr(pt::Tuple) = Manifolds.ArrayPartition(pt...)
+
+  M = getManifold(vari)
+  pp = manikde!(M, _prodrepr.(pts); bw)
+  initVariable!(vari, pp, solveKey)
 end
 
-const initVariableManual! = initManual!
+function initVariable!( dfg::AbstractDFG, 
+                        sym::Symbol, 
+                        pts::AbstractVector{P}, 
+                        solveKey::Symbol=:default;
+                        kwargs... ) where P
+  #
+  initVariable!(getVariable(dfg, sym), pts, solveKey; kwargs...)
+end
+
+# legacy alias
+const initVariableManual! = initVariable!
+
 
 """
     $SIGNATURES
@@ -294,7 +340,7 @@ resetInitialValues!(fgNew,fg)
 
 Related
 
-initManual!, graphinit (keyword)
+initVariable!, graphinit (keyword)
 """
 function resetInitialValues!(dest::AbstractDFG,
                             src::AbstractDFG=dest,
@@ -337,14 +383,14 @@ end
 
 Perform `graphinit` over all variables with `solvable=1` (default).
 
-Related
 
-ensureSolvable!, (EXPERIMENTAL 'treeinit')
+See also: [`ensureSolvable!`](@ref), (EXPERIMENTAL 'treeinit')
 """
 function initAll!(dfg::AbstractDFG,
                   solveKey::Symbol=:default; 
+                  _parametricInit::Bool = solveKey === :parametric,
                   solvable::Int=1,
-                  N::Int=getSolverParams(dfg).N )
+                  N::Int = _parametricInit ? 1 : getSolverParams(dfg).N )
   #
   # allvarnodes = getVariables(dfg)
   syms = intersect(getAddHistory(dfg), ls(dfg, solvable=solvable) )
@@ -352,13 +398,17 @@ function initAll!(dfg::AbstractDFG,
   
   # May have to first add the solveKey VNDs if they are not yet available
   for sym in syms
-    var = getVariable(dfg, sym)
+    vari = getVariable(dfg, sym)
+    varType = getVariableType(vari) |> _variableType
     # does SolverData exist for this solveKey?
-    if !( solveKey in listSolveKeys(var) )
-      varType = getVariableType(var)
+    vsolveKeys = listSolveKeys(vari)
+    if !_parametricInit && !( solveKey in vsolveKeys )
       # accept complete defaults for a novel solveKey
-      setDefaultNodeData!(var, 0, N, getDimension(varType), solveKey=solveKey, 
-                          initialized=false, varType=varType, dontmargin=false)
+      setDefaultNodeData!(vari, 0, N, getDimension(varType); solveKey, 
+                          initialized=false, varType)
+    end
+    if _parametricInit && !(:parametric in vsolveKeys)
+        setDefaultNodeDataParametric!(vari, varType; initialized=false)
     end
   end
 
@@ -377,7 +427,11 @@ function initAll!(dfg::AbstractDFG,
       # is this SolverData initialized?
       if !isInitialized(var, solveKey)
         @info "$(var.label) is not initialized, and will do so now..."
-        doautoinit!(dfg, [var;], solveKey=solveKey, singles=true)
+        if _parametricInit
+          autoinitParametric!(dfg, var; solveKey)
+        else
+          doautoinit!(dfg, [var;]; solveKey, singles=true)
+        end
         !isInitialized(var, solveKey) ? (repeatFlag = true) : nothing
       end
     end

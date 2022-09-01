@@ -10,6 +10,7 @@ Notes
 struct MsgPrior{T <: SamplableBelief} <: AbstractPrior
   Z::T
   infoPerCoord::Vector{Float64}
+  M
 end
 
 # MsgPrior{T}() where {T} = new{T}()
@@ -29,6 +30,7 @@ function getSample(cf::CalcFactor{<:MsgPrior{<:ManifoldKernelDensity}})
 end
 
 getManifold(mp::MsgPrior{<:ManifoldKernelDensity}) = mp.Z.manifold
+getManifold(mp::MsgPrior) = mp.M
 
 
 (cfo::CalcFactor{<:MsgPrior})(z, x1) = z .- x1

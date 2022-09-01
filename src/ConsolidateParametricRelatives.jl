@@ -41,7 +41,7 @@ function solveFactorParameteric(dfg::AbstractDFG,
   mea, _ = getMeasurementParametric(fctTyp)
   # must change measT to be a tangent vector
   M = getManifold(fctTyp)
-  e0 = identity_element(M)
+  e0 = getPointIdentity(M)
   mea_ = hat(M, e0, mea)
   measT = [mea_]
 
