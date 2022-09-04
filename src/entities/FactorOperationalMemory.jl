@@ -42,11 +42,12 @@ struct CalcFactor{T <: AbstractFactor, P <: Union{<:Tuple, Nothing, AbstractVect
 
   ## TODO Consolidation WIP with FactorMetadata
   # full list of variables connected to the factor
-  fullvariables::Vector{DFGVariable}
+  fullvariables::Vector{<:DFGVariable}
   # which index is being solved for?
   solvefor::Int
 end
 
+# should probably deprecate the abstract type approach?
 abstract type _AbstractThreadModel end
 
 """
