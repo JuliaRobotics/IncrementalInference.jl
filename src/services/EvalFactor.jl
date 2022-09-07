@@ -19,7 +19,7 @@ function approxConvOnElements!(
 ) where {N_, F <: AbstractRelative, S, T}
   #
   return error(
-    "MultiThreaded `approxConvOnElements!` is depricated and will soon be replaced",
+    "MultiThreaded `approxConvOnElements!` is deprecated and will soon be replaced",
   )
   # Threads.@threads for n in elements
   #   # ccwl.thrid_ = Threads.threadid()

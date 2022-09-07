@@ -210,7 +210,7 @@ function CommonConvWrapper(
   xDim::Int = size(X, 1),
   partialDims::AbstractVector{<:Integer} = 1:length(X),
   res::AbstractVector{<:Real} = zeros(zDim),
-  threadmodel::Type{<:_AbstractThreadModel} = MultiThreaded,
+  threadmodel::Type{<:_AbstractThreadModel} = SingleThreaded,
   inflation::Real = 3.0,
   vartypes::Vector{DataType} = typeof.(getVariableType.(fullvariables)),
   gradients = nothing,
