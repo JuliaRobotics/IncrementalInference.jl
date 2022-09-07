@@ -126,6 +126,9 @@ function getMeasurementParametric(s::AbstractFactor)
   return getMeasurementParametric(Z)
 end
 
+getMeasurementParametric(fct::DFGFactor) = getMeasurementParametric(getFactorType(fct))
+getMeasurementParametric(dfg::AbstractDFG, flb::Symbol) = getMeasurementParametric(getFactor(dfg, flb))
+
 ## ================================================================================================
 ## Parametric solve with Mahalanobis distance - CalcFactor
 ## ================================================================================================
