@@ -107,6 +107,7 @@ export CSMHistory,
   deepcopyGraph!,
   copyGraph!,
   getSolverData,
+  getTags,
 
   # using either dictionary or cloudgraphs
   FunctionNodeData,
