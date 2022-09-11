@@ -70,6 +70,7 @@ import ApproxManifoldProducts: kde!, manikde!
 import ApproxManifoldProducts: getBW
 import ApproxManifoldProducts: mmd
 import ApproxManifoldProducts: isPartial
+import ApproxManifoldProducts: _update!
 import DistributedFactorGraphs: reconstFactorData
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare, compareAllSpecial
