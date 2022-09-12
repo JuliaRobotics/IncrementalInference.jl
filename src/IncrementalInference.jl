@@ -52,8 +52,8 @@ using ManifoldsBase
 
 # for BayesTree
 using MetaGraphs
-
 using Logging
+using SnoopPrecompile
 
 # bringing in BSD 3-clause ccolamd
 include("ccolamd.jl")
@@ -244,6 +244,15 @@ function __init__()
     include("Serialization/entities/FluxModelsSerialization.jl")
     include("Serialization/services/FluxModelsSerialization.jl") # uses BSON
   end
+end
+
+@precompile_all_calls begin
+  # In here put "toy workloads" that exercise the code you want to precompile
+  fg = generateGraph_Kaess()
+  initAll!(fg)
+  solveGraph!(fg)
+  initParametricFrom!(fg, :default)
+  solveGraphParametric!(fg)
 end
 
 export setSerializationNamespace!, getSerializationModule, getSerializationModules
