@@ -17,6 +17,7 @@ The list below highlights breaking changes according to normal semver workflow -
 - Added a few missing exports incl. `getTags`, `_update!, see #1626 #1628.
 - Refactoring to remove `FactorMetadata` (#1611) and `ConvPerThread` (#1615, #1625) objects, which is consolidated into `CalcFactor` and `CommonConvWrapper`.
 - Added JuliaFormatter, see #1620.
+- Add `SnoopPrecompile.jl` on a few basic solve features to start, see #1631.
 
 # Changes in v0.30
 
