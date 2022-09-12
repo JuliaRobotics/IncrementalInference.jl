@@ -2,6 +2,7 @@
 
 export calcFactorResidualTemporary
 
+# NOTE, the full concrete type is recovered in reconstFactorData
 getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 # difficult type piracy case needing both types NoSolverParams and CommonConvWrapper.
 getFactorOperationalMemoryType(dfg::NoSolverParams) = CommonConvWrapper
