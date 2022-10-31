@@ -9,8 +9,7 @@ Notes
 
 ```julia
 function (cf::CalcFactor{<:LinearRelative})(res::AbstractVector{<:Real}, z, xi, xj)
-  cf.metadata.variablelist
-  cf.metadata.targetvariable
+  cf.variablelist
   cf.cache
   # generic on-manifold residual function 
   return distance(z, distance(xj, xi))

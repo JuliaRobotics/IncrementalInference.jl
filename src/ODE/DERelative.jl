@@ -172,7 +172,7 @@ function sampleFactor(cf::CalcFactor{<:DERelative}, N::Int = 1)
 end
 # getDimension(oderel.domain)
 
-# NOTE see #1025, CalcFactor should fix `multihypo=` in `cf.metadata` fields
+# NOTE see #1025, CalcFactor should fix `multihypo=` in `cf.__` fields; OBSOLETE
 function (cf::CalcFactor{<:DERelative})(measurement, X...)
   #
   meas1 = measurement[1]
