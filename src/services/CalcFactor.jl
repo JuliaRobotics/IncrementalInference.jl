@@ -282,7 +282,7 @@ function _prepParamVec(
   solvefor::Union{Nothing, Symbol},
   N::Int = 0;
   solveKey::Symbol = :default,
-) where {P}
+)
   #
   # FIXME refactor to new NamedTuple instead
   varParamsAll = getVal.(Xi; solveKey)
