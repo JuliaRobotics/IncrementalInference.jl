@@ -84,7 +84,8 @@ function HeatmapGridDensity(
   @cast vec_preIS[j][i] := pts_preIS[i, j]
 
   # weight the intermediate samples according to interpolation of raw data
-  hm = Interpolations.LinearInterpolation(domain, data) # interpolated heatmap
+  # interpolated heatmap
+  hm = Interpolations.linear_interpolation(domain, data) # depr .LinearInterpolation(..)
   d_scalar = Vector{Float64}(undef, length(vec_preIS))
 
   # interpolate d_scalar for intermediate test points

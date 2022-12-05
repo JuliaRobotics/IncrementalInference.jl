@@ -41,6 +41,7 @@ struct CalcFactor{T <: AbstractFactor, P <: Union{<:Tuple, Nothing, AbstractVect
 
   ## TODO Consolidation WIP with FactorMetadata
   # full list of variables connected to the factor
+  # TODO make sure this list is of the active hypo only
   fullvariables::Vector{<:DFGVariable}
   # which index is being solved for?
   solvefor::Int
