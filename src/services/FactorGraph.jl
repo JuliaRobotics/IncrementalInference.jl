@@ -362,14 +362,15 @@ function resetVariable!(
   return resetVariable!(getVariable(dfg, sym); solveKey = solveKey)
 end
 
+# return VariableNodeData
 function DefaultNodeDataParametric(
   dodims::Int,
   dims::Int,
   variableType::InferenceVariable;
   initialized::Bool = true,
   dontmargin::Bool = false,
-)::VariableNodeData
-
+  solveKey::Symbol = :parametric
+)
   # this should be the only function allocating memory for the node points
   if false && initialized
     error("not implemented yet")
@@ -408,14 +409,23 @@ function DefaultNodeDataParametric(
   end
 end
 
+"""
+    $SIGNATURES
+
+Makes and sets a parametric `VariableNodeData` object (`.solverData`).
+
+DevNotes
+- TODO assumes parametric solves will always just be under the `solveKey=:parametric`, should be generalized.
+"""
 function setDefaultNodeDataParametric!(
   v::DFGVariable,
   variableType::InferenceVariable;
+  solveKey::Symbol = :parametric,
   kwargs...,
 )
-  vnd = DefaultNodeDataParametric(0, variableType |> getDimension, variableType; kwargs...)
-  setSolverData!(v, vnd, :parametric)
-  return nothing
+  vnd = DefaultNodeDataParametric(0, variableType |> getDimension, variableType; solveKey, kwargs...)
+  setSolverData!(v, vnd, solveKey)
+  nothing
 end
 
 """

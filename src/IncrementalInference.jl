@@ -101,6 +101,7 @@ const BeliefArray{T} = Union{<:AbstractMatrix{<:T}, <:Adjoint{<:T, AbstractMatri
 # API Exports
 
 # Package aliases
+# FIXME, remove this and let the user do either import or const definitions
 export KDE, AMP, DFG, FSM, IIF
 
 # TODO temporary for initial version of on-manifold products

@@ -364,7 +364,7 @@ function solveTree!(
     @info "Setting `.multiproc=false` since `Distributed.nprocs() == 1`"
     opt.multiproc = false
   end
-
+  
   if opt.graphinit
     @info "Ensure variables are all initialized (graphinit)"
     if algorithm == :parametric
