@@ -508,8 +508,14 @@ function solveGraphParametric(
   computeCovariance::Bool = true,
   solveKey::Symbol = :parametric,
   autodiff = :forward,
-  algorithm = Optim.BFGS,
-  algorithmkwargs = (), # add manifold to overwrite computed one
+  algorithm = Optim.NewtonTrustRegion, # Optim.BFGS,
+  algorithmkwargs = (
+        initial_delta = 1.0,
+        # delta_hat = 1.0,
+        eta = 0.01,
+        # rho_lower = 0.25,
+        # rho_upper = 0.75
+  ), # add manifold to overwrite computed one
   options = Optim.Options(;
     allow_f_increases = true,
     time_limit = 100,
@@ -542,6 +548,22 @@ function solveGraphParametric(
 
   #optim setup and solve
   alg = algorithm(; algorithmkwargs...)
+  # alg = NewtonTrustRegion(;
+  #   initial_delta = 1.0,
+  #   delta_hat = 100.0,
+  #   eta = 0.1,
+  #   rho_lower = 0.25,
+  #   rho_upper = 0.75
+  # )
+  # alg = LBFGS(; 
+  #   m = 10,
+  #   alphaguess = LineSearches.InitialStatic(),
+  #   linesearch = LineSearches.HagerZhang(),
+  #   P = nothing,
+  #   precondprep = (P, x) -> nothing,
+  #   manifold = Flat(),
+  #   scaleinvH0::Bool = true && (typeof(P) <: Nothing)
+  # )
   tdtotalCost = Optim.TwiceDifferentiable(gsc, initValues; autodiff = autodiff)
 
   result = Optim.optimize(tdtotalCost, initValues, alg, options)
@@ -791,11 +813,19 @@ end
     $SIGNATURES
 Add parametric solver to fg, batch solve using [`solveGraphParametric`](@ref) and update fg.
 """
-function solveGraphParametric!(fg::AbstractDFG; init::Bool = true, kwargs...)
+function solveGraphParametric!(
+  fg::AbstractDFG; 
+  init::Bool = true, 
+  solveKey::Symbol = :parametric, # FIXME, moot since only :parametric used for parametric solves
+  initSolveKey::Symbol = :default, 
+  kwargs...
+)
+  # make sure variables has solverData, see #1637
+  makeSolverData!(fg; solveKey)
   if !(:parametric in fg.solverParams.algorithms)
     addParametricSolver!(fg; init = init)
   elseif init
-    initParametricFrom!(fg)
+    initParametricFrom!(fg, initSolveKey; parkey=solveKey)
   end
 
   vardict, result, varIds, Σ = solveGraphParametric(fg; kwargs...)
