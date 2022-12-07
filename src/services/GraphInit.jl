@@ -1,4 +1,39 @@
 
+
+"""
+    $SIGNATURES
+
+For variables in `varList` check and if necessary make solverData objects for both `:default` and `:parametric` solveKeys. 
+
+Notes
+- Part of solving JuliaRobotics/IncrementalInference.jl issue 1637
+
+See also: [`doautoinit!`](@ref)
+"""
+function makeSolverData!(
+  dfg::AbstractDFG;
+  solvable = 1,
+  varList::AbstractVector{Symbol} = ls(dfg; solvable)
+)
+  count = 0
+  for vl in varList
+    v = getVariable(dfg,vl)
+    varType = getVariableType(v) |> IIF._variableType
+    vsolveKeys = listSolveKeys(dfg,vl)
+    if !(:default in vsolveKeys)
+        IIF.setDefaultNodeData!(v, 0, getSolverParams(dfg).N, getDimension(varType); initialized=false, varType) # dodims
+        count += 1
+    end
+    if !(:parametric in vsolveKeys)
+        # global doinit = true
+        IIF.setDefaultNodeDataParametric!(v, varType, initialized=false)
+        count += 1
+    end
+  end
+
+  return count
+end
+
 """
     $SIGNATURES
 
