@@ -18,7 +18,6 @@ function Statistics.cov(
   return cov(getManifold(vartype), ptsArr; basis, kwargs...)
 end
 
-# To replace calcCovarianceBasic
 function calcStdBasicSpread(vartype::InferenceVariable, ptsArr::Vector{P}) where {P}
   σ = std(vartype, ptsArr)
 
