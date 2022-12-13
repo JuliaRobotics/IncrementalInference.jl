@@ -72,16 +72,23 @@ end
 ##
 
 """
-  $(SIGNATURES)
+    $(SIGNATURES)
+
 After deserializing a factor using decodePackedType, use this to
 completely rebuild the factor's CCW and user data.
+
+Notes:
+- This function is likely to be used for cache heavy factors, e.g. `ObjectAffordanceSubcloud`.
+
 Dev Notes:
 - TODO: We should only really do this in-memory if we can by without it (review this).
+- TODO: needs testing
 """
 function rebuildFactorMetadata!(
   dfg::AbstractDFG{SolverParams},
   factor::DFGFactor,
-  neighbors = map(vId -> getVariable(dfg, vId), getNeighbors(dfg, factor)),
+  neighbors = map(vId -> getVariable(dfg, vId), getNeighbors(dfg, factor));
+  _blockRecursionGradients::Bool=false
 )
   #
   # Set up the neighbor data
@@ -100,6 +107,7 @@ function rebuildFactorMetadata!(
     potentialused = fsd.potentialused,
     edgeIDs = fsd.edgeIDs,
     solveInProgress = fsd.solveInProgress,
+    _blockRecursion=_blockRecursionGradients
   )
   #
 
