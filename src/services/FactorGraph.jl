@@ -717,11 +717,11 @@ function getDefaultFactorData(
   _blockRecursion::Bool = false,
 ) where {T <: AbstractFactor}
   #
-
+  
   # prepare multihypo particulars
   # storeMH::Vector{Float64} = multihypo == nothing ? Float64[] : [multihypo...]
   mhcat, nh = parseusermultihypo(multihypo, nullhypo)
-
+  
   # allocate temporary state for convolutional operations (not stored)
   userCache = preambleCache(dfg, Xi, usrfnc)
   ccw = _prepCCW(
@@ -734,7 +734,7 @@ function getDefaultFactorData(
     _blockRecursion,
     userCache,
   )
-
+  
   # and the factor data itself
   return FunctionNodeData{typeof(ccw)}(
     eliminated,
