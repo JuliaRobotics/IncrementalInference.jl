@@ -141,18 +141,19 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
   fac_func = getFactorType(fct)
   varOrder = getVariableOrder(fct)
 
-  _meas, _iΣ = getMeasurementParametric(fac_func)
+  # NOTE, use getMeasurementParametric on DFGFactor{<:CCW} to allow special cases like OAS factors
+  _meas, _iΣ = getMeasurementParametric(fct) # fac_func
   M = getManifold(getFactorType(fct))
   dims = manifold_dimension(M)
   ϵ = getPointIdentity(M)
 
-  if typeof(_meas) <: Tuple
-    _measX = map(m -> hat(M, ϵ, m), _meas)
+  _measX = if typeof(_meas) <: Tuple
     # TODO perhaps better consolidate manifold prior 
+    map(m -> hat(M, ϵ, m), _meas)
   elseif fac_func isa ManifoldPrior
-    _measX = (_meas,)
+    (_meas,)
   else
-    _measX = (convert(typeof(ϵ), get_vector(M, ϵ, _meas, DefaultOrthogonalBasis())),)
+    (convert(typeof(ϵ), get_vector(M, ϵ, _meas, DefaultOrthogonalBasis())),)
   end
 
   meas = fac_func isa AbstractPrior ? map(X -> exp(M, ϵ, X), _measX) : _measX
