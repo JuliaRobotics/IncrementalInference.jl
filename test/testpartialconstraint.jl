@@ -315,7 +315,7 @@ X2 = getBelief(fg, :x2)
 @test_broken isapprox(mean(X2), [-20;10], atol=0.01)
 
 # check covariance is close too
-@test 0 < AMP.calcCovarianceBasic(getManifold(X2), getPoints(X2))
+@test 0 < var(getManifold(X2), getPoints(X2))
 
 @cast pts[i,j] := pts_[j][i]
 @test (Statistics.std(pts,dims=2)[1]-1.0) < 3.0

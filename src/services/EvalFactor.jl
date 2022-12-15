@@ -72,7 +72,6 @@ function calcVariableDistanceExpectedFractional(
 )
   #
   if sfidx in certainidx
-    # msst_ = sqrt(calcCovarianceBasic(getManifold(ccwl.vartypes[sfidx]), ccwl.params[sfidx]))
     msst_ = calcStdBasicSpread(ccwl.vartypes[sfidx](), ccwl.params[sfidx])
     return kappa * msst_
   end
@@ -473,7 +472,6 @@ function evalPotentialSpecific(
 
   # view on elements marked for nullhypo
   addEntrNH = view(addEntr, nhmask)
-  # spreadDist = spreadNH*sqrt(calcCovarianceBasic(mani, addEntr))
   spreadDist = spreadNH * calcStdBasicSpread(getVariableType(Xi[sfidx]), addEntr)
   # partials are treated differently
   ipc = if !isPartial(ccwl) #ccwl.partial
