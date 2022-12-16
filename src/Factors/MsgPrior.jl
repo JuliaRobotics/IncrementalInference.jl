@@ -10,7 +10,7 @@ Notes
 struct MsgPrior{T <: SamplableBelief} <: AbstractPrior
   Z::T
   infoPerCoord::Vector{Float64}
-  M
+  M::Any
 end
 
 # MsgPrior{T}() where {T} = new{T}()
@@ -32,10 +32,7 @@ end
 getManifold(mp::MsgPrior{<:ManifoldKernelDensity}) = mp.Z.manifold
 getManifold(mp::MsgPrior) = mp.M
 
-
 (cfo::CalcFactor{<:MsgPrior})(z, x1) = z .- x1
-
-
 
 Base.@kwdef struct PackedMsgPrior <: AbstractPackedFactor
   Z::PackedSamplableBelief
@@ -43,9 +40,8 @@ Base.@kwdef struct PackedMsgPrior <: AbstractPackedFactor
 end
 
 function convert(::Type{PackedMsgPrior}, d::MsgPrior)
-  PackedMsgPrior(convert(PackedSamplableBelief, d.Z), d.infoPerCoord)
+  return PackedMsgPrior(convert(PackedSamplableBelief, d.Z), d.infoPerCoord)
 end
 function convert(::Type{<:MsgPrior}, d::PackedMsgPrior)
-  MsgPrior(convert(SamplableBelief, d.Z), d.infoPerCoord)
+  return MsgPrior(convert(SamplableBelief, d.Z), d.infoPerCoord)
 end
-

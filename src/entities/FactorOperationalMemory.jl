@@ -1,5 +1,4 @@
 
-
 """
 $TYPEDEF
 
@@ -10,8 +9,7 @@ Notes
 
 ```julia
 function (cf::CalcFactor{<:LinearRelative})(res::AbstractVector{<:Real}, z, xi, xj)
-  cf.metadata.variablelist
-  cf.metadata.targetvariable
+  cf.variablelist
   cf.cache
   # generic on-manifold residual function 
   return distance(z, distance(xj, xi))
@@ -23,13 +21,11 @@ DevNotes
 
 Related 
 
-[`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref), [`FactorMetadata`](@ref), [`ConvPerThread`](@ref)
+[`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref)
 """
-struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,AbstractVector}, X, C}
+struct CalcFactor{T <: AbstractFactor, P <: Union{<:Tuple, Nothing, AbstractVector}, X, C}
   """ the interface compliant user object functor containing the data and logic """
   factor::T
-  """ the metadata to be passed to the user residual function """
-  metadata::M
   """ what is the sample (particle) id for which the residual is being calculated """
   _sampleIdx::Int
   """ legacy support when concerned with how many measurement tuple elements are used by user  """
@@ -42,83 +38,26 @@ struct CalcFactor{T <: AbstractFactor, M, P <: Union{<:Tuple,Nothing,AbstractVec
   _allowThreads::Bool
   """ user cache of arbitrary type, overload the [`preambleCache`](@ref) function. NOT YET THREADSAFE """
   cache::C
+
+  ## TODO Consolidation WIP with FactorMetadata
+  # full list of variables connected to the factor
+  # TODO make sure this list is of the active hypo only
+  fullvariables::Vector{<:DFGVariable}
+  # which index is being solved for?
+  solvefor::Int
 end
 
-
-
+# should probably deprecate the abstract type approach?
 abstract type _AbstractThreadModel end
 
 """
 $(TYPEDEF)
 """
-struct SingleThreaded <: _AbstractThreadModel
-end
+struct SingleThreaded <: _AbstractThreadModel end
 """
 $(TYPEDEF)
 """
-struct MultiThreaded <: _AbstractThreadModel
-end
-
-
-
-"""
-$(TYPEDEF)
-
-Notes
-- type-stable `usercache`, see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/783#issuecomment-665080114 
-
-DevNotes
-- TODO why not just a NamedTuple? Perhaps part of #467
-- Follow the Github project in IIF to better consolidate CCW FMD CPT CF CFM
-- TODO standardize -- #927, #1025, #784, #692, #640
-- TODO make immutable #825
-"""
-mutable struct FactorMetadata{FV<:AbstractVector{<:DFGVariable}, 
-                              VL<:AbstractVector{Symbol}, 
-                              AR<:Tuple, 
-                              CD}
-  # full list of Vector{DFGVariable} connected to the factor
-  fullvariables::FV # Vector{<:DFGVariable}
-  #TODO full variable can perhaps replace this
-  variablelist::VL # Vector{Symbol} 
-  # TODO rename/consolidate field in CCW,
-  arrRef::AR
-  # label of which variable is being solved for
-  solvefor::Symbol 
-  # for type specific user data, see (? #784)
-  # OBSOLETE? Replaced by CalcFactor.cache
-  cachedata::CD
-end
-
-"""
-$(TYPEDEF)
-
-DevNotes
-- FIXME consolidate with CalcFactor
-- TODO consolidate with CCW, FMd, CalcFactor
-- TODO consider renaming `.p` to `.decisionDims`
-  - TODO `.decisionDims::DD where DD <: Union{<:AbstractVector{Int},Colon}` -- ensure type stability
-- TODO figure out if we want static parameter THRID
-- TODO make static params {XDIM, ZDIM, P}
-- TODO make immutable
-"""
-mutable struct ConvPerThread{R,F<:FactorMetadata,P}
-  thrid_::Int
-  # the actual particle being solved at this moment
-  particleidx::Int
-  # additional/optional data passed to user function
-  factormetadata::F
-  # subsection indices to select which params should be used for this hypothesis evaluation
-  activehypo::Vector{Int}
-  # slight numerical perturbation for degenerate solver cases such as division by zero
-  perturb::Vector{Float64}
-  # working memory location for optimization routines on target decision variables
-  X::Vector{P}
-  # working memory to store residual for optimization routines
-  res::R # was Vector{Float64}
-end
-
-
+struct MultiThreaded <: _AbstractThreadModel end
 
 """
 $(TYPEDEF)
@@ -137,15 +76,10 @@ DevNotes
 
 Related 
 
-[`CalcFactor`](@ref), [`CalcFactorMahalanobis`](@ref), [`FactorMetadata`](@ref), [`ConvPerThread`](@ref)
+[`CalcFactor`](@ref), [`CalcFactorMahalanobis`](@ref)
 """
-mutable struct CommonConvWrapper{ T<:AbstractFactor,
-                                  H<:Union{Nothing, Distributions.Categorical},
-                                  C<:Union{Nothing, Vector{Int}},
-                                  NTP <: Tuple,
-                                  G,
-                                  MT,
-                                  CT} <: FactorOperationalMemory
+mutable struct CommonConvWrapper{T <: AbstractFactor, NTP <: Tuple, G, MT, CT} <:
+               FactorOperationalMemory
   #
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function
@@ -153,24 +87,21 @@ mutable struct CommonConvWrapper{ T<:AbstractFactor,
   xDim::Int
   zDim::Int
   # is this a partial constraint as defined by the existance of factor field `.partial::Tuple`
-  partial::Bool 
-  # multi hypothesis settings
-  hypotheses::H 
+  partial::Bool
+  # multi hypothesis settings #NOTE no need for a parameter as type is known from `parseusermultihypo`
+  hypotheses::Union{Nothing, Distributions.Categorical{Float64, Vector{Float64}}}
   # categorical to select which hypothesis is being considered during convolution operation
-  certainhypo::C
+  certainhypo::Union{Nothing, Vector{Int}}
   nullhypo::Float64
   # parameters passed to each hypothesis evaluation event on user function, #1321
   params::NTP # TODO rename to varValsLink::NTP
   # which index is being solved for in params?
-  varidx::Int 
+  varidx::Int
   # FIXME make type stable, JT should now be type stable if rest works
   #   user defined measurement values for each approxConv operation
-  measurement::Vector{MT} 
+  measurement::Vector{MT}
   # TODO refactor and deprecate this old approach, Union{Type{SingleThreaded}, Type{MultiThreaded}}
-  threadmodel::Type{<:_AbstractThreadModel} 
-  # FIXME, deprecate for only `readonly` and build CalcFactor objects on stack instead
-    ## will be obsolete: particular convolution computation values per particle idx (varies by thread)
-  cpt::Vector{<:ConvPerThread}
+  threadmodel::Type{<:_AbstractThreadModel}
   # inflationSpread
   inflation::Float64
   # Which dimensions does this factor influence.  Sensitive (mutable) to both which 'solvefor index' variable and whether the factor is partial dimension
@@ -181,8 +112,17 @@ mutable struct CommonConvWrapper{ T<:AbstractFactor,
   _gradients::G
   # type used for cache
   dummyCache::CT
+
+  #Consolidation from FMD
+  fullvariables::Vector{DFGVariable}
+
+  #Consolidation from CPT
+  # the actual particle being solved at this moment
+  particleidx::Int
+  # subsection indices to select which params should be used for this hypothesis evaluation
+  activehypo::Vector{Int}
+  # working memory to store residual for optimization routines
+  res::Vector{Float64}
 end
-
-
 
 #

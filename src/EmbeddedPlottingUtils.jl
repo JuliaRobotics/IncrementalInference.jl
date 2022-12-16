@@ -17,16 +17,16 @@ Notes
 * Frontal, separator, and upmessages are all drawn at different intensity of red.
 * Downward messages not shown, as they would just be singletons of the full separator set.
 """
-function spyCliqMat(cliq::TreeClique; showmsg=true, suppressprint::Bool=false)
-  mat = deepcopy(getCliqMat(cliq, showmsg=showmsg))
+function spyCliqMat(cliq::TreeClique; showmsg = true, suppressprint::Bool = false)
+  mat = deepcopy(getCliqMat(cliq; showmsg = showmsg))
   # TODO -- add improved visualization here, iter vs skip
-  mat = map(Float64, mat)*2.0.-1.0
-  numlcl = size(getCliqAssocMat(cliq),1)
-  mat[(numlcl+1):end,:] *= 0.9
-  mat[(numlcl+1):end,:] .-= 0.1
-  numfrtl1 = floor(Int,length(getCliqueData(cliq).frontalIDs) + 1)
-  mat[:,numfrtl1:end] *= 0.9
-  mat[:,numfrtl1:end] .-= 0.1
+  mat = map(Float64, mat) * 2.0 .- 1.0
+  numlcl = size(getCliqAssocMat(cliq), 1)
+  mat[(numlcl + 1):end, :] *= 0.9
+  mat[(numlcl + 1):end, :] .-= 0.1
+  numfrtl1 = floor(Int, length(getCliqueData(cliq).frontalIDs) + 1)
+  mat[:, numfrtl1:end] *= 0.9
+  mat[:, numfrtl1:end] .-= 0.1
   if !suppressprint
     @show getCliqueData(cliq).itervarIDs
     @show getCliqueData(cliq).directvarIDs
@@ -34,15 +34,28 @@ function spyCliqMat(cliq::TreeClique; showmsg=true, suppressprint::Bool=false)
     @show getCliqueData(cliq).directFrtlMsgIDs
     @show getCliqueData(cliq).directPriorMsgIDs
   end
-  if size(mat,1) == 1
-    mat = [mat; -ones(size(mat,2))']
+  if size(mat, 1) == 1
+    mat = [mat; -ones(size(mat, 2))']
   end
   sp = Gadfly.spy(mat)
-  push!(sp.guides, Gadfly.Guide.title("$(getLabel(cliq)) || $(getCliqueData(cliq).frontalIDs) :$(getCliqueData(cliq).separatorIDs)"))
+  push!(
+    sp.guides,
+    Gadfly.Guide.title(
+      "$(getLabel(cliq)) || $(getCliqueData(cliq).frontalIDs) :$(getCliqueData(cliq).separatorIDs)",
+    ),
+  )
   push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(getCliqueData(cliq).itervarIDs)"))
-  push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
+  push!(
+    sp.guides,
+    Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))"),
+  )
   return sp
 end
-function spyCliqMat(bt::AbstractBayesTree, lbl::Symbol; showmsg=true, suppressprint::Bool=false)
-  spyCliqMat(getClique(bt,lbl), showmsg=showmsg, suppressprint=suppressprint)
+function spyCliqMat(
+  bt::AbstractBayesTree,
+  lbl::Symbol;
+  showmsg = true,
+  suppressprint::Bool = false,
+)
+  return spyCliqMat(getClique(bt, lbl); showmsg = showmsg, suppressprint = suppressprint)
 end

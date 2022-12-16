@@ -1,15 +1,19 @@
 # the IncrementalInference API
 
-
 # DFG SpecialDefinitions
 export AbstractDFG,
   getSolverParams,
   GraphsDFG,
   LocalDFG,
-  findShortestPathDijkstra, isPathFactorsHomogeneous,
-  getSolvedCount, isSolved, setSolvedCount!,
-  listSupersolves, listSolveKeys,
-  deepcopySolvekeys!, deepcopySupersolve!,
+  findShortestPathDijkstra,
+  isPathFactorsHomogeneous,
+  getSolvedCount,
+  isSolved,
+  setSolvedCount!,
+  listSupersolves,
+  listSolveKeys,
+  deepcopySolvekeys!,
+  deepcopySupersolve!,
   diagm,
   listDataEntries,
   FolderStore,
@@ -17,11 +21,11 @@ export AbstractDFG,
   addData!,
   getData,
   DFGVariable,
-  DFGVariableSummary, 
+  DFGVariableSummary,
   DFGFactor,
   DFGFactorSummary,
   deleteVariableSolverData!
-  # listDataBlobs  # ERROR: LightDFG{} doesn't override 'listDataBlobs'.
+# listDataBlobs  # ERROR: LightDFG{} doesn't override 'listDataBlobs'.
 
 # Inference types
 export AbstractPackedFactor, AbstractFactor
@@ -31,8 +35,7 @@ export AbstractRelativeRoots, AbstractRelativeMinimize, AbstractManifoldMinimize
 # not sure if this is necessary
 export convert, *
 
-export
-  CSMHistory,
+export CSMHistory,
   # getTreeCliqsSolverHistories,
 
   AbstractBayesTree,
@@ -70,7 +73,6 @@ export
   PackedMsgPrior,
   PartialPrior,
   PackedPartialPrior,
-
   ls2,
   # lsRear,
   # from DFG
@@ -105,9 +107,9 @@ export
   deepcopyGraph!,
   copyGraph!,
   getSolverData,
+  getTags,
 
   # using either dictionary or cloudgraphs
-  FactorMetadata,
   FunctionNodeData,
   PackedFunctionNodeData, # moved to DFG
   normalfromstring,
@@ -165,7 +167,8 @@ export
   ensureSolvable!,
   initAll!,
   cycleInitByVarOrder!,
-  BayesTree, MetaBayesTree,
+  BayesTree,
+  MetaBayesTree,
   TreeBelief,
   LikelihoodMessage,
   initfg,
@@ -177,7 +180,6 @@ export
   buildTree!,
   buildTreeReset!,
   buildCliquePotentials,
-
   getCliqDepth,
   getTreeAllFrontalSyms,
   getTreeCliqUpMsgsAll,
@@ -189,7 +191,6 @@ export
   getNumCliqs,
   getBelief,
   CliqStateMachineContainer,
-
   solveCliqUp!,
   solveCliqDown!,
   fifoFreeze!,
@@ -235,7 +236,6 @@ export
   # Factor operational memory
   CommonConvWrapper,
   CalcFactor,
-  
   getCliqVarInitOrderUp,
   getCliqNumAssocFactorsPerVar,
 
@@ -271,9 +271,9 @@ export
 
   # Temp placeholder for evaluating string types to real types
   saveDFG,
-  loadDFG!,  loadDFG,
+  loadDFG!,
+  loadDFG,
   rebuildFactorMetadata!,
-
   getCliqVarSolveOrderUp,
   getFactorsAmongVariablesOnly,
   setfreeze!,
@@ -288,11 +288,10 @@ export
   findFactorsBetweenFrom,
   addDownVariableFactors!,
   getDimension,
-  getPointType, 
+  getPointType,
   getPointIdentity,
   setVariableRefence!,
   reshapeVec2Mat
-
 
 export incrSuffix
 
@@ -305,7 +304,6 @@ export loadDFG
 export findVariablesNear, defaultFixedLagOnTree!
 export fetchDataJSON
 
-
 export Position, Position1, Position2, Position3, Position4
 export ContinuousScalar, ContinuousEuclid # TODO figure out if this will be deprecated, Caesar.jl #807
 export Circular, Circle
@@ -314,7 +312,8 @@ export Circular, Circle
 export packDistribution, unpackDistribution
 export PackedCategorical #, PackedDiscreteNonParametric
 export PackedUniform, PackedNormal
-export PackedZeroMeanDiagNormal, PackedZeroMeanFullNormal, PackedDiagNormal, PackedFullNormal
+export PackedZeroMeanDiagNormal,
+  PackedZeroMeanFullNormal, PackedDiagNormal, PackedFullNormal
 export PackedManifoldKernelDensity
 export PackedAliasingScalarSampler, PackedHeatmapGridDensity, PackedLevelSetGridNormal
 export PackedRayleigh
@@ -324,15 +323,11 @@ export Mixture, PackedMixture
 export sampleTangent
 export samplePoint
 
-export  buildCliqSubgraph_StateMachine
+export buildCliqSubgraph_StateMachine
 
-export
-  getCliqueStatus,
-  setCliqueStatus!
+export getCliqueStatus, setCliqueStatus!
 
-export
-  stackCliqUpMsgsByVariable,
-  getCliqDownMsgsAfterDownSolve
+export stackCliqUpMsgsByVariable, getCliqDownMsgsAfterDownSolve
 
 export resetCliqSolve!
 export addLikelihoodsDifferential!
@@ -346,7 +341,6 @@ export cont2disc
 export rebaseFactorVariable!
 export accumulateFactorMeans
 export solveFactorParameteric
-
 
 export repeatCSMStep!
 export attachCSM!
@@ -365,6 +359,6 @@ export setCliqueDrawColor!, getCliqueDrawColor
 export appendSeparatorToClique!
 
 export buildTreeFromOrdering! # TODO make internal and deprecate external use to only `buildTreeReset!``
-
+export makeSolverData!
 
 #

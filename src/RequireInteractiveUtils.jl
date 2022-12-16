@@ -12,10 +12,11 @@ export listTypeTree
 Return all factors currently registered in the workspace.
 """
 function getCurrentWorkspaceFactors()
-    return [
-        InteractiveUtils.subtypes(AbstractPrior)...,
-        InteractiveUtils.subtypes(AbstractRelativeRoots)...,
-        InteractiveUtils.subtypes(AbstractRelativeMinimize)...];
+  return [
+    InteractiveUtils.subtypes(AbstractPrior)...,
+    InteractiveUtils.subtypes(AbstractRelativeRoots)...,
+    InteractiveUtils.subtypes(AbstractRelativeMinimize)...,
+  ]
 end
 
 """
@@ -24,14 +25,14 @@ end
 Return all variables currently registered in the workspace.
 """
 function getCurrentWorkspaceVariables()
-    return InteractiveUtils.subtypes(IIF.InferenceVariable);
+  return InteractiveUtils.subtypes(IIF.InferenceVariable)
 end
 
 function _listTypeTree(mytype, printlevel::Int)
   allsubtypes = InteractiveUtils.subtypes(mytype)
   for cursubtype in allsubtypes
     print("\t"^printlevel)
-    println("|___",cursubtype)
+    println("|___", cursubtype)
     printlevel += 1
     _listTypeTree(cursubtype, printlevel)
     printlevel -= 1
@@ -47,5 +48,5 @@ Notes
 """
 function listTypeTree(T)
   println(T)
-  _listTypeTree(T,0)
+  return _listTypeTree(T, 0)
 end

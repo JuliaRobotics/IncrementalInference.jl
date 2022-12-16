@@ -1,5 +1,4 @@
 
-
 """
     $SIGNATURES
 
@@ -17,33 +16,35 @@ Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
 - TODO: Incidence matrix is rectagular and adjacency is the square.
 """
-function getEliminationOrder( dfg::AbstractDFG;
-                              ordering::Symbol=:qr,
-                              solvable::Int=1,
-                              constraints::Vector{Symbol}=Symbol[] )
+function getEliminationOrder(
+  dfg::AbstractDFG;
+  ordering::Symbol = :qr,
+  solvable::Int = 1,
+  constraints::Vector{Symbol} = Symbol[],
+)
   #
   @assert 0 == length(constraints) || ordering == :ccolamd "Must use ordering=:ccolamd when trying to use constraints"
   # Get the sparse adjacency matrix, variable, and factor labels
-  adjMat, permuteds, permutedsf = DFG.getBiadjacencyMatrix(dfg, solvable=solvable)
+  adjMat, permuteds, permutedsf = DFG.getBiadjacencyMatrix(dfg; solvable = solvable)
   # adjMat, permuteds, permutedsf = DFG.getAdjacencyMatrixSparse(dfg, solvable=solvable)
 
   # Create dense adjacency matrix
 
   p = Int[]
-  if ordering==:chol
+  if ordering == :chol
     # hack for dense matrix....
     A = adjMat
-    p = cholesky(Matrix(A'A),Val(true)).piv
+    p = cholesky(Matrix(A'A), Val(true)).piv
     @warn "check that cholesky ordering is not reversed -- basically how much fill in (separator size) are you seeing???  Long skinny chains in tree is bad."
-  elseif ordering==:qr
+  elseif ordering == :qr
     # hack for dense matrix....
     A = Array(adjMat)
     # this is the default
-    q,r,p = qr(A, (v"1.7"<=VERSION ? ColumnNorm() : Val(true)) )
+    q, r, p = qr(A, (v"1.7" <= VERSION ? ColumnNorm() : Val(true)))
     p .= p |> reverse
-  elseif ordering==:ccolamd
+  elseif ordering == :ccolamd
     cons = zeros(SuiteSparse_long, length(adjMat.colptr) - 1)
-    cons[findall(x->x in constraints, permuteds)] .= 1
+    cons[findall(x -> x in constraints, permuteds)] .= 1
     p = Ccolamd.ccolamd(adjMat, cons)
     @warn "Ccolamd is experimental in IIF at this point in time."
   else
@@ -55,14 +56,13 @@ function getEliminationOrder( dfg::AbstractDFG;
   return permuteds[p]
 end
 
-
 # lets create all the vertices first and then deal with the elimination variables thereafter
-function addBayesNetVerts!( dfg::AbstractDFG,
-                            elimOrder::Array{Symbol,1} )
+function addBayesNetVerts!(dfg::AbstractDFG, elimOrder::Array{Symbol, 1})
   #
   for pId in elimOrder
     vert = DFG.getVariable(dfg, pId)
-    if getSolverData(vert).BayesNetVertID == nothing || getSolverData(vert).BayesNetVertID == :_null # Special serialization case of nothing
+    if getSolverData(vert).BayesNetVertID == nothing ||
+       getSolverData(vert).BayesNetVertID == :_null # Special serialization case of nothing
       @debug "[AddBayesNetVerts] Assigning $pId.data.BayesNetVertID = $pId"
       getSolverData(vert).BayesNetVertID = pId
     else
@@ -71,9 +71,7 @@ function addBayesNetVerts!( dfg::AbstractDFG,
   end
 end
 
-function addConditional!( dfg::AbstractDFG,
-                          vertId::Symbol,
-                          Si::Vector{Symbol} )
+function addConditional!(dfg::AbstractDFG, vertId::Symbol, Si::Vector{Symbol})
   #
   bnv = DFG.getVariable(dfg, vertId)
   bnvd = getSolverData(bnv)
@@ -84,8 +82,7 @@ function addConditional!( dfg::AbstractDFG,
   return nothing
 end
 
-function addChainRuleMarginal!( dfg::AbstractDFG,
-                                Si::Vector{Symbol} )
+function addChainRuleMarginal!(dfg::AbstractDFG, Si::Vector{Symbol})
   #
 
   lbls = String[]
@@ -95,13 +92,11 @@ function addChainRuleMarginal!( dfg::AbstractDFG,
   # for x in Xi
   #   @info "x.index=",x.index
   # end
-  addFactor!( dfg, Xi, genmarg, graphinit=false, suppressChecks=true )
-  nothing
+  addFactor!(dfg, Xi, genmarg; graphinit = false, suppressChecks = true)
+  return nothing
 end
 
-function rmVarFromMarg( dfg::AbstractDFG,
-                        fromvert::DFGVariable,
-                        gm::Vector{DFGFactor}  )
+function rmVarFromMarg(dfg::AbstractDFG, fromvert::DFGVariable, gm::Vector{DFGFactor})
   #
 
   @debug " - Removing $(fromvert.label)"
@@ -117,7 +112,13 @@ function rmVarFromMarg( dfg::AbstractDFG,
         DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
           @debug "$(m.label) still has links to other variables, readding it back..."
-          addFactor!(dfg, remvars, _getCCW(m).usrfnc!, graphinit=false, suppressChecks=true )
+          addFactor!(
+            dfg,
+            remvars,
+            _getCCW(m).usrfnc!;
+            graphinit = false,
+            suppressChecks = true,
+          )
         else
           @debug "$(m.label) doesn't have any other links, not adding it back..."
         end
@@ -132,9 +133,7 @@ function rmVarFromMarg( dfg::AbstractDFG,
   return nothing
 end
 
-function buildBayesNet!(dfg::AbstractDFG,
-                        elimorder::Vector{Symbol};
-                        solvable::Int=1 )
+function buildBayesNet!(dfg::AbstractDFG, elimorder::Vector{Symbol}; solvable::Int = 1)
   #
   # addBayesNetVerts!(dfg, elimorder)
   for v in elimorder
@@ -150,14 +149,14 @@ function buildBayesNet!(dfg::AbstractDFG,
     gm = DFGFactor[]
 
     vert = DFG.getVariable(dfg, v)
-    for fctId in DFG.getNeighbors(dfg, vert, solvable=solvable)
+    for fctId in DFG.getNeighbors(dfg, vert; solvable = solvable)
       fct = DFG.getFactor(dfg, fctId)
       if (getSolverData(fct).eliminated != true)
         push!(fi, fctId)
-        for sepNode in DFG.getNeighbors(dfg, fct, solvable=solvable)
+        for sepNode in DFG.getNeighbors(dfg, fct; solvable = solvable)
           # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
           if sepNode != v && !(sepNode in Si) # Symbol comparison!
-            push!(Si,sepNode)
+            push!(Si, sepNode)
           end
         end
         getSolverData(fct).eliminated = true
@@ -182,8 +181,6 @@ function buildBayesNet!(dfg::AbstractDFG,
     #add marginal on remaining variables... ? f(xyz) = f(x | yz) f(yz)
     # new function between all Si (round the outside, right the outside)
     length(Si) > 0 && addChainRuleMarginal!(dfg, Si)
-
   end
   return nothing
 end
-

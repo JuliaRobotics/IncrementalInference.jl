@@ -1,7 +1,6 @@
 
 export PackedFluxModelsDistribution
 
-
 Base.@kwdef mutable struct PackedFluxModelsDistribution <: PackedSamplableBelief
   # standardized _type field
   _type::String
@@ -19,8 +18,8 @@ Base.@kwdef mutable struct PackedFluxModelsDistribution <: PackedSamplableBelief
   shuffle::Bool
   # false for default serialization with model info, set true for separate storage of models 
   serializeHollow::Bool
-    # TODO remove requirement and standardize sampler API
-    # specialSampler::Symbol
+  # TODO remove requirement and standardize sampler API
+  # specialSampler::Symbol
   # TODO, only use ._type.  Legacy, field name usage to direct the IIF serialization towards JSON method
   PackedSamplableTypeJSON::String
 end

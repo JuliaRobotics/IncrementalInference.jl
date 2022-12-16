@@ -1,7 +1,5 @@
 # functions relating to parametric solutions of a single factor that is likely in need of consolidation
 
-
-
 """
     $SIGNATURES
 
@@ -22,18 +20,20 @@ Related:
 
 [`getMeasurementParametric`](@ref), [`approxConv`](@ref), [`MutablePose2Pose2Gaussian`](@ref)
 """
-function solveFactorParameteric(dfg::AbstractDFG,
-                                fct::DFGFactor,
-                                # currval::P1,
-                                srcsym_vals::AbstractVector{Pair{Symbol, P}},
-                                trgsym::Symbol,
-                                solveKey::Symbol=:default;
-                                evaltmpkw...  ) where P
+function solveFactorParameteric(
+  dfg::AbstractDFG,
+  fct::DFGFactor,
+  # currval::P1,
+  srcsym_vals::AbstractVector{Pair{Symbol, P}},
+  trgsym::Symbol,
+  solveKey::Symbol = :default;
+  evaltmpkw...,
+) where {P}
   #
 
   varLbls = getVariableOrder(fct)
   varTypes = tuple((getVariableType.(dfg, varLbls))...)
-  sfidx = findfirst( varLbls .== trgsym )
+  sfidx = findfirst(varLbls .== trgsym)
 
   # get the measurement point
   fctTyp = getFactorType(fct)
@@ -46,13 +46,13 @@ function solveFactorParameteric(dfg::AbstractDFG,
   measT = [mea_]
 
   # get variable points
-  function _getParametric(vari::DFGVariable, key=:default)
+  function _getParametric(vari::DFGVariable, key = :default)
     # hasp = haskey(getPPEDict(vari), key)
     # FIXME use PPE via Manifold points currently in coordinates
     # hasp ? getPPE(vari, key).suggested : calcMean(getBelief(vari, key))
     pt = calcMean(getBelief(vari, key))
 
-    getCoordinates(getVariableType(vari),pt)
+    return getCoordinates(getVariableType(vari), pt)
   end
 
   # overwrite specific src values from user
@@ -61,13 +61,19 @@ function solveFactorParameteric(dfg::AbstractDFG,
     coordVals[findfirst(varLbls .== srcsym)] = currval
   end
   crds = tuple(coordVals...)
-  
-  pts = tuple(map(t->getPoint(t...), zip(varTypes,crds))...)
+
+  pts = tuple(map(t -> getPoint(t...), zip(varTypes, crds))...)
 
   # do the calculation to find solvefor index using the factor, as manifold point
-  pt = _evalFactorTemporary!( fctTyp, varTypes, sfidx, measT, pts; solveKey=solveKey, evaltmpkw... )[1]
+  pt = _evalFactorTemporary!(
+    fctTyp,
+    varTypes,
+    sfidx,
+    measT,
+    pts;
+    solveKey = solveKey,
+    evaltmpkw...,
+  )[1]
 
   return getCoordinates(getVariableType(dfg, trgsym), pt)
 end
-
-

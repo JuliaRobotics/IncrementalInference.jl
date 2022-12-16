@@ -2,8 +2,10 @@
 
 export PartialPriorPassThrough, PackedPartialPriorPassThrough
 
-
-struct PartialPriorPassThrough{B <: Union{<:HeatmapGridDensity,<:LevelSetGridNormal}, T <:Tuple} <: AbstractPrior
+struct PartialPriorPassThrough{
+  B <: Union{<:HeatmapGridDensity, <:LevelSetGridNormal},
+  T <: Tuple,
+} <: AbstractPrior
   Z::B
   partial::T
 end
@@ -11,13 +13,13 @@ end
 getManifold(pppt::PartialPriorPassThrough) = getManifold(pppt.Z)
 
 # this step is skipped during main inference process
-getSample(cf::CalcFactor{<:PartialPriorPassThrough}) = sampleTangent(getManifold(cf.factor), cf.factor.Z)
-
+function getSample(cf::CalcFactor{<:PartialPriorPassThrough})
+  return sampleTangent(getManifold(cf.factor), cf.factor.Z)
+end
 
 ## ====================================================================================================
 ## Serialize PartialPriorPassThrough
 ## ====================================================================================================
-
 
 """
     $TYPEDEF
@@ -29,23 +31,24 @@ Base.@kwdef mutable struct PackedPartialPriorPassThrough <: AbstractPackedFactor
   partial::Vector{Int}
 end
 
-
-function convert( ::Union{Type{<:AbstractPackedFactor}, Type{<:PackedPartialPriorPassThrough}},
-                  obj::PartialPriorPassThrough )
+function convert(
+  ::Union{Type{<:AbstractPackedFactor}, Type{<:PackedPartialPriorPassThrough}},
+  obj::PartialPriorPassThrough,
+)
   #
 
   po = convert(PackedSamplableBelief, obj.Z)
-  PackedPartialPriorPassThrough(po, Int[obj.partial...])
+  return PackedPartialPriorPassThrough(po, Int[obj.partial...])
 end
 
-
-function convert( ::Union{Type{<:AbstractFactor}, Type{<:PartialPriorPassThrough}},
-                  obj::PackedPartialPriorPassThrough )
+function convert(
+  ::Union{Type{<:AbstractFactor}, Type{<:PartialPriorPassThrough}},
+  obj::PackedPartialPriorPassThrough,
+)
   #
 
   dens = convert(SamplableBelief, obj.Z)
-  PartialPriorPassThrough(dens, tuple(obj.partial...))
+  return PartialPriorPassThrough(dens, tuple(obj.partial...))
 end
-
 
 #

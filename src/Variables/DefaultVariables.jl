@@ -1,8 +1,5 @@
 
-
 ## Euclid 1
-
-
 
 """
     $TYPEDEF
@@ -14,12 +11,19 @@ struct Position{N} <: InferenceVariable end
 Position(N::Int) = Position{N}()
 
 # not sure if these overloads are necessary since DFG 775?
-DFG.getManifold(::InstanceType{Position{N}}) where N = TranslationGroup(N)                             
-DFG.getDimension(val::InstanceType{Position{N}}) where N = manifold_dimension(getManifold(val))
-DFG.getPointType(::Type{Position{N}}) where N = Vector{Float64}
-DFG.getPointIdentity(M_::Type{Position{N}}) where N = zeros(N) # identity_element(getManifold(M_), zeros(N)) 
+DFG.getManifold(::InstanceType{Position{N}}) where {N} = TranslationGroup(N)
+function DFG.getDimension(val::InstanceType{Position{N}}) where {N}
+  return manifold_dimension(getManifold(val))
+end
+DFG.getPointType(::Type{Position{N}}) where {N} = Vector{Float64}
+DFG.getPointIdentity(M_::Type{Position{N}}) where {N} = zeros(N) # identity_element(getManifold(M_), zeros(N)) 
 
-Base.convert(::Type{<:ManifoldsBase.AbstractManifold}, ::InstanceType{Position{N}}) where N = TranslationGroup(N)
+function Base.convert(
+  ::Type{<:ManifoldsBase.AbstractManifold},
+  ::InstanceType{Position{N}},
+) where {N}
+  return TranslationGroup(N)
+end
 
 #
 
@@ -40,13 +44,11 @@ const Position4 = Position{4}
 
 ## Circular
 
-
 """
 $(TYPEDEF)
 
 Circular is a `Manifolds.Circle{ℝ}` mechanization of one rotation, with `theta in [-pi,pi)`.
 """
 @defVariable Circular RealCircleGroup() [0.0;]
-
 
 #

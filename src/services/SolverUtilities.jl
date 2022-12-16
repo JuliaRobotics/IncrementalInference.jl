@@ -3,13 +3,11 @@ function fastnorm(u)
   n = length(u)
   T = eltype(u)
   s = zero(T)
-  @fastmath @inbounds @simd for i in 1:n
-      s += u[i]^2
+  @fastmath @inbounds @simd for i = 1:n
+    s += u[i]^2
   end
   @fastmath @inbounds return sqrt(s)
 end
-
-
 
 # """
 #     $TYPEDSIGNATURES
@@ -24,31 +22,31 @@ end
 
 # `AMP.kld`
 # """
-function mmd( p1::AbstractVector{P1}, 
-              p2::AbstractVector{P2}, 
-              varType::Union{InstanceType{<:InferenceVariable},InstanceType{<:AbstractFactor}},
-              threads::Bool=true;
-              bw::AbstractVector{<:Real}=SA[0.001;] ) where {P1 <: AbstractVector, P2 <: AbstractVector}
+function mmd(
+  p1::AbstractVector{P1},
+  p2::AbstractVector{P2},
+  varType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
+  threads::Bool = true;
+  bw::AbstractVector{<:Real} = SA[0.001;],
+) where {P1 <: AbstractVector, P2 <: AbstractVector}
   #
   mani = getManifold(varType)
-  mmd(mani, p1, p2, length(p1), length(p2), threads; bw)  
+  return mmd(mani, p1, p2, length(p1), length(p2), threads; bw)
 end
 
-
-function mmd( p1::ManifoldKernelDensity, 
-              p2::ManifoldKernelDensity, 
-              nodeType::Union{InstanceType{<:InferenceVariable},InstanceType{<:AbstractFactor}},
-              threads::Bool=true;
-              bw::AbstractVector{<:Real}=SA[0.001;])
+function mmd(
+  p1::ManifoldKernelDensity,
+  p2::ManifoldKernelDensity,
+  nodeType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
+  threads::Bool = true;
+  bw::AbstractVector{<:Real} = SA[0.001;],
+)
   #
-  mmd(getPoints(p1), getPoints(p2), nodeType, threads; bw)
+  return mmd(getPoints(p1), getPoints(p2), nodeType, threads; bw)
 end
-
 
 # part of consolidation, see #927
-function sampleFactor!( ccwl::CommonConvWrapper, 
-                        N::Int, 
-                        fmd::FactorMetadata=_getFMdThread(ccwl))
+function sampleFactor!(ccwl::CommonConvWrapper, N::Int)
   #
   ccwl.measurement = sampleFactor(ccwl, N)
   # # build a CalcFactor object and get fresh samples.
@@ -56,38 +54,35 @@ function sampleFactor!( ccwl::CommonConvWrapper,
   # # TODO make this an in-place operation as far possible
   # ccwl.measurement = sampleFactor(cf, N)    
 
-  nothing
+  return nothing
 end
 
-function sampleFactor(ccwl::CommonConvWrapper,
-                      N::Int  )
+function sampleFactor(ccwl::CommonConvWrapper, N::Int)
   #
   cf = CalcFactor(ccwl) # CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
-  sampleFactor(cf, N)
+  return sampleFactor(cf, N)
 end
 
+sampleFactor(fct::DFGFactor, N::Int = 1) = sampleFactor(_getCCW(fct), N)
 
-sampleFactor(fct::DFGFactor, N::Int=1) = sampleFactor(_getCCW(fct), N)
-
-function sampleFactor(dfg::AbstractDFG, 
-                      sym::Symbol, 
-                      N::Int=1 )
+function sampleFactor(dfg::AbstractDFG, sym::Symbol, N::Int = 1)
   #
   return sampleFactor(getFactor(dfg, sym), N)
 end
-
 
 """
     $(SIGNATURES)
 
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
 """
-function updateFGBT!( fg::AbstractDFG,
-                      cliq::TreeClique,
-                      IDvals::Dict{Symbol, TreeBelief};
-                      dbg::Bool=false,
-                      fillcolor::String="",
-                      logger=ConsoleLogger()  )
+function updateFGBT!(
+  fg::AbstractDFG,
+  cliq::TreeClique,
+  IDvals::Dict{Symbol, TreeBelief};
+  dbg::Bool = false,
+  fillcolor::String = "",
+  logger = ConsoleLogger(),
+)
   #
   # if dbg
   #   # TODO find better location for the debug information (this is old code)
@@ -96,7 +91,7 @@ function updateFGBT!( fg::AbstractDFG,
   if fillcolor != ""
     setCliqueDrawColor!(cliq, fillcolor)
   end
-  for (id,dat) in IDvals
+  for (id, dat) in IDvals
     with_logger(logger) do
       @info "updateFGBT! up -- update $id, infoPerCoord=$(dat.infoPerCoord)"
     end
@@ -106,9 +101,8 @@ function updateFGBT!( fg::AbstractDFG,
   with_logger(logger) do
     @info "updateFGBT! up -- updated $(getLabel(cliq))"
   end
-  nothing
+  return nothing
 end
-
 
 """
     $SIGNATURES
@@ -123,37 +117,47 @@ Notes
 DevNotes
 - TODO allow pts to be full MKD beliefs, part of replacing old `approxConvCircular`, see #1351
 """
-function _buildGraphByFactorAndTypes!(fct::AbstractFactor, 
-                                      varTypes::Tuple,
-                                      pts::Tuple=();
-                                      dfg::AbstractDFG = initfg(),
-                                      solveKey::Symbol=:default,
-                                      newFactor::Bool=true,
-                                      destPattern::Regex = r"x\d+",
-                                      destPrefix::Symbol = match(r"[a-zA-Z_]+", destPattern.pattern).match |> Symbol,
-                                      _allVars::AbstractVector{Symbol} = sortDFG(ls(dfg, destPattern)),
-                                      currLabel::Symbol = 0 < length(_allVars) ? _allVars[end] : Symbol(destPrefix, 0),
-                                      currNumber::Integer = reverse(match(r"\d+", reverse(string(currLabel))).match) |> x->parse(Int,x),
-                                      graphinit::Bool = false,
-                                      _blockRecursion::Bool=false  )
+function _buildGraphByFactorAndTypes!(
+  fct::AbstractFactor,
+  varTypes::Tuple,
+  pts::Tuple = ();
+  dfg::AbstractDFG = initfg(),
+  solveKey::Symbol = :default,
+  newFactor::Bool = true,
+  destPattern::Regex = r"x\d+",
+  destPrefix::Symbol = match(r"[a-zA-Z_]+", destPattern.pattern).match |> Symbol,
+  _allVars::AbstractVector{Symbol} = sortDFG(ls(dfg, destPattern)),
+  currLabel::Symbol = 0 < length(_allVars) ? _allVars[end] : Symbol(destPrefix, 0),
+  currNumber::Integer = reverse(match(r"\d+", reverse(string(currLabel))).match) |>
+                        x -> parse(Int, x),
+  graphinit::Bool = false,
+  _blockRecursion::Bool = false,
+)
   #
-  
+
   # TODO generalize beyond binary
   len = length(varTypes)
   vars = Symbol[Symbol(destPrefix, s_) for s_ in (currNumber .+ (1:len))]
   for (s_, vTyp) in enumerate(varTypes)
     # add the necessary variables
-    exists(dfg, vars[s_]) ? nothing : addVariable!(dfg, vars[s_],  vTyp)
+    exists(dfg, vars[s_]) ? nothing : addVariable!(dfg, vars[s_], vTyp)
     # set the numerical values if available
     # TODO allow pts to come in as full MKD beliefs, not just one point
-    ((0 < length(pts)) && (pts[s_] isa Nothing)) ? nothing : initVariable!(dfg,  vars[s_], [pts[s_],], solveKey, bw=ones(getDimension(vTyp)))
+    if ((0 < length(pts)) && (pts[s_] isa Nothing))
+      nothing
+    else
+      initVariable!(dfg, vars[s_], [pts[s_]], solveKey; bw = ones(getDimension(vTyp)))
+    end
   end
   # if newFactor then add the factor on vars, else assume only one existing factor between vars
-  _dfgfct = newFactor ? addFactor!(dfg, vars, fct, graphinit=graphinit, _blockRecursion=_blockRecursion) : getFactor(dfg, intersect((ls.(dfg, vars))...)[1] )
-  
+  _dfgfct = if newFactor
+    addFactor!(dfg, vars, fct; graphinit = graphinit, _blockRecursion = _blockRecursion)
+  else
+    getFactor(dfg, intersect((ls.(dfg, vars))...)[1])
+  end
+
   return dfg, _dfgfct
 end
-
 
 """
     $SIGNATURES
@@ -203,32 +207,40 @@ end
 
 See also: [`RoME.generateGraph_Honeycomb!`](@ref), [`accumulateFactorMeans`](@ref), [`getPPE`](@ref)
 """
-function _checkVariableByReference( fg::AbstractDFG,
-                                    srcLabel::Symbol,
-                                    destRegex::Regex,
-                                    destType::Type{<:InferenceVariable},
-                                    factor::AbstractRelative;
-                                    srcType::Type{<:InferenceVariable} = getVariableType(fg, srcLabel) |> typeof,
-                                    doRef::Bool = true,
-                                    refKey::Symbol=:simulated,
-                                    prior = !doRef ? nothing : DFG._getPriorType(srcType)( MvNormal(getPPE(fg[srcLabel], refKey).suggested, diagm(ones(getDimension(srcType)))) ),
-                                    atol::Real = 1e-2,
-                                    destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
-                                    srcNumber = match(r"\d+", string(srcLabel)).match |> x->parse(Int,x),
-                                    overridePPE = doRef ? nothing : zeros(getDimension(destType))  )
+function _checkVariableByReference(
+  fg::AbstractDFG,
+  srcLabel::Symbol,
+  destRegex::Regex,
+  destType::Type{<:InferenceVariable},
+  factor::AbstractRelative;
+  srcType::Type{<:InferenceVariable} = getVariableType(fg, srcLabel) |> typeof,
+  doRef::Bool = true,
+  refKey::Symbol = :simulated,
+  prior = if !doRef
+    nothing
+  else
+    DFG._getPriorType(srcType)(
+    MvNormal(getPPE(fg[srcLabel], refKey).suggested, diagm(ones(getDimension(srcType)))),
+  )
+  end,
+  atol::Real = 1e-2,
+  destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
+  srcNumber = match(r"\d+", string(srcLabel)).match |> x -> parse(Int, x),
+  overridePPE = doRef ? nothing : zeros(getDimension(destType)),
+)
   #
-  
+
   refVal = if overridePPE !== nothing
     overridePPE
   else
     # calculate and add the reference value
     # TODO refactor consolidation to use `_buildGraphByFactorAndTypes!`
     tfg = initfg()
-    addVariable!(tfg, :x0, srcType )
-    addFactor!(tfg, [:x0], prior )
-    addVariable!(tfg, :l0, destType )
-    addFactor!( tfg, [:x0; :l0], factor, graphinit=false )
-    
+    addVariable!(tfg, :x0, srcType)
+    addFactor!(tfg, [:x0], prior)
+    addVariable!(tfg, :l0, destType)
+    addFactor!(tfg, [:x0; :l0], factor; graphinit = false)
+
     # calculate where the landmark reference position is
     accumulateFactorMeans(tfg, [:x0f1; :x0l0f1])
   end
@@ -238,8 +250,8 @@ function _checkVariableByReference( fg::AbstractDFG,
   # now check if we already have a landmark at this location
   varLms = ls(fg, destRegex) |> sortDFG
   already = if doRef
-    ppeLms = getPPE.(getVariable.(fg, varLms), refKey) .|> x->x.suggested
-    errmask = ppeLms .|> ( x -> isapprox(x, refVal; atol=atol) )
+    ppeLms = getPPE.(getVariable.(fg, varLms), refKey) .|> x -> x.suggested
+    errmask = ppeLms .|> (x -> isapprox(x, refVal; atol = atol))
     any(errmask)
   else
     false
@@ -251,25 +263,26 @@ function _checkVariableByReference( fg::AbstractDFG,
     # @info "Variable on :$refKey does exists at" srcLabel alrLm
     return true, ppe, alrLm
   end
-  
+
   # Nope does not exist, ppe, generated new variable label only
   return false, ppe, Symbol(destPrefix, srcNumber)
 end
 
-
-function _checkVariableByReference( fg::AbstractDFG,
-                                    srcLabel::Symbol,
-                                    destRegex::Regex,
-                                    destType::Type{<:InferenceVariable},
-                                    factor::AbstractPrior;
-                                    srcType::Type{<:InferenceVariable} = getVariableType(fg, srcLabel) |> typeof,
-                                    doRef::Bool = true,
-                                    refKey::Symbol=:simulated,
-                                    prior = typeof(factor)( MvNormal(getMeasurementParametric(factor)...) ),
-                                    atol::Real = 1e-3,
-                                    destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
-                                    srcNumber = match(r"\d+", string(srcLabel)).match |> x->parse(Int,x),
-                                    overridePPE = doRef ? nothing : zeros(getDimension(destType))  )
+function _checkVariableByReference(
+  fg::AbstractDFG,
+  srcLabel::Symbol,
+  destRegex::Regex,
+  destType::Type{<:InferenceVariable},
+  factor::AbstractPrior;
+  srcType::Type{<:InferenceVariable} = getVariableType(fg, srcLabel) |> typeof,
+  doRef::Bool = true,
+  refKey::Symbol = :simulated,
+  prior = typeof(factor)(MvNormal(getMeasurementParametric(factor)...)),
+  atol::Real = 1e-3,
+  destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
+  srcNumber = match(r"\d+", string(srcLabel)).match |> x -> parse(Int, x),
+  overridePPE = doRef ? nothing : zeros(getDimension(destType)),
+)
   #
 
   refVal = if overridePPE !== nothing
@@ -283,9 +296,5 @@ function _checkVariableByReference( fg::AbstractDFG,
   # Nope does not exist, ppe, generated new variable label only
   return false, ppe, Symbol(destPrefix, srcNumber)
 end
-
-
-
-
 
 #

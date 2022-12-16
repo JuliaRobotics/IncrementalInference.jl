@@ -1,5 +1,4 @@
 
-
 # likely to be deleted at some point
 
 ## =============================================================================
@@ -30,13 +29,11 @@ getCliqueStatus(cliq::TreeClique) = getCliqueStatus(getCliqueData(cliq))
 Set up initialization or solve status of this `cliq`.
 """
 function setCliqueStatus!(cdat::BayesTreeNodeData, status::CliqStatus)
-  cdat.status = status
+  return cdat.status = status
 end
-setCliqueStatus!(cliq::TreeClique, status::CliqStatus) = setCliqueStatus!(getCliqueData(cliq), status)
-
-
-
-
+function setCliqueStatus!(cliq::TreeClique, status::CliqStatus)
+  return setCliqueStatus!(getCliqueData(cliq), status)
+end
 
 ## =============================================================================
 ## Regular up and down Message Registers/Channels, getters and setters
@@ -97,7 +94,6 @@ function putBeliefMessageDown!(tree::AbstractBayesTree, edge, beliefMsg::Likelih
   return beliefMsg
 end
 
-
 """
     $SIGNATURES
 
@@ -109,7 +105,6 @@ function takeBeliefMessageDown!(tree::AbstractBayesTree, edge)
   return beliefMsg
 end
 
-
 ##==============================================================================
 ## Clique Message Buffers
 ##==============================================================================
@@ -119,7 +114,7 @@ Get the message buffer that is used to store messages in the clique between stat
 Tx messages are currently used for debugging only and messages are recalculated on each pass. 
 """
 function getMessageBuffer(btnd::BayesTreeNodeData)
-  btnd.messages
+  return btnd.messages
 end
 getMessageBuffer(clique::TreeClique) = getCliqueData(clique).messages
 
@@ -143,5 +138,3 @@ getMessageUpTx(clique::TreeClique) = getMessageBuffer(clique).upTx
 Used for debugging only, the down message that was sent by the clique
 """
 getMessageDownTx(clique::TreeClique) = getMessageBuffer(clique).downTx
-
-

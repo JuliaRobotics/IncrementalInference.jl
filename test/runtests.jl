@@ -12,6 +12,7 @@ end
 if TEST_GROUP in ["all", "basic_functional_group"]
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
+include("testBasicManifolds.jl")
 include("testSpecialEuclidean2Mani.jl")
 
 # start as basic as possible and build from there
@@ -41,7 +42,6 @@ include("testFactorGradients.jl")
 include("testSpecialSampler.jl") # TODO, rename, refine
 include("testNLsolve.jl")
 include("testCommonConvWrapper.jl")
-include("testFactorMetadata.jl")
 
 include("testApproxConv.jl")
 include("testBasicForwardConvolve.jl")

@@ -2,7 +2,6 @@
 
 ## Initial version of selecting the dimension of a factor -- will be consolidated with existing infrastructure later
 
-
 """
     $SIGNATURES
 
@@ -30,33 +29,34 @@ Related
 
 [`approxDeconv`](@ref), [`_solveCCWNumeric!`](@ref)
 """
-function approxDeconv(fcto::DFGFactor,
-                      ccw::CommonConvWrapper = _getCCW(fcto);
-                      N::Int=100,
-                      measurement::AbstractVector=sampleFactor(ccw, N),
-                      retries::Int=3  )
+function approxDeconv(
+  fcto::DFGFactor,
+  ccw::CommonConvWrapper = _getCCW(fcto);
+  N::Int = 100,
+  measurement::AbstractVector = sampleFactor(ccw, N),
+  retries::Int = 3,
+)
   #
   # but what if this is a partial factor -- is that important for general cases in deconv?
   _setCCWDecisionDimsConv!(ccw)
-  
+
   # FIXME This does not incorporate multihypo??
   varsyms = getVariableOrder(fcto)
   # vars = getPoints.(getBelief.(dfg, varsyms, solveKey) )
   fcttype = getFactorType(fcto)
-  
+
   # get measurement dimension
   zDim = _getZDim(fcto)
   # TODO consider using ccw.cpt[thrid].res # likely needs resizing
   res_ = zeros(zDim)
   # TODO, consolidate fmd with getSample/sampleFactor and _buildLambda
   fctSmpls = deepcopy(measurement)
-  fmd = _getFMdThread(ccw)
-  
+
   # TODO assuming vector on only first container in measurement::Tuple
   makeTarget = (i) -> measurement[i] # TODO does not support copy-primitive types like Float64, only Ref()
   # makeTarget = (i) -> view(measurement[1][i],:)
   # makeTarget = (i) -> view(measurement[1], :, i)
-  
+
   # NOTE 
   # build a lambda that incorporates the multihypo selections
   # set these first
@@ -66,36 +66,36 @@ function approxDeconv(fcto::DFGFactor,
   # certainidx, allelements, activehypo, mhidx = 
   # only doing the current active hypo
   @assert hyporecipe.activehypo[2][1] == 1 "deconv was expecting hypothesis nr == (1, 1:d)"
-  
-  islen1 = zDim == 1
-  
-  for idx in 1:N
-    # towards each particle in their own thread (not 100% ready yet, factors should be separate memory)
-    thrid = Threads.threadid()
-    cpt_ = ccw.cpt[thrid]
-    targeti_ = makeTarget(idx)
-    
-    # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
-    cpt_.activehypo = hyporecipe.activehypo[2][2]
 
-    onehypo!, _ = _buildCalcFactorLambdaSample( ccw,
-                                                idx,
-                                                cpt_,
-                                                targeti_,
-                                                measurement  )
+  islen1 = zDim == 1
+
+  for idx = 1:N
+    # towards each particle in their own thread (not 100% ready yet, factors should be separate memory)
+    targeti_ = makeTarget(idx)
+
+    # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
+    ccw.activehypo = hyporecipe.activehypo[2][2]
+
+    onehypo!, _ = _buildCalcFactorLambdaSample(ccw, idx, targeti_, measurement)
     #
-    
+
     # lambda with which to find best measurement values
-    hypoObj = (tgt) -> (targeti_.=tgt; onehypo!() )
+    hypoObj = (tgt) -> (targeti_ .= tgt; onehypo!())
 
     # find solution via SubArray view pointing to original memory location
     if fcttype isa AbstractManifoldMinimize
       sfidx = ccw.varidx
-      targeti_ .= _solveLambdaNumericMeas(fcttype, hypoObj, res_, measurement[idx], ccw.vartypes[sfidx](), islen1)
+      targeti_ .= _solveLambdaNumericMeas(
+        fcttype,
+        hypoObj,
+        res_,
+        measurement[idx],
+        ccw.vartypes[sfidx](),
+        islen1,
+      )
     else
       targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx], islen1)
     end
-
   end
 
   # return (deconv-prediction-result, independent-measurement)
@@ -103,8 +103,6 @@ function approxDeconv(fcto::DFGFactor,
   # r_fctSmpls = map(m->m[1], fctSmpls)
   return measurement, fctSmpls
 end
-
-
 
 """
     $SIGNATURES
@@ -120,26 +118,30 @@ Related
 
 [`approxConv`](@ref), `deconvSolveKey`
 """
-function approxDeconv(dfg::AbstractDFG, 
-                      fctsym::Symbol, 
-                      solveKey::Symbol=:default;
-                      retries::Int=3  )
+function approxDeconv(
+  dfg::AbstractDFG,
+  fctsym::Symbol,
+  solveKey::Symbol = :default;
+  retries::Int = 3,
+)
   #
-  
+
   # which factor
   fct = getFactor(dfg, fctsym)
-  pts = getPoints(getBelief(dfg,getVariableOrder(fct)[1], solveKey))
+  pts = getPoints(getBelief(dfg, getVariableOrder(fct)[1], solveKey))
   N = length(pts)
-  pts = approxDeconv(fct, N=N, retries=retries )
+  pts = approxDeconv(fct; N = N, retries = retries)
   return pts
 end
 
-function approxDeconv(dfg::AbstractDFG,
-                      fctlbl::Symbol,
-                      factorType::AbstractRelative,
-                      solveKey::Symbol=:default;
-                      tfg::AbstractDFG=initfg(), 
-                      retries::Int=3 )
+function approxDeconv(
+  dfg::AbstractDFG,
+  fctlbl::Symbol,
+  factorType::AbstractRelative,
+  solveKey::Symbol = :default;
+  tfg::AbstractDFG = initfg(),
+  retries::Int = 3,
+)
   #
 
   # build a local temporary graph copy containing the same values but user requested factor type.
@@ -152,23 +154,30 @@ function approxDeconv(dfg::AbstractDFG,
   end
 
   # add factor type requested by user
-  f_ = addFactor!(tfg, lbls, factorType, graphinit=false)
+  f_ = addFactor!(tfg, lbls, factorType; graphinit = false)
 
   # peform the deconvolution operation on the temporary graph with user desired factor instead.
-  approxDeconv(tfg, getLabel(f_); retries=retries)
+  return approxDeconv(tfg, getLabel(f_); retries = retries)
 end
 
 # try default constructor
-approxDeconv( dfg::AbstractDFG,
-              fctlbl::Symbol,
-              factorType::Type{<:AbstractRelative},
-              w...;
-              kw... ) = approxDeconv(dfg, fctlbl, factorType(), w...; kw...)
+function approxDeconv(
+  dfg::AbstractDFG,
+  fctlbl::Symbol,
+  factorType::Type{<:AbstractRelative},
+  w...;
+  kw...,
+)
+  return approxDeconv(dfg, fctlbl, factorType(), w...; kw...)
+end
 #
 
-
-approxDeconvBelief(dfg::AbstractDFG, lb::Symbol, w...;kw...) = manikde!(getManifold(getFactorType(dfg, lb)), approxDeconv(dfg, lb, w...;kw...)[1] )
-
+function approxDeconvBelief(dfg::AbstractDFG, lb::Symbol, w...; kw...)
+  return manikde!(
+    getManifold(getFactorType(dfg, lb)),
+    approxDeconv(dfg, lb, w...; kw...)[1],
+  )
+end
 
 """
     $SIGNATURES
@@ -194,12 +203,14 @@ Related
 
 [`approxDeconv`](@ref), [`mmd`](@ref)
 """
-function deconvSolveKey(dfg::AbstractDFG, 
-                        refSym::Symbol, 
-                        refKey::Symbol, 
-                        tstSym::Symbol, 
-                        tstKey::Symbol;  
-                        tfg = initfg()  )
+function deconvSolveKey(
+  dfg::AbstractDFG,
+  refSym::Symbol,
+  refKey::Symbol,
+  tstSym::Symbol,
+  tstKey::Symbol;
+  tfg = initfg(),
+)
   #
   # create a new temporary factor graph for calculations
 
@@ -234,6 +245,5 @@ function deconvSolveKey(dfg::AbstractDFG,
   # return result
   return pts, fctType
 end
-
 
 #

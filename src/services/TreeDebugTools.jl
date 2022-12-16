@@ -1,7 +1,6 @@
 
 #
 
-
 """
     $SIGNATURES
 
@@ -23,18 +22,24 @@ Related
 getGraphFromHistory, printCliqHistorySummary, printCliqSummary
 """
 getCliqSubgraphFromHistory(hist::Vector{<:Tuple}, step::Int) = hist[step][4].cliqSubFg
-getCliqSubgraphFromHistory(tree::AbstractBayesTree, hists::Dict{Symbol, Tuple}, frnt::Symbol, step::Int) = getCliqSubgraphFromHistory(hists[frnt], step)
-
-
-function printCliqSummary(dfg::G,
-                          tree::AbstractBayesTree,
-                          frs::Symbol,
-                          logger=ConsoleLogger() ) where G <: AbstractDFG
-  #
-  printCliqSummary(dfg, getClique(tree, frs), logger)
+function getCliqSubgraphFromHistory(
+  tree::AbstractBayesTree,
+  hists::Dict{Symbol, Tuple},
+  frnt::Symbol,
+  step::Int,
+)
+  return getCliqSubgraphFromHistory(hists[frnt], step)
 end
 
-
+function printCliqSummary(
+  dfg::G,
+  tree::AbstractBayesTree,
+  frs::Symbol,
+  logger = ConsoleLogger(),
+) where {G <: AbstractDFG}
+  #
+  return printCliqSummary(dfg, getClique(tree, frs), logger)
+end
 
 """
     $(SIGNATURES)
@@ -42,23 +47,23 @@ end
 Calculate a fresh (single step) approximation to the variable `sym` in clique `cliq` as though during the upward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variables based on the structure of the clique, factors, and incoming messages.
 Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `getClique(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
 """
-function treeProductUp(fg::AbstractDFG,
-                        tree::AbstractBayesTree,
-                        cliq::Symbol,
-                        sym::Symbol;
-                        N::Int=100,
-                        dbg::Bool=false  )
+function treeProductUp(
+  fg::AbstractDFG,
+  tree::AbstractBayesTree,
+  cliq::Symbol,
+  sym::Symbol;
+  N::Int = 100,
+  dbg::Bool = false,
+)
   #
   cliq = getClique(tree, cliq)
   cliqdata = getCliqueData(cliq)
 
   # perform the actual computation
-  pGM, fulldim = predictbelief(fg, sym, :, N=N, dbg=dbg )
+  pGM, fulldim = predictbelief(fg, sym, :; N = N, dbg = dbg)
 
   return pGM, nothing
 end
-
-
 
 """
     $(SIGNATURES)
@@ -66,12 +71,14 @@ end
 Calculate a fresh---single step---approximation to the variable `sym` in clique `cliq` as though during the downward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variable based on the structure of variables, factors, and incoming messages to this clique.
 Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `getClique(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
 """
-function treeProductDwn(fg::G,
-                        tree::AbstractBayesTree,
-                        cliq::Symbol,
-                        sym::Symbol;
-                        N::Int=100,
-                        dbg::Bool=false  ) where G <: AbstractDFG
+function treeProductDwn(
+  fg::G,
+  tree::AbstractBayesTree,
+  cliq::Symbol,
+  sym::Symbol;
+  N::Int = 100,
+  dbg::Bool = false,
+) where {G <: AbstractDFG}
   #
   @warn "treeProductDwn might not be working properly at this time. (post DFG v0.6 upgrade maintenance required)"
   cliq = getClique(tree, cliq)
@@ -86,17 +93,16 @@ function treeProductDwn(fg::G,
   msgdict = getDwnMsgs(cl[1])
   dict = Dict{Int, TreeBelief}()
   for (dsy, btd) in msgdict
-      dict[fg.IDs[dsy]] = TreeBelief(btd.val, btd.bw, btd.infoPerCoord, getVariableType(getVariable(fg,sym)) )
+    dict[fg.IDs[dsy]] =
+      TreeBelief(btd.val, btd.bw, btd.infoPerCoord, getVariableType(getVariable(fg, sym)))
   end
   dwnmsgssym = LikelihoodMessage[LikelihoodMessage(dict);]
 
   # perform the actual computation
-  pGM, fulldim = predictbelief(fg, sym, :, N=N, dbg=dbg)
+  pGM, fulldim = predictbelief(fg, sym, :; N = N, dbg = dbg)
 
   return pGM, nothing, sym, dwnmsgssym
 end
-
-
 
 """
     $SIGNATURES
@@ -107,27 +113,29 @@ Related:
 
 [`printCliqHistorySequential`](@ref), [`printCliqHistorySummary`](@ref)
 """
-function printHistoryLine(fid,
-                          hi::CSMHistoryTuple,
-                          cliqid::AbstractString="",
-                          seq::Int=0)
+function printHistoryLine(
+  fid,
+  hi::CSMHistoryTuple,
+  cliqid::AbstractString = "",
+  seq::Int = 0,
+)
   #
-  
+
   # global sequence number
   first = clampBufferString("$seq", 5)
 
   # 5.13
   first *= clampBufferString("$cliqid.$(string(hi[2]))", 6)
-  
+
   # time
   first *= clampBufferString(string(split(string(hi[1]), 'T')[end]), 14)
 
   # next function
-  nextfn = split(split(string(hi[3]),'.')[end], '_')[1]
-  first *= clampBufferString(nextfn*"                             ", 20, 18)
-  
+  nextfn = split(split(string(hi[3]), '.')[end], '_')[1]
+  first *= clampBufferString(nextfn * "                             ", 20, 18)
+
   first *= " | "
-  first *= clampBufferString(string(getCliqueStatus(hi[4].cliq))*"             ", 9, 7)
+  first *= clampBufferString(string(getCliqueStatus(hi[4].cliq)) * "             ", 9, 7)
 
   # parent status
   first *= " P "
@@ -138,17 +146,17 @@ function printHistoryLine(fid,
   else
     "  ----"
   end
-  first *= clampBufferString(toadd*"          ", 9, 7)
+  first *= clampBufferString(toadd * "          ", 9, 7)
 
   # children status
-  first = first*"C "
+  first = first * "C "
 
   upRxMessages = getMessageBuffer(hi[4].cliq).upRx
   # all_child_status = map((k,msg) -> (k,msg.status), pairs(upRxMessages))
   if length(upRxMessages) > 0
-    for (k,msg) in upRxMessages
-      toadd = string(k)*":"*string(msg.status)*" "
-      first *= clampBufferString(toadd*"                  ", 8, 7)
+    for (k, msg) in upRxMessages
+      toadd = string(k) * ":" * string(msg.status) * " "
+      first *= clampBufferString(toadd * "                  ", 8, 7)
     end
   else
     first *= clampBufferString("  ----", 8)
@@ -166,7 +174,7 @@ function printHistoryLine(fid,
   #   end
   # end
 
-  println(fid, first)
+  return println(fid, first)
 end
 
 """
@@ -178,34 +186,37 @@ Related:
 
 getTreeAllFrontalSyms, animateCliqStateMachines, printHistoryLine, printCliqHistorySequential
 """
-function printCliqHistorySummary( fid,
-                                  hist::Vector{CSMHistoryTuple},
-                                  cliqid::AbstractString="")
+function printCliqHistorySummary(
+  fid,
+  hist::Vector{CSMHistoryTuple},
+  cliqid::AbstractString = "",
+)
   if length(hist) == 0
     @warn "printCliqHistorySummary -- No CSM history found."
   end
   for hi in hist
-    printHistoryLine(fid,hi,cliqid)
+    printHistoryLine(fid, hi, cliqid)
   end
-  nothing
+  return nothing
 end
 
-function printCliqHistorySummary( hist::Vector{CSMHistoryTuple},
-                                  cliqid::AbstractString="")
+function printCliqHistorySummary(hist::Vector{CSMHistoryTuple}, cliqid::AbstractString = "")
   #
-  printCliqHistorySummary(stdout, hist, cliqid)
+  return printCliqHistorySummary(stdout, hist, cliqid)
 end
 
-function printCliqHistorySummary( hists::Dict{Int,Vector{CSMHistoryTuple}},
-                                  tree::AbstractBayesTree,
-                                  sym::Symbol  )
+function printCliqHistorySummary(
+  hists::Dict{Int, Vector{CSMHistoryTuple}},
+  tree::AbstractBayesTree,
+  sym::Symbol,
+)
   #
   hist = hists[getClique(tree, sym).id]
-  printCliqHistorySummary(stdout, hist, string(getClique(tree, sym).id))
+  return printCliqHistorySummary(stdout, hist, string(getClique(tree, sym).id))
 end
 
 # TODO maybe Base. already has something like this Union{UnitRange, AbstractVector, etc.}
-const CSMRangesT{T} = Union{T,UnitRange{T},<:AbstractVector{T} }
+const CSMRangesT{T} = Union{T, UnitRange{T}, <:AbstractVector{T}}
 const CSMRanges = CSMRangesT{Int}
 # old
 # const CSMTupleRangesT{T} = Union{Tuple{T,T},Tuple{T,UnitRange{T}},Tuple{T,AbstractVector{T}},Tuple{UnitRange{T},T},Tuple{UnitRange{T},UnitRange{T}},Tuple{AbstractVector{T},T},Tuple{AbstractVector{T},AbstractVector{T}},Tuple{AbstractVector{T},UnitRange{T}} }
@@ -240,15 +251,17 @@ Related:
 
 printHistoryLine, printCliqHistory
 """
-function printCSMHistorySequential( hists::Dict{Int,Vector{CSMHistoryTuple}},
-                                    whichsteps::Union{Nothing,Vector{<:Pair{<:CSMRanges,<:CSMRanges}}}=nothing,
-                                    fid=stdout )
+function printCSMHistorySequential(
+  hists::Dict{Int, Vector{CSMHistoryTuple}},
+  whichsteps::Union{Nothing, Vector{<:Pair{<:CSMRanges, <:CSMRanges}}} = nothing,
+  fid = stdout,
+)
   #
   # vectorize all histories in single Array
   allhists = Vector{CSMHistoryTuple}()
   alltimes = Vector{DateTime}()
   allcliqids = Vector{Int}()
-  for (cid,hist) in hists, hi in hist
+  for (cid, hist) in hists, hi in hist
     push!(allhists, hi)
     push!(alltimes, hi[1])
     push!(allcliqids, cid)
@@ -261,40 +274,44 @@ function printCSMHistorySequential( hists::Dict{Int,Vector{CSMHistoryTuple}},
   allcliqids_ = allcliqids[pm]
 
   # print each line of the sorted array with correct cliqid marker
-  for idx in 1:length(alltimes)
+  for idx = 1:length(alltimes)
     hiln = allhists_[idx]
     # show only one line if whichstep is not nothing
     inSliceList = whichsteps === nothing
     if !inSliceList
       for whichstep in whichsteps
         inSliceList && break
-        inSliceList = inSliceList || (allcliqids_[idx] in whichstep[1] && hiln[2] in whichstep[2])
+        inSliceList =
+          inSliceList || (allcliqids_[idx] in whichstep[1] && hiln[2] in whichstep[2])
       end
     end
     if inSliceList
-      printHistoryLine(fid,hiln,string(allcliqids_[idx]), idx)
+      printHistoryLine(fid, hiln, string(allcliqids_[idx]), idx)
     end
   end
-  nothing
+  return nothing
 end
 
-function printCSMHistorySequential(hists::Dict{Int,Vector{CSMHistoryTuple}},
-                                    whichstep::Pair{<:CSMRanges,<:CSMRanges},
-                                    fid=stdout)
+function printCSMHistorySequential(
+  hists::Dict{Int, Vector{CSMHistoryTuple}},
+  whichstep::Pair{<:CSMRanges, <:CSMRanges},
+  fid = stdout,
+)
   #
-  printCSMHistorySequential(hists,[whichstep;], fid)
+  return printCSMHistorySequential(hists, [whichstep;], fid)
 end
 
-function printCSMHistorySequential(hists::Dict{Int,Vector{CSMHistoryTuple}},
-                                    fid::AbstractString)
+function printCSMHistorySequential(
+  hists::Dict{Int, Vector{CSMHistoryTuple}},
+  fid::AbstractString,
+)
   #
   @info "printCliqHistorySequential -- assuming file request, writing history to $fid"
   file = open(fid, "w")
   printCSMHistorySequential(hists, nothing, file)
   close(file)
-  nothing
+  return nothing
 end
-
 
 """
     $SIGNATURES
@@ -310,15 +327,17 @@ Related:
 
 printCliqHistoryLogical, printCliqHistoryLine
 """
-function printHistoryLane(fid,
-                          linecounter::Union{Int,String},
-                          hiVec::Vector{<:Union{NamedTuple,Tuple}},
-                          seqLookup::NothingUnion{Dict{Pair{Int,Int},Int}}=nothing )
+function printHistoryLane(
+  fid,
+  linecounter::Union{Int, String},
+  hiVec::Vector{<:Union{NamedTuple, Tuple}},
+  seqLookup::NothingUnion{Dict{Pair{Int, Int}, Int}} = nothing,
+)
   #
 
   ## build a string
-  line = clampBufferString("$linecounter",4)
-  for counter in 1:length(hiVec)
+  line = clampBufferString("$linecounter", 4)
+  for counter = 1:length(hiVec)
     # lane marker
     line *= "| "
     if !isassigned(hiVec, counter)
@@ -327,20 +346,18 @@ function printHistoryLane(fid,
     end
     hi = hiVec[counter]
     # global counter
-    useCount = seqLookup !== nothing ? seqLookup[(hi[4].cliq.id.value=>hi[2])] : hi[2]
-    line *= clampBufferString("$(useCount)",4)
+    useCount = seqLookup !== nothing ? seqLookup[(hi[4].cliq.id.value => hi[2])] : hi[2]
+    line *= clampBufferString("$(useCount)", 4)
     # next function
-    nextfn = split(string(hi[3]),'.')[end]
+    nextfn = split(string(hi[3]), '.')[end]
     line *= clampBufferString(nextfn, 10, 9)
     # clique status
     st = hi[4] isa String ? hi[4] : string(getCliqueStatus(hi[4].cliq))
     line *= clampBufferString(st, 5, 4)
   end
   ## print the string
-  println(fid, line)
+  return println(fid, line)
 end
-
-
 
 """
     $SIGNATURES
@@ -362,10 +379,12 @@ close(fid)
 DevNotes
 - `order` should be flexible like `Sequential` and `<:CSMRanges`.
 """
-function printCSMHistoryLogical(hists::Dict{Int,Vector{CSMHistoryTuple}},
-                                fid=stdout;
-                                order::AbstractVector{Int}=sort(collect(keys(hists))),
-                                printLines=1:99999999  )
+function printCSMHistoryLogical(
+  hists::Dict{Int, Vector{CSMHistoryTuple}},
+  fid = stdout;
+  order::AbstractVector{Int} = sort(collect(keys(hists))),
+  printLines = 1:99999999,
+)
   #
 
   # vectorize all histories in single Array
@@ -375,8 +394,8 @@ function printCSMHistoryLogical(hists::Dict{Int,Vector{CSMHistoryTuple}},
   # "lanes" (i.e. individual cliques)
   numLanes = length(order)
   # "lines" (i.e. CSM steps)
-  maxLines = [0;0]
-  for (cid,hist) in hists 
+  maxLines = [0; 0]
+  for (cid, hist) in hists
     # find max number of lines to print later
     maxLines[2] = length(hist)
     maxLines[1] = maximum(maxLines)
@@ -386,39 +405,38 @@ function printCSMHistoryLogical(hists::Dict{Int,Vector{CSMHistoryTuple}},
       push!(allcliqids, cid)
     end
   end
-  maxLines[1] = minimum([maxLines[1];printLines[end]])
-  
+  maxLines[1] = minimum([maxLines[1]; printLines[end]])
+
   # sort array by timestamp element
   pm = sortperm(alltimes)
   allhists_ = allhists[pm]
   alltimes_ = alltimes[pm]
   allcliqids_ = allcliqids[pm]
-  
-    # first get the global sequence (invert order dict as bridge table)
-    seqLookup = Dict{Pair{Int,Int},Int}()
-    for idx in 1:length(alltimes)
-      hiln = allhists_[idx]
-      seqLookup[(hiln[4].cliq.id.value => hiln[2])] = idx
-    end
 
-  
+  # first get the global sequence (invert order dict as bridge table)
+  seqLookup = Dict{Pair{Int, Int}, Int}()
+  for idx = 1:length(alltimes)
+    hiln = allhists_[idx]
+    seqLookup[(hiln[4].cliq.id.value => hiln[2])] = idx
+  end
+
   # print the column titles
   titles = Vector{Tuple{String, Int, String, String}}()
   for ord in order
     csym = 0 < length(hists[ord]) ? getFrontals(hists[ord][1][4].cliq)[1] |> string : ""
-    csym = clampBufferString("$csym", 9) 
-    push!(titles, ("",ord,csym,clampBufferString("", 10)) )
+    csym = clampBufferString("$csym", 9)
+    push!(titles, ("", ord, csym, clampBufferString("", 10)))
   end
   printHistoryLane(fid, "", titles)
-  print(fid,"----")
-  for i in 1:numLanes
-    print(fid,"+--------------------")
+  print(fid, "----")
+  for i = 1:numLanes
+    print(fid, "+--------------------")
   end
-  println(fid,"")
+  println(fid, "")
 
   glbSeqCt = 0 # Ref{Int}(0)
   ## repeat for the maximum number of "lines" (i.e. CSM steps)
-  for idx in printLines[1]:maxLines[1]
+  for idx = printLines[1]:maxLines[1]
 
     ## build each line as vector of "lanes" (i.e. individual cliques)
     allLanes = Vector{CSMHistoryTuple}(undef, numLanes)
@@ -440,8 +458,6 @@ function printCSMHistoryLogical(hists::Dict{Int,Vector{CSMHistoryTuple}},
   end
 end
 # print each line of the sorted array with correct cliqid marker
-
-
 
 """
   $SIGNATURES
@@ -494,34 +510,42 @@ Related
 
 [`solveTree!`](@ref), [`solveCliqUp!`](@ref), [`fetchCliqHistoryAll`](@ref), [`printCSMHistoryLogical`](@ref), [`printCSMHistorySequential`](@ref), cliqHistFilterTransitions
 """
-function repeatCSMStep!(hist::AbstractVector{<:CSMHistoryTuple}, 
-                        step::Int; 
-                        duplicate::Bool=true,
-                        enableLogging::Bool=false )
+function repeatCSMStep!(
+  hist::AbstractVector{<:CSMHistoryTuple},
+  step::Int;
+  duplicate::Bool = true,
+  enableLogging::Bool = false,
+)
   #
-  
+
   # the function at steo 
   fnc_ = hist[step].f
   # the data before step
-  csmc_ = (duplicate ? x->deepcopy(x) : x->x)( hist[step].csmc )
+  csmc_ = (duplicate ? x -> deepcopy(x) : x -> x)(hist[step].csmc)
   csmc_.enableLogging = enableLogging
   csmc_.logger = enableLogging ? SimpleLogger() : SimpleLogger(Base.devnull)
-  
+
   # run the step
   newfnc_ = fnc_(csmc_)
-  newfnc_, csmc_
+  return newfnc_, csmc_
 end
 
-function repeatCSMStep!(hists::Dict{Int,<:AbstractVector{CSMHistoryTuple}}, 
-                        csmid::Int, 
-                        step::Int; 
-                        duplicate::Bool=true,
-                        enableLogging::Bool=false )
+function repeatCSMStep!(
+  hists::Dict{Int, <:AbstractVector{CSMHistoryTuple}},
+  csmid::Int,
+  step::Int;
+  duplicate::Bool = true,
+  enableLogging::Bool = false,
+)
   #
-  
-  repeatCSMStep!(hists[csmid], step, duplicate=duplicate, enableLogging=enableLogging)
-end
 
+  return repeatCSMStep!(
+    hists[csmid],
+    step;
+    duplicate = duplicate,
+    enableLogging = enableLogging,
+  )
+end
 
 """
     $SIGNATURES
@@ -529,10 +553,12 @@ Reattach a CSM's data container after the deepcopy used from recordcliq.
 
 MIGHT BE OBSOLETE
 """
-function attachCSM!(csmc::CliqStateMachineContainer,
-                    dfg::AbstractDFG,
-                    tree::MetaBayesTree;
-                    logger = SimpleLogger())
+function attachCSM!(
+  csmc::CliqStateMachineContainer,
+  dfg::AbstractDFG,
+  tree::MetaBayesTree;
+  logger = SimpleLogger(),
+)
   #
   # csmc = csmc__
 
@@ -554,8 +580,6 @@ function attachCSM!(csmc::CliqStateMachineContainer,
   return csmc
 end
 
-
-
 """
     $SIGNATURES
 
@@ -569,10 +593,12 @@ Related
 
 printCliqHistorySummary
 """
-function animateCliqStateMachines(tree::AbstractBayesTree,
-                                  cliqsyms::Vector{Symbol},
-                                  hists::Dict{Symbol, Tuple};
-                                  frames::Int=100  )
+function animateCliqStateMachines(
+  tree::AbstractBayesTree,
+  cliqsyms::Vector{Symbol},
+  hists::Dict{Symbol, Tuple};
+  frames::Int = 100,
+)
   #
   error("`animateCliqStateMachines` is outdated")
   startT = Dates.now()
@@ -590,7 +616,7 @@ function animateCliqStateMachines(tree::AbstractBayesTree,
       first = false
     end
     if stopT < hist[end][1]
-      stopT= hist[end][1]
+      stopT = hist[end][1]
     end
   end
 
@@ -599,7 +625,15 @@ function animateCliqStateMachines(tree::AbstractBayesTree,
   for sym in cliqsyms
     hist = hists[sym] #getCliqSolveHistory(tree, sym)
     # hist = getCliqSolveHistory(tree, sym)
-    retval = animateStateMachineHistoryByTime(hist, frames=frames, folder="caesar/animatecsm/cliq$sym", title="$sym", startT=startT, stopT=stopT, rmfirst=false)
+    retval = animateStateMachineHistoryByTime(
+      hist;
+      frames = frames,
+      folder = "caesar/animatecsm/cliq$sym",
+      title = "$sym",
+      startT = startT,
+      stopT = stopT,
+      rmfirst = false,
+    )
     push!(folders, "cliq$sym")
   end
 
@@ -634,7 +668,12 @@ Related:
 
 printCliqHistorySummary, cliqHistFilterTransitions, sandboxCliqResolveStep
 """
-function filterHistAllToArray(tree::AbstractBayesTree, hists::Dict{Symbol, Tuple}, frontals::Vector{Symbol}, nextfnc::Function)
+function filterHistAllToArray(
+  tree::AbstractBayesTree,
+  hists::Dict{Symbol, Tuple},
+  frontals::Vector{Symbol},
+  nextfnc::Function,
+)
   error("filterHistAllToArray needs to be updated for new CSM")
   ret = Vector{CSMHistoryTuple}()
   for sym in frontals
@@ -646,7 +685,6 @@ function filterHistAllToArray(tree::AbstractBayesTree, hists::Dict{Symbol, Tuple
   end
   return ret
 end
-
 
 """
     $SIGNATURES
@@ -686,24 +724,27 @@ run(`ffmpeg -r 10 -i /tmp/caesar/csmCompound/csm_%d.png -c:v libx264 -vf fps=25 
 run(`vlc /tmp/caesar/csmCompound/out.mp4`)
 ```
 """
-function animateCSM(tree::AbstractBayesTree,
-                    autohist::Dict{Int, T};
-                    frames::Int=100,
-                    interval::Int=2,
-                    dpi::Int=100,
-                    rmfirst::Bool=true,
-                    folderpath::AbstractString="/tmp/caesar/csmCompound/", 
-                    fsmColors::Dict{Symbol,String}=Dict{Symbol,String}(),
-                    defaultColor::AbstractString="red"  ) where T <: AbstractVector
+function animateCSM(
+  tree::AbstractBayesTree,
+  autohist::Dict{Int, T};
+  frames::Int = 100,
+  interval::Int = 2,
+  dpi::Int = 100,
+  rmfirst::Bool = true,
+  folderpath::AbstractString = "/tmp/caesar/csmCompound/",
+  fsmColors::Dict{Symbol, String} = Dict{Symbol, String}(),
+  defaultColor::AbstractString = "red",
+) where {T <: AbstractVector}
   #
 
   easyNames = Dict{Symbol, Int}()
-  hists = Dict{Symbol, Vector{Tuple{DateTime,Int64,Function,CliqStateMachineContainer}}}()
+  hists =
+    Dict{Symbol, Vector{Tuple{DateTime, Int64, Function, CliqStateMachineContainer}}}()
   for (id, hist) in autohist
     frtl = getFrontals(tree.cliques[id])
-    hists[frtl[1]] = Vector{Tuple{DateTime,Int64,Function,CliqStateMachineContainer}}()
+    hists[frtl[1]] = Vector{Tuple{DateTime, Int64, Function, CliqStateMachineContainer}}()
     for hi in hist
-      push!(hists[frtl[1]], (hi.timestamp,hi.id,hi.f,hi.csmc) ) # Tuple.(hist)
+      push!(hists[frtl[1]], (hi.timestamp, hi.id, hi.f, hi.csmc)) # Tuple.(hist)
     end
     easyNames[frtl[1]] = id
   end
@@ -731,12 +772,17 @@ function animateCSM(tree::AbstractBayesTree,
   # export all figures
   if rmfirst
     @warn "Removing $folderpath in preparation for new frames."
-    Base.rm("$folderpath", recursive=true, force=true)
+    Base.rm("$folderpath"; recursive = true, force = true)
   end
 
   function csmTreeAni(hl::Tuple, frame::Int, folderpath::AbstractString)
-    drawTree(hl[4].tree, show=false, filepath=joinpath(folderpath, "tree_$frame.png"), dpi=dpi)
-    nothing
+    drawTree(
+      hl[4].tree;
+      show = false,
+      filepath = joinpath(folderpath, "tree_$frame.png"),
+      dpi = dpi,
+    )
+    return nothing
   end
 
   function autocolor_cb(hi::Tuple, csym::Symbol, aniT::DateTime)
@@ -745,13 +791,17 @@ function animateCSM(tree::AbstractBayesTree,
   end
 
   # animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=frames)
-  FSM.animateStateMachineHistoryIntervalCompound( hists, easyNames=easyNames, 
-                                                  folderpath=folderpath, 
-                                                  interval=interval, dpi=dpi, 
-                                                  draw_more_cb=csmTreeAni, 
-                                                  fsmColors=fsmColors, 
-                                                  defaultColor=defaultColor, 
-                                                  autocolor_cb=autocolor_cb )
+  return FSM.animateStateMachineHistoryIntervalCompound(
+    hists;
+    easyNames = easyNames,
+    folderpath = folderpath,
+    interval = interval,
+    dpi = dpi,
+    draw_more_cb = csmTreeAni,
+    fsmColors = fsmColors,
+    defaultColor = defaultColor,
+    autocolor_cb = autocolor_cb,
+  )
 end
 
 """
@@ -767,27 +817,28 @@ Related
 
 csmAnimate, printCliqHistorySummary
 """
-function makeCsmMovie(fg::AbstractDFG,
-                      tree::AbstractBayesTree,
-                      cliqs=ls(fg);
-                      assignhist=nothing,
-                      show::Bool=true,
-                      filename::AbstractString="/tmp/caesar/csmCompound/out.ogv",
-                      frames::Int=1000 )
+function makeCsmMovie(
+  fg::AbstractDFG,
+  tree::AbstractBayesTree,
+  cliqs = ls(fg);
+  assignhist = nothing,
+  show::Bool = true,
+  filename::AbstractString = "/tmp/caesar/csmCompound/out.ogv",
+  frames::Int = 1000,
+)
   #
   if assignhist != nothing
     assignTreeHistory!(tree, assignhist)
   end
-  csmAnimate(fg, tree, cliqs, frames=frames)
+  csmAnimate(fg, tree, cliqs; frames = frames)
   # Base.rm("/tmp/caesar/csmCompound/out.ogv")
-  run(`ffmpeg -r 10 -i /tmp/caesar/csmCompound/csm_%d.png -c:v libtheora -vf fps=25 -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -q 10 $filename`)
+  run(
+    `ffmpeg -r 10 -i /tmp/caesar/csmCompound/csm_%d.png -c:v libtheora -vf fps=25 -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -q 10 $filename`,
+  )
   if show
     @async run(`totem $filename`)
   end
-  filename
+  return filename
 end
-
-
-
 
 #

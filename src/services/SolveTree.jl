@@ -1,7 +1,6 @@
 
 # starting to add exports here
 
-
 global WORKERPOOL = WorkerPool()
 
 """
@@ -9,9 +8,9 @@ global WORKERPOOL = WorkerPool()
 
 For use with `multiproc`, nominal use is a worker pool of all processes available above and including 2..., but will return single process [1;] if only the first processes is available.
 """
-function setWorkerPool!(pool::Vector{Int}=1 < nprocs() ? setdiff(procs(), [1;]) : [1;])
+function setWorkerPool!(pool::Vector{Int} = 1 < nprocs() ? setdiff(procs(), [1;]) : [1;])
   global WORKERPOOL
-  WORKERPOOL = WorkerPool(pool)
+  return WORKERPOOL = WorkerPool(pool)
 end
 
 function getWorkerPool()
@@ -19,12 +18,9 @@ function getWorkerPool()
   return WORKERPOOL
 end
 
-
-
 ## =============================================================================================
 # Iterate over variables in clique
 ## =============================================================================================
-
 
 """
     $SIGNATURES
@@ -33,43 +29,53 @@ Dev Notes
 - part of refactoring fmcmc.
 - function seems excessive
 """
-function compileFMCMessages(fgl::AbstractDFG,
-                            lbls::Vector{Symbol},
-                            solveKey::Symbol,
-                            logger=ConsoleLogger())
+function compileFMCMessages(
+  fgl::AbstractDFG,
+  lbls::Vector{Symbol},
+  solveKey::Symbol,
+  logger = ConsoleLogger(),
+)
   #
-  d = Dict{Symbol,TreeBelief}()
+  d = Dict{Symbol, TreeBelief}()
   for vsym in lbls
-    vari = DFG.getVariable(fgl,vsym)
-    d[vsym] = TreeBelief(vari, solveKey) 
+    vari = DFG.getVariable(fgl, vsym)
+    d[vsym] = TreeBelief(vari, solveKey)
   end
   return d
 end
 
-
-
-function doFMCIteration(fgl::AbstractDFG,
-                        vsym::Symbol,
-                        solveKey::Symbol,
-                        cliq::TreeClique,
-                        fmsgs,
-                        N::Int,
-                        dbg::Bool,
-                        needFreshMeasurements::Bool=true,
-                        logger=ConsoleLogger()  )
+function doFMCIteration(
+  fgl::AbstractDFG,
+  vsym::Symbol,
+  solveKey::Symbol,
+  cliq::TreeClique,
+  fmsgs,
+  N::Int,
+  dbg::Bool,
+  needFreshMeasurements::Bool = true,
+  logger = ConsoleLogger(),
+)
   #
 
   vert = DFG.getVariable(fgl, vsym)
   if !getSolverData(vert, solveKey).ismargin
     # potprod = nothing
-    densPts, ipc = predictbelief(fgl, vsym, :, needFreshMeasurements=needFreshMeasurements, N=N, dbg=dbg, logger=logger)
+    densPts, ipc = predictbelief(
+      fgl,
+      vsym,
+      :;
+      needFreshMeasurements = needFreshMeasurements,
+      N = N,
+      dbg = dbg,
+      logger = logger,
+    )
 
     if 0 < length(densPts)
       setValKDE!(vert, densPts, true, ipc)
       # TODO perhaps more debugging inside `propagateBelief`?
     end
   end
-  nothing
+  return nothing
 end
 
 """
@@ -79,28 +85,30 @@ Iterate successive approximations of clique marginal beliefs by means
 of the stipulated proposal convolutions and products of the functional objects
 for tree clique `cliq`.
 """
-function fmcmc!(fgl::AbstractDFG,
-                cliq::TreeClique,
-                fmsgs::Vector{<:LikelihoodMessage},
-                lbls::Vector{Symbol},
-                solveKey::Symbol,
-                N::Int,
-                MCMCIter::Int,
-                dbg::Bool=false,
-                logger=ConsoleLogger(),
-                multithreaded::Bool=false  )
+function fmcmc!(
+  fgl::AbstractDFG,
+  cliq::TreeClique,
+  fmsgs::Vector{<:LikelihoodMessage},
+  lbls::Vector{Symbol},
+  solveKey::Symbol,
+  N::Int,
+  MCMCIter::Int,
+  dbg::Bool = false,
+  logger = ConsoleLogger(),
+  multithreaded::Bool = false,
+)
   #
   with_logger(logger) do
     @info "---------- successive fnc approx ------------$(getLabel(cliq))"
   end
   # repeat several iterations of functional Gibbs sampling for fixed point convergence
   if length(lbls) == 1
-      MCMCIter=1
+    MCMCIter = 1
   end
   # mcmcdbg = Array{CliqGibbsMC,1}()
 
   # burn-in loop for outer Gibbs
-  for iter in 1:MCMCIter
+  for iter = 1:MCMCIter
     # iterate through each of the variables, KL-divergence tolerence would be nice test here
     with_logger(logger) do
       @info "#$(iter)\t -- "
@@ -111,7 +119,17 @@ function fmcmc!(fgl::AbstractDFG,
 
     # outer Gibbs cycle
     for vsym in lbls
-        doFMCIteration(fgl, vsym, solveKey, cliq, fmsgs, N, dbg, needFreshMeasurements, logger)
+      doFMCIteration(
+        fgl,
+        vsym,
+        solveKey,
+        cliq,
+        fmsgs,
+        N,
+        dbg,
+        needFreshMeasurements,
+        logger,
+      )
     end
     # !dbg ? nothing : push!(mcmcdbg, dbgvals)
   end
@@ -122,13 +140,9 @@ function fmcmc!(fgl::AbstractDFG,
   return msgdict
 end
 
-
-
 ## =============================================================================================
 # Up solve
 ## =============================================================================================
-
-
 
 """
     $(SIGNATURES)
@@ -146,66 +160,90 @@ Notes
 DevNotes
 - FIXME total rewrite with AMP #41 and RoME #244 in mind
 """
-function upGibbsCliqueDensity(dfg::AbstractDFG, 
-                              cliq::TreeClique, 
-                              solveKey::Symbol,
-                              inmsgs,
-                              N::Int=getSolverParams(dfg).N,
-                              dbg::Bool=false,
-                              iters::Int=3,
-                              logger=ConsoleLogger()  ) # where {T, T2}
+function upGibbsCliqueDensity(
+  dfg::AbstractDFG,
+  cliq::TreeClique,
+  solveKey::Symbol,
+  inmsgs,
+  N::Int = getSolverParams(dfg).N,
+  dbg::Bool = false,
+  iters::Int = 3,
+  logger = ConsoleLogger(),
+) # where {T, T2}
   #
   with_logger(logger) do
     @info "up w $(length(inmsgs)) msgs"
   end
   # TODO -- some weirdness with: d,. = d = ., nothing
   # mcmcdbg = Array{CliqGibbsMC,1}()
-  d = Dict{Symbol,TreeBelief}()
+  d = Dict{Symbol, TreeBelief}()
 
   # priorprods = Vector{CliqGibbsMC}()
 
   cliqdata = getCliqueData(cliq)
 
-
   # use nested structure for more efficient Chapman-Kolmogorov solution approximation
   if false
-    IDS = [cliqdata.frontalIDs;cliqdata.separatorIDs] #inp.cliq.attributes["frontalIDs"]
+    IDS = [cliqdata.frontalIDs; cliqdata.separatorIDs] #inp.cliq.attributes["frontalIDs"]
     d = fmcmc!(dfg, cliq, inmsgs, IDS, solveKey, N, iters, dbg, logger)
   else
     # NOTE -- previous mistake, must iterate over directsvarIDs also (or incorporate once at the right time)
     # NOTE -- double up on directs to allow inflation to take proper affect, see #1051
-    d = fmcmc!(dfg, cliq, inmsgs, cliqdata.directFrtlMsgIDs, solveKey, N, 1, dbg, logger, true)
-    
+    d = fmcmc!(
+      dfg,
+      cliq,
+      inmsgs,
+      cliqdata.directFrtlMsgIDs,
+      solveKey,
+      N,
+      1,
+      dbg,
+      logger,
+      true,
+    )
+
     if length(cliqdata.msgskipIDs) > 0
       dd = fmcmc!(dfg, cliq, inmsgs, cliqdata.msgskipIDs, solveKey, N, 1, dbg, logger, true)
-      for md in dd d[md[1]] = md[2]; end
+      for md in dd
+        d[md[1]] = md[2]
+      end
     end
     if length(cliqdata.itervarIDs) > 0
-      ddd = fmcmc!(dfg, cliq, inmsgs, cliqdata.itervarIDs, solveKey, N, iters, dbg, logger, false)
-      for md in ddd d[md[1]] = md[2]; end
+      ddd = fmcmc!(
+        dfg,
+        cliq,
+        inmsgs,
+        cliqdata.itervarIDs,
+        solveKey,
+        N,
+        iters,
+        dbg,
+        logger,
+        false,
+      )
+      for md in ddd
+        d[md[1]] = md[2]
+      end
     end
     if length(cliqdata.directPriorMsgIDs) > 0
       doids = setdiff(cliqdata.directPriorMsgIDs, cliqdata.msgskipIDs)
       dddd = fmcmc!(dfg, cliq, inmsgs, doids, solveKey, N, 1, dbg, logger, true)
-      for md in dddd d[md[1]] = md[2]; end
+      for md in dddd
+        d[md[1]] = md[2]
+      end
     end
   end
 
   return d
 end
 
-
 ## =============================================================================================
 # Down solve
 ## =============================================================================================
 
-
-
 ## ============================================================================
 # Initialization is slightly different and likely to be consolidated
 ## ============================================================================
-
-
 
 """
     $SIGNATURES
@@ -221,10 +259,12 @@ Notes:
 Dev Notes
 - Should monitor updates based on the number of inferred & solvable dimensions
 """
-function cycleInitByVarOrder!(subfg::AbstractDFG,
-                              varorder::Vector{Symbol};
-                              solveKey::Symbol=:default,
-                              logger=ConsoleLogger()  )
+function cycleInitByVarOrder!(
+  subfg::AbstractDFG,
+  varorder::Vector{Symbol};
+  solveKey::Symbol = :default,
+  logger = ConsoleLogger(),
+)
   #
   with_logger(logger) do
     @info "cycleInitByVarOrder! -- varorder=$(varorder)"
@@ -239,7 +279,7 @@ function cycleInitByVarOrder!(subfg::AbstractDFG,
       with_logger(logger) do
         @info "var.label=$(var.label) is initialized=$(isinit)"
       end
-      doautoinit!(subfg, [var;], solveKey=solveKey, logger=logger)
+      doautoinit!(subfg, [var;]; solveKey = solveKey, logger = logger)
       if isinit != isInitialized(var, solveKey)
         count += 1
         retval = true
@@ -252,8 +292,5 @@ function cycleInitByVarOrder!(subfg::AbstractDFG,
   flush(logger.stream)
   return retval
 end
-
-
-
 
 #
