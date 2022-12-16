@@ -509,14 +509,8 @@ function solveGraphParametric(
   computeCovariance::Bool = true,
   solveKey::Symbol = :parametric,
   autodiff = :forward,
-  algorithm = Optim.NewtonTrustRegion, # Optim.BFGS,
-  algorithmkwargs = (
-        initial_delta = 1.0,
-        # delta_hat = 1.0,
-        eta = 0.01,
-        # rho_lower = 0.25,
-        # rho_upper = 0.75
-  ), # add manifold to overwrite computed one
+  algorithm = Optim.BFGS,
+  algorithmkwargs = (), # add manifold to overwrite computed one
   options = Optim.Options(;
     allow_f_increases = true,
     time_limit = 100,
