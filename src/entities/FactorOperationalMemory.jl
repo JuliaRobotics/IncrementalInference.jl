@@ -114,7 +114,7 @@ mutable struct CommonConvWrapper{T <: AbstractFactor, NTP <: Tuple, G, MT, CT} <
   dummyCache::CT
 
   #Consolidation from FMD
-  fullvariables::Vector{DFGVariable}
+  fullvariables::Vector{<:DFGVariable}
 
   #Consolidation from CPT
   # the actual particle being solved at this moment
