@@ -369,7 +369,7 @@ function cost_cfp(
   @nospecialize(p::AbstractArray),
   vi::NTuple{N, Int},
 ) where N
-  cfp(((v->p[v]).(vi))...)
+  cfp(map(v->p[v],vi)...)
 end
 # function cost_cfp(
 #   @nospecialize(cfp::CalcFactorMahalanobis),
