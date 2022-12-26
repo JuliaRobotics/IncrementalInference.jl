@@ -367,24 +367,32 @@ end
 function cost_cfp(
   @nospecialize(cfp::CalcFactorMahalanobis),
   @nospecialize(p::AbstractArray),
-  vi::NTuple{1, Int},
-)
-  return cfp(p[vi[1]])
+  vi::NTuple{N, Int},
+) where N
+  cfp(((v->p[v]).(vi))...)
 end
-function cost_cfp(
-  @nospecialize(cfp::CalcFactorMahalanobis),
-  @nospecialize(p::AbstractArray),
-  vi::NTuple{2, Int},
-)
-  return cfp(p[vi[1]], p[vi[2]])
-end
-function cost_cfp(
-  @nospecialize(cfp::CalcFactorMahalanobis),
-  @nospecialize(p::AbstractArray),
-  vi::NTuple{3, Int},
-)
-  return cfp(p[vi[1]], p[vi[2]], p[vi[3]])
-end
+# function cost_cfp(
+#   @nospecialize(cfp::CalcFactorMahalanobis),
+#   @nospecialize(p::AbstractArray),
+#   vi::NTuple{1, Int},
+# )
+#   return cfp(p[vi[1]])
+# end
+# function cost_cfp(
+#   @nospecialize(cfp::CalcFactorMahalanobis),
+#   @nospecialize(p::AbstractArray),
+#   vi::NTuple{2, Int},
+# )
+#   return cfp(p[vi[1]], p[vi[2]])
+# end
+# function cost_cfp(
+#   @nospecialize(cfp::CalcFactorMahalanobis),
+#   @nospecialize(p::AbstractArray),
+#   vi::NTuple{3, Int},
+# )
+#   return cfp(p[vi[1]], p[vi[2]], p[vi[3]])
+# end
+
 
 # function (gsc::GraphSolveContainer)(f::Vector{T}, Xc::Vector{T}, ::Val{true}) where T <: Real
 #   #
