@@ -166,7 +166,7 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
   calcf = CalcFactor(
     getFactorMechanics(fac_func),
     0,
-    0,
+    # 0,
     nothing,
     nothing,
     true,
