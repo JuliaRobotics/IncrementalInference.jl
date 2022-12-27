@@ -195,7 +195,7 @@ function CommonConvWrapper(
   X::AbstractVector{P}, #TODO remove X completely
   zDim::Int,
   varValsLink::Tuple,
-  fullvariables::Vector{DFGVariable};
+  fullvariables; #::Tuple ::Vector{DFGVariable};
   partial::Bool = false,
   hypotheses::H = nothing,
   certainhypo = nothing,
@@ -231,7 +231,7 @@ function CommonConvWrapper(
     # DataType[vartypes...],
     gradients,
     userCache,
-    fullvariables,
+    tuple(fullvariables...),
     particleidx,
     activehypo,
     res,
@@ -423,7 +423,7 @@ function _prepCCW(
   # sflbl = 0 == length(Xi) ? :null : getLabel(Xi[end])
   # lbs = getLabel.(Xi)
   # fmd = FactorMetadata(Xi, lbs, _varValsQuick, sflbl, nothing)
-  fullvariables = convert(Vector{DFGVariable}, Xi)
+  fullvariables = tuple(Xi...) # convert(Vector{DFGVariable}, Xi)
   # create a temporary CalcFactor object for extracting the first sample
   # TODO, deprecate this:  guess measurement points type
   # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
@@ -433,7 +433,7 @@ function _prepCCW(
     _varValsQuick,
     false,
     userCache,
-    tuple(fullvariables...),
+    fullvariables,
     solvefor,
   )
 

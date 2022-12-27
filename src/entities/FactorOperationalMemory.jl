@@ -82,7 +82,8 @@ mutable struct CommonConvWrapper{
   MT, 
   CT,
   HP <: Union{Nothing, <:Distributions.Categorical{Float64, Vector{Float64}}},
-  CH <: Union{Nothing, Vector{Int}}
+  CH <: Union{Nothing, Vector{Int}},
+  VT <: Tuple
 } <: FactorOperationalMemory
   #
   ### Values consistent across all threads during approx convolution
@@ -118,7 +119,7 @@ mutable struct CommonConvWrapper{
   dummyCache::CT
 
   #Consolidation from FMD
-  fullvariables::Vector{<:DFGVariable}
+  fullvariables::VT # Vector{<:DFGVariable}
 
   #Consolidation from CPT
   # the actual particle being solved at this moment
