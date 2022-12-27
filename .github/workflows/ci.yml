@@ -42,7 +42,7 @@ jobs:
         with:
           files: lcov.info
           fail_ci_if_error: false
-        if: ${{ (matrix.version != 'nightly') && (matrix.group == 'test_cases_group') }}
+        if: ${{ matrix.version != 'nightly' }}
 
   upstream-dev-functional:
     name: Upstr Dev Functional
