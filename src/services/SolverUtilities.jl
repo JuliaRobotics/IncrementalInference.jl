@@ -59,7 +59,7 @@ end
 
 function sampleFactor(ccwl::CommonConvWrapper, N::Int)
   #
-  cf = CalcFactor(ccwl) # CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+  cf = CalcFactor(ccwl) 
   return sampleFactor(cf, N)
 end
 

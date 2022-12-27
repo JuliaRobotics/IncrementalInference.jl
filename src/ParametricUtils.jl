@@ -162,12 +162,9 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
 
   cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
 
-  # calcf = CalcFactor(getFactorMechanics(fac_func), nothing, 0, 0, nothing, nothing, true, nothing)
   calcf = CalcFactor(
     getFactorMechanics(fac_func),
     0,
-    # 0,
-    nothing,
     nothing,
     true,
     cache,

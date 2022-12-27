@@ -197,7 +197,7 @@ _getusrfnc(ccwl::CommonConvWrapper{<:Mixture}) = ccwl.usrfnc!.mechanics
 function _buildCalcFactor(
   ccwl::CommonConvWrapper,
   smpid,
-  measurement_,
+  # measurement_, # deprecate
   varParams,
   activehypo,
 )
@@ -211,8 +211,6 @@ function _buildCalcFactor(
   return CalcFactor(
     _getusrfnc(ccwl),
     smpid,
-    # length(measurement_),
-    measurement_,
     varParams,
     true,
     ccwl.dummyCache,
@@ -258,10 +256,10 @@ function _buildCalcFactorLambdaSample(
   #                         fmd_.cachedata  )
   #
   # get the operational CalcFactor object
-  cf = _buildCalcFactor(ccwl, smpid, measurement_, varValsHypo, ccwl.activehypo)
+  cf = _buildCalcFactor(ccwl, smpid, varValsHypo, ccwl.activehypo)
   # new dev work on CalcFactor
   # cf = CalcFactor(ccwl.usrfnc!, _fmd_, smpid, 
-  #                 length(measurement_), measurement_, varValsHypo)
+  #                 varValsHypo)
   #
 
   # reset the residual vector
