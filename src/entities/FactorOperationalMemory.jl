@@ -23,16 +23,13 @@ Related
 
 [`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref)
 """
-struct CalcFactor{T <: AbstractFactor, P <: Union{<:Tuple, Nothing, AbstractVector}, X, C}
+struct CalcFactor{T <: AbstractFactor, X, C}
   """ the interface compliant user object functor containing the data and logic """
   factor::T
   """ what is the sample (particle) id for which the residual is being calculated """
   _sampleIdx::Int
-  # """ legacy support when concerned with how many measurement tuple elements are used by user  """
-  # _measCount::Int
-  """ legacy suport for measurement sample values of old functor residual functions """
-  _legacyMeas::P
-  """ legacy support for variable values old functor residual functions """
+  """ legacy support for variable values old functor residual functions.
+      TBD, this is still being used by DERelative factors. """
   _legacyParams::X
   """ allow threading for either sampling or residual calculations (workaround for thread yield issue) """
   _allowThreads::Bool
@@ -42,7 +39,7 @@ struct CalcFactor{T <: AbstractFactor, P <: Union{<:Tuple, Nothing, AbstractVect
   ## TODO Consolidation WIP with FactorMetadata
   # full list of variables connected to the factor
   # TODO make sure this list is of the active hypo only
-  fullvariables::Vector{<:DFGVariable}
+  fullvariables::Vector{<:DFGVariable} # FIXME change to tuple for better type stability
   # which index is being solved for?
   solvefor::Int
 end
