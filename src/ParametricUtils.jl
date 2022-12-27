@@ -168,7 +168,7 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
     nothing,
     true,
     cache,
-    DFGVariable[],
+    (), #DFGVariable[],
     0,
   )
 

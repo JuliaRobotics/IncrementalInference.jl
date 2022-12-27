@@ -23,9 +23,9 @@ Related
 
 [`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref)
 """
-struct CalcFactor{T <: AbstractFactor, X, C}
+struct CalcFactor{FT <: AbstractFactor, X, C, VT <: Tuple}
   """ the interface compliant user object functor containing the data and logic """
-  factor::T
+  factor::FT
   """ what is the sample (particle) id for which the residual is being calculated """
   _sampleIdx::Int
   """ legacy support for variable values old functor residual functions.
@@ -39,7 +39,7 @@ struct CalcFactor{T <: AbstractFactor, X, C}
   ## TODO Consolidation WIP with FactorMetadata
   # full list of variables connected to the factor
   # TODO make sure this list is of the active hypo only
-  fullvariables::Vector{<:DFGVariable} # FIXME change to tuple for better type stability
+  fullvariables::VT # Vector{<:DFGVariable} # FIXME change to tuple for better type stability
   # which index is being solved for?
   solvefor::Int
 end

@@ -214,7 +214,7 @@ function _buildCalcFactor(
     varParams,
     true,
     ccwl.dummyCache,
-    activevariables,
+    tuple(activevariables...),
     solveforidx,
   )
 end
