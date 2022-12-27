@@ -90,7 +90,7 @@ function approxDeconv(
         hypoObj,
         res_,
         measurement[idx],
-        ccw.vartypes[sfidx](),
+        getVariableType(ccw.fullvariables[sfidx]), # ccw.vartypes[sfidx](),
         islen1,
       )
     else

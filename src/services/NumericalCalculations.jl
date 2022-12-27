@@ -393,7 +393,7 @@ function _solveCCWNumeric!(
     _hypoObj,
     ccwl.res,
     X,
-    ccwl.vartypes[sfidx](), # only used for getting variable manifold and identity_element
+    getVariableType(ccwl.fullvariables[sfidx]), # ccwl.vartypes[sfidx](), # only used for getting variable manifold and identity_element
     islen1,
   )
 
