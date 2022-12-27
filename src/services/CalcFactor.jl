@@ -38,7 +38,7 @@ function CalcFactor(
     _legacyParams,
     _allowThreads,
     cache,
-    fullvariables,
+    tuple(fullvariables...),
     solvefor,
   )
 end
@@ -433,7 +433,7 @@ function _prepCCW(
     _varValsQuick,
     false,
     userCache,
-    fullvariables,
+    tuple(fullvariables...),
     solvefor,
   )
 
