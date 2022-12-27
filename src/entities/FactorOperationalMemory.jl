@@ -67,9 +67,7 @@ Notes
 - Any multithreaded design needs to happens as sub-constainers inside CCW or otherwise, to carry separate memory.
 - Since #467, `CalcFactor` is the only type 'seen by user' during `getSample` or function residual calculations `(cf::CalcFactor{<:MyFactor})`, s.t. `MyFactor <: AbstractRelative___`
 - There also exists a `CalcFactorMahalanobis` for parameteric computations using as much of the same mechanics as possible.
-
-DevNotes
-- Follow the Github project in IIF to better consolidate CCW FMD CPT CF CFM
+- CCW is consolidated object of other previous types, FMD CPT CF CFM.
 
 Related 
 
@@ -86,47 +84,41 @@ mutable struct CommonConvWrapper{
   VT <: Tuple
 } <: FactorOperationalMemory
   #
-  ### Values consistent across all threads during approx convolution
+  """ Values consistent across all threads during approx convolution """
   usrfnc!::T # user factor / function
-  # general setup
+  """ general setup of factor dimensions"""
   xDim::Int
   zDim::Int
-  # is this a partial constraint as defined by the existance of factor field `.partial::Tuple`
+  """ is this a partial constraint as defined by the existance of factor field `.partial::Tuple` """
   partial::Bool
-  # multi hypothesis settings #NOTE no need for a parameter as type is known from `parseusermultihypo`
+  """ multi hypothesis settings #NOTE no need for a parameter as type is known from `parseusermultihypo` """
   hypotheses::HP
-  # categorical to select which hypothesis is being considered during convolution operation
+  """ categorical to select which hypothesis is being considered during convolution operation """
   certainhypo::CH
   nullhypo::Float64
-  # parameters passed to each hypothesis evaluation event on user function, #1321
+  """ parameters passed to each hypothesis evaluation event on user function, #1321 """
   params::NTP # TODO rename to varValsLink::NTP
-  # which index is being solved for in params?
+  """ which index is being solved for in params? """
   varidx::Int
-  # FIXME make type stable, JT should now be type stable if rest works
-  #   user defined measurement values for each approxConv operation
+  """ user defined measurement values for each approxConv operation
+      FIXME make type stable, JT should now be type stable if rest works """
   measurement::Vector{MT}
-  # # TODO refactor and deprecate this old approach, Union{Type{SingleThreaded}, Type{MultiThreaded}}
-  # threadmodel::Type{<:_AbstractThreadModel}
-  # inflationSpread
+  """ inflationSpread particular to this factor """
   inflation::Float64
-  # Which dimensions does this factor influence.  Sensitive (mutable) to both which 'solvefor index' variable and whether the factor is partial dimension
+  """ Which dimensions does this factor influence.  Sensitive (mutable) to both which 'solvefor index' variable and whether the factor is partial dimension """
   partialDims::Vector{<:Integer}
-  # # variable types for points in params
-  # vartypes::Vector{<:DataType}
-  # experimental feature to embed gradient calcs with ccw
+  """ experimental feature to embed gradient calcs with ccw """
   _gradients::G
-  # type used for cache
+  """ dummy cache value to be deep copied later for each of the CalcFactor instances """
   dummyCache::CT
-
-  #Consolidation from FMD
+  """ Consolidation from FMD, ordered list all variables connected to this factor """
   fullvariables::VT # Vector{<:DFGVariable}
-
-  #Consolidation from CPT
-  # the actual particle being solved at this moment
+  """ Consolidation from CPT
+      the actual particle being solved at this moment """
   particleidx::Int
-  # subsection indices to select which params should be used for this hypothesis evaluation
+  """ subsection indices to select which params should be used for this hypothesis evaluation """
   activehypo::Vector{Int}
-  # working memory to store residual for optimization routines
+  """ working memory to store residual for optimization routines """
   res::Vector{Float64}
 end
 
