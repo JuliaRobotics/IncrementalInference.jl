@@ -308,12 +308,10 @@ function _prepParamVec(
     varParamsAll[sfidx] = deepcopy(varParamsAll[sfidx])
   end
 
-  varTypes = typeof.(getVariableType.(Xi)) # previous need to force unstable, ::Vector{DataType}
-
-  ntp = tuple(varParamsAll...)
+  varValsAll = tuple(varParamsAll...)
   # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
   # maxlen = N == 0 ? maxlen : N
-  return ntp, maxlen, sfidx, varTypes
+  return varValsAll, maxlen, sfidx
 end
 
 """
@@ -416,7 +414,7 @@ function _prepCCW(
   end
 
   # TODO check no Anys, see #1321
-  _varValsQuick, maxlen, sfidx, varTypes = _prepParamVec(Xi, nothing, 0; solveKey) # Nothing for init.
+  _varValsQuick, maxlen, sfidx = _prepParamVec(Xi, nothing, 0; solveKey) # Nothing for init.
 
   # standard factor metadata
   solvefor = length(Xi)
@@ -458,6 +456,9 @@ function _prepCCW(
   else
     Int[]
   end
+
+  # FIXME, should incorporate multihypo selection
+  varTypes = getVariableType.(fullvariables)
 
   # as per struct CommonConvWrapper
   gradients = attemptGradientPrep(
@@ -523,7 +524,7 @@ function _updateCCW!(
 
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
-  _varValsQuick, maxlen, sfidx, varTypes = _prepParamVec(Xi, solvefor, N; solveKey)
+  _varValsQuick, maxlen, sfidx = _prepParamVec(Xi, solvefor, N; solveKey)
 
   # NOTE should be selecting for the correct multihypothesis mode
   ccwl.params = _varValsQuick
