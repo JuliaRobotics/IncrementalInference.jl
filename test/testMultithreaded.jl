@@ -30,7 +30,7 @@ addVariable!(fg, :x1, ContinuousScalar, N=N)
 addFactor!(fg, [:x0, :x1], LinearRelative(Normal(10.0,1)) ) #, threadmodel=MultiThreaded)
 
 @error "Factor threadmodel=MultiThreaded equivalence restoration TBD"
-@test_broken begin
+@test begin
     pts_ = approxConv(fg, :x0x1f1, :x1, N=N)
     @cast pts[i,j] := pts_[j][i]
 
