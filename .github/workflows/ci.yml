@@ -44,8 +44,50 @@ jobs:
           fail_ci_if_error: false
         if: ${{ matrix.version != 'nightly' }}
 
-  upstream-dev:
-    name: Upstream Dev
+  upstream-dev-functional:
+    name: Upstr Dev Functional
+    runs-on: ubuntu-latest
+    env: 
+      JULIA_PKG_SERVER: ""
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: 
+          - x64
+        version:
+          - '~1.9.0-0'
+        group:
+          - 'basic_functional_group'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: actions/cache@v1
+        env:
+          cache-name: cache-artifacts
+        with:
+          path: ~/.julia/artifacts
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-test-
+            ${{ runner.os }}-
+      - run: |
+          git config --global user.name Tester
+          git config --global user.email te@st.er
+      - name: Upst Dev Functional
+        env:
+          IIF_TEST_GROUP: ${{ matrix.group }}
+        run: |
+          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="master"));'
+          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs",rev="master"));' 
+          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.test("IncrementalInference"; coverage=false)'
+        shell: bash
+
+  upstream-dev-cases:
+    name: Upstr Dev Test Cases
     runs-on: ubuntu-latest
     env: 
       JULIA_PKG_SERVER: ""
@@ -56,9 +98,7 @@ jobs:
           - x64
         version:
           - '1.8'
-          - '~1.9.0-0'
         group:
-          - 'basic_functional_group'
           - 'test_cases_group'
     steps:
       - uses: actions/checkout@v2
@@ -79,7 +119,7 @@ jobs:
       - run: |
           git config --global user.name Tester
           git config --global user.email te@st.er
-      - name: Upstream Dev
+      - name: Upstr Dev Cases
         env:
           IIF_TEST_GROUP: ${{ matrix.group }}
         run: |
@@ -89,7 +129,7 @@ jobs:
         shell: bash
 
   test-debug-group:
-    needs: [ upstream-dev ]
+    needs: [ upstream-dev-functional ]
     name: JL${{ matrix.version }} - ${{ matrix.group }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
