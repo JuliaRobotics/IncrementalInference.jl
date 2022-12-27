@@ -75,8 +75,15 @@ Related
 
 [`CalcFactor`](@ref), [`CalcFactorMahalanobis`](@ref)
 """
-mutable struct CommonConvWrapper{T <: AbstractFactor, NTP <: Tuple, G, MT, CT} <:
-               FactorOperationalMemory
+mutable struct CommonConvWrapper{
+  T <: AbstractFactor, 
+  NTP <: Tuple, 
+  G, 
+  MT, 
+  CT,
+  HP <: Union{Nothing, <:Distributions.Categorical{Float64, Vector{Float64}}},
+  CH <: Union{Nothing, Vector{Int}}
+} <: FactorOperationalMemory
   #
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function
@@ -86,9 +93,9 @@ mutable struct CommonConvWrapper{T <: AbstractFactor, NTP <: Tuple, G, MT, CT} <
   # is this a partial constraint as defined by the existance of factor field `.partial::Tuple`
   partial::Bool
   # multi hypothesis settings #NOTE no need for a parameter as type is known from `parseusermultihypo`
-  hypotheses::Union{Nothing, Distributions.Categorical{Float64, Vector{Float64}}}
+  hypotheses::HP
   # categorical to select which hypothesis is being considered during convolution operation
-  certainhypo::Union{Nothing, Vector{Int}}
+  certainhypo::CH
   nullhypo::Float64
   # parameters passed to each hypothesis evaluation event on user function, #1321
   params::NTP # TODO rename to varValsLink::NTP
@@ -104,7 +111,7 @@ mutable struct CommonConvWrapper{T <: AbstractFactor, NTP <: Tuple, G, MT, CT} <
   # Which dimensions does this factor influence.  Sensitive (mutable) to both which 'solvefor index' variable and whether the factor is partial dimension
   partialDims::Vector{<:Integer}
   # variable types for points in params
-  vartypes::Vector{DataType}
+  vartypes::Vector{<:DataType}
   # experimental feature to embed gradient calcs with ccw
   _gradients::G
   # type used for cache
