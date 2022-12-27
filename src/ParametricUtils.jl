@@ -141,18 +141,19 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
   fac_func = getFactorType(fct)
   varOrder = getVariableOrder(fct)
 
-  _meas, _iΣ = getMeasurementParametric(fac_func)
+  # NOTE, use getMeasurementParametric on DFGFactor{<:CCW} to allow special cases like OAS factors
+  _meas, _iΣ = getMeasurementParametric(fct) # fac_func
   M = getManifold(getFactorType(fct))
   dims = manifold_dimension(M)
   ϵ = getPointIdentity(M)
 
-  if typeof(_meas) <: Tuple
-    _measX = map(m -> hat(M, ϵ, m), _meas)
+  _measX = if typeof(_meas) <: Tuple
     # TODO perhaps better consolidate manifold prior 
+    map(m -> hat(M, ϵ, m), _meas)
   elseif fac_func isa ManifoldPrior
-    _measX = (_meas,)
+    (_meas,)
   else
-    _measX = (convert(typeof(ϵ), get_vector(M, ϵ, _meas, DefaultOrthogonalBasis())),)
+    (convert(typeof(ϵ), get_vector(M, ϵ, _meas, DefaultOrthogonalBasis())),)
   end
 
   meas = fac_func isa AbstractPrior ? map(X -> exp(M, ϵ, X), _measX) : _measX
@@ -366,24 +367,32 @@ end
 function cost_cfp(
   @nospecialize(cfp::CalcFactorMahalanobis),
   @nospecialize(p::AbstractArray),
-  vi::NTuple{1, Int},
-)
-  return cfp(p[vi[1]])
+  vi::NTuple{N, Int},
+) where N
+  cfp(map(v->p[v],vi)...)
 end
-function cost_cfp(
-  @nospecialize(cfp::CalcFactorMahalanobis),
-  @nospecialize(p::AbstractArray),
-  vi::NTuple{2, Int},
-)
-  return cfp(p[vi[1]], p[vi[2]])
-end
-function cost_cfp(
-  @nospecialize(cfp::CalcFactorMahalanobis),
-  @nospecialize(p::AbstractArray),
-  vi::NTuple{3, Int},
-)
-  return cfp(p[vi[1]], p[vi[2]], p[vi[3]])
-end
+# function cost_cfp(
+#   @nospecialize(cfp::CalcFactorMahalanobis),
+#   @nospecialize(p::AbstractArray),
+#   vi::NTuple{1, Int},
+# )
+#   return cfp(p[vi[1]])
+# end
+# function cost_cfp(
+#   @nospecialize(cfp::CalcFactorMahalanobis),
+#   @nospecialize(p::AbstractArray),
+#   vi::NTuple{2, Int},
+# )
+#   return cfp(p[vi[1]], p[vi[2]])
+# end
+# function cost_cfp(
+#   @nospecialize(cfp::CalcFactorMahalanobis),
+#   @nospecialize(p::AbstractArray),
+#   vi::NTuple{3, Int},
+# )
+#   return cfp(p[vi[1]], p[vi[2]], p[vi[3]])
+# end
+
 
 # function (gsc::GraphSolveContainer)(f::Vector{T}, Xc::Vector{T}, ::Val{true}) where T <: Real
 #   #
@@ -542,6 +551,22 @@ function solveGraphParametric(
 
   #optim setup and solve
   alg = algorithm(; algorithmkwargs...)
+  # alg = NewtonTrustRegion(;
+  #   initial_delta = 1.0,
+  #   delta_hat = 100.0,
+  #   eta = 0.1,
+  #   rho_lower = 0.25,
+  #   rho_upper = 0.75
+  # )
+  # alg = LBFGS(; 
+  #   m = 10,
+  #   alphaguess = LineSearches.InitialStatic(),
+  #   linesearch = LineSearches.HagerZhang(),
+  #   P = nothing,
+  #   precondprep = (P, x) -> nothing,
+  #   manifold = Flat(),
+  #   scaleinvH0::Bool = true && (typeof(P) <: Nothing)
+  # )
   tdtotalCost = Optim.TwiceDifferentiable(gsc, initValues; autodiff = autodiff)
 
   result = Optim.optimize(tdtotalCost, initValues, alg, options)
@@ -791,11 +816,19 @@ end
     $SIGNATURES
 Add parametric solver to fg, batch solve using [`solveGraphParametric`](@ref) and update fg.
 """
-function solveGraphParametric!(fg::AbstractDFG; init::Bool = true, kwargs...)
+function solveGraphParametric!(
+  fg::AbstractDFG; 
+  init::Bool = true, 
+  solveKey::Symbol = :parametric, # FIXME, moot since only :parametric used for parametric solves
+  initSolveKey::Symbol = :default, 
+  kwargs...
+)
+  # make sure variables has solverData, see #1637
+  makeSolverData!(fg; solveKey)
   if !(:parametric in fg.solverParams.algorithms)
     addParametricSolver!(fg; init = init)
   elseif init
-    initParametricFrom!(fg)
+    initParametricFrom!(fg, initSolveKey; parkey=solveKey)
   end
 
   vardict, result, varIds, Σ = solveGraphParametric(fg; kwargs...)

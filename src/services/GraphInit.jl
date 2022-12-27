@@ -1,4 +1,47 @@
 
+
+"""
+    $SIGNATURES
+
+For variables in `varList` check and if necessary make solverData objects for both `:default` and `:parametric` solveKeys. 
+
+Example
+```julia
+num_made = makeSolverData(fg; solveKey=:parametric)
+```
+
+Notes
+- Part of solving JuliaRobotics/IncrementalInference.jl issue 1637
+
+DevNotes
+- TODO, assumes parametric solves will always just be in solveKey `:parametric`.
+
+See also: [`doautoinit!`](@ref), [`initAll!`](@ref)
+"""
+function makeSolverData!(
+  dfg::AbstractDFG;
+  solvable = 1,
+  varList::AbstractVector{Symbol} = ls(dfg; solvable),
+  solveKey::Symbol=:default
+)
+  count = 0
+  for vl in varList
+    v = getVariable(dfg,vl)
+    varType = getVariableType(v) |> IIF._variableType
+    vsolveKeys = listSolveKeys(dfg,vl)
+    if solveKey != :parametric && !(solveKey in vsolveKeys)
+        IIF.setDefaultNodeData!(v, 0, getSolverParams(dfg).N, getDimension(varType); initialized=false, varType, solveKey) # dodims
+        count += 1
+    elseif solveKey == :parametric && !(:parametric in vsolveKeys)
+        # global doinit = true
+        IIF.setDefaultNodeDataParametric!(v, varType; initialized=false, solveKey)
+        count += 1
+    end
+  end
+
+  return count
+end
+
 """
     $SIGNATURES
 
@@ -464,7 +507,8 @@ function initAll!(
     varType = getVariableType(vari) |> _variableType
     # does SolverData exist for this solveKey?
     vsolveKeys = listSolveKeys(vari)
-    if !_parametricInit && !(solveKey in vsolveKeys)
+    # FIXME, likely some consolidation needed with #1637
+    if !_parametricInit && !(solveKey in vsolveKeys)  
       # accept complete defaults for a novel solveKey
       setDefaultNodeData!(
         vari,

@@ -9,8 +9,7 @@ Notes
 
 ```julia
 function (cf::CalcFactor{<:LinearRelative})(res::AbstractVector{<:Real}, z, xi, xj)
-  cf.metadata.variablelist
-  cf.metadata.targetvariable
+  cf.variablelist
   cf.cache
   # generic on-manifold residual function 
   return distance(z, distance(xj, xi))
@@ -42,6 +41,7 @@ struct CalcFactor{T <: AbstractFactor, P <: Union{<:Tuple, Nothing, AbstractVect
 
   ## TODO Consolidation WIP with FactorMetadata
   # full list of variables connected to the factor
+  # TODO make sure this list is of the active hypo only
   fullvariables::Vector{<:DFGVariable}
   # which index is being solved for?
   solvefor::Int
@@ -114,7 +114,7 @@ mutable struct CommonConvWrapper{T <: AbstractFactor, NTP <: Tuple, G, MT, CT} <
   dummyCache::CT
 
   #Consolidation from FMD
-  fullvariables::Vector{DFGVariable}
+  fullvariables::Vector{<:DFGVariable}
 
   #Consolidation from CPT
   # the actual particle being solved at this moment
