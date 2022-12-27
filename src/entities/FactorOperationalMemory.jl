@@ -97,7 +97,7 @@ mutable struct CommonConvWrapper{
   certainhypo::CH
   nullhypo::Float64
   """ parameters passed to each hypothesis evaluation event on user function, #1321 """
-  params::NTP # TODO rename to varValsLink::NTP
+  varValsAll::NTP
   """ which index is being solved for in params? """
   varidx::Int
   """ user defined measurement values for each approxConv operation
@@ -111,10 +111,9 @@ mutable struct CommonConvWrapper{
   _gradients::G
   """ dummy cache value to be deep copied later for each of the CalcFactor instances """
   dummyCache::CT
-  """ Consolidation from FMD, ordered list all variables connected to this factor """
-  fullvariables::VT # Vector{<:DFGVariable}
-  """ Consolidation from CPT
-      the actual particle being solved at this moment """
+  """ Consolidation from FMD, ordered tuple of all variables connected to this factor """
+  fullvariables::VT
+  """ Consolidation from CPT, the actual particle being solved at this moment """
   particleidx::Int
   """ subsection indices to select which params should be used for this hypothesis evaluation """
   activehypo::Vector{Int}
@@ -124,8 +123,13 @@ end
 
 function Base.getproperty(ccw::CommonConvWrapper, f::Symbol)
   if f == :threadmodel
+    @warn "CommonConvWrapper.threadmodel is obsolete" maxlog=3
     return SingleThreaded
+  elseif f == :params
+    @warn "CommonConvWrapper.params is deprecated, use .varValsAll instead" maxlog=3
+    return ccw.varValsAll
   elseif f == :vartypes
+    @warn "CommonConvWrapper.vartypes is deprecated, use typeof.(getVariableType.(ccw.fullvariables) instead" maxlog=3
     return typeof.(getVariableType.(ccw.fullvariables))
   else
     return getfield(ccw, f)

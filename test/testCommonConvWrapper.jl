@@ -118,10 +118,10 @@ pts = approxConv(fg, getFactor(fg, :x0x1f1), :x1)
 
 ccw = IIF._getCCW(fg, :x0x1f1)
 
-ptr_ = ccw.params[ccw.varidx]
+ptr_ = ccw.varValsAll[ccw.varidx]
 @cast tp1[i,j] := ptr_[j][i]
 @test 90.0 < Statistics.mean(tp1) < 110.0
-ptr_ = ccw.params[1]
+ptr_ = ccw.varValsAll[1]
 @cast tp2[i,j] := ptr_[j][i]
 @test -10.0 < Statistics.mean(tp2) < 10.0
 
@@ -133,10 +133,10 @@ initVariable!(fg, :x1, [100*ones(1) for _ in 1:100])
 
 pts = approxConv(fg, getFactor(fg, :x0x1f1), :x0)
 
-ptr_ = ccw.params[1]
+ptr_ = ccw.varValsAll[1]
 @cast tp1[i,j] := ptr_[j][i]
 @test -10.0 < Statistics.mean(tp1) < 10.0
-ptr_ = ccw.params[2]
+ptr_ = ccw.varValsAll[2]
 @cast tp2[i,j] := ptr_[j][i]
 @test 90.0 < Statistics.mean(tp2) < 110.0
 

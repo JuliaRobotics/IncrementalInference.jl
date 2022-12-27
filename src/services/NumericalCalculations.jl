@@ -229,7 +229,7 @@ DevNotes
 function _buildCalcFactorLambdaSample(
   ccwl::CommonConvWrapper,
   smpid::Integer,
-  target = view(ccwl.params[ccwl.varidx][smpid], ccwl.partialDims),
+  target = view(ccwl.varValsAll[ccwl.varidx][smpid], ccwl.partialDims),
   measurement_ = ccwl.measurement;
   # fmd_::FactorMetadata = cpt_.factormetadata;
   _slack = nothing,
@@ -241,9 +241,9 @@ function _buildCalcFactorLambdaSample(
   # DevNotes, also see new `hyporecipe` approach (towards consolidation CCW CPT FMd CF...)
 
   # build a view to the decision variable memory
-  varValsHypo = ccwl.params[ccwl.activehypo]
+  varValsHypo = ccwl.varValsAll[ccwl.activehypo]
   # tup = tuple(varParams...)
-  # nms = keys(ccwl.params)[cpt_.activehypo]
+  # nms = keys(ccwl.varValsAll)[cpt_.activehypo]
   # varValsHypo = NamedTuple{nms,typeof(tup)}(tup)
 
   # prepare fmd according to hypo selection
@@ -327,7 +327,7 @@ function _solveCCWNumeric!(
 
   sfidx = ccwl.varidx
   # do the parameter search over defined decision variables using Minimization
-  X = ccwl.params[sfidx][smpid][ccwl.partialDims]
+  X = ccwl.varValsAll[sfidx][smpid][ccwl.partialDims]
   retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, ccwl.res, X, islen1)
 
   # Check for NaNs
@@ -337,7 +337,7 @@ function _solveCCWNumeric!(
   end
 
   # insert result back at the correct variable element location
-  ccwl.params[sfidx][smpid][ccwl.partialDims] .= retval
+  ccwl.varValsAll[sfidx][smpid][ccwl.partialDims] .= retval
 
   return nothing
 end
@@ -345,7 +345,7 @@ end
 # should only be calling a new arg list according to activehypo at start of particle
 # Try calling an existing lambda
 # sensitive to which hypo of course , see #1024
-# need to shuffle content inside .cpt.fmd as well as .params accordingly
+# need to shuffle content inside .cpt.fmd as well as .varValsAll accordingly
 #
 
 function _solveCCWNumeric!(
@@ -369,7 +369,7 @@ function _solveCCWNumeric!(
   unrollHypo!, target = _buildCalcFactorLambdaSample(
     ccwl,
     smpid,
-    view(ccwl.params[ccwl.varidx], smpid);
+    view(ccwl.varValsAll[ccwl.varidx], smpid);
     _slack = _slack,
   )
 
@@ -387,7 +387,7 @@ function _solveCCWNumeric!(
 
   # do the parameter search over defined decision variables using Minimization
   sfidx = ccwl.varidx
-  X = ccwl.params[sfidx][smpid]
+  X = ccwl.varValsAll[sfidx][smpid]
   retval = _solveLambdaNumeric(
     getFactorType(ccwl),
     _hypoObj,
@@ -405,7 +405,7 @@ function _solveCCWNumeric!(
   # end
 
   # FIXME insert result back at the correct variable element location
-  ccwl.params[sfidx][smpid] .= retval
+  ccwl.varValsAll[sfidx][smpid] .= retval
 
   return nothing
 end

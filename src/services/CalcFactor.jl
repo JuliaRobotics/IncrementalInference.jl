@@ -24,7 +24,7 @@ function CalcFactor(
   ccwl::CommonConvWrapper;
   factor = ccwl.usrfnc!,
   _sampleIdx = 0,
-  _legacyParams = ccwl.params,
+  _legacyParams = ccwl.varValsAll,
   _allowThreads = true,
   cache = ccwl.dummyCache,
   fullvariables = ccwl.fullvariables,
@@ -195,7 +195,7 @@ function CommonConvWrapper(
   X::AbstractVector{P}, #TODO remove X completely
   zDim::Int,
   varValsLink::Tuple,
-  fullvariables; #::Tuple ::Vector{DFGVariable};
+  fullvariables; #::Tuple ::Vector{<:DFGVariable};
   partial::Bool = false,
   hypotheses::H = nothing,
   certainhypo = nothing,
@@ -527,7 +527,7 @@ function _updateCCW!(
   _varValsQuick, maxlen, sfidx = _prepParamVec(Xi, solvefor, N; solveKey)
 
   # NOTE should be selecting for the correct multihypothesis mode
-  ccwl.params = _varValsQuick
+  ccwl.varValsAll = _varValsQuick
   # some better consolidate is needed
   # ccwl.vartypes = varTypes
   # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
