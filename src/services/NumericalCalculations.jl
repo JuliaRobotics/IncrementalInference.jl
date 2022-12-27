@@ -211,7 +211,7 @@ function _buildCalcFactor(
   return CalcFactor(
     _getusrfnc(ccwl),
     smpid,
-    length(measurement_),
+    # length(measurement_),
     measurement_,
     varParams,
     true,

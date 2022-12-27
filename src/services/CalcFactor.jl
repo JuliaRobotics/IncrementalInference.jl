@@ -24,7 +24,7 @@ function CalcFactor(
   ccwl::CommonConvWrapper;
   factor = ccwl.usrfnc!,
   _sampleIdx = 0,
-  _measCount = length(ccwl.measurement),
+  # _measCount = length(ccwl.measurement),
   _legacyMeas = ccwl.measurement,
   _legacyParams = ccwl.params,
   _allowThreads = true,
@@ -37,7 +37,7 @@ function CalcFactor(
   return CalcFactor(
     factor,
     _sampleIdx,
-    _measCount,
+    # _measCount,
     _legacyMeas,
     _legacyParams,
     _allowThreads,
@@ -434,7 +434,7 @@ function _prepCCW(
   _cf = CalcFactor(
     usrfnc,
     0,
-    1,
+    # 1,
     nothing,
     _varValsQuick,
     false,

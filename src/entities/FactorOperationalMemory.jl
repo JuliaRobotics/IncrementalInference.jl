@@ -28,8 +28,8 @@ struct CalcFactor{T <: AbstractFactor, P <: Union{<:Tuple, Nothing, AbstractVect
   factor::T
   """ what is the sample (particle) id for which the residual is being calculated """
   _sampleIdx::Int
-  """ legacy support when concerned with how many measurement tuple elements are used by user  """
-  _measCount::Int
+  # """ legacy support when concerned with how many measurement tuple elements are used by user  """
+  # _measCount::Int
   """ legacy suport for measurement sample values of old functor residual functions """
   _legacyMeas::P
   """ legacy support for variable values old functor residual functions """

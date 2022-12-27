@@ -121,7 +121,7 @@ function sampleFactor(cf::CalcFactor{<:Mixture}, N::Int = 1)
   cf_ = CalcFactor(
     cf.factor.mechanics,
     0,
-    _lengthOrNothing(cf._legacyMeas),
+    # _lengthOrNothing(cf._legacyMeas),
     cf._legacyMeas,
     cf._legacyParams,
     cf._allowThreads,
