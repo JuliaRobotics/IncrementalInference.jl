@@ -71,8 +71,9 @@ function calcVariableDistanceExpectedFractional(
   kappa::Real = 3.0,
 )
   #
+  varTypes = getVariableType.(ccwl.fullvariables)
   if sfidx in certainidx
-    msst_ = calcStdBasicSpread(ccwl.vartypes[sfidx](), ccwl.params[sfidx])
+    msst_ = calcStdBasicSpread(varTypes[sfidx], ccwl.params[sfidx])
     return kappa * msst_
   end
   # @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
@@ -82,18 +83,18 @@ function calcVariableDistanceExpectedFractional(
   uncertainidx = setdiff(1:length(ccwl.params), certainidx)
   dists = zeros(length(uncertainidx) + length(certainidx))
 
-  dims = manifold_dimension(getManifold(ccwl.vartypes[sfidx]))
+  dims = manifold_dimension(getManifold(varTypes[sfidx]))
 
   uncMeans = zeros(dims, length(uncertainidx))
   for (count, i) in enumerate(uncertainidx)
-    u = mean(getManifold(ccwl.vartypes[i]), ccwl.params[i])
-    uncMeans[:, count] .= getCoordinates(ccwl.vartypes[i], u)
+    u = mean(getManifold(varTypes[i]), ccwl.params[i])
+    uncMeans[:, count] .= getCoordinates(varTypes[i], u)
   end
   count = 0
 
   refMean = getCoordinates(
-    ccwl.vartypes[sfidx],
-    mean(getManifold(ccwl.vartypes[sfidx]), ccwl.params[sfidx]),
+    varTypes[sfidx],
+    mean(getManifold(varTypes[sfidx]), ccwl.params[sfidx]),
   )
 
   # calc for uncertain and certain
@@ -104,8 +105,8 @@ function calcVariableDistanceExpectedFractional(
   # also check distance to certainidx for general scale reference (workaround heuristic)
   for cidx in certainidx
     count += 1
-    cerMeanPnt = mean(getManifold(ccwl.vartypes[cidx]), ccwl.params[cidx])
-    cerMean = getCoordinates(ccwl.vartypes[cidx], cerMeanPnt)
+    cerMeanPnt = mean(getManifold(varTypes[cidx]), ccwl.params[cidx])
+    cerMean = getCoordinates(varTypes[cidx], cerMeanPnt)
     dists[count] = norm(refMean[1:dims] - cerMean[1:dims])
   end
 
