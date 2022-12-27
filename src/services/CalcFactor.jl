@@ -195,7 +195,7 @@ function CommonConvWrapper(
   X::AbstractVector{P}, #TODO remove X completely
   zDim::Int,
   varValsLink::Tuple,
-  fullvariables::Vector{DFGVariable};
+  fullvariables; #::Tuple ::Vector{DFGVariable};
   partial::Bool = false,
   hypotheses::H = nothing,
   certainhypo = nothing,
@@ -207,9 +207,9 @@ function CommonConvWrapper(
   xDim::Int = size(X, 1),
   partialDims::AbstractVector{<:Integer} = 1:length(X),
   res::AbstractVector{<:Real} = zeros(zDim),
-  threadmodel::Type{<:_AbstractThreadModel} = SingleThreaded,
+  # threadmodel::Type{<:_AbstractThreadModel} = SingleThreaded,
   inflation::Real = 3.0,
-  vartypes::Vector{DataType} = typeof.(getVariableType.(fullvariables)),
+  # vartypes::Vector{DataType} = typeof.(getVariableType.(fullvariables)),
   gradients = nothing,
   userCache::CT = nothing,
 ) where {T <: AbstractFactor, P, H, CT}
@@ -225,13 +225,13 @@ function CommonConvWrapper(
     varValsLink,
     varidx,
     measurement,
-    threadmodel,
+    # threadmodel,
     inflation,
     partialDims,
-    DataType[vartypes...],
+    # DataType[vartypes...],
     gradients,
     userCache,
-    fullvariables,
+    tuple(fullvariables...),
     particleidx,
     activehypo,
     res,
@@ -308,12 +308,10 @@ function _prepParamVec(
     varParamsAll[sfidx] = deepcopy(varParamsAll[sfidx])
   end
 
-  varTypes = typeof.(getVariableType.(Xi)) # previous need to force unstable, ::Vector{DataType}
-
-  ntp = tuple(varParamsAll...)
+  varValsAll = tuple(varParamsAll...)
   # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
   # maxlen = N == 0 ? maxlen : N
-  return ntp, maxlen, sfidx, varTypes
+  return varValsAll, maxlen, sfidx
 end
 
 """
@@ -404,7 +402,7 @@ function _prepCCW(
   end,
   inflation::Real = 0.0,
   solveKey::Symbol = :default,
-  threadmodel = MultiThreaded,
+  # threadmodel = MultiThreaded,
   _blockRecursion::Bool = false,
   userCache::CT = nothing,
 ) where {T <: AbstractFactor, CT}
@@ -416,14 +414,14 @@ function _prepCCW(
   end
 
   # TODO check no Anys, see #1321
-  _varValsQuick, maxlen, sfidx, varTypes = _prepParamVec(Xi, nothing, 0; solveKey) # Nothing for init.
+  _varValsQuick, maxlen, sfidx = _prepParamVec(Xi, nothing, 0; solveKey) # Nothing for init.
 
   # standard factor metadata
   solvefor = length(Xi)
   # sflbl = 0 == length(Xi) ? :null : getLabel(Xi[end])
   # lbs = getLabel.(Xi)
   # fmd = FactorMetadata(Xi, lbs, _varValsQuick, sflbl, nothing)
-  fullvariables = convert(Vector{DFGVariable}, Xi)
+  fullvariables = tuple(Xi...) # convert(Vector{DFGVariable}, Xi)
   # create a temporary CalcFactor object for extracting the first sample
   # TODO, deprecate this:  guess measurement points type
   # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
@@ -433,7 +431,7 @@ function _prepCCW(
     _varValsQuick,
     false,
     userCache,
-    tuple(fullvariables...),
+    fullvariables,
     solvefor,
   )
 
@@ -458,6 +456,9 @@ function _prepCCW(
   else
     Int[]
   end
+
+  # FIXME, should incorporate multihypo selection
+  varTypes = getVariableType.(fullvariables)
 
   # as per struct CommonConvWrapper
   gradients = attemptGradientPrep(
@@ -486,10 +487,10 @@ function _prepCCW(
     hypotheses = multihypo,
     certainhypo,
     nullhypo,
-    threadmodel,
+    # threadmodel,
     inflation,
     partialDims,
-    vartypes = varTypes,
+    # vartypes = varTypes,
     gradients,
     userCache,
   )
@@ -523,12 +524,12 @@ function _updateCCW!(
 
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
-  _varValsQuick, maxlen, sfidx, varTypes = _prepParamVec(Xi, solvefor, N; solveKey)
+  _varValsQuick, maxlen, sfidx = _prepParamVec(Xi, solvefor, N; solveKey)
 
   # NOTE should be selecting for the correct multihypothesis mode
   ccwl.params = _varValsQuick
   # some better consolidate is needed
-  ccwl.vartypes = varTypes
+  # ccwl.vartypes = varTypes
   # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
   ccwl.xDim = getDimension(getVariableType(Xi[sfidx]))
   # TODO maybe refactor new type higher up?

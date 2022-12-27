@@ -708,7 +708,7 @@ function getDefaultFactorData(
   usrfnc::T;
   multihypo::Vector{<:Real} = Float64[],
   nullhypo::Float64 = 0.0,
-  threadmodel = SingleThreaded,
+  # threadmodel = SingleThreaded,
   eliminated::Bool = false,
   potentialused::Bool = false,
   edgeIDs = Int[],
@@ -729,7 +729,7 @@ function getDefaultFactorData(
     usrfnc;
     multihypo = mhcat,
     nullhypo = nh,
-    threadmodel,
+    # threadmodel,
     inflation,
     _blockRecursion,
     userCache,
@@ -816,7 +816,7 @@ function DFG.addFactor!(
   tags::Vector{Symbol} = Symbol[],
   timestamp::Union{DateTime, ZonedDateTime} = now(localzone()),
   graphinit::Bool = getSolverParams(dfg).graphinit,
-  threadmodel = SingleThreaded,
+  # threadmodel = SingleThreaded,
   suppressChecks::Bool = false,
   inflation::Real = getSolverParams(dfg).inflation,
   namestring::Symbol = assembleFactorName(dfg, Xi),
@@ -833,7 +833,7 @@ function DFG.addFactor!(
     deepcopy(usrfnc);
     multihypo,
     nullhypo,
-    threadmodel,
+    # threadmodel,
     inflation,
     _blockRecursion,
   )

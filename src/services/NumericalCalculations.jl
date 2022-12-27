@@ -113,7 +113,7 @@ function _solveLambdaNumeric(
   islen1::Bool = false,
 ) where {N_, F <: AbstractManifoldMinimize, S, T}
   #
-  M = getManifold(variableType)#fcttype.M
+  M = getManifold(variableType) #fcttype.M
   # the variable is a manifold point, we are working on the tangent plane in optim for now.
   # 
   #TODO this is not general to all manifolds, should work for lie groups.
@@ -393,7 +393,7 @@ function _solveCCWNumeric!(
     _hypoObj,
     ccwl.res,
     X,
-    ccwl.vartypes[sfidx](),
+    ccwl.vartypes[sfidx](), # only used for getting variable manifold and identity_element
     islen1,
   )
 

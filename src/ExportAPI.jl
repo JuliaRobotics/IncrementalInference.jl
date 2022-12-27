@@ -239,11 +239,6 @@ export CSMHistory,
   getCliqVarInitOrderUp,
   getCliqNumAssocFactorsPerVar,
 
-  # introduced for approximate convolution operations
-  setThreadModel!,
-  SingleThreaded,
-  MultiThreaded,
-
   # user functions
   predictbelief,
   propagateBelief,

@@ -61,7 +61,7 @@ using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
 using .Ccolamd
 
 # likely overloads or not exported by the upstream packages
-import Base: convert, ==
+import Base: convert, ==, getproperty
 import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW

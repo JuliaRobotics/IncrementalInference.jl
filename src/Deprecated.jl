@@ -28,6 +28,23 @@ function convert(::Type{<:Prior}, prior::Dict{String, Any})
 end
 
 ##==============================================================================
+## Deprecate code below before v0.33
+##==============================================================================
+
+# export setThreadModel!
+  # introduced for approximate convolution operations
+export SingleThreaded, MultiThreaded
+
+function setThreadModel!(fgl::AbstractDFG; model = IIF.SingleThreaded)
+  #
+  @error("Obsolete, ThreadModel types are no longer in use.")
+  # for (key, id) in fgl.fIDs
+  #   _getCCW(fgl, key).threadmodel = model
+  # end
+  return nothing
+end
+
+##==============================================================================
 ## Deprecate code below before v0.32
 ##==============================================================================
 
