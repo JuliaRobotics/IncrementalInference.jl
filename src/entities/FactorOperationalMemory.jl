@@ -104,14 +104,14 @@ mutable struct CommonConvWrapper{
   # FIXME make type stable, JT should now be type stable if rest works
   #   user defined measurement values for each approxConv operation
   measurement::Vector{MT}
-  # TODO refactor and deprecate this old approach, Union{Type{SingleThreaded}, Type{MultiThreaded}}
-  threadmodel::Type{<:_AbstractThreadModel}
+  # # TODO refactor and deprecate this old approach, Union{Type{SingleThreaded}, Type{MultiThreaded}}
+  # threadmodel::Type{<:_AbstractThreadModel}
   # inflationSpread
   inflation::Float64
   # Which dimensions does this factor influence.  Sensitive (mutable) to both which 'solvefor index' variable and whether the factor is partial dimension
   partialDims::Vector{<:Integer}
-  # variable types for points in params
-  vartypes::Vector{<:DataType}
+  # # variable types for points in params
+  # vartypes::Vector{<:DataType}
   # experimental feature to embed gradient calcs with ccw
   _gradients::G
   # type used for cache
@@ -127,6 +127,16 @@ mutable struct CommonConvWrapper{
   activehypo::Vector{Int}
   # working memory to store residual for optimization routines
   res::Vector{Float64}
+end
+
+function Base.getproperty(ccw::CommonConvWrapper, f::Symbol)
+  if f == :threadmodel
+    return SingleThreaded
+  elseif f == :vartypes
+    return typeof.(getVariableType.(ccw.fullvariables))
+  else
+    return getfield(ccw, f)
+  end
 end
 
 #

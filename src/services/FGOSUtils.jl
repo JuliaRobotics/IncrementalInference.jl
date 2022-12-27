@@ -294,14 +294,6 @@ end
 
 const calcVariablePPE = calcPPE
 
-function setThreadModel!(fgl::AbstractDFG; model = IIF.SingleThreaded)
-  #
-  for (key, id) in fgl.fIDs
-    _getCCW(fgl, key).threadmodel = model
-  end
-  return nothing
-end
-
 """
     $SIGNATURES
 

@@ -207,9 +207,9 @@ function CommonConvWrapper(
   xDim::Int = size(X, 1),
   partialDims::AbstractVector{<:Integer} = 1:length(X),
   res::AbstractVector{<:Real} = zeros(zDim),
-  threadmodel::Type{<:_AbstractThreadModel} = SingleThreaded,
+  # threadmodel::Type{<:_AbstractThreadModel} = SingleThreaded,
   inflation::Real = 3.0,
-  vartypes::Vector{DataType} = typeof.(getVariableType.(fullvariables)),
+  # vartypes::Vector{DataType} = typeof.(getVariableType.(fullvariables)),
   gradients = nothing,
   userCache::CT = nothing,
 ) where {T <: AbstractFactor, P, H, CT}
@@ -225,10 +225,10 @@ function CommonConvWrapper(
     varValsLink,
     varidx,
     measurement,
-    threadmodel,
+    # threadmodel,
     inflation,
     partialDims,
-    DataType[vartypes...],
+    # DataType[vartypes...],
     gradients,
     userCache,
     fullvariables,
@@ -404,7 +404,7 @@ function _prepCCW(
   end,
   inflation::Real = 0.0,
   solveKey::Symbol = :default,
-  threadmodel = MultiThreaded,
+  # threadmodel = MultiThreaded,
   _blockRecursion::Bool = false,
   userCache::CT = nothing,
 ) where {T <: AbstractFactor, CT}
@@ -486,10 +486,10 @@ function _prepCCW(
     hypotheses = multihypo,
     certainhypo,
     nullhypo,
-    threadmodel,
+    # threadmodel,
     inflation,
     partialDims,
-    vartypes = varTypes,
+    # vartypes = varTypes,
     gradients,
     userCache,
   )
@@ -528,7 +528,7 @@ function _updateCCW!(
   # NOTE should be selecting for the correct multihypothesis mode
   ccwl.params = _varValsQuick
   # some better consolidate is needed
-  ccwl.vartypes = varTypes
+  # ccwl.vartypes = varTypes
   # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
   ccwl.xDim = getDimension(getVariableType(Xi[sfidx]))
   # TODO maybe refactor new type higher up?
