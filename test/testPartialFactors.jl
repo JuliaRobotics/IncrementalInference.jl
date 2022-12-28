@@ -18,7 +18,7 @@ fg = initfg()
 
 addVariable!(fg, :x1, ContinuousEuclid(2))
 
-addFactor!(fg, [:x1], PartialPrior(Normal(), (1,)) )
+addFactor!(fg, [:x1], PartialPrior(ContinuousEuclid(2),Normal(), (1,)) )
 
 @test isPartial(getFactor(fg, :x1f1))
 

@@ -7,7 +7,7 @@ using Manifolds
 using Statistics
 using TensorCast
 
-import IncrementalInference: getSample
+import IncrementalInference: getSample, getManifold
 
 mutable struct FunctorWorks
   a::Array{Float64,2}
@@ -75,6 +75,8 @@ end
 mutable struct Pose1Pose1Test{T} <: AbstractRelativeRoots
   Dx::T
 end
+
+getManifold(::Pose1Pose1Test) = TranslationGroup(1)
 
 function getSample(cf::CalcFactor{<:Pose1Pose1Test})
   return rand(cf.factor.Dx, 1)

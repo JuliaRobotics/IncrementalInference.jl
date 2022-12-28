@@ -91,7 +91,7 @@ result = solveTree!(fg; smtasks, verbose=true)
 fg = initfg()
 
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
-mp = PartialPrior(MvNormal([0.01, 0.01]), (1,2))
+mp = PartialPrior(SpecialEuclidean2,MvNormal([0.01, 0.01]), (1,2))
 
 p = addFactor!(fg, [:x0], mp, graphinit=false)
 

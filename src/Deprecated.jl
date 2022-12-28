@@ -27,6 +27,23 @@ function convert(::Type{<:Prior}, prior::Dict{String, Any})
   return Prior(z)
 end
 
+# more legacy, dont delete yet
+function Base.getproperty(ccw::CommonConvWrapper, f::Symbol)
+  if f == :threadmodel
+    @warn "CommonConvWrapper.threadmodel is obsolete" maxlog=3
+    return SingleThreaded
+  elseif f == :params
+    @warn "CommonConvWrapper.params is deprecated, use .varValsAll instead" maxlog=3
+    return ccw.varValsAll
+  elseif f == :vartypes
+    @warn "CommonConvWrapper.vartypes is deprecated, use typeof.(getVariableType.(ccw.fullvariables) instead" maxlog=3
+    return typeof.(getVariableType.(ccw.fullvariables))
+  else
+    return getfield(ccw, f)
+  end
+end
+
+
 ##==============================================================================
 ## Deprecate code below before v0.33
 ##==============================================================================
@@ -43,6 +60,9 @@ function setThreadModel!(fgl::AbstractDFG; model = IIF.SingleThreaded)
   # end
   return nothing
 end
+
+# should have been deleted in v0.31 but no harm in keeping this one a bit longer
+@deprecate initManual!(w...; kw...) initVariable!(w...; kw...)
 
 ##==============================================================================
 ## Deprecate code below before v0.32
@@ -109,11 +129,7 @@ end
 #               thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(dfg, lbl), thrid)
 # #
 
-##==============================================================================
-## Deprecate code below before v0.31
-##==============================================================================
 
-@deprecate initManual!(w...; kw...) initVariable!(w...; kw...)
 
 ##==============================================================================
 ## Old parametric kept for comparason until code stabilize

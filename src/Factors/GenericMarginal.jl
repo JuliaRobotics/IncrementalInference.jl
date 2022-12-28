@@ -11,6 +11,8 @@ mutable struct GenericMarginal <: AbstractRelativeRoots
   GenericMarginal(a, b, c) = new(a, b, c)
 end
 
+getManifold(::GenericMarginal) = TranslationGroup(1)
+
 getSample(::CalcFactor{<:GenericMarginal}) = [0]
 
 Base.@kwdef mutable struct PackedGenericMarginal <: AbstractPackedFactor
