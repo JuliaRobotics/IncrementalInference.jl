@@ -15,6 +15,8 @@ The list below highlights breaking changes according to normal semver workflow -
 
 - Major internal refactoring of `CommonConvWrapper` to avoid abstract field types, and better standardization; towards cleanup of internal multihypo handling and naming conventions.
 - Internal refactoring removing several legacy fields from `CalcFactor`.
+- All factors now require a `getManifold` definition.
+- Now have `CalcFactor.manifold` to reduce new allocation load inside hot-loop for solving.
 
 # Changes in v0.31
 - `FactorMetaData` is deprecated and replaced by `CalcFactor`.
