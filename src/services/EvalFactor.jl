@@ -519,6 +519,7 @@ function evalPotentialSpecific(
           asPartial,
         )
       else
+        # this case should be less prevalent following PR #1662
         @warn "could not find definition for getManifold(::$(typeof(fnc)))" maxlog=10
         Msrc, = getManifoldPartial(mani, partialCoords)
         setPointPartial!(
