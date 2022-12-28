@@ -48,11 +48,12 @@ end
 # part of consolidation, see #927
 function sampleFactor!(ccwl::CommonConvWrapper, N::Int)
   #
-  ccwl.measurement = sampleFactor(ccwl, N)
-  # # build a CalcFactor object and get fresh samples.
-  # cf = CalcFactor(ccwl) # CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+  
   # # TODO make this an in-place operation as far possible
+  # # build a CalcFactor object and get fresh samples.
+  # cf = CalcFactor(ccwl) 
   # ccwl.measurement = sampleFactor(cf, N)    
+  ccwl.measurement = sampleFactor(ccwl, N)
 
   return nothing
 end

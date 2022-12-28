@@ -72,7 +72,13 @@ initAll!(fg2)
 
 tree = buildTreeReset!(fg2)
 
-@test compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=true, skip=[:fullvariables])
+# Expect ccw to reflect different numerics since fg and fg2 have different numeric solutions
+Al = IIF._getCCW(fg,  getLabel(f2))
+Bl = IIF._getCCW(fg2, getLabel(f2))
+field = :varValsAll
+@test !compareField(Al, Bl, field)
+
+@test compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=true, skip=[:fullvariables; :varValsAll])
 
 @test !compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=false)
 

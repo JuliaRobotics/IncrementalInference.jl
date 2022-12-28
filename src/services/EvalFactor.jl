@@ -73,28 +73,28 @@ function calcVariableDistanceExpectedFractional(
   #
   varTypes = getVariableType.(ccwl.fullvariables)
   if sfidx in certainidx
-    msst_ = calcStdBasicSpread(varTypes[sfidx], ccwl.params[sfidx])
+    msst_ = calcStdBasicSpread(varTypes[sfidx], ccwl.varValsAll[sfidx])
     return kappa * msst_
   end
   # @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
 
   # get mean of all fractional variables
   # ccwl.params::Vector{Vector{P}}
-  uncertainidx = setdiff(1:length(ccwl.params), certainidx)
+  uncertainidx = setdiff(1:length(ccwl.varValsAll), certainidx)
   dists = zeros(length(uncertainidx) + length(certainidx))
 
   dims = manifold_dimension(getManifold(varTypes[sfidx]))
 
   uncMeans = zeros(dims, length(uncertainidx))
   for (count, i) in enumerate(uncertainidx)
-    u = mean(getManifold(varTypes[i]), ccwl.params[i])
+    u = mean(getManifold(varTypes[i]), ccwl.varValsAll[i])
     uncMeans[:, count] .= getCoordinates(varTypes[i], u)
   end
   count = 0
 
   refMean = getCoordinates(
     varTypes[sfidx],
-    mean(getManifold(varTypes[sfidx]), ccwl.params[sfidx]),
+    mean(getManifold(varTypes[sfidx]), ccwl.varValsAll[sfidx]),
   )
 
   # calc for uncertain and certain
@@ -105,7 +105,7 @@ function calcVariableDistanceExpectedFractional(
   # also check distance to certainidx for general scale reference (workaround heuristic)
   for cidx in certainidx
     count += 1
-    cerMeanPnt = mean(getManifold(varTypes[cidx]), ccwl.params[cidx])
+    cerMeanPnt = mean(getManifold(varTypes[cidx]), ccwl.varValsAll[cidx])
     cerMean = getCoordinates(varTypes[cidx], cerMeanPnt)
     dists[count] = norm(refMean[1:dims] - cerMean[1:dims])
   end
@@ -190,7 +190,7 @@ function computeAcrossHypothesis!(
         ccwl.activehypo = vars
       end
 
-      addEntr = view(ccwl.params[sfidx], allelements[count])
+      addEntr = view(ccwl.varValsAll[sfidx], allelements[count])
 
       # do proposal inflation step, see #1051
       # consider duplicate convolution approximations for inflation off-zero
@@ -224,9 +224,9 @@ function computeAcrossHypothesis!(
       # sfidx=2, hypoidx=3:  2 should take a value from 3
       # sfidx=3, hypoidx=2:  3 should take a value from 2
       # DEBUG sfidx=2, hypoidx=1 -- bad when do something like multihypo=[0.5;0.5] -- issue 424
-      # ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[hypoidx],:,allelements[count])
+      # ccwl.varValsAll[sfidx][:,allelements[count]] = view(ccwl.varValsAll[hypoidx],:,allelements[count])
       # NOTE make alternative case only operate as null hypo
-      addEntr = view(ccwl.params[sfidx], allelements[count])
+      addEntr = view(ccwl.varValsAll[sfidx], allelements[count])
       # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist =
         calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx; kappa = spreadNH)
@@ -236,7 +236,7 @@ function computeAcrossHypothesis!(
       # basically do nothing since the factor is not active for these allelements[count]
       # inject more entropy in nullhypo case
       # add noise (entropy) to spread out search in convolution proposals
-      addEntr = view(ccwl.params[sfidx], allelements[count])
+      addEntr = view(ccwl.varValsAll[sfidx], allelements[count])
       # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist =
         calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx; kappa = spreadNH)
@@ -281,7 +281,7 @@ function _calcIPCRelative(
   sfidx_active = sum(active_mask[1:sfidx])
 
   # build a view to the decision variable memory
-  activeParams = view(ccwl.params, activeids)
+  activeParams = view(ccwl.varValsAll, activeids)
   activeVars = Xi[active_mask]
 
   # assume gradients are just done for the first sample values
@@ -401,7 +401,7 @@ function evalPotentialSpecific(
   end
 
   # return the found points, and info per coord
-  return ccwl.params[ccwl.varidx], ipc
+  return ccwl.varValsAll[ccwl.varidx], ipc
 end
 
 # TODO `measurement` might not be properly wired up yet
@@ -432,7 +432,7 @@ function evalPotentialSpecific(
   sfidx = findfirst(getLabel.(Xi) .== solvefor)
   # sfidx = 1 #  WHY HARDCODED TO 1??
   solveForPts = getVal(Xi[sfidx]; solveKey = solveKey)
-  nn = maximum([N; calcZDim(ccwl); length(solveForPts); length(ccwl.params[sfidx])])  # length(measurement[1])
+  nn = maximum([N; calcZDim(ccwl); length(solveForPts); length(ccwl.varValsAll[sfidx])])  # length(measurement[1])
 
   # FIXME better standardize in-place operations (considering solveKey)
   if needFreshMeasurements

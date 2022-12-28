@@ -11,6 +11,11 @@ Alternatively, either use the Github Blame, or the Github `/compare/v0.18.0...v0
 
 The list below highlights breaking changes according to normal semver workflow -- i.e. breaking changes go through at least one deprecatation (via warnings) on the dominant number in the version number.  E.g. v0.18 -> v0.19 (warnings) -> v0.20 (breaking).  Note that ongoing efforts are made to properly deprecate old code/APIs
 
+# Changes in v0.32
+
+- Major internal refactoring of `CommonConvWrapper` to avoid abstract field types, and better standardization; towards cleanup of internal multihypo handling and naming conventions.
+- Internal refactoring removing several legacy fields from `CalcFactor`.
+
 # Changes in v0.31
 - `FactorMetaData` is deprecated and replaced by `CalcFactor`.
 - Updated `Base.deepcopy_internal` fix for use with Julia 1.8.1, see #1629.
@@ -18,6 +23,7 @@ The list below highlights breaking changes according to normal semver workflow -
 - Refactoring to remove `FactorMetadata` (#1611) and `ConvPerThread` (#1615, #1625) objects, which is consolidated into `CalcFactor` and `CommonConvWrapper`.
 - Added JuliaFormatter, see #1620.
 - Add `SnoopPrecompile.jl` on a few basic solve features to start, see #1631.
+- Support n-ary parametric solving such as OAS factors.
 
 # Changes in v0.30
 
