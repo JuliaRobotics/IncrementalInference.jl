@@ -437,7 +437,7 @@ function evalPotentialSpecific(
   # FIXME better standardize in-place operations (considering solveKey)
   if needFreshMeasurements
     cf = CalcFactor(ccwl)
-    # NOTE, sample factor is expected to return tangent values
+    # NOTE, sample factor is expected to return tangents=>relative or points=>prior
     newMeas = sampleFactor(cf, nn)
     ccwl.measurement = newMeas
   end
