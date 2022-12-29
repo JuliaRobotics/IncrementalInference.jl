@@ -83,7 +83,7 @@ Related:
 
 getCliq, getTreeAllFrontalSyms
 """
-getClique(tree::AbstractBayesTree, cId::Int) = tree.cliques[cId]
+getClique(tree::AbstractBayesTree, cId::Int) = getClique(tree,cId)
 getClique(bt::AbstractBayesTree, frt::Symbol) = getClique(bt, bt.frontals[frt])
 function getClique(tree::MetaBayesTree, cId::CliqueId)
   return MetaGraphs.get_prop(tree.bt, tree.bt[:cliqId][cId], :clique)
@@ -133,7 +133,7 @@ function DFG.ls(tr::AbstractBayesTree)
   ids = keys(tr.cliques) |> collect |> sort
   ret = Vector{Pair{Int, Vector{Symbol}}}(undef, length(ids))
   for (idx, id) in enumerate(ids)
-    ret[idx] = (id => getFrontals(tr.cliques[id]))
+    ret[idx] = (id => getFrontals(getClique(tr,id)))
   end
   return ret
 end

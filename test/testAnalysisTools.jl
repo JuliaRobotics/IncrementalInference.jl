@@ -16,9 +16,9 @@ end
     vo = [:l1, :l2, :x1, :x2, :x3]
     tree = buildTreeReset!(fg, vo)
     # Must agree with hand-calculated values, iSAM2 paper.
-    @test nnzClique(tree.cliques[1]) == 3
-    @test nnzClique(tree.cliques[2]) == 5
-    @test nnzClique(tree.cliques[3]) == 2
+    @test nnzClique(getClique(tree, 1)) == 3
+    @test nnzClique(getClique(tree, 2)) == 5
+    @test nnzClique(getClique(tree, 3)) == 2
 end
 
 @testset "Number of non-zero calculation for full trees." begin

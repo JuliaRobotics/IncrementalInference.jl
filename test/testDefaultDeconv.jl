@@ -98,9 +98,9 @@ vo = [:x3,:x5,:x1,:l1,:x4,:x2,:x6,:x0]
 mkpath(getLogPath(fg))
 tree = solveTree!(fg, eliminationOrder=vo, verbose=true) #, timeout=5) # timeout creates interrupt exception
 
-msg = IIF.getMessageBuffer(tree.cliques[2]).upRx
+msg = IIF.getMessageBuffer(getClique(tree,2)).upRx
 
-tfg = buildCliqSubgraph(fg, tree.cliques[2])
+tfg = buildCliqSubgraph(fg, getClique(tree,2))
 addLikelihoodsDifferential!.(tfg, values(msg))
 
 # drawGraph(tfg, show=true)

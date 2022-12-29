@@ -573,7 +573,7 @@ function attachCSM!(
   # pids = csmc.parentCliq .|> x->x.id
   # cids = csmc.childCliqs .|> x->x.id
 
-  csmc.cliq = tree.cliques[cid]
+  csmc.cliq = getClique(tree, cid)
   # csmc.parentCliq = pids .|> x->getindex(tree.cliques, x)
   # csmc.childCliqs = cids .|> x->getindex(tree.cliques, x)
 
@@ -741,7 +741,7 @@ function animateCSM(
   hists =
     Dict{Symbol, Vector{Tuple{DateTime, Int64, Function, CliqStateMachineContainer}}}()
   for (id, hist) in autohist
-    frtl = getFrontals(tree.cliques[id])
+    frtl = getFrontals(getClique(tree, id))
     hists[frtl[1]] = Vector{Tuple{DateTime, Int64, Function, CliqStateMachineContainer}}()
     for hi in hist
       push!(hists[frtl[1]], (hi.timestamp, hi.id, hi.f, hi.csmc)) # Tuple.(hist)

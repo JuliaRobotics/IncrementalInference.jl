@@ -46,7 +46,7 @@ tree = emptyBayesTree()
 buildTree!(tree, fge, p)
 
 # Find potential functions for each clique
-cliq = tree.cliques[1] # start at the root
+cliq = getClique(tree,1) # start at the root
 buildCliquePotentials(fg, tree, cliq);
 
 drawTree(tree, show=true)
@@ -60,7 +60,7 @@ drawTree(tree, show=true)
 
 ## can also show the Clique Association matrix by first importing Cairo, Fontconfig, Gadfly
 
-cliq = tree.cliques[1]
+cliq = getClique(tree,1)
 cliq = getClique(tree, :x0) # where is :x0 a frontal variable
 spyCliqMat(cliq)
 
