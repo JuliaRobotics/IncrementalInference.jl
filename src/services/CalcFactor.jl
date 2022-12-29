@@ -189,49 +189,47 @@ end
 
 function CommonConvWrapper(
   usrfnc::T,
+  fullvariables, #::Tuple ::Vector{<:DFGVariable};
+  varValsAll::Tuple,
   X::AbstractVector{P}, #TODO remove X completely
-  zDim::Int,
-  varValsLink::Tuple,
-  fullvariables; #::Tuple ::Vector{<:DFGVariable};
+  zDim::Int;
+  xDim::Int = size(X, 1),
+  userCache::CT = nothing,
+  manifold = getManifold(usrfnc),
+  partialDims::AbstractVector{<:Integer} = 1:length(X),
   partial::Bool = false,
+  nullhypo::Real = 0,
+  inflation::Real = 3.0,
   hypotheses::H = nothing,
   certainhypo = nothing,
-  activehypo = collect(1:length(varValsLink)),
-  nullhypo::Real = 0,
-  varidx::Int = 1,
+  activehypo = collect(1:length(varValsAll)),
   measurement::AbstractVector = Vector(Vector{Float64}()),
+  varidx::Int = 1,
   particleidx::Int = 1,
-  xDim::Int = size(X, 1),
-  partialDims::AbstractVector{<:Integer} = 1:length(X),
   res::AbstractVector{<:Real} = zeros(zDim),
-  # threadmodel::Type{<:_AbstractThreadModel} = SingleThreaded,
-  inflation::Real = 3.0,
-  # vartypes::Vector{DataType} = typeof.(getVariableType.(fullvariables)),
   gradients = nothing,
-  userCache::CT = nothing,
-  manifold = getManifold(usrfnc)
 ) where {T <: AbstractFactor, P, H, CT}
   #
   return CommonConvWrapper(
     usrfnc,
+    tuple(fullvariables...),
+    varValsAll,
+    userCache,
+    manifold,
+    partialDims,
+    partial,
     xDim,
     zDim,
-    partial,
+    Float64(nullhypo),
+    inflation,
     hypotheses,
     certainhypo,
-    Float64(nullhypo),
-    varValsLink,
-    varidx,
-    measurement,
-    inflation,
-    partialDims,
-    gradients,
-    userCache,
-    tuple(fullvariables...),
-    particleidx,
     activehypo,
+    measurement,
+    varidx,
+    particleidx,
     res,
-    manifold
+    gradients,
   )
 end
 
@@ -439,12 +437,6 @@ function _prepCCW(
   meas_single = sampleFactor(_cf, 1)[1]
 
   elT = typeof(meas_single)
-  # # @info "WHAT" elT
-  # if elT <: ProductRepr
-  #   @error("ProductRepr is deprecated, use ArrayPartition instead, $T") #TODO remove in v0.32
-  # else
-  #   nothing #TODO remove in v0.32
-  # end #TODO remove in v0.32
 
   #TODO preallocate measurement?
   measurement = Vector{elT}()
@@ -478,20 +470,20 @@ function _prepCCW(
 
   return CommonConvWrapper(
     usrfnc,
-    PointType[],
-    calcZDim(_cf),
+    fullvariables,
     _varValsQuick,
-    fullvariables;
+    PointType[],
+    calcZDim(_cf);
+    userCache, # should be higher in args list
+    manifold,  # should be higher in args list
+    partialDims,
     partial,
-    measurement,
-    hypotheses = multihypo,
-    certainhypo,
     nullhypo,
     inflation,
-    partialDims,
+    hypotheses = multihypo,
+    certainhypo,
+    measurement,
     gradients,
-    userCache,
-    manifold
   )
 end
 

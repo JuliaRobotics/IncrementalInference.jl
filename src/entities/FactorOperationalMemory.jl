@@ -91,46 +91,50 @@ mutable struct CommonConvWrapper{
   VT <: Tuple,
   AM <: AbstractManifold
 } <: FactorOperationalMemory
-  #
+  # Basic factor topological info
   """ Values consistent across all threads during approx convolution """
   usrfnc!::T # user factor / function
+  """ Consolidation from FMD, ordered tuple of all variables connected to this factor """
+  fullvariables::VT
+  # shortcuts to numerical containers
+  """ Numerical containers for all connected variables.  Hypo selection needs to be passed 
+      to each hypothesis evaluation event on user function via CalcFactor, #1321 """
+  varValsAll::NTP
+  """ dummy cache value to be deep copied later for each of the CalcFactor instances """
+  dummyCache::CT
+  # derived config parameters for this factor
+  """ common usage manifold definition for this factor """
+  manifold::AM
+  """ Which dimensions does this factor influence.  Sensitive (mutable) to both which 'solvefor index' variable and whether the factor is partial dimension """
+  partialDims::Vector{<:Integer}
+  """ is this a partial constraint as defined by the existance of factor field `.partial::Tuple` """
+  partial::Bool
   """ general setup of factor dimensions"""
   xDim::Int
   zDim::Int
-  """ is this a partial constraint as defined by the existance of factor field `.partial::Tuple` """
-  partial::Bool
+  nullhypo::Float64
+  """ inflationSpread particular to this factor """
+  inflation::Float64
+  # multihypo specific field containers for recipe of hypotheses to compute
   """ multi hypothesis settings #NOTE no need for a parameter as type is known from `parseusermultihypo` """
   hypotheses::HP
   """ categorical to select which hypothesis is being considered during convolution operation """
   certainhypo::CH
-  nullhypo::Float64
-  """ Numerical containers for all connected variables.  Hypo selection needs to be passed 
-      to each hypothesis evaluation event on user function via CalcFactor, #1321 """
-  varValsAll::NTP
-  """ which index is being solved for in params? """
-  varidx::Int
+  """ subsection indices to select which params should be used for this hypothesis evaluation """
+  activehypo::Vector{Int}
+  # buffers and indices to point numerical computations to specific memory locations
   """ user defined measurement values for each approxConv operation
       FIXME make type stable, JT should now be type stable if rest works.
       SUPER IMPORTANT, if prior=>point or relative=>tangent, see #1661 """
   measurement::Vector{MT}
-  """ inflationSpread particular to this factor """
-  inflation::Float64
-  """ Which dimensions does this factor influence.  Sensitive (mutable) to both which 'solvefor index' variable and whether the factor is partial dimension """
-  partialDims::Vector{<:Integer}
-  """ experimental feature to embed gradient calcs with ccw """
-  _gradients::G
-  """ dummy cache value to be deep copied later for each of the CalcFactor instances """
-  dummyCache::CT
-  """ Consolidation from FMD, ordered tuple of all variables connected to this factor """
-  fullvariables::VT
+  """ which index is being solved for in params? """
+  varidx::Int
   """ Consolidation from CPT, the actual particle being solved at this moment """
   particleidx::Int
-  """ subsection indices to select which params should be used for this hypothesis evaluation """
-  activehypo::Vector{Int}
   """ working memory to store residual for optimization routines """
   res::Vector{Float64}
-  """ common usage manifold definition for this factor """
-  manifold::AM
+  """ experimental feature to embed gradient calcs with ccw """
+  _gradients::G
 end
 
 
