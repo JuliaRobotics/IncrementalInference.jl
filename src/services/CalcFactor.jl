@@ -214,6 +214,7 @@ function CommonConvWrapper(
   # vartypes::Vector{DataType} = typeof.(getVariableType.(fullvariables)),
   gradients = nothing,
   userCache::CT = nothing,
+  manifold = getManifold(usrfnc)
 ) where {T <: AbstractFactor, P, H, CT}
   #
   return CommonConvWrapper(
@@ -227,20 +228,19 @@ function CommonConvWrapper(
     varValsLink,
     varidx,
     measurement,
-    # threadmodel,
     inflation,
     partialDims,
-    # DataType[vartypes...],
     gradients,
     userCache,
     tuple(fullvariables...),
     particleidx,
     activehypo,
     res,
+    manifold
   )
 end
 
-getManifold(ccwl::CommonConvWrapper) = getManifold(ccwl.usrfnc!)
+getManifold(ccwl::CommonConvWrapper) = ccwl.manifold # getManifold(ccwl.usrfnc!)
 
 function _resizePointsVector!(
   vecP::AbstractVector{P},
@@ -406,7 +406,6 @@ function _prepCCW(
   end,
   inflation::Real = 0.0,
   solveKey::Symbol = :default,
-  # threadmodel = MultiThreaded,
   _blockRecursion::Bool = false,
   userCache::CT = nothing,
 ) where {T <: AbstractFactor, CT}
@@ -445,12 +444,12 @@ function _prepCCW(
   meas_single = sampleFactor(_cf, 1)[1]
 
   elT = typeof(meas_single)
-  # @info "WHAT" elT
-  if elT <: ProductRepr
-    @error("ProductRepr is deprecated, use ArrayPartition instead, $T") #TODO remove in v0.32
-  else
-    nothing #TODO remove in v0.32
-  end #TODO remove in v0.32
+  # # @info "WHAT" elT
+  # if elT <: ProductRepr
+  #   @error("ProductRepr is deprecated, use ArrayPartition instead, $T") #TODO remove in v0.32
+  # else
+  #   nothing #TODO remove in v0.32
+  # end #TODO remove in v0.32
 
   #TODO preallocate measurement?
   measurement = Vector{elT}()
@@ -493,12 +492,11 @@ function _prepCCW(
     hypotheses = multihypo,
     certainhypo,
     nullhypo,
-    # threadmodel,
     inflation,
     partialDims,
-    # vartypes = varTypes,
     gradients,
     userCache,
+    manifold
   )
 end
 
