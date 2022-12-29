@@ -334,14 +334,10 @@ function evalPotentialSpecific(
   ccwl::CommonConvWrapper{T},
   solvefor::Symbol,
   T_::Type{<:AbstractRelative},
-  measurement::AbstractVector = Tuple[];
-  needFreshMeasurements::Bool = true,
+  measurement::AbstractVector = Tuple[]; # TODO make this a concrete type
+  needFreshMeasurements::Bool = true,    # superceeds over measurement
   solveKey::Symbol = :default,
-  N::Int = if 0 < length(measurement)
-    length(measurement)
-  else
-    maximum(Npts.(getBelief.(Xi, solveKey)))
-  end,
+  N::Int = 0 < length(measurement) ? length(measurement) : maximum(Npts.(getBelief.(Xi, solveKey))),
   spreadNH::Real = 3.0,
   inflateCycles::Int = 3,
   nullSurplus::Real = 0,
@@ -353,12 +349,12 @@ function evalPotentialSpecific(
 
   # Prep computation variables
   # NOTE #1025, should FMD be built here...
-  sfidx, maxlen = _updateCCW!(ccwl, Xi, solvefor, N; needFreshMeasurements, solveKey)
-  # check for user desired measurement values
-  if 0 < length(measurement)
-    # @info "HERE" typeof(ccwl.measurement) typeof(measurement)
-    ccwl.measurement = measurement
-  end
+  # add user desired measurement values if 0 < length
+  sfidx, maxlen = _updateCCW!(ccwl, Xi, solvefor, N; solveKey, needFreshMeasurements, measurement)
+  # if 0 < length(measurement)
+  #   # @info "HERE" typeof(ccwl.measurement) typeof(measurement)
+  #   ccwl.measurement = measurement
+  # end
 
   # Check which variables have been initialized
   isinit = map(x -> isInitialized(x), Xi)
@@ -394,6 +390,7 @@ function evalPotentialSpecific(
   ipc = ones(getDimension(Xi[sfidx]))
   if isPartial(ccwl)
     # FIXME this is a workaround until better _calcIPCRelative can be used
+    # TODO consolidate to common usage e.g. getPartialDims(ccwl)
     msk_ = setdiff(1:length(ipc), ccwl.usrfnc!.partial)
     for _i in msk_
       ipc[_i] = 0.0
@@ -414,11 +411,11 @@ function evalPotentialSpecific(
   measurement::AbstractVector = Tuple[];
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
-  N::Int = length(measurement),
-  dbg::Bool = false,
+  N::Int = 0 < length(measurement) ? length(measurement) : maximum(Npts.(getBelief.(Xi, solveKey))),
   spreadNH::Real = 3.0,
   inflateCycles::Int = 3,
   nullSurplus::Real = 0,
+  dbg::Bool = false,
   skipSolve::Bool = false,
   _slack = nothing,
 ) where {T <: AbstractFactor}
