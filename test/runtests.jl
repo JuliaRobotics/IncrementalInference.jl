@@ -11,10 +11,14 @@ include("priorusetest.jl")
 end
 
 if TEST_GROUP in ["all", "basic_functional_group"]
+# more frequent stochasic failures from numerics
+include("testSpecialEuclidean2Mani.jl")
+include("testEuclidDistance.jl")
+
+# regular testing
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
 include("testBasicManifolds.jl")
-include("testSpecialEuclidean2Mani.jl")
 
 # start as basic as possible and build from there
 include("typeReturnMemRef.jl")
@@ -74,7 +78,6 @@ include("testBasicTreeInit.jl")
 include("testSolveOrphanedFG.jl")
 include("testSolveSetPPE.jl")
 include("testSolveKey.jl")
-include("testEuclidDistance.jl")
 end
 
 if TEST_GROUP in ["all", "test_cases_group"]
