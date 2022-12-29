@@ -88,7 +88,8 @@ mutable struct CommonConvWrapper{
   CT,
   HP <: Union{Nothing, <:Distributions.Categorical{Float64, Vector{Float64}}},
   CH <: Union{Nothing, Vector{Int}},
-  VT <: Tuple
+  VT <: Tuple,
+  AM <: AbstractManifold
 } <: FactorOperationalMemory
   #
   """ Values consistent across all threads during approx convolution """
@@ -128,6 +129,8 @@ mutable struct CommonConvWrapper{
   activehypo::Vector{Int}
   """ working memory to store residual for optimization routines """
   res::Vector{Float64}
+  """ common usage manifold definition for this factor """
+  manifold::AM
 end
 
 
