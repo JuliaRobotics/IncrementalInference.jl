@@ -103,17 +103,19 @@ mutable struct CommonConvWrapper{
   """ dummy cache value to be deep copied later for each of the CalcFactor instances """
   dummyCache::CT
   # derived config parameters for this factor
-  """ common usage manifold definition for this factor """
+  """ Factor manifold definition for frequent use (not the variables manifolds) """
   manifold::AM
   """ Which dimensions does this factor influence.  Sensitive (mutable) to both which 'solvefor index' variable and whether the factor is partial dimension """
   partialDims::Vector{<:Integer}
   """ is this a partial constraint as defined by the existance of factor field `.partial::Tuple` """
   partial::Bool
-  """ general setup of factor dimensions"""
+  """ coordinate dimension size of current target variable (see .fullvariables[.varidx]), TODO remove once only use under AbstractRelativeRoots is deprecated or resolved """
   xDim::Int
+  """ coordinate dimension size of factor, same as manifold_dimension(.manifold) """
   zDim::Int
+  """ probability that this factor is wholly incorrect and should be ignored during solving """
   nullhypo::Float64
-  """ inflationSpread particular to this factor """
+  """ inflationSpread particular to this factor (by how much to dispurse the belief initial values before numerical optimization is run).  Analogous to stochastic search """
   inflation::Float64
   # multihypo specific field containers for recipe of hypotheses to compute
   """ multi hypothesis settings #NOTE no need for a parameter as type is known from `parseusermultihypo` """
@@ -125,7 +127,8 @@ mutable struct CommonConvWrapper{
   # buffers and indices to point numerical computations to specific memory locations
   """ user defined measurement values for each approxConv operation
       FIXME make type stable, JT should now be type stable if rest works.
-      SUPER IMPORTANT, if prior=>point or relative=>tangent, see #1661 """
+      SUPER IMPORTANT, if prior=>point or relative=>tangent, see #1661 
+      can be a Vector{<:Tuple} or more direct Vector{<: pointortangenttype} """
   measurement::Vector{MT}
   """ which index is being solved for in params? """
   varidx::Int

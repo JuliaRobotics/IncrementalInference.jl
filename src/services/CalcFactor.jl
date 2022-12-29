@@ -334,6 +334,7 @@ function _setCCWDecisionDimsConv!(
   ccwl.partialDims = if ccwl.partial
     Int[ccwl.usrfnc!.partial...]
   else
+    # NOTE this is the target variable dimension (not factor manifold dimension) 
     Int[1:(ccwl.xDim)...]
   end
 
@@ -442,7 +443,7 @@ function _prepCCW(
   measurement = Vector{elT}()
 
   # partialDims are sensitive to both which solvefor variable index and whether the factor is partial
-  partial = hasfield(T, :partial)
+  partial = hasfield(T, :partial) # FIXME, use isPartial function instead
   partialDims = if partial
     Int[usrfnc.partial...]
   else
@@ -503,6 +504,7 @@ function _updateCCW!(
   Xi::AbstractVector{<:DFGVariable},
   solvefor::Symbol,
   N::Integer;
+  measurement = [],
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
 ) where {F <: AbstractFactor}
@@ -522,6 +524,7 @@ function _updateCCW!(
   # some better consolidate is needed
   # ccwl.vartypes = varTypes
   # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
+  # FIXME, confirm this is hypo sensitive selection from Xi, better to use double indexing for clarity getDimension(ccw.fullvariables[hypoidx[sfidx]])
   ccwl.xDim = getDimension(getVariableType(Xi[sfidx]))
   # TODO maybe refactor new type higher up?
 
@@ -546,6 +549,8 @@ function _updateCCW!(
   if needFreshMeasurements
     # TODO refactor
     ccwl.measurement = sampleFactor(cf, maxlen)
+  elseif 0 < length(measurement) 
+    ccwl.measurement = measurement
   end
 
   # set each CPT

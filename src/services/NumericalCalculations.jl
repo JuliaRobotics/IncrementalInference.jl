@@ -18,6 +18,7 @@ function _checkErrorCCWNumerics(
   testshuffle::Bool = false,
 ) where {N_, F <: AbstractRelativeRoots, S, T}
   #
+  # error("<:AbstractRelativeRoots is obsolete, use one of the other <:AbstractRelative types instead.")
   # @info "ccwl zDim and xDim" ccwl.zDim ccwl.xDim
   if testshuffle || ccwl.partial || (!ccwl.partial && ccwl.zDim < ccwl.xDim)
     error(
