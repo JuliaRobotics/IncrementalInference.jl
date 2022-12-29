@@ -105,7 +105,7 @@ hists = fetchCliqHistoryAll!(smtasks)
 @test calcCliquesRecycled(tree) == (7,1,0,0)
 @test !(IIF.solveDown_StateMachine in getindex.(hists[2], 3))
 @test !(IIF.solveUp_StateMachine in getindex.(hists[2], 3))
-@test areCliqVariablesAllMarginalized(fg, tree.cliques[2])
+@test areCliqVariablesAllMarginalized(fg, getClique(tree,2))
 
 tree = solveTree!(fg, tree; recordcliqs=ls(fg), eliminationOrder);
 for var in sortDFG(ls(fg))
@@ -130,7 +130,7 @@ tree = solveTree!(fg, tree; recordcliqs=ls(fg), eliminationOrder);
 @test X1 != getVal(fg, :x1) #not frozen
 
 for i = [2,3,4]
-    @test areCliqVariablesAllMarginalized(fg, tree.cliques[i])
+    @test areCliqVariablesAllMarginalized(fg, getClique(tree, i))
 end
 
 end

@@ -128,8 +128,8 @@ function tryCliqStateMachineSolve!(
 ) where {G <: AbstractDFG}
   #
   clst = :na
-  cliq = getClique(treel, cliqKey) #treel.cliques[cliqKey]
-  syms = getCliqFrontalVarIds(cliq) # ids =
+  cliq = getClique(treel, cliqKey)
+  syms = getCliqFrontalVarIds(cliq)
 
   oldcliq = attemptTreeSimilarClique(oldtree, getCliqueData(cliq))
   oldcliqdata = getCliqueData(oldcliq)
