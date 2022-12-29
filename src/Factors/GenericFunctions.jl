@@ -92,7 +92,7 @@ end
 # function (cf::CalcFactor{<:ManifoldFactor{<:AbstractDecoratorManifold}})(Xc, p, q)
 function (cf::CalcFactor{<:ManifoldFactor})(Xc, p, q)
   # function (cf::ManifoldFactor)(X, p, q)
-  M = cf.factor.M
+  M = cf.manifold # .factor.M
   # M = cf.M
   X = hat(M, p, Xc)
   return distanceTangent2Point(M, X, p, q)
@@ -132,7 +132,7 @@ DFG.getManifold(f::ManifoldPrior) = f.M
 function getSample(cf::CalcFactor{<:ManifoldPrior})
   Z = cf.factor.Z
   p = cf.factor.p
-  M = cf.factor.M
+  M = cf.manifold # .factor.M
   basis = cf.factor.basis
   retract_method = cf.factor.retract_method
   point = samplePoint(M, Z, p, basis, retract_method)
@@ -145,7 +145,7 @@ end
 # Xc = [SVector{dim}(rand(Z)) for _ in 1:N]
 
 function (cf::CalcFactor{<:ManifoldPrior})(m, p)
-  M = cf.factor.M
+  M = cf.manifold # .factor.M
   # return log(M, p, m)
   return vee(M, p, log(M, p, m))
   # return distancePrior(M, m, p)
@@ -234,7 +234,7 @@ DFG.getManifold(f::ManifoldPriorPartial) = f.M
 
 function getSample(cf::CalcFactor{<:ManifoldPriorPartial})
   Z = cf.factor.Z
-  M = getManifold(cf.factor)
+  M = cf.manifold # getManifold(cf.factor)
   partial = collect(cf.factor.partial)
 
   return (samplePointPartial(M, Z, partial),)

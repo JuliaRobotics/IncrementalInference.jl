@@ -15,7 +15,7 @@ getManifold(pppt::PartialPriorPassThrough) = getManifold(pppt.Z)
 # this step is skipped during main inference process
 function getSample(cf::CalcFactor{<:PartialPriorPassThrough})
   # TODO should be samplePoint for priors?
-  return sampleTangent(getManifold(cf.factor), cf.factor.Z)
+  return sampleTangent(cf.manifold, cf.factor.Z)
 end
 
 ## ====================================================================================================

@@ -143,14 +143,14 @@ DFG.getManifold(::ManifoldFactorSE2) = SpecialEuclidean(2)
 IIF.selectFactorType(::Type{<:SpecialEuclidean2}, ::Type{<:SpecialEuclidean2}) = ManifoldFactorSE2
 
 function IIF.getSample(cf::CalcFactor{<:ManifoldFactorSE2}) 
-  M = SpecialEuclidean(2)
+  M = cf.manifold # SpecialEuclidean(2)
   ϵ = getPointIdentity(M)
   X = sampleTangent(M, cf.factor.Z, ϵ)
   return X
 end
 
 function (cf::CalcFactor{<:ManifoldFactorSE2})(X, p, q)
-    M = SpecialEuclidean(2)
+    M = cf.manifold # SpecialEuclidean(2)
     q̂ = Manifolds.compose(M, p, exp(M, identity_element(M, p), X)) #for groups
     Xc = zeros(3)
     vee!(M, Xc, q, log(M, q, q̂))
