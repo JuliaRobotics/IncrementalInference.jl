@@ -76,16 +76,11 @@ Notes
 """
 function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
   #
+  M = cf.manifold # getManifold(T)
   try
-    M = getManifold(T)
     return manifold_dimension(M)
   catch
-    try
-      M = getManifold(cf.factor)
-      return manifold_dimension(M)
-    catch
-      @warn "no method getManifold(::$(string(T))), calcZDim will attempt legacy length(sample) method instead"
-    end
+    @warn "no method getManifold(::$(string(T))), calcZDim will attempt legacy length(sample) method instead"
   end
 
   # NOTE try to make sure we get matrix back (not a vector)
@@ -97,7 +92,7 @@ calcZDim(ccw::CommonConvWrapper) = calcZDim(CalcFactor(ccw))
 
 calcZDim(cf::CalcFactor{<:GenericMarginal}) = 0
 
-calcZDim(cf::CalcFactor{<:ManifoldPrior}) = manifold_dimension(cf.factor.M)
+calcZDim(cf::CalcFactor{<:ManifoldPrior}) = manifold_dimension(cf.manifold)
 
 """
     $SIGNATURES
