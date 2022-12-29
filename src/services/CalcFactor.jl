@@ -29,6 +29,7 @@ function CalcFactor(
   cache = ccwl.dummyCache,
   fullvariables = ccwl.fullvariables,
   solvefor = ccwl.varidx,
+  manifold = getManifold(ccwl)
 )
   #
   # FIXME using ccwl.dummyCache is not thread-safe
@@ -40,6 +41,7 @@ function CalcFactor(
     cache,
     tuple(fullvariables...),
     solvefor,
+    manifold
   )
 end
 
@@ -238,6 +240,8 @@ function CommonConvWrapper(
   )
 end
 
+getManifold(ccwl::CommonConvWrapper) = getManifold(ccwl.usrfnc!)
+
 function _resizePointsVector!(
   vecP::AbstractVector{P},
   mkd::ManifoldKernelDensity,
@@ -416,6 +420,7 @@ function _prepCCW(
   # TODO check no Anys, see #1321
   _varValsQuick, maxlen, sfidx = _prepParamVec(Xi, nothing, 0; solveKey) # Nothing for init.
 
+  manifold = getManifold(usrfnc)
   # standard factor metadata
   solvefor = length(Xi)
   # sflbl = 0 == length(Xi) ? :null : getLabel(Xi[end])
@@ -433,6 +438,7 @@ function _prepCCW(
     userCache,
     fullvariables,
     solvefor,
+    manifold
   )
 
   # get a measurement sample

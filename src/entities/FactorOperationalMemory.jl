@@ -23,7 +23,13 @@ Related
 
 [`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref)
 """
-struct CalcFactor{FT <: AbstractFactor, X, C, VT <: Tuple}
+struct CalcFactor{
+  FT <: AbstractFactor, 
+  X, 
+  C, 
+  VT <: Tuple, 
+  M <: AbstractManifold
+}
   """ the interface compliant user object functor containing the data and logic """
   factor::FT
   """ what is the sample (particle) id for which the residual is being calculated """
@@ -42,6 +48,7 @@ struct CalcFactor{FT <: AbstractFactor, X, C, VT <: Tuple}
   fullvariables::VT # Vector{<:DFGVariable} # FIXME change to tuple for better type stability
   # which index is being solved for?
   solvefor::Int
+  manifold::M
 end
 
 # should probably deprecate the abstract type approach?
@@ -96,12 +103,14 @@ mutable struct CommonConvWrapper{
   """ categorical to select which hypothesis is being considered during convolution operation """
   certainhypo::CH
   nullhypo::Float64
-  """ parameters passed to each hypothesis evaluation event on user function, #1321 """
+  """ Numerical containers for all connected variables.  Hypo selection needs to be passed 
+      to each hypothesis evaluation event on user function via CalcFactor, #1321 """
   varValsAll::NTP
   """ which index is being solved for in params? """
   varidx::Int
   """ user defined measurement values for each approxConv operation
-      FIXME make type stable, JT should now be type stable if rest works """
+      FIXME make type stable, JT should now be type stable if rest works.
+      SUPER IMPORTANT, if prior=>point or relative=>tangent, see #1661 """
   measurement::Vector{MT}
   """ inflationSpread particular to this factor """
   inflation::Float64
@@ -121,19 +130,5 @@ mutable struct CommonConvWrapper{
   res::Vector{Float64}
 end
 
-function Base.getproperty(ccw::CommonConvWrapper, f::Symbol)
-  if f == :threadmodel
-    @warn "CommonConvWrapper.threadmodel is obsolete" maxlog=3
-    return SingleThreaded
-  elseif f == :params
-    @warn "CommonConvWrapper.params is deprecated, use .varValsAll instead" maxlog=3
-    return ccw.varValsAll
-  elseif f == :vartypes
-    @warn "CommonConvWrapper.vartypes is deprecated, use typeof.(getVariableType.(ccw.fullvariables) instead" maxlog=3
-    return typeof.(getVariableType.(ccw.fullvariables))
-  else
-    return getfield(ccw, f)
-  end
-end
 
 #

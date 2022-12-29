@@ -170,6 +170,7 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
     cache,
     (), #DFGVariable[],
     0,
+    getManifold(fac_func)
   )
 
   multihypo = getSolverData(fct).multihypo

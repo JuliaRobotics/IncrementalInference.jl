@@ -437,6 +437,7 @@ function evalPotentialSpecific(
   # FIXME better standardize in-place operations (considering solveKey)
   if needFreshMeasurements
     cf = CalcFactor(ccwl)
+    # NOTE, sample factor is expected to return tangents=>relative or points=>prior
     newMeas = sampleFactor(cf, nn)
     ccwl.measurement = newMeas
   end
@@ -507,18 +508,27 @@ function evalPotentialSpecific(
       if hasmethod(getManifold, (typeof(fnc),))
         Msrc = getManifold(fnc)
         # TODO workaround until partial manifold approach is standardized, see #1492
-        asPartial = isPartial(fnc) && manifold_dimension(Msrc) < manifold_dimension(mani)
+        asPartial = isPartial(fnc) || manifold_dimension(Msrc) < manifold_dimension(mani)
+
         setPointPartial!(
           mani,
           addEntr[m],
           Msrc,
-          ccwl.measurement[m],
+          ccwl.measurement[m], # FIXME, measurements are tangents=>relative or points=>priors
           partialCoords,
           asPartial,
         )
       else
+        # this case should be less prevalent following PR #1662
+        @warn "could not find definition for getManifold(::$(typeof(fnc)))" maxlog=10
         Msrc, = getManifoldPartial(mani, partialCoords)
-        setPointPartial!(mani, addEntr[m], Msrc, ccwl.measurement[m], partialCoords)
+        setPointPartial!(
+          mani, 
+          addEntr[m], 
+          Msrc, 
+          ccwl.measurement[m], 
+          partialCoords
+        )
       end
       # addEntr[m][dimnum] = ccwl.measurement[1][m][i]
       # end

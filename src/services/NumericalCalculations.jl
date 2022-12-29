@@ -216,6 +216,7 @@ function _buildCalcFactor(
     ccwl.dummyCache,
     tuple(activevariables...),
     solveforidx,
+    getManifold(ccwl)
   )
 end
 

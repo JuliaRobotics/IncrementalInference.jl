@@ -1,21 +1,25 @@
 # test new sampling API
+# TODO, this test might be obsolete given later changes and requirements added to getSample interface.
+#  TAC is to figure out if this functionality is still required and to remove of explain the code and related test like this file.
 
 using Test
 using IncrementalInference
 using DistributedFactorGraphs
 
-import IncrementalInference: getSample
+import IncrementalInference: getSample, getManifold
 
 ##
 
 struct SpecialPrior{T <: SamplableBelief} <: AbstractPrior
   z::T
 end
+getManifold(::SpecialPrior) = TranslationGroup(1)
 getSample(s::CalcFactor{<:SpecialPrior}) = rand(s.factor.z,1)
 
 struct SpecialLinearOffset{T <: SamplableBelief} <: AbstractRelativeRoots
   z::T
 end
+getManifold(::SpecialLinearOffset) = TranslationGroup(1)
 
 function getSample(s::CalcFactor{<:SpecialLinearOffset})
   return rand(s.factor.z,1)

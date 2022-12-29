@@ -87,7 +87,7 @@ end
 fg = initfg()
 
 addVariable!(fg, :x0, ContinuousEuclid{2})
-pp = PartialPrior(Normal(),(2,))
+pp = PartialPrior(ContinuousEuclid{2}, Normal(),(2,))
 addFactor!(fg, [:x0], pp, graphinit=false)
 
 approxConvBelief(fg, :x0f1, :x0)
