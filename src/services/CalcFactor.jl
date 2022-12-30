@@ -488,6 +488,29 @@ function _prepCCW(
   )
 end
 
+function updateMeasurement!(
+  ccwl::CommonConvWrapper,
+  N::Int=1;
+  measurement::AbstractVector = Vector{Tuple{}}(),
+  needFreshMeasurements::Bool=true,
+  _allowThreads::Bool = true
+)
+  # FIXME do not divert Mixture for sampling
+  
+  # option to disable fresh samples or user provided
+  if needFreshMeasurements
+    # TODO this is only one thread, make this a for loop for multithreaded sampling
+    sampleFactor!(ccwl, N; _allowThreads)
+    # TODO use common sampleFactor! call instead
+    # cf = CalcFactor(ccwl; _allowThreads)
+    # ccwl.measurement = sampleFactor(cf, N)
+  elseif 0 < length(measurement) 
+    ccwl.measurement = measurement
+  end
+
+  nothing
+end
+
 """
     $(SIGNATURES)
 
@@ -504,10 +527,10 @@ function _updateCCW!(
   Xi::AbstractVector{<:DFGVariable},
   solvefor::Symbol,
   N::Integer;
-  measurement = [],
+  measurement = Vector{Tuple{}}(),
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
-) where {F <: AbstractFactor}
+) where {F <: AbstractFactor} # F might be Mixture
   #
   if length(Xi) !== 0
     nothing
@@ -521,8 +544,7 @@ function _updateCCW!(
 
   # NOTE should be selecting for the correct multihypothesis mode
   ccwl.varValsAll = _varValsQuick
-  # some better consolidate is needed
-  # ccwl.vartypes = varTypes
+  # TODO better consolidation still possible
   # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
   # FIXME, confirm this is hypo sensitive selection from Xi, better to use double indexing for clarity getDimension(ccw.fullvariables[hypoidx[sfidx]])
   ccwl.xDim = getDimension(getVariableType(Xi[sfidx]))
@@ -536,22 +558,15 @@ function _updateCCW!(
   # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
   ccwl.varidx = sfidx
 
-  # get factor metadata -- TODO, populate, also see #784
-  # TODO consolidate with ccwl??
   # FIXME do not divert Mixture for sampling
-  cf = CalcFactor(ccwl; _allowThreads = true)
 
-  # cache the measurement dimension
-  @assert ccwl.zDim == calcZDim(cf) "refactoring in progress, cannot drop assignment ccwl.zDim:$(ccwl.zDim) = calcZDim( cf ):$(calcZDim( cf ))"
-  # ccwl.zDim = calcZDim( cf )  # CalcFactor(ccwl) )
+    # TODO remove ccwl.zDim updating
+    # cache the measurement dimension
+    cf = CalcFactor(ccwl; _allowThreads = true)
+    @assert ccwl.zDim == calcZDim(cf) "refactoring in progress, cannot drop assignment ccwl.zDim:$(ccwl.zDim) = calcZDim( cf ):$(calcZDim( cf ))"
+    # ccwl.zDim = calcZDim( cf )  # CalcFactor(ccwl) )
 
-  # option to disable fresh samples
-  if needFreshMeasurements
-    # TODO refactor
-    ccwl.measurement = sampleFactor(cf, maxlen)
-  elseif 0 < length(measurement) 
-    ccwl.measurement = measurement
-  end
+  updateMeasurement!(ccwl, maxlen; needFreshMeasurements, measurement, _allowThreads=true)
 
   # set each CPT
   # used in ccw functor for AbstractRelativeMinimize
@@ -565,6 +580,35 @@ function _updateCCW!(
 end
 
 function _updateCCW!(
+  F_::Type{<:AbstractPrior},
+  ccwl::CommonConvWrapper{F},
+  Xi::AbstractVector{<:DFGVariable},
+  solvefor::Symbol,
+  N::Integer;
+  measurement = Vector{Tuple{}}(),
+  needFreshMeasurements::Bool = true,
+  solveKey::Symbol = :default,
+) where {F <: AbstractFactor} # F might be Mixture
+  # setup the partial or complete decision variable dimensions for this ccwl object
+  # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
+  _setCCWDecisionDimsConv!(ccwl)
+
+  # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
+  # fnc = ccwl.usrfnc!
+  sfidx = findfirst(getLabel.(Xi) .== solvefor)
+  # sfidx = 1 #  why hardcoded to 1, maybe for only the AbstractPrior case here
+  solveForPts = getVal(Xi[sfidx]; solveKey)
+  maxlen = maximum([N; length(solveForPts); length(ccwl.varValsAll[sfidx])])  # calcZDim(ccwl); length(measurement[1])
+
+  # FIXME do not divert Mixture for sampling
+  # update ccwl.measurement values
+  updateMeasurement!(ccwl, maxlen; needFreshMeasurements, measurement, _allowThreads=true)
+
+  return sfidx, maxlen
+end
+
+# TODO, can likely deprecate this
+function _updateCCW!(
   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
   Xi::AbstractVector{<:DFGVariable},
   solvefor::Symbol,
@@ -574,5 +618,17 @@ function _updateCCW!(
   #
   return _updateCCW!(F, ccwl, Xi, solvefor, N; kw...)
 end
+
+function _updateCCW!(
+  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  Xi::AbstractVector{<:DFGVariable},
+  solvefor::Symbol,
+  N::Integer;
+  kw...,
+) where {N_, F <: AbstractPrior, S, T}
+  #
+  return _updateCCW!(F, ccwl, Xi, solvefor, N; kw...)
+end
+
 
 #

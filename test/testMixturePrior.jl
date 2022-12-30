@@ -9,7 +9,6 @@ using TensorCast
 ##
 
 @testset "test mixture prior" begin
-
 ##
 
 # init graph
@@ -64,12 +63,10 @@ marginalPts_ = getBelief(fg, :x0) |> getPoints
 @test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.35*N
 
 ##
-
 end
 
 
 @testset "Serialization of Mixture(Prior,..) including a AliasingScalarSampler" begin
-
 ##
 
 fg_ = loadDFG("/tmp/test_fg_bss")
@@ -92,7 +89,6 @@ marginalPts_ = getBelief(fg_, :x0) |> getPoints
 Base.rm("/tmp/test_fg_bss.tar.gz")
 
 ##
-
 end
 
 

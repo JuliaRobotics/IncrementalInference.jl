@@ -333,7 +333,7 @@ function evalPotentialSpecific(
   Xi::AbstractVector{<:DFGVariable},
   ccwl::CommonConvWrapper{T},
   solvefor::Symbol,
-  T_::Type{<:AbstractRelative},
+  T_::Type{<:AbstractRelative},          # NOTE Relative
   measurement::AbstractVector = Tuple[]; # TODO make this a concrete type
   needFreshMeasurements::Bool = true,    # superceeds over measurement
   solveKey::Symbol = :default,
@@ -351,10 +351,6 @@ function evalPotentialSpecific(
   # NOTE #1025, should FMD be built here...
   # add user desired measurement values if 0 < length
   sfidx, maxlen = _updateCCW!(ccwl, Xi, solvefor, N; solveKey, needFreshMeasurements, measurement)
-  # if 0 < length(measurement)
-  #   # @info "HERE" typeof(ccwl.measurement) typeof(measurement)
-  #   ccwl.measurement = measurement
-  # end
 
   # Check which variables have been initialized
   isinit = map(x -> isInitialized(x), Xi)
@@ -368,7 +364,7 @@ function evalPotentialSpecific(
   # get manifold add operations
   # TODO, make better use of dispatch, see JuliaRobotics/RoME.jl#244
   # addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
-  mani = getManifold(getVariableType(Xi[sfidx]))
+  mani = getManifold(Xi[sfidx])
 
   # perform the numeric solutions on the indicated elements
   # FIXME consider repeat solve as workaround for inflation off-zero 
@@ -407,7 +403,7 @@ function evalPotentialSpecific(
   Xi::AbstractVector{<:DFGVariable},
   ccwl::CommonConvWrapper{T},
   solvefor::Symbol,
-  T_::Type{<:AbstractPrior},
+  T_::Type{<:AbstractPrior},             # NOTE Prior
   measurement::AbstractVector = Tuple[];
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
@@ -420,24 +416,13 @@ function evalPotentialSpecific(
   _slack = nothing,
 ) where {T <: AbstractFactor}
   #
-  # setup the partial or complete decision variable dimensions for this ccwl object
-  # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
-  _setCCWDecisionDimsConv!(ccwl)
+  
+  # Prep computation variables
+  sfidx, maxlen = _updateCCW!(ccwl, Xi, solvefor, N; solveKey, needFreshMeasurements, measurement)
 
-  # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
+  # # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
-  sfidx = findfirst(getLabel.(Xi) .== solvefor)
-  # sfidx = 1 #  WHY HARDCODED TO 1??
-  solveForPts = getVal(Xi[sfidx]; solveKey = solveKey)
-  nn = maximum([N; calcZDim(ccwl); length(solveForPts); length(ccwl.varValsAll[sfidx])])  # length(measurement[1])
-
-  # FIXME better standardize in-place operations (considering solveKey)
-  if needFreshMeasurements
-    cf = CalcFactor(ccwl)
-    # NOTE, sample factor is expected to return tangents=>relative or points=>prior
-    newMeas = sampleFactor(cf, nn)
-    ccwl.measurement = newMeas
-  end
+  solveForPts = getVal(Xi[sfidx]; solveKey)
 
   # Check which variables have been initialized
   # TODO not sure why forcing to Bool vs BitVector
@@ -445,7 +430,7 @@ function evalPotentialSpecific(
   # nullSurplus see #1517
   runnullhypo = maximum((ccwl.nullhypo, nullSurplus))
   hyporecipe =
-    _prepareHypoRecipe!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, runnullhypo)
+    _prepareHypoRecipe!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit, runnullhypo)
 
   # get solvefor manifolds, FIXME ON FIRE, upgrade to new Manifolds.jl
   mani = getManifold(Xi[sfidx])
@@ -456,14 +441,14 @@ function evalPotentialSpecific(
   # inject lots of entropy in nullhypo case
   # make spread (1σ) equal to mean distance of other fractionals
   # FIXME better standardize in-place operations (considering solveKey)
-  addEntr = if length(solveForPts) == nn
+  addEntr = if length(solveForPts) == maxlen
     deepcopy(solveForPts)
   else
-    ret = typeof(solveForPts)(undef, nn)
+    ret = typeof(solveForPts)(undef, maxlen)
     for i = 1:length(solveForPts)
       ret[i] = solveForPts[i]
     end
-    for i = (length(solveForPts) + 1):nn
+    for i = (length(solveForPts) + 1):maxlen
       ret[i] = getPointIdentity(getVariableType(Xi[sfidx]))
     end
     ret
