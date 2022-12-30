@@ -348,7 +348,6 @@ function evalPotentialSpecific(
   #
 
   # Prep computation variables
-  # NOTE #1025, should FMD be built here...
   # add user desired measurement values if 0 < length
   sfidx, maxlen = _updateCCW!(ccwl, Xi, solvefor, N; solveKey, needFreshMeasurements, measurement)
 

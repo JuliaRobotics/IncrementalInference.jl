@@ -505,7 +505,8 @@ function updateMeasurement!(
     # cf = CalcFactor(ccwl; _allowThreads)
     # ccwl.measurement = sampleFactor(cf, N)
   elseif 0 < length(measurement) 
-    ccwl.measurement = measurement
+    resize!(ccwl.measurement, length(measurement))
+    ccwl.measurement[:] = measurement
   end
 
   nothing

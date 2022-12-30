@@ -54,7 +54,8 @@ function sampleFactor!(ccwl::CommonConvWrapper, N::Int; _allowThreads::Bool=true
   # TODO make this a multithreaded sampling function
   # build a CalcFactor object and get fresh samples.
   # cf = CalcFactor(ccwl; _allowThreads) 
-  ccwl.measurement = sampleFactor(ccwl, N; _allowThreads)
+  resize!(ccwl.measurement, N)
+  ccwl.measurement[:] = sampleFactor(ccwl, N; _allowThreads)
 
   return ccwl.measurement
 end
