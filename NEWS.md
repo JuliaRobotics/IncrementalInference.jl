@@ -17,6 +17,8 @@ The list below highlights breaking changes according to normal semver workflow -
 - Internal refactoring removing several legacy fields from `CalcFactor`.
 - All factors now require a `getManifold` definition.
 - Now have `CalcFactor.manifold` to reduce new allocation load inside hot-loop for solving.
+- Fixed tesing issues in `testSpecialEuclidean2Mani.jl`.
+- Refactored, consolidated, and added more in-place operations in surrounding `ccw.measurement`.
 
 # Changes in v0.31
 - `FactorMetaData` is deprecated and replaced by `CalcFactor`.

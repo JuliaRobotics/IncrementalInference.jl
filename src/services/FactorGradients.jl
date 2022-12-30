@@ -159,7 +159,6 @@ function _setFGCSlack!(
 end
 
 function (fgc::FactorGradientsCached!)(meas_pts...)
-  # @warn "YELLING TIMBER1"
 
   # separate the measurements (forst) from the variable points (rest)
   lenm = 1# fgc.measurement is a single measurement so length is always 1
@@ -171,9 +170,8 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
   # for (m, tup_m) in enumerate(fgc.measurement)
   # setPointsMani!(tup_m, meas_pts[m])
   # end
-  fgc.measurement = meas_pts[1]
+  fgc.measurement = meas_pts[1] # why not 1:1 since ccwl.measurement::Vector{typeof(z)}
 
-  # @warn "YELLING TIMBER2"
   # update the residual _slack in preparation for new gradient calculation
   fct = getFactorType(fgc.dfgfct)
   measurement = meas_pts[1]
@@ -190,7 +188,6 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
     # update the local memory in fgc to take the values of incoming `pts`
     setPointsMani!(fgc.currentPoints[s], pt)
   end
-  # @warn "YELLING TIMBER3" fgc.measurement meas_pts
   println.(fgc.currentPoints)
 
   # update the gradients at new values contained in fgc
@@ -209,7 +206,6 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
     # recalculate the off diagonals
     λ()
   end
-  # @warn "YELLING TIMBER4"
 
   # return newly calculated gradients
   return fgc.cached_gradients
