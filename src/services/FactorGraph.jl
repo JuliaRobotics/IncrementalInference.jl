@@ -729,7 +729,6 @@ function getDefaultFactorData(
     usrfnc;
     multihypo = mhcat,
     nullhypo = nh,
-    # threadmodel,
     inflation,
     _blockRecursion,
     userCache,

@@ -19,13 +19,13 @@ function _checkErrorCCWNumerics(
 ) where {N_, F <: AbstractRelativeRoots, S, T}
   #
   # error("<:AbstractRelativeRoots is obsolete, use one of the other <:AbstractRelative types instead.")
-  # @info "ccwl zDim and xDim" ccwl.zDim ccwl.xDim
-  if testshuffle || ccwl.partial || (!ccwl.partial && ccwl.zDim < ccwl.xDim)
+  # TODO get xDim = getDimension(getVariableType(Xi[sfidx])) but without having Xi
+  if testshuffle || ccwl.partial
     error(
-      "<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.",
+      "<:AbstractRelativeRoots factors with less or more measurement dimensions than variable dimensions have been discontinued, rather use <:AbstractManifoldMinimize.",
     )
-  elseif !(ccwl.zDim >= ccwl.xDim && !ccwl.partial)
-    error("Unresolved numeric <:AbstractRelativeRoots solve case")
+  # elseif !(_getZDim(ccwl) >= ccwl.xDim && !ccwl.partial)
+  #   error("Unresolved numeric <:AbstractRelativeRoots solve case")
   end
   return nothing
 end
@@ -207,7 +207,7 @@ function _buildCalcFactor(
   # activevariables = view(ccwl.fullvariables, activehypo)
   activevariables = ccwl.fullvariables[activehypo]
 
-  solveforidx = findfirst(==(ccwl.varidx), activehypo)
+  solveforidx = findfirst(==(ccwl.varidx[]), activehypo)
 
   return CalcFactor(
     _getusrfnc(ccwl),
@@ -231,7 +231,7 @@ DevNotes
 function _buildCalcFactorLambdaSample(
   ccwl::CommonConvWrapper,
   smpid::Integer,
-  target = view(ccwl.varValsAll[ccwl.varidx][smpid], ccwl.partialDims),
+  target = view(ccwl.varValsAll[ccwl.varidx[]][smpid], ccwl.partialDims),
   measurement_ = ccwl.measurement;
   # fmd_::FactorMetadata = cpt_.factormetadata;
   _slack = nothing,
@@ -311,7 +311,7 @@ function _solveCCWNumeric!(
   #
   # thrid = Threads.threadid()
 
-  smpid = ccwl.particleidx
+  smpid = ccwl.particleidx[]
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
   islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
   # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
@@ -327,10 +327,16 @@ function _solveCCWNumeric!(
   # use all element dimensions : ==> 1:ccwl.xDim
   target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
 
-  sfidx = ccwl.varidx
+  sfidx = ccwl.varidx[]
   # do the parameter search over defined decision variables using Minimization
   X = ccwl.varValsAll[sfidx][smpid][ccwl.partialDims]
-  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, ccwl.res, X, islen1)
+  retval = _solveLambdaNumeric(
+    getFactorType(ccwl), 
+    _hypoObj, 
+    ccwl.res, 
+    X, 
+    islen1
+  )
 
   # Check for NaNs
   if sum(isnan.(retval)) != 0
@@ -363,7 +369,7 @@ function _solveCCWNumeric!(
   #
   thrid = Threads.threadid()
 
-  smpid = ccwl.particleidx
+  smpid = ccwl.particleidx[]
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
   islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
 
@@ -371,7 +377,7 @@ function _solveCCWNumeric!(
   unrollHypo!, target = _buildCalcFactorLambdaSample(
     ccwl,
     smpid,
-    view(ccwl.varValsAll[ccwl.varidx], smpid);
+    view(ccwl.varValsAll[ccwl.varidx[]], smpid);
     _slack = _slack,
   )
 
@@ -388,7 +394,7 @@ function _solveCCWNumeric!(
   # F <: AbstractRelativeRoots && (target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb))
 
   # do the parameter search over defined decision variables using Minimization
-  sfidx = ccwl.varidx
+  sfidx = ccwl.varidx[]
   X = ccwl.varValsAll[sfidx][smpid]
   retval = _solveLambdaNumeric(
     getFactorType(ccwl),

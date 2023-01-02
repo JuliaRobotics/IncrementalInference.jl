@@ -71,7 +71,7 @@ _getCCW(dfg::AbstractDFG, lbl::Symbol) = getFactor(dfg, lbl) |> _getCCW
 
 DFG.getFactorType(ccw::CommonConvWrapper) = ccw.usrfnc!
 
-_getZDim(ccw::CommonConvWrapper) = ccw.zDim
+_getZDim(ccw::CommonConvWrapper) = getManifold(ccw) |> manifold_dimension # ccw.zDim
 # TODO is MsgPrior piggy backing zdim on inferdim???
 _getZDim(ccw::CommonConvWrapper{<:MsgPrior}) = length(ccw.usrfnc!.infoPerCoord) # ccw.usrfnc!.inferdim
 
@@ -106,19 +106,13 @@ end
     $TYPEDSIGNATURES
 
 Return the number of dimensions this factor vertex `fc` influences.
+
+DevNotes
+- TODO document how this function handles partial dimensions
+  - Currently a factor manifold is just what the measurement provides (i.e. bearing only would be dimension 1)
 """
 getFactorDim(w...) = getDimension(w...)
-# getFactorDim(fcd::GenericFunctionNodeData) = isa(_getCCW(fcd).usrfnc!, MsgPrior) ? _getCCW(fcd).usrfnc!.inferdim : Int(_getCCW(fcd).zDim)
-# getFactorDim(fc::DFGFactor) = getFactorDim(getSolverData(fc))
 getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid))
-
-# function _getDimensionsPartial(ccw::CommonConvWrapper)
-#   # @warn "_getDimensionsPartial not ready for use yet"
-#   ccw.partialDims
-# end
-# _getDimensionsPartial(data::GenericFunctionNodeData) = _getCCW(data) |> _getDimensionsPartial
-# _getDimensionsPartial(fct::DFGFactor) = _getDimensionsPartial(_getCCW(fct))
-# _getDimensionsPartial(fg::AbstractDFG, lbl::Symbol) = _getDimensionsPartial(getFactor(fg, lbl))
 
 # extend convenience function (Matrix or Vector{P})
 function manikde!(
