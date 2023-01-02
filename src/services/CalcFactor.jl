@@ -193,8 +193,7 @@ function CommonConvWrapper(
   usrfnc::T,
   fullvariables, #::Tuple ::Vector{<:DFGVariable};
   varValsAll::Tuple,
-  X::AbstractVector{P}, #TODO remove X completely
-  zDim::Int;
+  X::AbstractVector{P}; #TODO remove X completely
   xDim::Int = size(X, 1),
   userCache::CT = nothing,
   manifold = getManifold(usrfnc),
@@ -208,7 +207,7 @@ function CommonConvWrapper(
   measurement::AbstractVector = Vector(Vector{Float64}()),
   varidx::Int = 1,
   particleidx::Int = 1,
-  res::AbstractVector{<:Real} = zeros(zDim),
+  res::AbstractVector{<:Real} = zeros(manifold_dimension(manifold)), # zDim
   gradients = nothing,
 ) where {T <: AbstractFactor, P, H, CT}
   #
@@ -221,7 +220,6 @@ function CommonConvWrapper(
     partialDims,
     partial,
     xDim,
-    zDim,
     Float64(nullhypo),
     inflation,
     hypotheses,
@@ -477,8 +475,7 @@ function _prepCCW(
     usrfnc,
     fullvariables,
     _varValsQuick,
-    PointType[],
-    calcZDim(_cf);
+    PointType[];
     userCache, # should be higher in args list
     manifold,  # should be higher in args list
     partialDims,
@@ -565,11 +562,6 @@ function _updateCCW!(
 
   # FIXME do not divert Mixture for sampling
 
-    # TODO this legacy assert check
-    # cache the measurement dimension
-    cf = CalcFactor(ccwl; _allowThreads = true)
-    @assert _getZDim(ccwl) == calcZDim(cf) "refactoring in progress, cannot drop assignment ccwl.zDim:$(ccwl.zDim) = calcZDim( cf ):$(calcZDim( cf ))"
-
   updateMeasurement!(ccwl, maxlen; needFreshMeasurements, measurement, _allowThreads=true)
 
   # set each CPT
@@ -577,7 +569,7 @@ function _updateCCW!(
   resize!(ccwl.res, _getZDim(ccwl))
   fill!(ccwl.res, 0.0)
 
-  # calculate new gradients perhaps
+  # calculate new gradients
   # J = ccwl.gradients(measurement..., pts...)
 
   return sfidx, maxlen

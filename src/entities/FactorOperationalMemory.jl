@@ -111,8 +111,6 @@ mutable struct CommonConvWrapper{
   partial::Bool
   """ coordinate dimension size of current target variable (see .fullvariables[.varidx]), TODO remove once only use under AbstractRelativeRoots is deprecated or resolved """
   xDim::Int
-  """ coordinate dimension size of factor, same as manifold_dimension(.manifold) """
-  zDim::Int
   """ probability that this factor is wholly incorrect and should be ignored during solving """
   nullhypo::Float64
   """ inflationSpread particular to this factor (by how much to dispurse the belief initial values before numerical optimization is run).  Analogous to stochastic search """
