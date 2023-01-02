@@ -21,6 +21,7 @@ The list below highlights breaking changes according to normal semver workflow -
 - Refactored, consolidated, and added more in-place operations in surrounding `ccw.measurement`.
 - Refactor `CommonConvWrapper` to a not non-mutable struct, with several cleanups and some updated compat requirements.
 - Refactor interal hard type `HypoRecipe`.
+- Add `MetaPrior` for adding meta data but not influencing the numerical solution.
 
 # Changes in v0.31
 - `FactorMetaData` is deprecated and replaced by `CalcFactor`.
