@@ -76,7 +76,8 @@ function approxDeconv(
     targeti_ = makeTarget(idx)
 
     # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
-    ccw.activehypo = hyporecipe.activehypo[2][2]
+    resize!(ccw.activehypo, length(hyporecipe.activehypo[2][2]))
+    ccw.activehypo[:] = hyporecipe.activehypo[2][2]
 
     onehypo!, _ = _buildCalcFactorLambdaSample(ccw, idx, targeti_, measurement)
     #
@@ -86,7 +87,7 @@ function approxDeconv(
 
     # find solution via SubArray view pointing to original memory location
     if fcttype isa AbstractManifoldMinimize
-      sfidx = ccw.varidx
+      sfidx = ccw.varidx[]
       targeti_ .= _solveLambdaNumericMeas(
         fcttype,
         hypoObj,

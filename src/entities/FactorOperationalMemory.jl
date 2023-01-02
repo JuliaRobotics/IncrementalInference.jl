@@ -80,7 +80,7 @@ Related
 
 [`CalcFactor`](@ref), [`CalcFactorMahalanobis`](@ref)
 """
-mutable struct CommonConvWrapper{
+struct CommonConvWrapper{
   T <: AbstractFactor, 
   VT <: Tuple,
   NTP <: Tuple, 
@@ -94,7 +94,7 @@ mutable struct CommonConvWrapper{
   # Basic factor topological info
   """ Values consistent across all threads during approx convolution """
   usrfnc!::T # user factor / function
-  """ Consolidation from FMD, ordered tuple of all variables connected to this factor """
+  """ Ordered tuple of all variables connected to this factor """
   fullvariables::VT
   # shortcuts to numerical containers
   """ Numerical containers for all connected variables.  Hypo selection needs to be passed 
@@ -127,9 +127,9 @@ mutable struct CommonConvWrapper{
       can be a Vector{<:Tuple} or more direct Vector{<: pointortangenttype} """
   measurement::Vector{MT}
   """ which index is being solved for in params? """
-  varidx::Int
+  varidx::Base.RefValue{Int}
   """ Consolidation from CPT, the actual particle being solved at this moment """
-  particleidx::Int
+  particleidx::Base.RefValue{Int}
   """ working memory to store residual for optimization routines """
   res::Vector{Float64}
   """ experimental feature to embed gradient calcs with ccw """

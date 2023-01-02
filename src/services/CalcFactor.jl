@@ -30,7 +30,7 @@ function CalcFactor(
   _allowThreads = true,
   cache = ccwl.dummyCache,
   fullvariables = ccwl.fullvariables,
-  solvefor = ccwl.varidx,
+  solvefor = ccwl.varidx[],
   manifold = getManifold(ccwl)
 )
   #
@@ -226,8 +226,8 @@ function CommonConvWrapper(
     certainhypo,
     activehypo,
     measurement,
-    varidx,
-    particleidx,
+    Ref(varidx),
+    Ref(particleidx),
     res,
     gradients,
   )
@@ -337,12 +337,14 @@ function _setCCWDecisionDimsConv!(
   #
 
   # NOTE should only be done in the constructor
-  ccwl.partialDims = if ccwl.partial
+  newval = if ccwl.partial
     Int[ccwl.usrfnc!.partial...]
   else
     # NOTE this is the target variable dimension (not factor manifold dimension) 
     Int[1:xDim...] # ccwl.xDim
   end
+  resize!(ccwl.partialDims, length(newval))
+  ccwl.partialDims[:] = newval
 
   return nothing
 end
@@ -550,12 +552,12 @@ function _updateCCW!(
   end
 
   # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
-  ccwl.varidx = sfidx
+  ccwl.varidx[] = sfidx
 
   # TODO better consolidation still possible
   # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
   # FIXME, confirm this is hypo sensitive selection from Xi, better to use double indexing for clarity getDimension(ccw.fullvariables[hypoidx[sfidx]])
-  xDim = getDimension(getVariableType(Xi[sfidx])) # ccwl.varidx
+  xDim = getDimension(getVariableType(Xi[sfidx])) # ccwl.varidx[]
   # ccwl.xDim = xDim
   # TODO maybe refactor different type or api call?
 

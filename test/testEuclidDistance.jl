@@ -192,7 +192,10 @@ N = size(pts, 2)
 # Do it manually with a big inflation
 # IIF._getCCW(fg, :x1l1f1).inflation = 100.0 # never gets there
 # IIF._getCCW(fg, :x1l1f1).inflation = 150.0 # few iters gets there
-IIF._getCCW(fg, :x1l1f1).inflation = 200.0 # One almost, second good
+fct = getFactorType(fg, :x1l1f1)
+deleteFactor!(fg, :x1l1f1)
+addFactor!(fg, [:x1;:l1], fct; inflation=200.0)
+# IIF._getCCW(fg, :x1l1f1).inflation = 200.0 # One almost, second good
 pts = approxConv(fg, :x1l1f1, :l1)
 initVariable!(fg, :l1, pts)
 # plotKDE(fg, ls(fg))
