@@ -388,14 +388,14 @@ s4_3 = IncrementalInference._prepareHypoRecipe!(Categorical([0.0;0.33;0.33;0.34]
 @test length(s4_3.allelements[5]) > s4_3_gt2[4]
 @test length(s4_3.allelements[1]) + length(s4_3.allelements[3]) + length(s4_3.allelements[4]) + length(s4_3.allelements[5]) == s4_3_gt2[5]
 
-@test s4_3_gt3[1][1] == s4_3[3][1][1]
-@test s4_3_gt3[2][1] == s4_3[3][2][1]
-@test s4_3_gt3[3][1] == s4_3[3][3][1]
-@test s4_3_gt3[4][1] == s4_3[3][4][1]
-@test sum(s4_3_gt3[1][2] .- s4_3[3][1][2]) == 0
-@test sum(s4_3_gt3[2][2] .- s4_3[3][2][2]) == 0
-@test sum(s4_3_gt3[3][2] .- s4_3[3][3][2]) == 0
-@test sum(s4_3_gt3[4][2] .- s4_3[3][4][2]) == 0
+@test s4_3_gt3[1][1] == s4_3.activehypo[1][1]
+@test s4_3_gt3[2][1] == s4_3.activehypo[2][1]
+@test s4_3_gt3[3][1] == s4_3.activehypo[3][1]
+@test s4_3_gt3[4][1] == s4_3.activehypo[4][1]
+@test sum(s4_3_gt3[1][2] .- s4_3.activehypo[1][2]) == 0
+@test sum(s4_3_gt3[2][2] .- s4_3.activehypo[2][2]) == 0
+@test sum(s4_3_gt3[3][2] .- s4_3.activehypo[3][2]) == 0
+@test sum(s4_3_gt3[4][2] .- s4_3.activehypo[4][2]) == 0
 
 @test sum(s4_3.mhidx .== 0) > s4_3_gt2[2]
 @test sum(s4_3.mhidx .== 2) > s4_3_gt2[2]
