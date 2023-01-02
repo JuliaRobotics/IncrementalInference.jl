@@ -39,7 +39,7 @@ function approxConvOnElements!(
 ) where {N_, F <: AbstractRelative, S, T}
   #
   for n in elements
-    ccwl.particleidx = n
+    ccwl.particleidx[] = n
     _solveCCWNumeric!(ccwl; _slack = _slack)
   end
   return nothing
@@ -162,7 +162,7 @@ DevNotes
 """
 function computeAcrossHypothesis!(
   ccwl::Union{<:CommonConvWrapper{F}, <:CommonConvWrapper{Mixture{N_, F, S, T}}},
-  hyporecipe::NamedTuple,
+  hyporecipe::HypoRecipe, #NamedTuple,
   sfidx::Int,
   maxlen::Int,
   mani::ManifoldsBase.AbstractManifold; # maniAddOps::Tuple;
@@ -186,9 +186,10 @@ function computeAcrossHypothesis!(
     # now do hypothesis specific
     if sfidx in certainidx && hypoidx != 0 || hypoidx in certainidx || hypoidx == sfidx
       # hypo case hypoidx, sfidx = $hypoidx, $sfidx
-      for i = 1:Threads.nthreads()
-        ccwl.activehypo = vars
-      end
+      # for i = 1:Threads.nthreads()
+        resize!(ccwl.activehypo, length(vars))
+        ccwl.activehypo[:] = vars
+      # end
 
       addEntr = view(ccwl.varValsAll[sfidx], allelements[count])
 
@@ -260,7 +261,7 @@ end
 function _calcIPCRelative(
   Xi::AbstractVector{<:DFGVariable},
   ccwl::CommonConvWrapper,
-  hyporecipe::NamedTuple,
+  hyporecipe::HypoRecipe, #NamedTuple,
   sfidx::Integer,
   smpid::Integer = findfirst(x -> x != 0, hyporecipe.mhidx),
 )
@@ -393,7 +394,7 @@ function evalPotentialSpecific(
   end
 
   # return the found points, and info per coord
-  return ccwl.varValsAll[ccwl.varidx], ipc
+  return ccwl.varValsAll[ccwl.varidx[]], ipc
 end
 
 # TODO `measurement` might not be properly wired up yet

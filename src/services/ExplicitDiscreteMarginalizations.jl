@@ -23,6 +23,13 @@ function getHypothesesVectors(
   return (allmhp, certainidx, uncertnidx)
 end
 
+Base.@kwdef struct HypoRecipe
+  certainidx::Vector{Int}
+  allelements::Vector{Vector{Int}}
+  activehypo::Vector{Tuple{Int,Vector{Int}}}
+  mhidx::Vector{Int}
+end
+
 """
     $(SIGNATURES)
 
@@ -146,9 +153,9 @@ function _prepareHypoRecipe!(
   nullhypo::Real = 0,
 )
   #
-  allelements = []
-  activehypo = []
-  mhidx = Int[]
+  allelements = Vector{Vector{Int}}()
+  activehypo = Vector{Tuple{Int, Vector{Int}}}()
+  mhidx = Vector{Int}()
 
   allidx = 1:maxlen
   allmhp, certainidx, uncertnidx = getHypothesesVectors(mh.p)
@@ -224,8 +231,9 @@ function _prepareHypoRecipe!(
   #   #
   # end
 
+  return HypoRecipe(; certainidx, allelements, activehypo, mhidx)
   # hyporecipe::NamedTuple
-  return (; certainidx, allelements, activehypo, mhidx)
+  # return (; certainidx, allelements, activehypo, mhidx)
 end
 
 function _prepareHypoRecipe!(
@@ -244,8 +252,8 @@ function _prepareHypoRecipe!(
   # sfidx=1, allelements=allidx[nhidx.==0], activehypo=(0,[1;])
 
   #
-  allelements = []
-  activehypo = []
+  allelements = Vector{Vector{Int}}()
+  activehypo = Vector{Tuple{Int,Vector{Int}}}()
 
   # TODO add cases where nullhypo occurs, see DFG #536, and IIF #237
   nmhw = [nullhypo; (1 - nullhypo)]
@@ -280,8 +288,9 @@ function _prepareHypoRecipe!(
     end
   end
 
+  return HypoRecipe(; certainidx, allelements, activehypo, mhidx)
   # return hyporecipe::NamedTuple
-  return (; certainidx, allelements, activehypo, mhidx)
+  # return (; certainidx, allelements, activehypo, mhidx)
 end
 
 #

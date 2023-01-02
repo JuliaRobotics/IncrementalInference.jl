@@ -120,7 +120,7 @@ pts = approxConv(fg, getFactor(fg, :x0x1f1), :x1)
 
 ccw = IIF._getCCW(fg, :x0x1f1)
 
-ptr_ = ccw.varValsAll[ccw.varidx]
+ptr_ = ccw.varValsAll[ccw.varidx[]]
 @cast tp1[i,j] := ptr_[j][i]
 @test 90.0 < Statistics.mean(tp1) < 110.0
 ptr_ = ccw.varValsAll[1]
