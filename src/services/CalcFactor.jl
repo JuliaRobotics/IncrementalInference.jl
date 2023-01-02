@@ -7,6 +7,8 @@ getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 # difficult type piracy case needing both types NoSolverParams and CommonConvWrapper.
 getFactorOperationalMemoryType(dfg::NoSolverParams) = CommonConvWrapper
 
+getManifold(fct::DFGFactor{<:CommonConvWrapper}) = getManifold(_getCCW(fct))
+
 function _getDimensionsPartial(ccw::CommonConvWrapper)
   # @warn "_getDimensionsPartial not ready for use yet"
   return ccw.partialDims
@@ -76,7 +78,7 @@ Notes
 """
 function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
   #
-  M = cf.manifold # getManifold(T)
+  M = getManifold(cf) # getManifold(T)
   try
     return manifold_dimension(M)
   catch
@@ -233,7 +235,9 @@ function CommonConvWrapper(
   )
 end
 
-getManifold(ccwl::CommonConvWrapper) = ccwl.manifold # getManifold(ccwl.usrfnc!)
+# the same as legacy, getManifold(ccwl.usrfnc!)
+getManifold(ccwl::CommonConvWrapper) = ccwl.manifold
+getManifold(cf::CalcFactor) = cf.manifold
 
 function _resizePointsVector!(
   vecP::AbstractVector{P},
@@ -561,17 +565,16 @@ function _updateCCW!(
 
   # FIXME do not divert Mixture for sampling
 
-    # TODO remove ccwl.zDim updating
+    # TODO this legacy assert check
     # cache the measurement dimension
     cf = CalcFactor(ccwl; _allowThreads = true)
-    @assert ccwl.zDim == calcZDim(cf) "refactoring in progress, cannot drop assignment ccwl.zDim:$(ccwl.zDim) = calcZDim( cf ):$(calcZDim( cf ))"
-    # ccwl.zDim = calcZDim( cf )  # CalcFactor(ccwl) )
+    @assert _getZDim(ccwl) == calcZDim(cf) "refactoring in progress, cannot drop assignment ccwl.zDim:$(ccwl.zDim) = calcZDim( cf ):$(calcZDim( cf ))"
 
   updateMeasurement!(ccwl, maxlen; needFreshMeasurements, measurement, _allowThreads=true)
 
   # set each CPT
   # used in ccw functor for AbstractRelativeMinimize
-  resize!(ccwl.res, ccwl.zDim)
+  resize!(ccwl.res, _getZDim(ccwl))
   fill!(ccwl.res, 0.0)
 
   # calculate new gradients perhaps

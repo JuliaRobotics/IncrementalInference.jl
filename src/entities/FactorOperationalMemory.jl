@@ -82,14 +82,14 @@ Related
 """
 mutable struct CommonConvWrapper{
   T <: AbstractFactor, 
+  VT <: Tuple,
   NTP <: Tuple, 
-  G, 
-  MT, 
   CT,
+  AM <: AbstractManifold,
   HP <: Union{Nothing, <:Distributions.Categorical{Float64, Vector{Float64}}},
   CH <: Union{Nothing, Vector{Int}},
-  VT <: Tuple,
-  AM <: AbstractManifold
+  MT, 
+  G
 } <: FactorOperationalMemory
   # Basic factor topological info
   """ Values consistent across all threads during approx convolution """

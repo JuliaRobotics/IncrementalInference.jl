@@ -19,12 +19,11 @@ function _checkErrorCCWNumerics(
 ) where {N_, F <: AbstractRelativeRoots, S, T}
   #
   # error("<:AbstractRelativeRoots is obsolete, use one of the other <:AbstractRelative types instead.")
-  # @info "ccwl zDim and xDim" ccwl.zDim ccwl.xDim
-  if testshuffle || ccwl.partial || (!ccwl.partial && ccwl.zDim < ccwl.xDim)
+  if testshuffle || ccwl.partial || (!ccwl.partial && _getZDim(ccwl) < ccwl.xDim)
     error(
       "<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.",
     )
-  elseif !(ccwl.zDim >= ccwl.xDim && !ccwl.partial)
+  elseif !(_getZDim(ccwl) >= ccwl.xDim && !ccwl.partial)
     error("Unresolved numeric <:AbstractRelativeRoots solve case")
   end
   return nothing
