@@ -37,8 +37,10 @@ function approxDeconv(
   retries::Int = 3,
 )
   #
+  # FIXME needs xDim for all variables at once? xDim = 0 likely to break?
+
   # but what if this is a partial factor -- is that important for general cases in deconv?
-  _setCCWDecisionDimsConv!(ccw)
+  _setCCWDecisionDimsConv!(ccw, 0) # ccwl.xDim used to hold the last forward solve getDimension(getVariableType(Xi[sfidx]))
 
   # FIXME This does not incorporate multihypo??
   varsyms = getVariableOrder(fcto)

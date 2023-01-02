@@ -194,7 +194,7 @@ function CommonConvWrapper(
   fullvariables, #::Tuple ::Vector{<:DFGVariable};
   varValsAll::Tuple,
   X::AbstractVector{P}; #TODO remove X completely
-  xDim::Int = size(X, 1),
+  # xDim::Int = size(X, 1),
   userCache::CT = nothing,
   manifold = getManifold(usrfnc),
   partialDims::AbstractVector{<:Integer} = 1:length(X),
@@ -219,7 +219,7 @@ function CommonConvWrapper(
     manifold,
     partialDims,
     partial,
-    xDim,
+    # xDim,
     Float64(nullhypo),
     inflation,
     hypotheses,
@@ -281,10 +281,13 @@ function _prepParamVec(
   #
   # FIXME refactor to new NamedTuple instead
   varParamsAll = getVal.(Xi; solveKey)
-  Xi_labels = getLabel.(Xi)
-  sfidx = findfirst(==(solvefor), Xi_labels)
-
-  sfidx = isnothing(sfidx) ? 0 : sfidx
+  # Xi_labels = getLabel.(Xi)
+  sfidx = if isnothing(solvefor)
+    0
+  else
+    findfirst(==(solvefor), getLabel.(Xi))
+  end
+  # sfidx = isnothing(sfidx) ? 0 : sfidx
 
   # this line does nothing...
   # maxlen = N # FIXME see #105
@@ -294,7 +297,7 @@ function _prepParamVec(
 
   # resample variables with too few kernels (manifolds points)
   SAMP = LEN .< maxlen
-  for i = 1:length(Xi_labels)
+  for i = 1:length(Xi)
     if SAMP[i]
       Pr = getBelief(Xi[i], solveKey)
       _resizePointsVector!(varParamsAll[i], Pr, maxlen)
@@ -319,6 +322,7 @@ Internal method to set which dimensions should be used as the decision variables
 """
 function _setCCWDecisionDimsConv!(
   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  xDim::Int
 ) where {
   N_,
   F <: Union{
@@ -337,7 +341,7 @@ function _setCCWDecisionDimsConv!(
     Int[ccwl.usrfnc!.partial...]
   else
     # NOTE this is the target variable dimension (not factor manifold dimension) 
-    Int[1:(ccwl.xDim)...]
+    Int[1:xDim...] # ccwl.xDim
   end
 
   return nothing
@@ -413,14 +417,11 @@ function _prepCCW(
   end
 
   # TODO check no Anys, see #1321
-  _varValsQuick, maxlen, sfidx = _prepParamVec(Xi, nothing, 0; solveKey) # Nothing for init.
+  _varValsAll, maxlen, sfidx = _prepParamVec(Xi, nothing, 0; solveKey) # Nothing for init.
 
   manifold = getManifold(usrfnc)
   # standard factor metadata
   solvefor = length(Xi)
-  # sflbl = 0 == length(Xi) ? :null : getLabel(Xi[end])
-  # lbs = getLabel.(Xi)
-  # fmd = FactorMetadata(Xi, lbs, _varValsQuick, sflbl, nothing)
   fullvariables = tuple(Xi...) # convert(Vector{DFGVariable}, Xi)
   # create a temporary CalcFactor object for extracting the first sample
   # TODO, deprecate this:  guess measurement points type
@@ -428,7 +429,7 @@ function _prepCCW(
   _cf = CalcFactor(
     usrfnc,
     0,
-    _varValsQuick,
+    _varValsAll,
     false,
     userCache,
     fullvariables,
@@ -459,7 +460,7 @@ function _prepCCW(
   gradients = attemptGradientPrep(
     varTypes,
     usrfnc,
-    _varValsQuick,
+    _varValsAll,
     multihypo,
     meas_single,
     _blockRecursion,
@@ -469,12 +470,10 @@ function _prepCCW(
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
 
-  # @info "CCW" typeof(measurement)
-
   return CommonConvWrapper(
     usrfnc,
     fullvariables,
-    _varValsQuick,
+    _varValsAll,
     PointType[];
     userCache, # should be higher in args list
     manifold,  # should be higher in args list
@@ -502,9 +501,6 @@ function updateMeasurement!(
   if needFreshMeasurements
     # TODO this is only one thread, make this a for loop for multithreaded sampling
     sampleFactor!(ccwl, N; _allowThreads)
-    # TODO use common sampleFactor! call instead
-    # cf = CalcFactor(ccwl; _allowThreads)
-    # ccwl.measurement = sampleFactor(cf, N)
   elseif 0 < length(measurement) 
     resize!(ccwl.measurement, length(measurement))
     ccwl.measurement[:] = measurement
@@ -542,29 +538,30 @@ function _updateCCW!(
 
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
-  _varValsQuick, maxlen, sfidx = _prepParamVec(Xi, solvefor, N; solveKey)
+  _varValsAll, maxlen, sfidx = _prepParamVec(Xi, solvefor, N; solveKey)
 
   # NOTE should be selecting for the correct multihypothesis mode
-  ccwl.varValsAll = _varValsQuick
+  ccwl.varValsAll = _varValsAll
+
+  # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
+  ccwl.varidx = sfidx
+
   # TODO better consolidation still possible
   # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
   # FIXME, confirm this is hypo sensitive selection from Xi, better to use double indexing for clarity getDimension(ccw.fullvariables[hypoidx[sfidx]])
-  ccwl.xDim = getDimension(getVariableType(Xi[sfidx]))
-  # TODO maybe refactor new type higher up?
+  xDim = getDimension(getVariableType(Xi[sfidx])) # ccwl.varidx
+  # ccwl.xDim = xDim
+  # TODO maybe refactor different type or api call?
 
   # setup the partial or complete decision variable dimensions for this ccwl object
   # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
   # TODO, should this not be part of `prepareCommonConvWrapper` -- only here do we look for .partial
-  _setCCWDecisionDimsConv!(ccwl)
-
-  # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
-  ccwl.varidx = sfidx
+  _setCCWDecisionDimsConv!(ccwl, xDim)
 
   # FIXME do not divert Mixture for sampling
 
   updateMeasurement!(ccwl, maxlen; needFreshMeasurements, measurement, _allowThreads=true)
 
-  # set each CPT
   # used in ccw functor for AbstractRelativeMinimize
   resize!(ccwl.res, _getZDim(ccwl))
   fill!(ccwl.res, 0.0)
@@ -585,14 +582,16 @@ function _updateCCW!(
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
 ) where {F <: AbstractFactor} # F might be Mixture
-  # setup the partial or complete decision variable dimensions for this ccwl object
-  # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
-  _setCCWDecisionDimsConv!(ccwl)
-
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   # fnc = ccwl.usrfnc!
   sfidx = findfirst(getLabel.(Xi) .== solvefor)
+  @assert sfidx == 1 "Solving on Prior with CCW should have sfidx=1, priors are unary factors."
   # sfidx = 1 #  why hardcoded to 1, maybe for only the AbstractPrior case here
+
+  # setup the partial or complete decision variable dimensions for this ccwl object
+  # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
+  _setCCWDecisionDimsConv!(ccwl, getDimension(getVariableType(Xi[sfidx])))
+
   solveForPts = getVal(Xi[sfidx]; solveKey)
   maxlen = maximum([N; length(solveForPts); length(ccwl.varValsAll[sfidx])])  # calcZDim(ccwl); length(measurement[1])
 
