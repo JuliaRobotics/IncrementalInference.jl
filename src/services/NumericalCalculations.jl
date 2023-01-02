@@ -329,7 +329,13 @@ function _solveCCWNumeric!(
   sfidx = ccwl.varidx
   # do the parameter search over defined decision variables using Minimization
   X = ccwl.varValsAll[sfidx][smpid][ccwl.partialDims]
-  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, ccwl.res, X, islen1)
+  retval = _solveLambdaNumeric(
+    getFactorType(ccwl), 
+    _hypoObj, 
+    ccwl.res, 
+    X, 
+    islen1
+  )
 
   # Check for NaNs
   if sum(isnan.(retval)) != 0
