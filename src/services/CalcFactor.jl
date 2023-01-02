@@ -469,6 +469,9 @@ function _prepCCW(
   # variable Types
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
+  if !isconcretetype(PointType)
+    @warn "_prepCCW PointType is not concrete $PointType" maxlog=50
+  end
 
   return CommonConvWrapper(
     usrfnc,
@@ -540,8 +543,11 @@ function _updateCCW!(
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
   _varValsAll, maxlen, sfidx = _prepParamVec(Xi, solvefor, N; solveKey)
 
-  # NOTE should be selecting for the correct multihypothesis mode
-  ccwl.varValsAll = _varValsAll
+  # TODO, ensure all values (not just multihypothesis) is correctly used from here
+  for (i,varVal) in enumerate(_varValsAll)
+    resize!(ccwl.varValsAll[i],length(varVal))
+    ccwl.varValsAll[i][:] = varVal
+  end
 
   # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
   ccwl.varidx = sfidx

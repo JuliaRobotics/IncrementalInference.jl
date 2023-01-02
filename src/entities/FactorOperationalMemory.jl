@@ -109,8 +109,6 @@ mutable struct CommonConvWrapper{
   partialDims::Vector{<:Integer}
   """ is this a partial constraint as defined by the existance of factor field `.partial::Tuple` """
   partial::Bool
-  # """ coordinate dimension size of current target variable (see .fullvariables[.varidx]), TODO remove once only use under AbstractRelativeRoots is deprecated or resolved """
-  # xDim::Int
   """ probability that this factor is wholly incorrect and should be ignored during solving """
   nullhypo::Float64
   """ inflationSpread particular to this factor (by how much to dispurse the belief initial values before numerical optimization is run).  Analogous to stochastic search """
