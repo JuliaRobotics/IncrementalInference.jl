@@ -19,6 +19,8 @@ The list below highlights breaking changes according to normal semver workflow -
 - Now have `CalcFactor.manifold` to reduce new allocation load inside hot-loop for solving.
 - Fixed tesing issues in `testSpecialEuclidean2Mani.jl`.
 - Refactored, consolidated, and added more in-place operations in surrounding `ccw.measurement`.
+- Refactor `CommonConvWrapper` to a not non-mutable struct, with several cleanups and some updated compat requirements.
+- Refactor interal hard type `HypoRecipe`.
 
 # Changes in v0.31
 - `FactorMetaData` is deprecated and replaced by `CalcFactor`.
