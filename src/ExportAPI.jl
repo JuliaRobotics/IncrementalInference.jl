@@ -356,4 +356,6 @@ export appendSeparatorToClique!
 export buildTreeFromOrdering! # TODO make internal and deprecate external use to only `buildTreeReset!``
 export makeSolverData!
 
+export MetaPrior
+
 #

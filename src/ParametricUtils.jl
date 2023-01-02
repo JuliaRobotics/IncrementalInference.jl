@@ -201,6 +201,8 @@ end
 function calcFactorMahalanobisDict(fg)
   calcFactors = OrderedDict{Symbol, CalcFactorMahalanobis}()
   for fct in getFactors(fg)
+    # skip non-numeric prior
+    getFactorType(fct) isa MetaPrior ? continue : nothing
     calcFactors[fct.label] = CalcFactorMahalanobis(fg, fct)
   end
   return calcFactors
