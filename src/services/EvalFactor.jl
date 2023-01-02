@@ -162,7 +162,7 @@ DevNotes
 """
 function computeAcrossHypothesis!(
   ccwl::Union{<:CommonConvWrapper{F}, <:CommonConvWrapper{Mixture{N_, F, S, T}}},
-  hyporecipe::NamedTuple,
+  hyporecipe::HypoRecipe, #NamedTuple,
   sfidx::Int,
   maxlen::Int,
   mani::ManifoldsBase.AbstractManifold; # maniAddOps::Tuple;
@@ -260,7 +260,7 @@ end
 function _calcIPCRelative(
   Xi::AbstractVector{<:DFGVariable},
   ccwl::CommonConvWrapper,
-  hyporecipe::NamedTuple,
+  hyporecipe::HypoRecipe, #NamedTuple,
   sfidx::Integer,
   smpid::Integer = findfirst(x -> x != 0, hyporecipe.mhidx),
 )
