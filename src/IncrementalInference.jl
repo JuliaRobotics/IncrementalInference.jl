@@ -134,6 +134,7 @@ include("VariableStatistics.jl")
 
 # factors needed for belief propagation on the tree
 include("Factors/MsgPrior.jl")
+include("Factors/MetaPrior.jl")
 
 include("entities/CliqueTypes.jl")
 include("entities/JunctionTreeTypes.jl")
