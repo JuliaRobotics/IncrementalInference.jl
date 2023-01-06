@@ -82,6 +82,7 @@ import DistributedFactorGraphs: getPoint, getCoordinates
 import DistributedFactorGraphs: getVariableType
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 import DistributedFactorGraphs: getFactorType
+import DistributedFactorGraphs: solveGraph!, solveGraphParametric!
 
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable
