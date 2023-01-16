@@ -816,7 +816,7 @@ end
     $SIGNATURES
 Add parametric solver to fg, batch solve using [`solveGraphParametric`](@ref) and update fg.
 """
-function solveGraphParametric!(
+function DFG.solveGraphParametric!(
   fg::AbstractDFG; 
   init::Bool = true, 
   solveKey::Symbol = :parametric, # FIXME, moot since only :parametric used for parametric solves
