@@ -864,7 +864,7 @@ end
 
 function DFG.addFactor!(
   dfg::AbstractDFG,
-  xisyms::AbstractVector{Symbol},
+  vlbs::AbstractVector{Symbol},
   usrfnc::AbstractFactor;
   suppressChecks::Bool = false,
   kw...,
@@ -873,11 +873,12 @@ function DFG.addFactor!(
 
   # basic sanity check for unary vs n-ary
   if !suppressChecks
-    _checkFactorAdd(usrfnc, xisyms)
+    _checkFactorAdd(usrfnc, vlbs)
+    @assert length(vlbs) == length(unique(vlbs)) "List of variables should be unique and ordered."
   end
 
-  # variables = getVariable.(dfg, xisyms)
-  variables = map(vid -> getVariable(dfg, vid), xisyms)
+  # variables = getVariable.(dfg, vlbs)
+  variables = map(vid -> getVariable(dfg, vid), vlbs)
   return addFactor!(dfg, variables, usrfnc; suppressChecks = suppressChecks, kw...)
 end
 
