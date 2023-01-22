@@ -235,8 +235,7 @@ function calcPPE(
   varType::InferenceVariable = getVariableType(var);
   ppeType::Type{<:MeanMaxPPE} = MeanMaxPPE,
   solveKey::Symbol = :default,
-  ppeKey::Symbol = solveKey,
-  timestamp = now(),
+  ppeKey::Symbol = solveKey
 )
   #
   P = getBelief(var, solveKey)
@@ -255,7 +254,7 @@ function calcPPE(
 
   # suggested, max, mean, current time
   # TODO, poor constructor argument assumptions on `ppeType`
-  return ppeType(ppeKey, Pme_, Pma, Pme_, timestamp)
+  return ppeType(ppeKey, Pme_, Pma, Pme_)
 end
 
 # calcPPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcPPE(var, getVariableType(var), method=method, solveKey=solveKey)
