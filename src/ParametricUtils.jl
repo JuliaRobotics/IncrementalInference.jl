@@ -791,19 +791,9 @@ Update the parametric solver data value and covariance.
 function updateSolverDataParametric! end
 
 function updateSolverDataParametric!(
-  v::DFGVariable,
-  val::AbstractArray{<:Real},
-  cov::Matrix;
-  solveKey::Symbol = :parametric,
-)
-  vnd = getSolverData(v, solveKey)
-  return updateSolverDataParametric!(vnd, val, cov)
-end
-
-function updateSolverDataParametric!(
   vnd::VariableNodeData,
-  val::AbstractArray{<:Real},
-  cov::Matrix,
+  val::AbstractArray,
+  cov::AbstractMatrix,
 )
   # fill in the variable node data value
   vnd.val[1] = val
@@ -811,6 +801,17 @@ function updateSolverDataParametric!(
   vnd.bw .= cov
   return vnd
 end
+
+function updateSolverDataParametric!(
+  v::DFGVariable,
+  val::AbstractArray,
+  cov::AbstractMatrix;
+  solveKey::Symbol = :parametric,
+)
+  vnd = getSolverData(v, solveKey)
+  return updateSolverDataParametric!(vnd, val, cov)
+end
+
 
 """
     $SIGNATURES
