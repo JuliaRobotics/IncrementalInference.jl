@@ -386,25 +386,26 @@ function DefaultNodeDataParametric(
     #                         gbw2, Symbol[], sp,
     #                         dims, false, :_null, Symbol[], variableType, true, 0.0, false, dontmargin)
   else
-    sp = round.(Int, range(dodims; stop = dodims + dims - 1, length = dims))
+    # dimIDs = round.(Int, range(dodims; stop = dodims + dims - 1, length = dims))
     ϵ = getPointIdentity(variableType)
-    return VariableNodeData(
-      [ϵ],
-      zeros(dims, dims),
-      Symbol[],
-      sp,
+    return VariableNodeData(;
+      id=nothing,
+      val=[ϵ],
+      bw=zeros(dims, dims),
+      # Symbol[],
+      # dimIDs,
       dims,
-      false,
-      :_null,
-      Symbol[],
+      # false,
+      # :_null,
+      # Symbol[],
       variableType,
-      false,
-      zeros(dims),
-      false,
+      initialized=false,
+      infoPerCoord=zeros(dims),
+      ismargin=false,
       dontmargin,
-      0,
-      0,
-      :parametric,
+      # 0,
+      # 0,
+      solveKey,
     )
   end
 end
@@ -440,7 +441,7 @@ function setDefaultNodeData!(
   v::DFGVariable,
   dodims::Int,
   N::Int,
-  dims::Int;
+  dims::Int=getDimension(v);
   solveKey::Symbol = :default,
   gt = Dict(),
   initialized::Bool = true,
@@ -453,42 +454,43 @@ function setDefaultNodeData!(
   data = nothing
   isinit = false
   sp = Int[0;]
-  (valpts, bws) = if initialized
+  (val, bw) = if initialized
     pN = resample(getBelief(v))
-    bws = getBW(pN)[:, 1:1]
+    bw = getBW(pN)[:, 1:1]
     pNpts = getPoints(pN)
     isinit = true
-    (pNpts, bws)
+    (pNpts, bw)
   else
     sp = round.(Int, range(dodims; stop = dodims + dims - 1, length = dims))
     @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defVariable $varType arguments is correct"
-    valpts = Vector{getPointType(varType)}(undef, N)
-    for i = 1:length(valpts)
-      valpts[i] = getPointIdentity(varType)
+    val = Vector{getPointType(varType)}(undef, N)
+    for i = 1:length(val)
+      val[i] = getPointIdentity(varType)
     end
-    bws = zeros(dims, 1)
+    bw = zeros(dims, 1)
     #
-    (valpts, bws)
+    (val, bw)
   end
   # make and set the new solverData
   setSolverData!(
     v,
-    VariableNodeData(
-      valpts,
-      bws,
-      Symbol[],
-      sp,
+    VariableNodeData(;
+      id=nothing,
+      val,
+      bw,
+      # Symbol[],
+      # sp,
       dims,
-      false,
-      :_null,
-      Symbol[],
-      varType,
-      isinit,
-      zeros(getDimension(v)),
-      false,
+      # false,
+      # :_null,
+      # Symbol[],
+      variableType=varType,
+      initialized=isinit,
+      infoPerCoord=zeros(getDimension(v)),
+      ismargin=false,
       dontmargin,
-      0,
-      0,
+      # 0,
+      # 0,
       solveKey,
     ),
     solveKey,
