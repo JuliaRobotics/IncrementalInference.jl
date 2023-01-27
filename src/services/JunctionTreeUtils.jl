@@ -847,7 +847,7 @@ function prepBatchTreeOLD!(
     end
   end
 
-  tree = buildTreeFromOrdering!(dfg, p; drawbayesnet = false) # drawbayesnet
+  tree = buildTreeFromOrdering!(dfg, Symbol.(p); drawbayesnet = false) # drawbayesnet
 
   @info "Bayes Tree Complete"
   if drawpdf
