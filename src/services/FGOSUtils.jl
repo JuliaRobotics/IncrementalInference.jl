@@ -235,8 +235,7 @@ function calcPPE(
   varType::InferenceVariable = getVariableType(var);
   ppeType::Type{<:MeanMaxPPE} = MeanMaxPPE,
   solveKey::Symbol = :default,
-  ppeKey::Symbol = solveKey,
-  timestamp = now(),
+  ppeKey::Symbol = solveKey
 )
   #
   P = getBelief(var, solveKey)
@@ -268,7 +267,6 @@ function calcPPE(
     suggested=Pme_, 
     max=Pma, 
     mean=Pme_, 
-    createdTimestamp=ZonedDateTime(timestamp, localzone())
   )
 end
 

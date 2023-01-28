@@ -613,9 +613,7 @@ function addVariable!(
   (:parametric in initsolvekeys) &&
     setDefaultNodeDataParametric!(v, varType; initialized = false, dontmargin = dontmargin)
 
-  DFG.addVariable!(dfg, v)
-
-  return v
+  return DFG.addVariable!(dfg, v)
 end
 
 function parseusermultihypo(multihypo::Nothing, nullhypo::Float64)
@@ -849,12 +847,12 @@ function DFG.addFactor!(
   )
   #
 
-  success = addFactor!(dfg, newFactor)
+  factor = addFactor!(dfg, newFactor)
 
   # TODO: change this operation to update a conditioning variable
   graphinit && doautoinit!(dfg, Xi; singles = false)
 
-  return newFactor
+  return factor
 end
 
 function _checkFactorAdd(usrfnc, xisyms)
