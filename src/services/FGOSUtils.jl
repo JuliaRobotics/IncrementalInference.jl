@@ -267,7 +267,6 @@ function calcPPE(
     suggested=Pme_, 
     max=Pma, 
     mean=Pme_, 
-    createdTimestamp=ZonedDateTime(timestamp, localzone())
   )
 end
 
