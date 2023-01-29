@@ -589,6 +589,9 @@ function addVariable!(
   #
   varType = _variableType(varTypeU)
 
+  _zonedtime(s::DateTime) = ZonedDateTime(s, localzone())
+  _zonedtime(s::ZonedDateTime) = s 
+
   union!(tags, [:VARIABLE])
   v = DFGVariable(
     label,
@@ -596,7 +599,7 @@ function addVariable!(
     tags = Set(tags),
     smallData = smalldata,
     solvable = solvable,
-    timestamp = timestamp,
+    timestamp = _zonedtime(timestamp),
     nstime = Nanosecond(nanosecondtime),
   )
 
@@ -825,6 +828,9 @@ function DFG.addFactor!(
 
   @assert (suppressChecks || length(multihypo) === 0 || length(multihypo) == length(Xi)) "When using multihypo=[...], the number of variables and multihypo probabilies must match.  See documentation on how to include fractional data-association uncertainty."
 
+  _zonedtime(s::ZonedDateTime) = s
+  _zonedtime(s::DateTime) = ZonedDateTime(s, localzone())
+
   varOrderLabels = Symbol[v.label for v in Xi]
   solverData = getDefaultFactorData(
     dfg,
@@ -843,7 +849,7 @@ function DFG.addFactor!(
     solverData;
     tags = Set(union(tags, [:FACTOR])),
     solvable,
-    timestamp,
+    timestamp = _zonedtime(timestamp),
   )
   #
 
@@ -879,7 +885,7 @@ function DFG.addFactor!(
 
   # variables = getVariable.(dfg, vlbs)
   variables = map(vid -> getVariable(dfg, vid), vlbs)
-  return addFactor!(dfg, variables, usrfnc; suppressChecks = suppressChecks, kw...)
+  return addFactor!(dfg, variables, usrfnc; suppressChecks, kw...)
 end
 
 #
