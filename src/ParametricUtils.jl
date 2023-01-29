@@ -201,6 +201,8 @@ end
 function calcFactorMahalanobisDict(fg)
   calcFactors = OrderedDict{Symbol, CalcFactorMahalanobis}()
   for fct in getFactors(fg)
+    # skip non-numeric prior
+    getFactorType(fct) isa MetaPrior ? continue : nothing
     calcFactors[fct.label] = CalcFactorMahalanobis(fg, fct)
   end
   return calcFactors
@@ -789,19 +791,9 @@ Update the parametric solver data value and covariance.
 function updateSolverDataParametric! end
 
 function updateSolverDataParametric!(
-  v::DFGVariable,
-  val::AbstractArray{<:Real},
-  cov::Matrix;
-  solveKey::Symbol = :parametric,
-)
-  vnd = getSolverData(v, solveKey)
-  return updateSolverDataParametric!(vnd, val, cov)
-end
-
-function updateSolverDataParametric!(
   vnd::VariableNodeData,
-  val::AbstractArray{<:Real},
-  cov::Matrix,
+  val::AbstractArray,
+  cov::AbstractMatrix,
 )
   # fill in the variable node data value
   vnd.val[1] = val
@@ -810,11 +802,22 @@ function updateSolverDataParametric!(
   return vnd
 end
 
+function updateSolverDataParametric!(
+  v::DFGVariable,
+  val::AbstractArray,
+  cov::AbstractMatrix;
+  solveKey::Symbol = :parametric,
+)
+  vnd = getSolverData(v, solveKey)
+  return updateSolverDataParametric!(vnd, val, cov)
+end
+
+
 """
     $SIGNATURES
 Add parametric solver to fg, batch solve using [`solveGraphParametric`](@ref) and update fg.
 """
-function solveGraphParametric!(
+function DFG.solveGraphParametric!(
   fg::AbstractDFG; 
   init::Bool = true, 
   solveKey::Symbol = :parametric, # FIXME, moot since only :parametric used for parametric solves

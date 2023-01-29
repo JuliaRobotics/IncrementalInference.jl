@@ -497,7 +497,7 @@ end
 
 Just an alias, see documentation for `solveTree!`.
 """
-const solveGraph! = solveTree!
+DFG.solveGraph!(dfg::AbstractDFG, w...;kw...) = solveTree!(dfg, w...;kw...)
 
 """
     $SIGNATURES
