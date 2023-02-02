@@ -104,7 +104,7 @@ function blockUntilChildrenHaveStatus_StateMachine(csmc::CliqStateMachineContain
 
       if st in [:null;]
         infocsm(csmc, "4e, blockUntilChildrenHaveStatus_StateMachine, waiting cliq=$(cid), child status=$(st).")
-        wait(getSolveCondition(csmc.tree.cliques[cid]))
+        wait(getSolveCondition(getClique(csmc.tree,cid)))
         notsolved = true
         break
       end

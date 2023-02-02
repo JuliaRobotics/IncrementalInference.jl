@@ -6,6 +6,7 @@ struct BrokenFactor{T<: SamplableBelief} <: AbstractRelativeRoots
     Z::T
 end
 
+IIF.getManifold(::BrokenFactor) = TranslationGroup(1)
 function IIF.getSample(cf::CalcFactor{<:BrokenFactor})
   return rand(cf.factor.Z, 1)
 end

@@ -18,13 +18,14 @@ function _checkErrorCCWNumerics(
   testshuffle::Bool = false,
 ) where {N_, F <: AbstractRelativeRoots, S, T}
   #
-  # @info "ccwl zDim and xDim" ccwl.zDim ccwl.xDim
-  if testshuffle || ccwl.partial || (!ccwl.partial && ccwl.zDim < ccwl.xDim)
+  # error("<:AbstractRelativeRoots is obsolete, use one of the other <:AbstractRelative types instead.")
+  # TODO get xDim = getDimension(getVariableType(Xi[sfidx])) but without having Xi
+  if testshuffle || ccwl.partial
     error(
-      "<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.",
+      "<:AbstractRelativeRoots factors with less or more measurement dimensions than variable dimensions have been discontinued, rather use <:AbstractManifoldMinimize.",
     )
-  elseif !(ccwl.zDim >= ccwl.xDim && !ccwl.partial)
-    error("Unresolved numeric <:AbstractRelativeRoots solve case")
+  # elseif !(_getZDim(ccwl) >= ccwl.xDim && !ccwl.partial)
+  #   error("Unresolved numeric <:AbstractRelativeRoots solve case")
   end
   return nothing
 end
@@ -113,7 +114,7 @@ function _solveLambdaNumeric(
   islen1::Bool = false,
 ) where {N_, F <: AbstractManifoldMinimize, S, T}
   #
-  M = getManifold(variableType)#fcttype.M
+  M = getManifold(variableType) #fcttype.M
   # the variable is a manifold point, we are working on the tangent plane in optim for now.
   # 
   #TODO this is not general to all manifolds, should work for lie groups.
@@ -197,7 +198,7 @@ _getusrfnc(ccwl::CommonConvWrapper{<:Mixture}) = ccwl.usrfnc!.mechanics
 function _buildCalcFactor(
   ccwl::CommonConvWrapper,
   smpid,
-  measurement_,
+  # measurement_, # deprecate
   varParams,
   activehypo,
 )
@@ -206,18 +207,17 @@ function _buildCalcFactor(
   # activevariables = view(ccwl.fullvariables, activehypo)
   activevariables = ccwl.fullvariables[activehypo]
 
-  solveforidx = findfirst(==(ccwl.varidx), activehypo)
+  solveforidx = findfirst(==(ccwl.varidx[]), activehypo)
 
   return CalcFactor(
     _getusrfnc(ccwl),
     smpid,
-    length(measurement_),
-    measurement_,
     varParams,
     true,
     ccwl.dummyCache,
-    activevariables,
+    tuple(activevariables...),
     solveforidx,
+    getManifold(ccwl)
   )
 end
 
@@ -231,7 +231,7 @@ DevNotes
 function _buildCalcFactorLambdaSample(
   ccwl::CommonConvWrapper,
   smpid::Integer,
-  target = view(ccwl.params[ccwl.varidx][smpid], ccwl.partialDims),
+  target = view(ccwl.varValsAll[ccwl.varidx[]][smpid], ccwl.partialDims),
   measurement_ = ccwl.measurement;
   # fmd_::FactorMetadata = cpt_.factormetadata;
   _slack = nothing,
@@ -243,9 +243,9 @@ function _buildCalcFactorLambdaSample(
   # DevNotes, also see new `hyporecipe` approach (towards consolidation CCW CPT FMd CF...)
 
   # build a view to the decision variable memory
-  varValsHypo = ccwl.params[ccwl.activehypo]
+  varValsHypo = ccwl.varValsAll[ccwl.activehypo]
   # tup = tuple(varParams...)
-  # nms = keys(ccwl.params)[cpt_.activehypo]
+  # nms = keys(ccwl.varValsAll)[cpt_.activehypo]
   # varValsHypo = NamedTuple{nms,typeof(tup)}(tup)
 
   # prepare fmd according to hypo selection
@@ -258,10 +258,10 @@ function _buildCalcFactorLambdaSample(
   #                         fmd_.cachedata  )
   #
   # get the operational CalcFactor object
-  cf = _buildCalcFactor(ccwl, smpid, measurement_, varValsHypo, ccwl.activehypo)
+  cf = _buildCalcFactor(ccwl, smpid, varValsHypo, ccwl.activehypo)
   # new dev work on CalcFactor
   # cf = CalcFactor(ccwl.usrfnc!, _fmd_, smpid, 
-  #                 length(measurement_), measurement_, varValsHypo)
+  #                 varValsHypo)
   #
 
   # reset the residual vector
@@ -311,7 +311,7 @@ function _solveCCWNumeric!(
   #
   # thrid = Threads.threadid()
 
-  smpid = ccwl.particleidx
+  smpid = ccwl.particleidx[]
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
   islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
   # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
@@ -327,10 +327,16 @@ function _solveCCWNumeric!(
   # use all element dimensions : ==> 1:ccwl.xDim
   target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
 
-  sfidx = ccwl.varidx
+  sfidx = ccwl.varidx[]
   # do the parameter search over defined decision variables using Minimization
-  X = ccwl.params[sfidx][smpid][ccwl.partialDims]
-  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, ccwl.res, X, islen1)
+  X = ccwl.varValsAll[sfidx][smpid][ccwl.partialDims]
+  retval = _solveLambdaNumeric(
+    getFactorType(ccwl), 
+    _hypoObj, 
+    ccwl.res, 
+    X, 
+    islen1
+  )
 
   # Check for NaNs
   if sum(isnan.(retval)) != 0
@@ -339,7 +345,7 @@ function _solveCCWNumeric!(
   end
 
   # insert result back at the correct variable element location
-  ccwl.params[sfidx][smpid][ccwl.partialDims] .= retval
+  ccwl.varValsAll[sfidx][smpid][ccwl.partialDims] .= retval
 
   return nothing
 end
@@ -347,7 +353,7 @@ end
 # should only be calling a new arg list according to activehypo at start of particle
 # Try calling an existing lambda
 # sensitive to which hypo of course , see #1024
-# need to shuffle content inside .cpt.fmd as well as .params accordingly
+# need to shuffle content inside .cpt.fmd as well as .varValsAll accordingly
 #
 
 function _solveCCWNumeric!(
@@ -363,7 +369,7 @@ function _solveCCWNumeric!(
   #
   thrid = Threads.threadid()
 
-  smpid = ccwl.particleidx
+  smpid = ccwl.particleidx[]
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
   islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
 
@@ -371,7 +377,7 @@ function _solveCCWNumeric!(
   unrollHypo!, target = _buildCalcFactorLambdaSample(
     ccwl,
     smpid,
-    view(ccwl.params[ccwl.varidx], smpid);
+    view(ccwl.varValsAll[ccwl.varidx[]], smpid);
     _slack = _slack,
   )
 
@@ -388,14 +394,14 @@ function _solveCCWNumeric!(
   # F <: AbstractRelativeRoots && (target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb))
 
   # do the parameter search over defined decision variables using Minimization
-  sfidx = ccwl.varidx
-  X = ccwl.params[sfidx][smpid]
+  sfidx = ccwl.varidx[]
+  X = ccwl.varValsAll[sfidx][smpid]
   retval = _solveLambdaNumeric(
     getFactorType(ccwl),
     _hypoObj,
     ccwl.res,
     X,
-    ccwl.vartypes[sfidx](),
+    getVariableType(ccwl.fullvariables[sfidx]), # ccwl.vartypes[sfidx](), # only used for getting variable manifold and identity_element
     islen1,
   )
 
@@ -407,7 +413,7 @@ function _solveCCWNumeric!(
   # end
 
   # FIXME insert result back at the correct variable element location
-  ccwl.params[sfidx][smpid] .= retval
+  ccwl.varValsAll[sfidx][smpid] .= retval
 
   return nothing
 end

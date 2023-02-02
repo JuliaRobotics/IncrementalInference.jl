@@ -111,10 +111,10 @@ f1_ = DFG.unpackFactor(fg_, pf1)
 @show typeof(f1)
 @show typeof(f1_)
 
-@show  typeof(getSolverData(f1).fnc.params);
-@show typeof(getSolverData(f1_).fnc.params);
+@show  typeof(getSolverData(f1).fnc.varValsAll);
+@show typeof(getSolverData(f1_).fnc.varValsAll);
 
-@test DFG.compareFactor(f1, f1_, skip=[:components;:labels;:timezone;:zone;:vartypes;:fullvariables])
+@test DFG.compareFactor(f1, f1_, skip=[:components;:labels;:timezone;:zone;:vartypes;:fullvariables;:particleidx;:varidx])
 
 @test IIF._getCCW(f1).usrfnc!.components.naive == IIF._getCCW(f1).usrfnc!.components.naive
 

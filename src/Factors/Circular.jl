@@ -23,7 +23,7 @@ DFG.getManifold(::CircularCircular) = RealCircleGroup()
 
 function (cf::CalcFactor{<:CircularCircular})(X, p, q)
   #
-  M = getManifold(cf.factor)
+  M = cf.manifold # getManifold(cf.factor)
   return distanceTangent2Point(M, X, p, q)
 end
 
@@ -58,11 +58,11 @@ function getSample(cf::CalcFactor{<:PriorCircular})
   # FIXME workaround for issue #TBD with manifolds CircularGroup, 
   # JuliaManifolds/Manifolds.jl#415
   # no method similar(::Float64, ::Type{Float64})
-  return samplePoint(getManifold(cf.factor), cf.factor.Z, [0.0])
+  return samplePoint(cf.manifold, cf.factor.Z, [0.0])
 end
 
 function (cf::CalcFactor{<:PriorCircular})(m, p)
-  M = getManifold(cf.factor)
+  M = cf.manifold # getManifold(cf.factor)
   Xc = vee(M, p, log(M, p, m))
   return Xc
 end

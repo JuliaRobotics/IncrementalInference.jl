@@ -354,7 +354,16 @@ X0reset = pts |> deepcopy
 end
 
 
+@testset "Test MetaPrior" begin
 
+fg = generateGraph_Kaess()
+
+addFactor!(fg, [:x1], MetaPrior(nothing))
+
+solveGraph!(fg)
+IIF.solveGraphParametric!(fg)
+
+end
 
 
 #

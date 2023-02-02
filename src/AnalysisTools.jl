@@ -147,7 +147,7 @@ function getTreeCost_02(tree::AbstractBayesTree; alpha::Float64 = 1.0)
   # Frontal and number of children.
   ARR = Tuple{Symbol, Int}[]
   for (cliqid, vex) in tree.cliques
-    afrtl = getCliqFrontalVarIds(tree.cliques[cliqid])[1]
+    afrtl = getCliqFrontalVarIds(getClique(tree, cliqid))[1]
     numch = length(getChildren(tree, afrtl))
     push!(ARR, (afrtl, numch))
   end

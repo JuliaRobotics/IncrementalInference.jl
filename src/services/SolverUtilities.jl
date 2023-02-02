@@ -46,28 +46,31 @@ function mmd(
 end
 
 # part of consolidation, see #927
-function sampleFactor!(ccwl::CommonConvWrapper, N::Int)
+function sampleFactor!(ccwl::CommonConvWrapper, N::Int; _allowThreads::Bool=true)
   #
-  ccwl.measurement = sampleFactor(ccwl, N)
-  # # build a CalcFactor object and get fresh samples.
-  # cf = CalcFactor(ccwl) # CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
-  # # TODO make this an in-place operation as far possible
-  # ccwl.measurement = sampleFactor(cf, N)    
+  
+  # FIXME get allocations here down to 0
+    # TODO make this an in-place operation as far possible
+  # TODO make this a multithreaded sampling function
+  # build a CalcFactor object and get fresh samples.
+  # cf = CalcFactor(ccwl; _allowThreads) 
+  resize!(ccwl.measurement, N)
+  ccwl.measurement[:] = sampleFactor(ccwl, N; _allowThreads)
 
-  return nothing
+  return ccwl.measurement
 end
 
-function sampleFactor(ccwl::CommonConvWrapper, N::Int)
+function sampleFactor(ccwl::CommonConvWrapper, N::Int; _allowThreads::Bool=true)
   #
-  cf = CalcFactor(ccwl) # CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+  cf = CalcFactor(ccwl; _allowThreads) 
   return sampleFactor(cf, N)
 end
 
-sampleFactor(fct::DFGFactor, N::Int = 1) = sampleFactor(_getCCW(fct), N)
+sampleFactor(fct::DFGFactor, N::Int = 1; _allowThreads::Bool=true) = sampleFactor(_getCCW(fct), N; _allowThreads)
 
-function sampleFactor(dfg::AbstractDFG, sym::Symbol, N::Int = 1)
+function sampleFactor(dfg::AbstractDFG, sym::Symbol, N::Int = 1; _allowThreads::Bool=true)
   #
-  return sampleFactor(getFactor(dfg, sym), N)
+  return sampleFactor(getFactor(dfg, sym), N; _allowThreads)
 end
 
 """
@@ -151,7 +154,7 @@ function _buildGraphByFactorAndTypes!(
   end
   # if newFactor then add the factor on vars, else assume only one existing factor between vars
   _dfgfct = if newFactor
-    addFactor!(dfg, vars, fct; graphinit = graphinit, _blockRecursion = _blockRecursion)
+    addFactor!(dfg, vars, fct; graphinit, _blockRecursion)
   else
     getFactor(dfg, intersect((ls.(dfg, vars))...)[1])
   end

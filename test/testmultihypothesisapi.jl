@@ -8,22 +8,23 @@ using Statistics
 using TensorCast
 # going to introduce two new constraint types
 import Base: convert
-import IncrementalInference: getSample
+import IncrementalInference: getSample, getManifold
 
 ##
 
 mutable struct DevelopPrior{T <: SamplableBelief} <: AbstractPrior
+  # keeping to test user case using `.x` rather than default `.Z`
   x::T
 end
+getManifold(dp::DevelopPrior) = TranslationGroup(getDimension(dp.x))
 getSample(cf::CalcFactor{<:DevelopPrior}) = rand(cf.factor.x, 1)
 
 mutable struct DevelopLikelihood{T <: SamplableBelief} <: AbstractRelativeRoots
   x::T
 end
 
-# keeping to test user case using `.x` rather than default `.Z`
+getManifold(dp::DevelopLikelihood) = TranslationGroup(getDimension(dp.x))
 getSample(cf::CalcFactor{<:DevelopLikelihood}) = rand(cf.factor.x, 1)
-
 (cf::CalcFactor{<:DevelopLikelihood})(meas, wXi, wXj) = meas - (wXj - wXi)
 
 

@@ -26,10 +26,11 @@ addFactor!(fg, [:x0], Prior(Normal(0,1)))
 
 addVariable!(fg, :x1, ContinuousScalar, N=N)
 # P(Z | :x1 - :x0 ) where Z ~ Normal(10,1)
-addFactor!(fg, [:x0, :x1], LinearRelative(Normal(10.0,1)) , threadmodel=MultiThreaded)
+@warn "threadmodel=MultiThreaded is obsolete.  Look at IIF.CalcFactor alternatives instead"
+addFactor!(fg, [:x0, :x1], LinearRelative(Normal(10.0,1)) ) #, threadmodel=MultiThreaded)
 
-@error "Factor threadmodel=MultiThreaded should be restored, broken with the removal of CPT"
-@test_broken begin
+@error "Factor threadmodel=MultiThreaded equivalence restoration TBD"
+@test begin
     pts_ = approxConv(fg, :x0x1f1, :x1, N=N)
     @cast pts[i,j] := pts_[j][i]
 

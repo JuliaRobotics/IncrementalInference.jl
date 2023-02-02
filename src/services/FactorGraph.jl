@@ -386,25 +386,26 @@ function DefaultNodeDataParametric(
     #                         gbw2, Symbol[], sp,
     #                         dims, false, :_null, Symbol[], variableType, true, 0.0, false, dontmargin)
   else
-    sp = round.(Int, range(dodims; stop = dodims + dims - 1, length = dims))
+    # dimIDs = round.(Int, range(dodims; stop = dodims + dims - 1, length = dims))
     ϵ = getPointIdentity(variableType)
-    return VariableNodeData(
-      [ϵ],
-      zeros(dims, dims),
-      Symbol[],
-      sp,
+    return VariableNodeData(;
+      id=nothing,
+      val=[ϵ],
+      bw=zeros(dims, dims),
+      # Symbol[],
+      # dimIDs,
       dims,
-      false,
-      :_null,
-      Symbol[],
+      # false,
+      # :_null,
+      # Symbol[],
       variableType,
-      false,
-      zeros(dims),
-      false,
+      initialized=false,
+      infoPerCoord=zeros(dims),
+      ismargin=false,
       dontmargin,
-      0,
-      0,
-      :parametric,
+      # 0,
+      # 0,
+      solveKey,
     )
   end
 end
@@ -440,7 +441,7 @@ function setDefaultNodeData!(
   v::DFGVariable,
   dodims::Int,
   N::Int,
-  dims::Int;
+  dims::Int=getDimension(v);
   solveKey::Symbol = :default,
   gt = Dict(),
   initialized::Bool = true,
@@ -453,42 +454,43 @@ function setDefaultNodeData!(
   data = nothing
   isinit = false
   sp = Int[0;]
-  (valpts, bws) = if initialized
+  (val, bw) = if initialized
     pN = resample(getBelief(v))
-    bws = getBW(pN)[:, 1:1]
+    bw = getBW(pN)[:, 1:1]
     pNpts = getPoints(pN)
     isinit = true
-    (pNpts, bws)
+    (pNpts, bw)
   else
     sp = round.(Int, range(dodims; stop = dodims + dims - 1, length = dims))
     @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defVariable $varType arguments is correct"
-    valpts = Vector{getPointType(varType)}(undef, N)
-    for i = 1:length(valpts)
-      valpts[i] = getPointIdentity(varType)
+    val = Vector{getPointType(varType)}(undef, N)
+    for i = 1:length(val)
+      val[i] = getPointIdentity(varType)
     end
-    bws = zeros(dims, 1)
+    bw = zeros(dims, 1)
     #
-    (valpts, bws)
+    (val, bw)
   end
   # make and set the new solverData
   setSolverData!(
     v,
-    VariableNodeData(
-      valpts,
-      bws,
-      Symbol[],
-      sp,
+    VariableNodeData(;
+      id=nothing,
+      val,
+      bw,
+      # Symbol[],
+      # sp,
       dims,
-      false,
-      :_null,
-      Symbol[],
-      varType,
-      isinit,
-      zeros(getDimension(v)),
-      false,
+      # false,
+      # :_null,
+      # Symbol[],
+      variableType=varType,
+      initialized=isinit,
+      infoPerCoord=zeros(getDimension(v)),
+      ismargin=false,
       dontmargin,
-      0,
-      0,
+      # 0,
+      # 0,
       solveKey,
     ),
     solveKey,
@@ -587,6 +589,9 @@ function addVariable!(
   #
   varType = _variableType(varTypeU)
 
+  _zonedtime(s::DateTime) = ZonedDateTime(s, localzone())
+  _zonedtime(s::ZonedDateTime) = s 
+
   union!(tags, [:VARIABLE])
   v = DFGVariable(
     label,
@@ -594,7 +599,7 @@ function addVariable!(
     tags = Set(tags),
     smallData = smalldata,
     solvable = solvable,
-    timestamp = timestamp,
+    timestamp = _zonedtime(timestamp),
     nstime = Nanosecond(nanosecondtime),
   )
 
@@ -611,9 +616,7 @@ function addVariable!(
   (:parametric in initsolvekeys) &&
     setDefaultNodeDataParametric!(v, varType; initialized = false, dontmargin = dontmargin)
 
-  DFG.addVariable!(dfg, v)
-
-  return v
+  return DFG.addVariable!(dfg, v)
 end
 
 function parseusermultihypo(multihypo::Nothing, nullhypo::Float64)
@@ -708,7 +711,7 @@ function getDefaultFactorData(
   usrfnc::T;
   multihypo::Vector{<:Real} = Float64[],
   nullhypo::Float64 = 0.0,
-  threadmodel = SingleThreaded,
+  # threadmodel = SingleThreaded,
   eliminated::Bool = false,
   potentialused::Bool = false,
   edgeIDs = Int[],
@@ -729,7 +732,6 @@ function getDefaultFactorData(
     usrfnc;
     multihypo = mhcat,
     nullhypo = nh,
-    threadmodel,
     inflation,
     _blockRecursion,
     userCache,
@@ -816,7 +818,7 @@ function DFG.addFactor!(
   tags::Vector{Symbol} = Symbol[],
   timestamp::Union{DateTime, ZonedDateTime} = now(localzone()),
   graphinit::Bool = getSolverParams(dfg).graphinit,
-  threadmodel = SingleThreaded,
+  # threadmodel = SingleThreaded,
   suppressChecks::Bool = false,
   inflation::Real = getSolverParams(dfg).inflation,
   namestring::Symbol = assembleFactorName(dfg, Xi),
@@ -826,6 +828,9 @@ function DFG.addFactor!(
 
   @assert (suppressChecks || length(multihypo) === 0 || length(multihypo) == length(Xi)) "When using multihypo=[...], the number of variables and multihypo probabilies must match.  See documentation on how to include fractional data-association uncertainty."
 
+  _zonedtime(s::ZonedDateTime) = s
+  _zonedtime(s::DateTime) = ZonedDateTime(s, localzone())
+
   varOrderLabels = Symbol[v.label for v in Xi]
   solverData = getDefaultFactorData(
     dfg,
@@ -833,7 +838,7 @@ function DFG.addFactor!(
     deepcopy(usrfnc);
     multihypo,
     nullhypo,
-    threadmodel,
+    # threadmodel,
     inflation,
     _blockRecursion,
   )
@@ -844,16 +849,16 @@ function DFG.addFactor!(
     solverData;
     tags = Set(union(tags, [:FACTOR])),
     solvable,
-    timestamp,
+    timestamp = _zonedtime(timestamp),
   )
   #
 
-  success = addFactor!(dfg, newFactor)
+  factor = addFactor!(dfg, newFactor)
 
   # TODO: change this operation to update a conditioning variable
   graphinit && doautoinit!(dfg, Xi; singles = false)
 
-  return newFactor
+  return factor
 end
 
 function _checkFactorAdd(usrfnc, xisyms)
@@ -865,7 +870,7 @@ end
 
 function DFG.addFactor!(
   dfg::AbstractDFG,
-  xisyms::AbstractVector{Symbol},
+  vlbs::AbstractVector{Symbol},
   usrfnc::AbstractFactor;
   suppressChecks::Bool = false,
   kw...,
@@ -874,12 +879,13 @@ function DFG.addFactor!(
 
   # basic sanity check for unary vs n-ary
   if !suppressChecks
-    _checkFactorAdd(usrfnc, xisyms)
+    _checkFactorAdd(usrfnc, vlbs)
+    @assert length(vlbs) == length(unique(vlbs)) "List of variables should be unique and ordered."
   end
 
-  # variables = getVariable.(dfg, xisyms)
-  variables = map(vid -> getVariable(dfg, vid), xisyms)
-  return addFactor!(dfg, variables, usrfnc; suppressChecks = suppressChecks, kw...)
+  # variables = getVariable.(dfg, vlbs)
+  variables = map(vid -> getVariable(dfg, vid), vlbs)
+  return addFactor!(dfg, variables, usrfnc; suppressChecks, kw...)
 end
 
 #

@@ -7,6 +7,8 @@ getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 # difficult type piracy case needing both types NoSolverParams and CommonConvWrapper.
 getFactorOperationalMemoryType(dfg::NoSolverParams) = CommonConvWrapper
 
+getManifold(fct::DFGFactor{<:CommonConvWrapper}) = getManifold(_getCCW(fct))
+
 function _getDimensionsPartial(ccw::CommonConvWrapper)
   # @warn "_getDimensionsPartial not ready for use yet"
   return ccw.partialDims
@@ -24,26 +26,24 @@ function CalcFactor(
   ccwl::CommonConvWrapper;
   factor = ccwl.usrfnc!,
   _sampleIdx = 0,
-  _measCount = length(ccwl.measurement),
-  _legacyMeas = ccwl.measurement,
-  _legacyParams = ccwl.params,
+  _legacyParams = ccwl.varValsAll,
   _allowThreads = true,
   cache = ccwl.dummyCache,
   fullvariables = ccwl.fullvariables,
-  solvefor = ccwl.varidx,
+  solvefor = ccwl.varidx[],
+  manifold = getManifold(ccwl)
 )
   #
   # FIXME using ccwl.dummyCache is not thread-safe
   return CalcFactor(
     factor,
     _sampleIdx,
-    _measCount,
-    _legacyMeas,
     _legacyParams,
     _allowThreads,
     cache,
-    fullvariables,
+    tuple(fullvariables...),
     solvefor,
+    manifold
   )
 end
 
@@ -78,16 +78,11 @@ Notes
 """
 function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
   #
+  M = getManifold(cf) # getManifold(T)
   try
-    M = getManifold(T)
     return manifold_dimension(M)
   catch
-    try
-      M = getManifold(cf.factor)
-      return manifold_dimension(M)
-    catch
-      @warn "no method getManifold(::$(string(T))), calcZDim will attempt legacy length(sample) method instead"
-    end
+    @warn "no method getManifold(::$(string(T))), calcZDim will attempt legacy length(sample) method instead"
   end
 
   # NOTE try to make sure we get matrix back (not a vector)
@@ -99,7 +94,7 @@ calcZDim(ccw::CommonConvWrapper) = calcZDim(CalcFactor(ccw))
 
 calcZDim(cf::CalcFactor{<:GenericMarginal}) = 0
 
-calcZDim(cf::CalcFactor{<:ManifoldPrior}) = manifold_dimension(cf.factor.M)
+calcZDim(cf::CalcFactor{<:ManifoldPrior}) = manifold_dimension(cf.manifold)
 
 """
     $SIGNATURES
@@ -196,51 +191,51 @@ end
 
 function CommonConvWrapper(
   usrfnc::T,
-  X::AbstractVector{P}, #TODO remove X completely
-  zDim::Int,
-  varValsLink::Tuple,
-  fullvariables::Vector{DFGVariable};
+  fullvariables, #::Tuple ::Vector{<:DFGVariable};
+  varValsAll::Tuple,
+  X::AbstractVector{P}; #TODO remove X completely
+  # xDim::Int = size(X, 1),
+  userCache::CT = nothing,
+  manifold = getManifold(usrfnc),
+  partialDims::AbstractVector{<:Integer} = 1:length(X),
   partial::Bool = false,
+  nullhypo::Real = 0,
+  inflation::Real = 3.0,
   hypotheses::H = nothing,
   certainhypo = nothing,
-  activehypo = collect(1:length(varValsLink)),
-  nullhypo::Real = 0,
-  varidx::Int = 1,
+  activehypo = collect(1:length(varValsAll)),
   measurement::AbstractVector = Vector(Vector{Float64}()),
+  varidx::Int = 1,
   particleidx::Int = 1,
-  xDim::Int = size(X, 1),
-  partialDims::AbstractVector{<:Integer} = 1:length(X),
-  res::AbstractVector{<:Real} = zeros(zDim),
-  threadmodel::Type{<:_AbstractThreadModel} = SingleThreaded,
-  inflation::Real = 3.0,
-  vartypes::Vector{DataType} = typeof.(getVariableType.(fullvariables)),
+  res::AbstractVector{<:Real} = zeros(manifold_dimension(manifold)), # zDim
   gradients = nothing,
-  userCache::CT = nothing,
 ) where {T <: AbstractFactor, P, H, CT}
   #
   return CommonConvWrapper(
     usrfnc,
-    xDim,
-    zDim,
+    tuple(fullvariables...),
+    varValsAll,
+    userCache,
+    manifold,
+    partialDims,
     partial,
+    # xDim,
+    Float64(nullhypo),
+    inflation,
     hypotheses,
     certainhypo,
-    Float64(nullhypo),
-    varValsLink,
-    varidx,
-    measurement,
-    threadmodel,
-    inflation,
-    partialDims,
-    DataType[vartypes...],
-    gradients,
-    userCache,
-    fullvariables,
-    particleidx,
     activehypo,
+    measurement,
+    Ref(varidx),
+    Ref(particleidx),
     res,
+    gradients,
   )
 end
+
+# the same as legacy, getManifold(ccwl.usrfnc!)
+getManifold(ccwl::CommonConvWrapper) = ccwl.manifold
+getManifold(cf::CalcFactor) = cf.manifold
 
 function _resizePointsVector!(
   vecP::AbstractVector{P},
@@ -286,10 +281,13 @@ function _prepParamVec(
   #
   # FIXME refactor to new NamedTuple instead
   varParamsAll = getVal.(Xi; solveKey)
-  Xi_labels = getLabel.(Xi)
-  sfidx = findfirst(==(solvefor), Xi_labels)
-
-  sfidx = isnothing(sfidx) ? 0 : sfidx
+  # Xi_labels = getLabel.(Xi)
+  sfidx = if isnothing(solvefor)
+    0
+  else
+    findfirst(==(solvefor), getLabel.(Xi))
+  end
+  # sfidx = isnothing(sfidx) ? 0 : sfidx
 
   # this line does nothing...
   # maxlen = N # FIXME see #105
@@ -299,7 +297,7 @@ function _prepParamVec(
 
   # resample variables with too few kernels (manifolds points)
   SAMP = LEN .< maxlen
-  for i = 1:length(Xi_labels)
+  for i = 1:length(Xi)
     if SAMP[i]
       Pr = getBelief(Xi[i], solveKey)
       _resizePointsVector!(varParamsAll[i], Pr, maxlen)
@@ -312,12 +310,10 @@ function _prepParamVec(
     varParamsAll[sfidx] = deepcopy(varParamsAll[sfidx])
   end
 
-  varTypes = typeof.(getVariableType.(Xi)) # previous need to force unstable, ::Vector{DataType}
-
-  ntp = tuple(varParamsAll...)
+  varValsAll = tuple(varParamsAll...)
   # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
   # maxlen = N == 0 ? maxlen : N
-  return ntp, maxlen, sfidx, varTypes
+  return varValsAll, maxlen, sfidx
 end
 
 """
@@ -326,6 +322,7 @@ Internal method to set which dimensions should be used as the decision variables
 """
 function _setCCWDecisionDimsConv!(
   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  xDim::Int
 ) where {
   N_,
   F <: Union{
@@ -340,11 +337,14 @@ function _setCCWDecisionDimsConv!(
   #
 
   # NOTE should only be done in the constructor
-  ccwl.partialDims = if ccwl.partial
+  newval = if ccwl.partial
     Int[ccwl.usrfnc!.partial...]
   else
-    Int[1:(ccwl.xDim)...]
+    # NOTE this is the target variable dimension (not factor manifold dimension) 
+    Int[1:xDim...] # ccwl.xDim
   end
+  resize!(ccwl.partialDims, length(newval))
+  ccwl.partialDims[:] = newval
 
   return nothing
 end
@@ -408,7 +408,6 @@ function _prepCCW(
   end,
   inflation::Real = 0.0,
   solveKey::Symbol = :default,
-  threadmodel = MultiThreaded,
   _blockRecursion::Bool = false,
   userCache::CT = nothing,
 ) where {T <: AbstractFactor, CT}
@@ -420,56 +419,50 @@ function _prepCCW(
   end
 
   # TODO check no Anys, see #1321
-  _varValsQuick, maxlen, sfidx, varTypes = _prepParamVec(Xi, nothing, 0; solveKey) # Nothing for init.
+  _varValsAll, maxlen, sfidx = _prepParamVec(Xi, nothing, 0; solveKey) # Nothing for init.
 
+  manifold = getManifold(usrfnc)
   # standard factor metadata
   solvefor = length(Xi)
-  # sflbl = 0 == length(Xi) ? :null : getLabel(Xi[end])
-  # lbs = getLabel.(Xi)
-  # fmd = FactorMetadata(Xi, lbs, _varValsQuick, sflbl, nothing)
-  fullvariables = convert(Vector{DFGVariable}, Xi)
+  fullvariables = tuple(Xi...) # convert(Vector{DFGVariable}, Xi)
   # create a temporary CalcFactor object for extracting the first sample
   # TODO, deprecate this:  guess measurement points type
   # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
   _cf = CalcFactor(
     usrfnc,
     0,
-    1,
-    nothing,
-    _varValsQuick,
+    _varValsAll,
     false,
     userCache,
     fullvariables,
     solvefor,
+    manifold
   )
 
   # get a measurement sample
   meas_single = sampleFactor(_cf, 1)[1]
 
   elT = typeof(meas_single)
-  # @info "WHAT" elT
-  if elT <: ProductRepr
-    @error("ProductRepr is deprecated, use ArrayPartition instead, $T") #TODO remove in v0.32
-  else
-    nothing #TODO remove in v0.32
-  end #TODO remove in v0.32
 
   #TODO preallocate measurement?
   measurement = Vector{elT}()
 
   # partialDims are sensitive to both which solvefor variable index and whether the factor is partial
-  partial = hasfield(T, :partial)
+  partial = hasfield(T, :partial) # FIXME, use isPartial function instead
   partialDims = if partial
     Int[usrfnc.partial...]
   else
     Int[]
   end
 
+  # FIXME, should incorporate multihypo selection
+  varTypes = getVariableType.(fullvariables)
+
   # as per struct CommonConvWrapper
   gradients = attemptGradientPrep(
     varTypes,
     usrfnc,
-    _varValsQuick,
+    _varValsAll,
     multihypo,
     meas_single,
     _blockRecursion,
@@ -478,27 +471,47 @@ function _prepCCW(
   # variable Types
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
-
-  # @info "CCW" typeof(measurement)
+  if !isconcretetype(PointType)
+    @warn "_prepCCW PointType is not concrete $PointType" maxlog=50
+  end
 
   return CommonConvWrapper(
     usrfnc,
-    PointType[],
-    calcZDim(_cf),
-    _varValsQuick,
-    fullvariables;
+    fullvariables,
+    _varValsAll,
+    PointType[];
+    userCache, # should be higher in args list
+    manifold,  # should be higher in args list
+    partialDims,
     partial,
-    measurement,
+    nullhypo,
+    inflation,
     hypotheses = multihypo,
     certainhypo,
-    nullhypo,
-    threadmodel,
-    inflation,
-    partialDims,
-    vartypes = varTypes,
+    measurement,
     gradients,
-    userCache,
   )
+end
+
+function updateMeasurement!(
+  ccwl::CommonConvWrapper,
+  N::Int=1;
+  measurement::AbstractVector = Vector{Tuple{}}(),
+  needFreshMeasurements::Bool=true,
+  _allowThreads::Bool = true
+)
+  # FIXME do not divert Mixture for sampling
+  
+  # option to disable fresh samples or user provided
+  if needFreshMeasurements
+    # TODO this is only one thread, make this a for loop for multithreaded sampling
+    sampleFactor!(ccwl, N; _allowThreads)
+  elseif 0 < length(measurement) 
+    resize!(ccwl.measurement, length(measurement))
+    ccwl.measurement[:] = measurement
+  end
+
+  nothing
 end
 
 """
@@ -517,9 +530,10 @@ function _updateCCW!(
   Xi::AbstractVector{<:DFGVariable},
   solvefor::Symbol,
   N::Integer;
+  measurement = Vector{Tuple{}}(),
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
-) where {F <: AbstractFactor}
+) where {F <: AbstractFactor} # F might be Mixture
   #
   if length(Xi) !== 0
     nothing
@@ -529,50 +543,74 @@ function _updateCCW!(
 
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
-  _varValsQuick, maxlen, sfidx, varTypes = _prepParamVec(Xi, solvefor, N; solveKey)
+  _varValsAll, maxlen, sfidx = _prepParamVec(Xi, solvefor, N; solveKey)
 
-  # NOTE should be selecting for the correct multihypothesis mode
-  ccwl.params = _varValsQuick
-  # some better consolidate is needed
-  ccwl.vartypes = varTypes
+  # TODO, ensure all values (not just multihypothesis) is correctly used from here
+  for (i,varVal) in enumerate(_varValsAll)
+    resize!(ccwl.varValsAll[i],length(varVal))
+    ccwl.varValsAll[i][:] = varVal
+  end
+
+  # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
+  ccwl.varidx[] = sfidx
+
+  # TODO better consolidation still possible
   # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
-  ccwl.xDim = getDimension(getVariableType(Xi[sfidx]))
-  # TODO maybe refactor new type higher up?
+  # FIXME, confirm this is hypo sensitive selection from Xi, better to use double indexing for clarity getDimension(ccw.fullvariables[hypoidx[sfidx]])
+  xDim = getDimension(getVariableType(Xi[sfidx])) # ccwl.varidx[]
+  # ccwl.xDim = xDim
+  # TODO maybe refactor different type or api call?
 
   # setup the partial or complete decision variable dimensions for this ccwl object
   # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
   # TODO, should this not be part of `prepareCommonConvWrapper` -- only here do we look for .partial
-  _setCCWDecisionDimsConv!(ccwl)
+  _setCCWDecisionDimsConv!(ccwl, xDim)
 
-  # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
-  ccwl.varidx = sfidx
-
-  # get factor metadata -- TODO, populate, also see #784
-  # TODO consolidate with ccwl??
   # FIXME do not divert Mixture for sampling
-  cf = CalcFactor(ccwl; _allowThreads = true)
 
-  # cache the measurement dimension
-  @assert ccwl.zDim == calcZDim(cf) "refactoring in progress, cannot drop assignment ccwl.zDim:$(ccwl.zDim) = calcZDim( cf ):$(calcZDim( cf ))"
-  # ccwl.zDim = calcZDim( cf )  # CalcFactor(ccwl) )
+  updateMeasurement!(ccwl, maxlen; needFreshMeasurements, measurement, _allowThreads=true)
 
-  # option to disable fresh samples
-  if needFreshMeasurements
-    # TODO refactor
-    ccwl.measurement = sampleFactor(cf, maxlen)
-  end
-
-  # set each CPT
   # used in ccw functor for AbstractRelativeMinimize
-  resize!(ccwl.res, ccwl.zDim)
+  resize!(ccwl.res, _getZDim(ccwl))
   fill!(ccwl.res, 0.0)
 
-  # calculate new gradients perhaps
+  # calculate new gradients
   # J = ccwl.gradients(measurement..., pts...)
 
   return sfidx, maxlen
 end
 
+function _updateCCW!(
+  F_::Type{<:AbstractPrior},
+  ccwl::CommonConvWrapper{F},
+  Xi::AbstractVector{<:DFGVariable},
+  solvefor::Symbol,
+  N::Integer;
+  measurement = Vector{Tuple{}}(),
+  needFreshMeasurements::Bool = true,
+  solveKey::Symbol = :default,
+) where {F <: AbstractFactor} # F might be Mixture
+  # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
+  # fnc = ccwl.usrfnc!
+  sfidx = findfirst(getLabel.(Xi) .== solvefor)
+  @assert sfidx == 1 "Solving on Prior with CCW should have sfidx=1, priors are unary factors."
+  # sfidx = 1 #  why hardcoded to 1, maybe for only the AbstractPrior case here
+
+  # setup the partial or complete decision variable dimensions for this ccwl object
+  # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
+  _setCCWDecisionDimsConv!(ccwl, getDimension(getVariableType(Xi[sfidx])))
+
+  solveForPts = getVal(Xi[sfidx]; solveKey)
+  maxlen = maximum([N; length(solveForPts); length(ccwl.varValsAll[sfidx])])  # calcZDim(ccwl); length(measurement[1])
+
+  # FIXME do not divert Mixture for sampling
+  # update ccwl.measurement values
+  updateMeasurement!(ccwl, maxlen; needFreshMeasurements, measurement, _allowThreads=true)
+
+  return sfidx, maxlen
+end
+
+# TODO, can likely deprecate this
 function _updateCCW!(
   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
   Xi::AbstractVector{<:DFGVariable},
@@ -583,5 +621,17 @@ function _updateCCW!(
   #
   return _updateCCW!(F, ccwl, Xi, solvefor, N; kw...)
 end
+
+function _updateCCW!(
+  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  Xi::AbstractVector{<:DFGVariable},
+  solvefor::Symbol,
+  N::Integer;
+  kw...,
+) where {N_, F <: AbstractPrior, S, T}
+  #
+  return _updateCCW!(F, ccwl, Xi, solvefor, N; kw...)
+end
+
 
 #

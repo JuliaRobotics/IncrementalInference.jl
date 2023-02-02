@@ -113,8 +113,8 @@ plotKDE([upmsgs[:x0]; upmsgs[:l1]; upmsgs[:x1]], c=["red";"green";"blue"])
 
 ## swap iteration order
 #TODO guess order from bellow
-# getCliqueData(tree.cliques[2]).itervarIDs = [5;7;3;1]
-getCliqueData(tree.cliques[2]).itervarIDs = [:x0, :x1, :l0, :l1]
+# getCliqueData(getClique(tree,2)).itervarIDs = [5;7;3;1]
+getCliqueData(getClique(tree,2)).itervarIDs = [:x0, :x1, :l0, :l1]
 
 solveTree!(fg, tree)
 

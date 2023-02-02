@@ -104,8 +104,8 @@ spyCliqMat(tree, :x2)
 ## swap iteration order
 
 #TODO
-# getCliqueData(tree.cliques[2]).itervarIDs = [9;7;1;3;5]
-getCliqueData(tree.cliques[1]).itervarIDs = [:x1, :x0, :l2, :l1, :l0]
+# getCliqueData(getClique(tree,2)).itervarIDs = [9;7;1;3;5]
+getCliqueData(getClique(tree,1)).itervarIDs = [:x1, :x0, :l2, :l1, :l0]
 
 solveTree!(fg, tree)
 
@@ -245,7 +245,7 @@ tree = buildTreeReset!(fg, drawpdf=true, show=true)
 spyCliqMat(tree, :l0)
 spyCliqMat(tree, :x2)
 
-cliq = tree.cliques[2]
+cliq = getClique(tree,2)
 
 ## quick debug
 

@@ -162,17 +162,15 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
 
   cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
 
-  # calcf = CalcFactor(getFactorMechanics(fac_func), nothing, 0, 0, nothing, nothing, true, nothing)
   calcf = CalcFactor(
     getFactorMechanics(fac_func),
     0,
-    0,
-    nothing,
     nothing,
     true,
     cache,
-    DFGVariable[],
+    (), #DFGVariable[],
     0,
+    getManifold(_getCCW(fct)) # getManifold(fac_func)
   )
 
   multihypo = getSolverData(fct).multihypo
@@ -203,6 +201,8 @@ end
 function calcFactorMahalanobisDict(fg)
   calcFactors = OrderedDict{Symbol, CalcFactorMahalanobis}()
   for fct in getFactors(fg)
+    # skip non-numeric prior
+    getFactorType(fct) isa MetaPrior ? continue : nothing
     calcFactors[fct.label] = CalcFactorMahalanobis(fg, fct)
   end
   return calcFactors
@@ -367,24 +367,32 @@ end
 function cost_cfp(
   @nospecialize(cfp::CalcFactorMahalanobis),
   @nospecialize(p::AbstractArray),
-  vi::NTuple{1, Int},
-)
-  return cfp(p[vi[1]])
+  vi::NTuple{N, Int},
+) where N
+  cfp(map(v->p[v],vi)...)
 end
-function cost_cfp(
-  @nospecialize(cfp::CalcFactorMahalanobis),
-  @nospecialize(p::AbstractArray),
-  vi::NTuple{2, Int},
-)
-  return cfp(p[vi[1]], p[vi[2]])
-end
-function cost_cfp(
-  @nospecialize(cfp::CalcFactorMahalanobis),
-  @nospecialize(p::AbstractArray),
-  vi::NTuple{3, Int},
-)
-  return cfp(p[vi[1]], p[vi[2]], p[vi[3]])
-end
+# function cost_cfp(
+#   @nospecialize(cfp::CalcFactorMahalanobis),
+#   @nospecialize(p::AbstractArray),
+#   vi::NTuple{1, Int},
+# )
+#   return cfp(p[vi[1]])
+# end
+# function cost_cfp(
+#   @nospecialize(cfp::CalcFactorMahalanobis),
+#   @nospecialize(p::AbstractArray),
+#   vi::NTuple{2, Int},
+# )
+#   return cfp(p[vi[1]], p[vi[2]])
+# end
+# function cost_cfp(
+#   @nospecialize(cfp::CalcFactorMahalanobis),
+#   @nospecialize(p::AbstractArray),
+#   vi::NTuple{3, Int},
+# )
+#   return cfp(p[vi[1]], p[vi[2]], p[vi[3]])
+# end
+
 
 # function (gsc::GraphSolveContainer)(f::Vector{T}, Xc::Vector{T}, ::Val{true}) where T <: Real
 #   #
@@ -509,14 +517,8 @@ function solveGraphParametric(
   computeCovariance::Bool = true,
   solveKey::Symbol = :parametric,
   autodiff = :forward,
-  algorithm = Optim.NewtonTrustRegion, # Optim.BFGS,
-  algorithmkwargs = (
-        initial_delta = 1.0,
-        # delta_hat = 1.0,
-        eta = 0.01,
-        # rho_lower = 0.25,
-        # rho_upper = 0.75
-  ), # add manifold to overwrite computed one
+  algorithm = Optim.BFGS,
+  algorithmkwargs = (), # add manifold to overwrite computed one
   options = Optim.Options(;
     allow_f_increases = true,
     time_limit = 100,
@@ -789,19 +791,9 @@ Update the parametric solver data value and covariance.
 function updateSolverDataParametric! end
 
 function updateSolverDataParametric!(
-  v::DFGVariable,
-  val::AbstractArray{<:Real},
-  cov::Matrix;
-  solveKey::Symbol = :parametric,
-)
-  vnd = getSolverData(v, solveKey)
-  return updateSolverDataParametric!(vnd, val, cov)
-end
-
-function updateSolverDataParametric!(
   vnd::VariableNodeData,
-  val::AbstractArray{<:Real},
-  cov::Matrix,
+  val::AbstractArray,
+  cov::AbstractMatrix,
 )
   # fill in the variable node data value
   vnd.val[1] = val
@@ -810,11 +802,22 @@ function updateSolverDataParametric!(
   return vnd
 end
 
+function updateSolverDataParametric!(
+  v::DFGVariable,
+  val::AbstractArray,
+  cov::AbstractMatrix;
+  solveKey::Symbol = :parametric,
+)
+  vnd = getSolverData(v, solveKey)
+  return updateSolverDataParametric!(vnd, val, cov)
+end
+
+
 """
     $SIGNATURES
 Add parametric solver to fg, batch solve using [`solveGraphParametric`](@ref) and update fg.
 """
-function solveGraphParametric!(
+function DFG.solveGraphParametric!(
   fg::AbstractDFG; 
   init::Bool = true, 
   solveKey::Symbol = :parametric, # FIXME, moot since only :parametric used for parametric solves

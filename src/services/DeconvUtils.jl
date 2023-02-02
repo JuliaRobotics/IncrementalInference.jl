@@ -37,8 +37,10 @@ function approxDeconv(
   retries::Int = 3,
 )
   #
+  # FIXME needs xDim for all variables at once? xDim = 0 likely to break?
+
   # but what if this is a partial factor -- is that important for general cases in deconv?
-  _setCCWDecisionDimsConv!(ccw)
+  _setCCWDecisionDimsConv!(ccw, 0) # ccwl.xDim used to hold the last forward solve getDimension(getVariableType(Xi[sfidx]))
 
   # FIXME This does not incorporate multihypo??
   varsyms = getVariableOrder(fcto)
@@ -74,7 +76,8 @@ function approxDeconv(
     targeti_ = makeTarget(idx)
 
     # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
-    ccw.activehypo = hyporecipe.activehypo[2][2]
+    resize!(ccw.activehypo, length(hyporecipe.activehypo[2][2]))
+    ccw.activehypo[:] = hyporecipe.activehypo[2][2]
 
     onehypo!, _ = _buildCalcFactorLambdaSample(ccw, idx, targeti_, measurement)
     #
@@ -84,13 +87,13 @@ function approxDeconv(
 
     # find solution via SubArray view pointing to original memory location
     if fcttype isa AbstractManifoldMinimize
-      sfidx = ccw.varidx
+      sfidx = ccw.varidx[]
       targeti_ .= _solveLambdaNumericMeas(
         fcttype,
         hypoObj,
         res_,
         measurement[idx],
-        ccw.vartypes[sfidx](),
+        getVariableType(ccw.fullvariables[sfidx]), # ccw.vartypes[sfidx](),
         islen1,
       )
     else

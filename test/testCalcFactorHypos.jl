@@ -4,7 +4,7 @@
 
 using IncrementalInference
 using Test
-import IncrementalInference: getSample
+import IncrementalInference: getSample, getManifold
 
 ##
 
@@ -14,10 +14,12 @@ struct MyFactor{T <: SamplableBelief} <: IIF.AbstractRelativeRoots
   # specialSampler::Function
 end
 
+getManifold(mf::MyFactor) = TranslationGroup(getDimension(mf.Z))
+
 function getSample( cf::CalcFactor{<:MyFactor})
   #
   @warn "getSample(cf::CalcFactor{<:MyFactor},::Int) does not get hypo sub-selected FMD data: $(DFG.getLabel.(cf.fullvariables))" cf.solvefor maxlog=1
-  # @assert DFG.getLabel.(fmd_[1].fullvariables) |> length < 3 "this factor is only between two variables"
+  # @assert length( DFG.getLabel.(fmd_[1].fullvariables) ) < 3 "this factor is only between two variables"
   return rand(cf.factor.Z, 1)
 end
 

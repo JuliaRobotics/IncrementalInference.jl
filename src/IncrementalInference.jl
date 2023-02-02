@@ -61,7 +61,7 @@ using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
 using .Ccolamd
 
 # likely overloads or not exported by the upstream packages
-import Base: convert, ==
+import Base: convert, ==, getproperty
 import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
@@ -82,6 +82,7 @@ import DistributedFactorGraphs: getPoint, getCoordinates
 import DistributedFactorGraphs: getVariableType
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 import DistributedFactorGraphs: getFactorType
+import DistributedFactorGraphs: solveGraph!, solveGraphParametric!
 
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable
@@ -134,6 +135,7 @@ include("VariableStatistics.jl")
 
 # factors needed for belief propagation on the tree
 include("Factors/MsgPrior.jl")
+include("Factors/MetaPrior.jl")
 
 include("entities/CliqueTypes.jl")
 include("entities/JunctionTreeTypes.jl")

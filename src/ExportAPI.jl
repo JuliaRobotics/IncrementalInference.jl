@@ -239,11 +239,6 @@ export CSMHistory,
   getCliqVarInitOrderUp,
   getCliqNumAssocFactorsPerVar,
 
-  # introduced for approximate convolution operations
-  setThreadModel!,
-  SingleThreaded,
-  MultiThreaded,
-
   # user functions
   predictbelief,
   propagateBelief,
@@ -360,5 +355,7 @@ export appendSeparatorToClique!
 
 export buildTreeFromOrdering! # TODO make internal and deprecate external use to only `buildTreeReset!``
 export makeSolverData!
+
+export MetaPrior
 
 #

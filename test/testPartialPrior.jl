@@ -4,9 +4,9 @@ using Test
 using IncrementalInference
 using Manifolds
 using DistributedFactorGraphs
-##
+import IncrementalInference: getSample, getManifold
 
-import IncrementalInference: getSample
+##
 
 mutable struct PartialDim2{T} <: AbstractPrior
   Z::T
@@ -15,9 +15,9 @@ end
 
 PartialDim2(Z::D) where {D <: IIF.SamplableBelief} = PartialDim2(Z, (2,))
 
-DFG.getManifold(::PartialDim2) = TranslationGroup(2)
+getManifold(pd::PartialDim2) = getManifoldPartial(TranslationGroup(2), [pd.partial...])[1]
 
-getSample(cfo::CalcFactor{<:PartialDim2}) = [0; rand(cfo.factor.Z)]
+getSample(cfo::CalcFactor{<:PartialDim2}) = [rand(cfo.factor.Z);]
 
 
 ##
@@ -63,7 +63,7 @@ v0 = addVariable!(fg, :x0, ContinuousEuclid{2})
 
 pts = [randn(1) for _ in 1:1000];
 mkd = manikde!(TranslationGroup(1), pts, bw=[0.1;])
-pp = PartialPrior(mkd, (2,))
+pp = PartialPrior(ContinuousEuclid{2}, mkd, (2,))
 f0 = addFactor!(fg, [:x0;], pp, graphinit=false)
 
 ##

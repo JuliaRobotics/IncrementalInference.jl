@@ -128,8 +128,8 @@ function tryCliqStateMachineSolve!(
 ) where {G <: AbstractDFG}
   #
   clst = :na
-  cliq = getClique(treel, cliqKey) #treel.cliques[cliqKey]
-  syms = getCliqFrontalVarIds(cliq) # ids =
+  cliq = getClique(treel, cliqKey)
+  syms = getCliqFrontalVarIds(cliq)
 
   oldcliq = attemptTreeSimilarClique(oldtree, getCliqueData(cliq))
   oldcliqdata = getCliqueData(oldcliq)
@@ -497,7 +497,7 @@ end
 
 Just an alias, see documentation for `solveTree!`.
 """
-const solveGraph! = solveTree!
+DFG.solveGraph!(dfg::AbstractDFG, w...;kw...) = solveTree!(dfg, w...;kw...)
 
 """
     $SIGNATURES
