@@ -50,6 +50,7 @@ function reconstFactorData(
     certainhypo = packed.certainhypo,
     inflation = packed.inflation,
     userCache,
+    _blockRecursion=!getSolverParams(dfg).attemptGradients,
   )
   #
 
