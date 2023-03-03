@@ -46,6 +46,8 @@ using Dates,
   UUIDs,
   TensorCast
 
+using StructTypes
+
 using StaticArrays
 
 using ManifoldsBase
