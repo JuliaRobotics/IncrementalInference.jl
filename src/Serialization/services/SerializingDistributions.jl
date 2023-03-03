@@ -160,7 +160,7 @@ function convert(::Type{<:PackedSamplableBelief}, obj::StringThemSamplableBelief
 end
 convert(::Type{<:SamplableBelief}, obj::PackedSamplableBelief) = unpackDistribution(obj)
 
-function convert(::Type{<:PackedSamplableBelief}, nt::NamedTuple)
+function convert(::Type{<:PackedSamplableBelief}, nt::Union{NamedTuple, JSON3.Object})
   distrType = DFG.getTypeFromSerializationModule(nt._type)
   return distrType(; nt...)
 end
