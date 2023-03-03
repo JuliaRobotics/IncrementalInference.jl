@@ -32,6 +32,11 @@ Base.@kwdef mutable struct PackedPartialPriorPassThrough <: AbstractPackedFactor
   partial::Vector{Int}
 end
 
+# StructTypes.StructType(::Type{PackedPartialPriorPassThrough}) = StructTypes.UnorderedStruct()
+# StructTypes.idproperty(::Type{PackedPartialPriorPassThrough}) = :id
+# StructTypes.omitempties(::Type{PackedPartialPriorPassThrough}) = (:id,)
+
+
 function convert(
   ::Union{Type{<:AbstractPackedFactor}, Type{<:PackedPartialPriorPassThrough}},
   obj::PartialPriorPassThrough,

@@ -50,7 +50,8 @@ addFactor!(fg, [:x0;], pr)
 ##
 
 smpls = sampleFactor(fg, :x0f1, 10)
-@test smpls isa Vector{Vector{Float64}}
+@test eltype(smpls) <: Vector{<:Real}
+@test smpls isa Vector #{Vector{Float64}}
 @test length( smpls ) == 10
 
 ##

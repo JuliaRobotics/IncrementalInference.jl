@@ -18,6 +18,8 @@ struct ParametricMessage <: MessageType end
 
 abstract type PackedSamplableBelief end
 
+StructTypes.StructType(::Type{<:PackedSamplableBelief}) = StructTypes.UnorderedStruct()
+
 const SamplableBelief = Union{
   Distributions.Distribution,
   KDE.BallTreeDensity,

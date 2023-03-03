@@ -276,7 +276,7 @@ DFG.getManifold(::ManiPose2Point2) = TranslationGroup(2)
 
 # define the conditional probability constraint
 function (cfo::CalcFactor{<:ManiPose2Point2})(measX, p, q)
-  #
+    #
     M = SpecialEuclidean(2)
     q_SE = ArrayPartition(q, identity_element(SpecialOrthogonal(2), p.x[2]))
 
