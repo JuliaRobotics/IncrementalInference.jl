@@ -50,7 +50,10 @@ function reconstFactorData(
     certainhypo = packed.certainhypo,
     inflation = packed.inflation,
     userCache,
-    _blockRecursion=!getSolverParams(dfg).attemptGradients,
+    # Block recursion if NoSolverParams or if set to not attempt gradients.
+    _blockRecursion=
+      getSolverParams(dfg) isa NoSolverParams || 
+      !getSolverParams(dfg).attemptGradients,
   )
   #
 
