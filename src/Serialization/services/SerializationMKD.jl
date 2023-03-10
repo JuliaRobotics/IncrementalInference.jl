@@ -75,7 +75,7 @@ end
 function Base.convert(::Type{String}, mkd::ManifoldKernelDensity)
   #
   packedMKD = packDistribution(mkd)
-  return JSON2.write(packedMKD)
+  return JSON3.write(packedMKD)
 end
 
 # Use general dispatch
@@ -86,7 +86,7 @@ end
 #  https://discourse.julialang.org/t/converting-string-to-datatype-with-meta-parse/33024/2
 #  https://discourse.julialang.org/t/is-there-a-way-to-import-modules-with-a-string/15723/6
 function Base.convert(::Type{<:ManifoldKernelDensity}, str::AbstractString)
-  dtr = JSON2.read(str, PackedManifoldKernelDensity)
+  dtr = JSON3.read(str, PackedManifoldKernelDensity)
   return unpackDistribution(dtr)
 end
 
