@@ -14,27 +14,7 @@ Future work:
 function approxConvOnElements!(
   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
   elements::Union{Vector{Int}, UnitRange{Int}},
-  ::Type{<:MultiThreaded},
-  _slack = nothing,
-) where {N_, F <: AbstractRelative, S, T}
-  #
-  return error(
-    "MultiThreaded `approxConvOnElements!` is deprecated and will soon be replaced",
-  )
-  # Threads.@threads for n in elements
-  #   # ccwl.thrid_ = Threads.threadid()
-  #   ccwl.cpt[Threads.threadid()].particleidx = n
-
-  #   # ccall(:jl_, Nothing, (Any,), "starting loop, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx)")
-  #   _solveCCWNumeric!( ccwl, _slack=_slack)
-  # end
-  # nothing
-end
-
-function approxConvOnElements!(
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
-  elements::Union{Vector{Int}, UnitRange{Int}},
-  ::Type{<:SingleThreaded},
+  # ::Type{<:SingleThreaded},
   _slack = nothing,
 ) where {N_, F <: AbstractRelative, S, T}
   #
@@ -45,14 +25,6 @@ function approxConvOnElements!(
   return nothing
 end
 
-function approxConvOnElements!(
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
-  elements::Union{Vector{Int}, UnitRange{Int}},
-  _slack = nothing,
-) where {N_, F <: AbstractRelative, S, T}
-  #
-  return approxConvOnElements!(ccwl, elements, ccwl.threadmodel, _slack)
-end
 
 """
     $SIGNATURES
