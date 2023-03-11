@@ -80,7 +80,7 @@ Related
 
 [`CalcFactor`](@ref), [`CalcFactorMahalanobis`](@ref)
 """
-struct CommonConvWrapper{
+Base.@kwdef struct CommonConvWrapper{
   T <: AbstractFactor, 
   VT <: Tuple,
   NTP <: Tuple, 
@@ -101,40 +101,84 @@ struct CommonConvWrapper{
       to each hypothesis evaluation event on user function via CalcFactor, #1321 """
   varValsAll::NTP
   """ dummy cache value to be deep copied later for each of the CalcFactor instances """
-  dummyCache::CT
+  dummyCache::CT = nothing
   # derived config parameters for this factor
   """ Factor manifold definition for frequent use (not the variables manifolds) """
-  manifold::AM
+  manifold::AM = getManifold(usrfnc!)
   """ Which dimensions does this factor influence.  Sensitive (mutable) to both which 'solvefor index' variable and whether the factor is partial dimension """
-  partialDims::Vector{<:Integer}
+  partialDims::Vector{<:Integer} = collect(1:manifold_dimension(manifold))
   """ is this a partial constraint as defined by the existance of factor field `.partial::Tuple` """
-  partial::Bool
+  partial::Bool = false
   """ probability that this factor is wholly incorrect and should be ignored during solving """
-  nullhypo::Float64
+  nullhypo::Float64 = 0.0
   """ inflationSpread particular to this factor (by how much to dispurse the belief initial values before numerical optimization is run).  Analogous to stochastic search """
-  inflation::Float64
+  inflation::Float64 = 3.0
   # multihypo specific field containers for recipe of hypotheses to compute
   """ multi hypothesis settings #NOTE no need for a parameter as type is known from `parseusermultihypo` """
-  hypotheses::HP
+  hypotheses::HP = nothing
   """ categorical to select which hypothesis is being considered during convolution operation """
-  certainhypo::CH
+  certainhypo::CH = nothing
   """ subsection indices to select which params should be used for this hypothesis evaluation """
-  activehypo::Vector{Int}
+  activehypo::Vector{Int} = collect(1:length(varValsAll))
   # buffers and indices to point numerical computations to specific memory locations
   """ user defined measurement values for each approxConv operation
       FIXME make type stable, JT should now be type stable if rest works.
       SUPER IMPORTANT, if prior=>point or relative=>tangent, see #1661 
       can be a Vector{<:Tuple} or more direct Vector{<: pointortangenttype} """
-  measurement::Vector{MT}
+  measurement::Vector{MT} = Vector(Vector{Float64}())
   """ which index is being solved for in params? """
-  varidx::Base.RefValue{Int}
+  varidx::Base.RefValue{Int} = Ref(1)
   """ Consolidation from CPT, the actual particle being solved at this moment """
-  particleidx::Base.RefValue{Int}
+  particleidx::Base.RefValue{Int} = Ref(1)
   """ working memory to store residual for optimization routines """
-  res::Vector{Float64}
+  res::Vector{Float64} = zeros(manifold_dimension(manifold))
   """ experimental feature to embed gradient calcs with ccw """
-  _gradients::G
+  _gradients::G = nothing
 end
 
+
+function CommonConvWrapper(
+  usrfnc::T,
+  fullvariables, #::Tuple ::Vector{<:DFGVariable};
+  varValsAll::Tuple,
+  X::AbstractVector{P}; #TODO remove X completely
+  # xDim::Int = size(X, 1),
+  userCache::CT = nothing,
+  manifold = getManifold(usrfnc),
+  partialDims::AbstractVector{<:Integer} = 1:length(X),
+  partial::Bool = false,
+  nullhypo::Real = 0,
+  inflation::Real = 3.0,
+  hypotheses::H = nothing,
+  certainhypo = nothing,
+  activehypo = collect(1:length(varValsAll)),
+  measurement::AbstractVector = Vector(Vector{Float64}()),
+  varidx::Int = 1,
+  particleidx::Int = 1,
+  res::AbstractVector{<:Real} = zeros(manifold_dimension(manifold)), # zDim
+  gradients = nothing,
+) where {T <: AbstractFactor, P, H, CT}
+  #
+  return CommonConvWrapper(
+    usrfnc,
+    tuple(fullvariables...),
+    varValsAll,
+    userCache,
+    manifold,
+    partialDims,
+    partial,
+    # xDim,
+    float(nullhypo),
+    float(inflation),
+    hypotheses,
+    certainhypo,
+    activehypo,
+    measurement,
+    Ref(varidx),
+    Ref(particleidx),
+    res,
+    gradients,
+  )
+end
 
 #
