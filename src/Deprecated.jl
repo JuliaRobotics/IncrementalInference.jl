@@ -116,6 +116,50 @@ end
 ## Deprecate code below before v0.34
 ##==============================================================================
 
+# function CommonConvWrapper(
+#   usrfnc::T,
+#   fullvariables, #::Tuple ::Vector{<:DFGVariable};
+#   varValsAll::Tuple,
+#   X::AbstractVector{P}; #TODO remove X completely
+#   # xDim::Int = size(X, 1),
+#   userCache::CT = nothing,
+#   manifold = getManifold(usrfnc),
+#   partialDims::AbstractVector{<:Integer} = 1:length(X),
+#   partial::Bool = false,
+#   nullhypo::Real = 0,
+#   inflation::Real = 3.0,
+#   hypotheses::H = nothing,
+#   certainhypo = nothing,
+#   activehypo = collect(1:length(varValsAll)),
+#   measurement::AbstractVector = Vector(Vector{Float64}()),
+#   varidx::Int = 1,
+#   particleidx::Int = 1,
+#   res::AbstractVector{<:Real} = zeros(manifold_dimension(manifold)), # zDim
+#   gradients = nothing,
+# ) where {T <: AbstractFactor, P, H, CT}
+#   #
+#   return CommonConvWrapper(
+#     usrfnc,
+#     tuple(fullvariables...),
+#     varValsAll,
+#     userCache,
+#     manifold,
+#     partialDims,
+#     partial,
+#     # xDim,
+#     float(nullhypo),
+#     float(inflation),
+#     hypotheses,
+#     certainhypo,
+#     activehypo,
+#     measurement,
+#     Ref(varidx),
+#     Ref(particleidx),
+#     res,
+#     gradients,
+#   )
+# end
+
 # function approxConvOnElements!(
 #   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
 #   elements::Union{Vector{Int}, UnitRange{Int}},
