@@ -2,7 +2,7 @@
 
 using IncrementalInference
 using DistributedFactorGraphs
-# using JSON
+using JSON3
 
 
 ##
