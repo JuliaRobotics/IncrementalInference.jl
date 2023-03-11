@@ -13,7 +13,6 @@ addFactor!(fg, [:x2;:x3;:x4], LinearRelative(Normal()), multihypo=[1.0;0.6;0.4])
 
 saveFolder = "/tmp/dfg_test"
 saveDFG(fg, saveFolder)
-# VERSION above 1.0.x hack required since Julia 1.0 does not seem to havfunction `splitpath`
 
 retDFG = initfg()
 retDFG = loadDFG!(retDFG, saveFolder)
@@ -56,6 +55,7 @@ saveFolder = "/tmp/dfg_test"
 saveDFG(fg, saveFolder)
 
 retDFG = initfg()
+getSolverParams(retDFG).attemptGradients = true
 loadDFG!(retDFG, saveFolder)
 Base.rm(saveFolder*".tar.gz")
 
