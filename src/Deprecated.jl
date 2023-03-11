@@ -1,69 +1,34 @@
+## ================================================================================================
+## Manifolds.jl Consolidation
+## TODO: Still to be completed and tested.
+## ================================================================================================
+# struct ManifoldsVector <: Optim.Manifold
+#   manis::Vector{Manifold}
+# end
 
-##==============================================================================
-## LEGACY, towards Sidecar
-##==============================================================================
+# Base.getindex(mv::ManifoldsVector, inds...) = getindex(mv.mani, inds...)
+# Base.setindex!(mv, X, inds...) =  setindex!(mv.mani, X, inds...)
 
-"""
-Converter: Prior -> PackedPrior::Dict{String, Any}
+# function ManifoldsVector(fg::AbstractDFG, varIds::Vector{Symbol})
+#   manis = Bool[]
+#   for k = varIds
+#     push!(manis, getVariableType(fg, k) |> getManifold)
+#   end
+#   ManifoldsVector(manis)
+# end
 
-FIXME see DFG #590 for consolidation with Serialization and Marshaling
-"""
-function convert(::Type{Dict{String, Any}}, prior::IncrementalInference.Prior)
-  @error("Obsolete, use pack/unpack converters instead")
-  z = convert(Type{Dict{String, Any}}, prior.Z)
-  return Packed_Factor([z], "Prior")
-end
-
-"""
-Converter: PackedPrior::Dict{String, Any} -> Prior
-
-FIXME see DFG #590 for consolidation on Serialization and Marshaling
-"""
-function convert(::Type{<:Prior}, prior::Dict{String, Any})
-  @error("Obsolete, use pack/unpack converters instead")
-  # Genericize to any packed type next.
-  z = prior["measurement"][1]
-  z = convert(DFG.getTypeFromSerializationModule(z["distType"]), z)
-  return Prior(z)
-end
-
-# more legacy, dont delete yet
-function Base.getproperty(ccw::CommonConvWrapper, f::Symbol)
-  if f == :threadmodel
-    @warn "CommonConvWrapper.threadmodel is obsolete" maxlog=3
-    return SingleThreaded
-  elseif f == :params
-    @warn "CommonConvWrapper.params is deprecated, use .varValsAll instead" maxlog=3
-    return ccw.varValsAll
-  elseif f == :vartypes
-    @warn "CommonConvWrapper.vartypes is deprecated, use typeof.(getVariableType.(ccw.fullvariables) instead" maxlog=3
-    return typeof.(getVariableType.(ccw.fullvariables))
-  else
-    return getfield(ccw, f)
-  end
-end
-
-
-##==============================================================================
-## Deprecate code below before v0.33
-##==============================================================================
-
-# export setThreadModel!
-  # introduced for approximate convolution operations
-export SingleThreaded, MultiThreaded
-
-function setThreadModel!(fgl::AbstractDFG; model = IIF.SingleThreaded)
-  #
-  @error("Obsolete, ThreadModel types are no longer in use.")
-  # for (key, id) in fgl.fIDs
-  #   _getCCW(fgl, key).threadmodel = model
-  # end
-  return nothing
-end
-
-# should have been deleted in v0.31 but no harm in keeping this one a bit longer
-@deprecate initManual!(w...; kw...) initVariable!(w...; kw...)
-
+# function Optim.retract!(manis::ManifoldsVector, x)
+#   for (i,M) = enumerate(manis)
+#     x[i] = project(M, x[i])
+#   end
+#   return x 
+# end
+# function Optim.project_tangent!(manis::ManifoldsVector, G, x)
+#   for (i, M) = enumerate(manis)
+#     G[i] = project(M, x[i], G)
+#   end
+#   return G
+# end
 
 
 ##==============================================================================
@@ -146,34 +111,102 @@ function solveGraphParametric2(
   return d, result, flatvar.idx, Σ
 end
 
-## ================================================================================================
-## Manifolds.jl Consolidation
-## TODO: Still to be completed and tested.
-## ================================================================================================
-# struct ManifoldsVector <: Optim.Manifold
-#   manis::Vector{Manifold}
+
+##==============================================================================
+## Deprecate code below before v0.34
+##==============================================================================
+
+# function CommonConvWrapper(
+#   usrfnc::T,
+#   fullvariables, #::Tuple ::Vector{<:DFGVariable};
+#   varValsAll::Tuple,
+#   X::AbstractVector{P}; #TODO remove X completely
+#   # xDim::Int = size(X, 1),
+#   userCache::CT = nothing,
+#   manifold = getManifold(usrfnc),
+#   partialDims::AbstractVector{<:Integer} = 1:length(X),
+#   partial::Bool = false,
+#   nullhypo::Real = 0,
+#   inflation::Real = 3.0,
+#   hypotheses::H = nothing,
+#   certainhypo = nothing,
+#   activehypo = collect(1:length(varValsAll)),
+#   measurement::AbstractVector = Vector(Vector{Float64}()),
+#   varidx::Int = 1,
+#   particleidx::Int = 1,
+#   res::AbstractVector{<:Real} = zeros(manifold_dimension(manifold)), # zDim
+#   gradients = nothing,
+# ) where {T <: AbstractFactor, P, H, CT}
+#   #
+#   return CommonConvWrapper(
+#     usrfnc,
+#     tuple(fullvariables...),
+#     varValsAll,
+#     userCache,
+#     manifold,
+#     partialDims,
+#     partial,
+#     # xDim,
+#     float(nullhypo),
+#     float(inflation),
+#     hypotheses,
+#     certainhypo,
+#     activehypo,
+#     measurement,
+#     Ref(varidx),
+#     Ref(particleidx),
+#     res,
+#     gradients,
+#   )
 # end
 
-# Base.getindex(mv::ManifoldsVector, inds...) = getindex(mv.mani, inds...)
-# Base.setindex!(mv, X, inds...) =  setindex!(mv.mani, X, inds...)
+# function approxConvOnElements!(
+#   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+#   elements::Union{Vector{Int}, UnitRange{Int}},
+#   ::Type{<:MultiThreaded},
+#   _slack = nothing,
+# ) where {N_, F <: AbstractRelative, S, T}
+#   #
+#   return error(
+#     "MultiThreaded `approxConvOnElements!` is deprecated and will soon be replaced",
+#   )
+#   # Threads.@threads for n in elements
+#   #   # ccwl.thrid_ = Threads.threadid()
+#   #   ccwl.cpt[Threads.threadid()].particleidx = n
 
-# function ManifoldsVector(fg::AbstractDFG, varIds::Vector{Symbol})
-#   manis = Bool[]
-#   for k = varIds
-#     push!(manis, getVariableType(fg, k) |> getManifold)
-#   end
-#   ManifoldsVector(manis)
+#   #   # ccall(:jl_, Nothing, (Any,), "starting loop, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx)")
+#   #   _solveCCWNumeric!( ccwl, _slack=_slack)
+#   # end
+#   # nothing
 # end
 
-# function Optim.retract!(manis::ManifoldsVector, x)
-#   for (i,M) = enumerate(manis)
-#     x[i] = project(M, x[i])
-#   end
-#   return x 
+# function approxConvOnElements!(
+#   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+#   elements::Union{Vector{Int}, UnitRange{Int}},
+#   _slack = nothing,
+# ) where {N_, F <: AbstractRelative, S, T}
+#   #
+#   return approxConvOnElements!(ccwl, elements, ccwl.threadmodel, _slack)
 # end
-# function Optim.project_tangent!(manis::ManifoldsVector, G, x)
-#   for (i, M) = enumerate(manis)
-#     G[i] = project(M, x[i], G)
-#   end
-#   return G
-# end
+
+# more legacy, dont delete yet
+function Base.getproperty(ccw::CommonConvWrapper, f::Symbol)
+  if f == :threadmodel
+    error("CommonConvWrapper.threadmodel is obsolete")
+    # return SingleThreaded
+  elseif f == :params
+    error("CommonConvWrapper.params is deprecated, use .varValsAll instead")
+    return ccw.varValsAll
+  elseif f == :vartypes
+    @warn "CommonConvWrapper.vartypes is deprecated, use typeof.(getVariableType.(ccw.fullvariables) instead" maxlog=3
+    return typeof.(getVariableType.(ccw.fullvariables))
+  else
+    return getfield(ccw, f)
+  end
+end
+
+##==============================================================================
+## Deprecate code below before v0.35
+##==============================================================================
+
+##

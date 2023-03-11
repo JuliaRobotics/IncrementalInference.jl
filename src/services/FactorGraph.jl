@@ -733,6 +733,7 @@ function getDefaultFactorData(
     multihypo = mhcat,
     nullhypo = nh,
     inflation,
+    attemptGradients = getSolverParams(dfg).attemptGradients,
     _blockRecursion,
     userCache,
   )
