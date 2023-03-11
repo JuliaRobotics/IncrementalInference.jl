@@ -366,6 +366,7 @@ function _prepCCW(
   inflation::Real = 0.0,
   solveKey::Symbol = :default,
   _blockRecursion::Bool = false,
+  attemptGradients::Bool = true,
   userCache::CT = nothing,
 ) where {T <: AbstractFactor, CT}
   #
@@ -416,14 +417,18 @@ function _prepCCW(
   varTypes = getVariableType.(fullvariables)
 
   # as per struct CommonConvWrapper
-  gradients = attemptGradientPrep(
-    varTypes,
-    usrfnc,
-    _varValsAll,
-    multihypo,
-    meas_single,
-    _blockRecursion,
-  )
+  _gradients = if attemptGradients
+    attemptGradientPrep(
+      varTypes,
+      usrfnc,
+      _varValsAll,
+      multihypo,
+      meas_single,
+      _blockRecursion,
+    )
+  else
+    nothing
+  end
 
   # variable Types
   pttypes = getVariableType.(Xi) .|> getPointType
@@ -432,21 +437,21 @@ function _prepCCW(
     @warn "_prepCCW PointType is not concrete $PointType" maxlog=50
   end
 
-  return CommonConvWrapper(
-    usrfnc,
+  # PointType[],
+  return CommonConvWrapper(;
+    usrfnc! = usrfnc,
     fullvariables,
-    _varValsAll,
-    PointType[];
-    userCache, # should be higher in args list
-    manifold,  # should be higher in args list
+    varValsAll = _varValsAll,
+    dummyCache = userCache,
+    manifold,
     partialDims,
     partial,
-    nullhypo,
-    inflation,
+    nullhypo = float(nullhypo),
+    inflation = float(inflation),
     hypotheses = multihypo,
     certainhypo,
     measurement,
-    gradients,
+    _gradients,
   )
 end
 
