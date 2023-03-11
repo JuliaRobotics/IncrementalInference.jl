@@ -135,4 +135,16 @@ coord_2 = IIF._evalFactorTemporary!(fct, varTypes, 2, measurement, pts )
 end
 
 
+@testset "Enable SolverParams.attemptGradients" begin
+##
+
+fg = generateGraph_LineStep(4;
+  solverParams = SolverParams(;
+    attemptGradients=true
+  )
+)
+
+##
+end
+
 #

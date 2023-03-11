@@ -170,18 +170,18 @@ end
 # FIXME ON FIRE, must deprecate nested JSON written fields in all serialization
 # TODO is string necessary, because unpacking templated e.g. PackedType{T} has problems, see DFG #668
 function convert(::Type{String}, dtr::StringThemSamplableBeliefs)
-  return JSON2.write(packDistribution(dtr))
+  return JSON3.write(packDistribution(dtr))
 end
 
 function convert(::Type{<:SamplableBelief}, str_obj::AbstractString)
   #
 
   # go from stringified to generic packed (no type info)
-  _pck = JSON2.read(str_obj)
+  _pck = JSON3.read(str_obj)
   # NOTE, get the packed type from strong assumption that field `_type` exists in the 
-  T = DFG.getTypeFromSerializationModule(_pck[:_type])
+  T = DFG.getTypeFromSerializationModule(_pck._type)
   # unpack again to described packedType
-  pckT = JSON2.read(str_obj, T)
+  pckT = JSON3.read(str_obj, T)
 
   # unpack to regular <:SamplableBelief
   return unpackDistribution(pckT)

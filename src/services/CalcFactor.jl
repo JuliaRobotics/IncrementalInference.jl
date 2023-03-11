@@ -189,49 +189,6 @@ end
 ## FactorOperationalMemory helper constructors
 ## =============================================================================================
 
-function CommonConvWrapper(
-  usrfnc::T,
-  fullvariables, #::Tuple ::Vector{<:DFGVariable};
-  varValsAll::Tuple,
-  X::AbstractVector{P}; #TODO remove X completely
-  # xDim::Int = size(X, 1),
-  userCache::CT = nothing,
-  manifold = getManifold(usrfnc),
-  partialDims::AbstractVector{<:Integer} = 1:length(X),
-  partial::Bool = false,
-  nullhypo::Real = 0,
-  inflation::Real = 3.0,
-  hypotheses::H = nothing,
-  certainhypo = nothing,
-  activehypo = collect(1:length(varValsAll)),
-  measurement::AbstractVector = Vector(Vector{Float64}()),
-  varidx::Int = 1,
-  particleidx::Int = 1,
-  res::AbstractVector{<:Real} = zeros(manifold_dimension(manifold)), # zDim
-  gradients = nothing,
-) where {T <: AbstractFactor, P, H, CT}
-  #
-  return CommonConvWrapper(
-    usrfnc,
-    tuple(fullvariables...),
-    varValsAll,
-    userCache,
-    manifold,
-    partialDims,
-    partial,
-    # xDim,
-    Float64(nullhypo),
-    inflation,
-    hypotheses,
-    certainhypo,
-    activehypo,
-    measurement,
-    Ref(varidx),
-    Ref(particleidx),
-    res,
-    gradients,
-  )
-end
 
 # the same as legacy, getManifold(ccwl.usrfnc!)
 getManifold(ccwl::CommonConvWrapper) = ccwl.manifold
@@ -409,6 +366,7 @@ function _prepCCW(
   inflation::Real = 0.0,
   solveKey::Symbol = :default,
   _blockRecursion::Bool = false,
+  attemptGradients::Bool = true,
   userCache::CT = nothing,
 ) where {T <: AbstractFactor, CT}
   #
@@ -459,14 +417,18 @@ function _prepCCW(
   varTypes = getVariableType.(fullvariables)
 
   # as per struct CommonConvWrapper
-  gradients = attemptGradientPrep(
-    varTypes,
-    usrfnc,
-    _varValsAll,
-    multihypo,
-    meas_single,
-    _blockRecursion,
-  )
+  _gradients = if attemptGradients
+    attemptGradientPrep(
+      varTypes,
+      usrfnc,
+      _varValsAll,
+      multihypo,
+      meas_single,
+      _blockRecursion,
+    )
+  else
+    nothing
+  end
 
   # variable Types
   pttypes = getVariableType.(Xi) .|> getPointType
@@ -475,21 +437,21 @@ function _prepCCW(
     @warn "_prepCCW PointType is not concrete $PointType" maxlog=50
   end
 
-  return CommonConvWrapper(
-    usrfnc,
+  # PointType[],
+  return CommonConvWrapper(;
+    usrfnc! = usrfnc,
     fullvariables,
-    _varValsAll,
-    PointType[];
-    userCache, # should be higher in args list
-    manifold,  # should be higher in args list
+    varValsAll = _varValsAll,
+    dummyCache = userCache,
+    manifold,
     partialDims,
     partial,
-    nullhypo,
-    inflation,
+    nullhypo = float(nullhypo),
+    inflation = float(inflation),
     hypotheses = multihypo,
     certainhypo,
     measurement,
-    gradients,
+    _gradients,
   )
 end
 

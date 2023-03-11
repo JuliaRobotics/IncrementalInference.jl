@@ -2,7 +2,7 @@
 
 using IncrementalInference
 using DistributedFactorGraphs
-using JSON
+using JSON3
 
 
 ##
@@ -27,7 +27,7 @@ pf = packFactor(fg, getFactor(fg, :x0x1f1))
 
 ##
 
-pf_ = JSON.json(pf)
+pf_ = JSON3.write(pf)
 
 
 ##
