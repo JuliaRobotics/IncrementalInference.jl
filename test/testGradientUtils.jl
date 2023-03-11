@@ -138,7 +138,7 @@ end
 @testset "Enable SolverParams.attemptGradients" begin
 ##
 
-fg = generateGraph_LineStep(;
+fg = generateGraph_LineStep(4;
   solverParams = SolverParams(;
     attemptGradients=true
   )
