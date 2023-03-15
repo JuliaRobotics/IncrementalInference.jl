@@ -18,6 +18,7 @@ include("testEuclidDistance.jl")
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
 include("testBasicManifolds.jl")
+include("manifolds/manifolddiff.jl")
 
 # start as basic as possible and build from there
 include("typeReturnMemRef.jl")
