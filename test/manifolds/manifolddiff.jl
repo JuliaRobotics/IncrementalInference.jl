@@ -4,18 +4,19 @@ using Test
 using LinearAlgebra
 using ManifoldsBase
 using Manifolds, Manopt
-using Optim
+import Optim
 using FiniteDifferences, ManifoldDiff
 
-##
-
-@testset "ManifoldDiff, Basic test" begin
 ##
 
 # finitediff setup
 r_backend = ManifoldDiff.TangentDiffBackend(
     ManifoldDiff.FiniteDifferencesBackend()
 )
+
+##
+@testset "ManifoldDiff, Basic test" begin
+##
 
 # problem setup
 n = 100
@@ -46,9 +47,6 @@ end
 ##
 end
 
-
-@testset "Optim.jl ManifoldWrapper example from mateuszbaran (copied to catch issues on future changes)" begin
-# Example modified from: https://gist.github.com/mateuszbaran/0354c0edfb9cdf25e084a2b915816a09
 ##
 
 """
@@ -70,6 +68,11 @@ function Optim.project_tangent!(M::ManifoldWrapper, g, x)
     return g
 end
 
+##
+@testset "Optim.jl ManifoldWrapper example from mateuszbaran (copied to catch issues on future changes)" begin
+##
+# Example modified from: https://gist.github.com/mateuszbaran/0354c0edfb9cdf25e084a2b915816a09
+
 # example usage of Manifolds.jl manifolds in Optim.jl
 M = Manifolds.Sphere(2)
 x0 = [1.0, 0.0, 0.0]
@@ -86,15 +89,12 @@ end
 
 ##
 
-sol = optimize(f, g!, x0, ConjugateGradient(; manifold=ManifoldWrapper(M)))
+sol = Optim.optimize(f, g!, x0, Optim.ConjugateGradient(; manifold=ManifoldWrapper(M)))
 @test isapprox([0,1,0.], sol.minimizer; atol=1e-8)
 
 
 ## finitediff gradient (non-manual)
 
-r_backend = ManifoldDiff.TangentDiffBackend(
-    ManifoldDiff.FiniteDifferencesBackend()
-)
 function g_FD!(X,p)
   X .= ManifoldDiff.gradient(M, f, p, r_backend)
   X
@@ -103,17 +103,61 @@ end
 #
 x0 = [1.0, 0.0, 0.0]
 
-sol = optimize(f, g_FD!, x0, ConjugateGradient(; manifold=ManifoldWrapper(M)))
+sol = Optim.optimize(f, g_FD!, x0, Optim.ConjugateGradient(; manifold=ManifoldWrapper(M)))
 @test isapprox([0,1,0.], sol.minimizer; atol=1e-8)
 
 ##
 
 # x0 = [1.0, 0.0, 0.0]
 # # internal ForwardDfif doesnt work out the box on Manifolds
-# sol = optimize(f, x0, ConjugateGradient(; manifold=ManifoldWrapper(M)); autodiff=:forward )
+# sol = Optim.optimize(f, x0, Optim.ConjugateGradient(; manifold=ManifoldWrapper(M)); autodiff=:forward )
 # @test isapprox([0,1,0.], sol.minimizer; atol=1e-8)
 
 ##
 end
 
+
+@testset "Modified Manifolds.jl ManifoldWrapper <: Optim.Manifold for SpecialEuclidean(2)" begin
 ##
+
+M = Manifolds.SpecialEuclidean(2)
+e0 = ArrayPartition([0,0.], [1 0; 0 1.])
+
+x0 = deepcopy(e0)
+Cq = 9*ones(3)
+while 1.5 < abs(Cq[3])
+  @show Cq .= randn(3)
+  # Cq[3] = 1.5 # breaks ConjugateGradient
+end
+q  = exp(M,e0,hat(M,e0,Cq))
+
+f(p) = distance(M, p, q)^2
+
+## finitediff gradient (non-manual)
+function g_FD!(X,p)
+  X .= ManifoldDiff.gradient(M, f, p, r_backend)
+  X
+end
+
+## sanity check gradients
+
+X = hat(M, e0, zeros(3))
+g_FD!(X, q)
+# gradient at the optimal point should be zero
+@test isapprox(0, sum(abs.(X[:])); atol=1e-8 )
+
+# gradient not the optimal point should be non-zero
+g_FD!(X, e0)
+@test 0.01 < sum(abs.(X[:]))
+
+## do optimization
+x0 = deepcopy(e0)
+sol = Optim.optimize(f, g_FD!, x0, Optim.ConjugateGradient(; manifold=ManifoldWrapper(M)))
+Cq .= randn(3)
+# Cq[
+@show sol.minimizer
+@test isapprox( f(sol.minimizer), 0; atol=1e-8 )
+@test isapprox( 0, sum(abs.(log(M, e0, compose(M, inv(M,q), sol.minimizer)))); atol=1e-5)
+
+##
+end
