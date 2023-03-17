@@ -82,9 +82,10 @@ Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
+Manopt = "0fc0a36d-df90-57f3-8f93-d78a9fc72bb5"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["DifferentialEquations", "Flux", "Graphs", "InteractiveUtils", "Interpolations", "Pkg", "Rotations", "Test"]
+test = ["DifferentialEquations", "Flux", "Graphs", "Manopt", "InteractiveUtils", "Interpolations", "Pkg", "Rotations", "Test"]
