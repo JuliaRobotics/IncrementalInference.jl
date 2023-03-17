@@ -112,7 +112,7 @@ Base.@kwdef struct CommonConvWrapper{
   """ probability that this factor is wholly incorrect and should be ignored during solving """
   nullhypo::Float64 = 0.0
   """ inflationSpread particular to this factor (by how much to dispurse the belief initial values before numerical optimization is run).  Analogous to stochastic search """
-  inflation::Float64 = 3.0
+  inflation::Float64 = SolverParams().inflation
   # multihypo specific field containers for recipe of hypotheses to compute
   """ multi hypothesis settings #NOTE no need for a parameter as type is known from `parseusermultihypo` """
   hypotheses::HP = nothing
