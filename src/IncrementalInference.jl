@@ -15,6 +15,7 @@ using Reexport
 using Manifolds
 using RecursiveArrayTools: ArrayPartition
 export ArrayPartition
+using ManifoldDiff
 
 using OrderedCollections: OrderedDict
 

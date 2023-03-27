@@ -22,7 +22,7 @@ r_backend = ManifoldDiff.TangentDiffBackend(
 # problem setup
 n = 100
 σ = π / 8
-M = Sphere(2)
+M = Manifolds.Sphere(2)
 p = 1 / sqrt(2) * [1.0, 0.0, 1.0]
 data = [exp(M, p,  σ * rand(M; vector_at=p)) for i in 1:n];
 
