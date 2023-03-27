@@ -145,12 +145,13 @@ end
 X = hat(M, e0, zeros(3))
 g_FD!(X, q)
 # gradient at the optimal point should be zero
-@show X_ = abs.(X[:])
-@test isapprox(0, sum(X_); atol=1e-8 )
+@show X_ = X[:]
+@test isapprox(0, sum(abs.(X_)); atol=1e-8 )
 
 # gradient not the optimal point should be non-zero
 g_FD!(X, e0)
-@test 0.01 < sum(abs.(X[:]))
+@show X_ = X[:]
+@test 0.01 < sum(abs.(X_))
 
 ## do optimization
 x0 = deepcopy(e0)

@@ -11,6 +11,7 @@ end
 
 if TEST_GROUP in ["all", "basic_functional_group"]
 # more frequent stochasic failures from numerics
+include("manifolds/manifolddiff.jl")
 include("testSpecialEuclidean2Mani.jl")
 include("testEuclidDistance.jl")
 
@@ -18,7 +19,6 @@ include("testEuclidDistance.jl")
 include("testSphereMani.jl")
 include("testSpecialOrthogonalMani.jl")
 include("testBasicManifolds.jl")
-include("manifolds/manifolddiff.jl")
 
 # start as basic as possible and build from there
 include("typeReturnMemRef.jl")
