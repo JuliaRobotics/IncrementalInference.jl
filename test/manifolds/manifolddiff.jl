@@ -2,6 +2,7 @@
 # using Revise
 using Test
 using LinearAlgebra
+using IncrementalInference
 using ManifoldsBase
 using Manifolds, Manopt
 import Optim
@@ -189,18 +190,44 @@ end
 
 X = hat(M, e0, zeros(6))
 g_FD!(X, q)
+
+@show X_ = [X.x[1][:]; X.x[2][:]]
 # gradient at the optimal point should be zero
-@test isapprox(0, sum(abs.(X[:])); atol=1e-8 )
+@test isapprox(0, sum(abs.(X_)); atol=1e-8 )
 
 # gradient not the optimal point should be non-zero
 g_FD!(X, e0)
-@test 0.01 < sum(abs.(X[:]))
+@show X_ = [X.x[1][:]; X.x[2][:]]
+@test 0.01 < sum(abs.(X_))
 
 ## do optimization
 x0 = deepcopy(e0)
 sol = Optim.optimize(f, g_FD!, x0, Optim.ConjugateGradient(; manifold=ManifoldWrapper(M)))
-Cq .= 0.5*randn(6)
+# Cq .= 0.5*randn(6)
 # Cq[
+@show sol.minimizer
+@test isapprox( f(sol.minimizer), 0; atol=1e-8 )
+@test isapprox( 0, sum(abs.(log(M, e0, compose(M, inv(M,q), sol.minimizer)))); atol=1e-5)
+
+
+##
+end
+
+
+@testset "Optim.Manifolds, SpecialEuclidean(3), using IIF.optimizeManifold_FD" begin
+##
+
+M = Manifolds.SpecialEuclidean(3)
+e0 = ArrayPartition([0,0,0.], Matrix(_Rot.RotXYZ(0,0,0.)))
+
+x0 = deepcopy(e0)
+Cq = 0.5*randn(6)
+q  = exp(M,e0,hat(M,e0,Cq))
+
+f(p) = distance(M, p, q)^2
+
+sol = IncrementalInference.optimizeManifold_FD(M,f,x0)
+
 @show sol.minimizer
 @test isapprox( f(sol.minimizer), 0; atol=1e-8 )
 @test isapprox( 0, sum(abs.(log(M, e0, compose(M, inv(M,q), sol.minimizer)))); atol=1e-5)
