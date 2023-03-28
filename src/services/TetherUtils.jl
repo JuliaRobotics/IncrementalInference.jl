@@ -116,7 +116,11 @@ Related:
 
 [`approxConv`](@ref), [`solveFactorParameteric`](@ref), `RoME.MutablePose2Pose2Gaussian`
 """
-function accumulateFactorMeans(dfg::AbstractDFG, fctsyms::AbstractVector{Symbol})
+function accumulateFactorMeans(
+  dfg::AbstractDFG, 
+  fctsyms::AbstractVector{Symbol};
+  solveKey::Symbol=:default
+)
 
   ## get the starting estimate
   nextidx = 1
@@ -137,7 +141,7 @@ function accumulateFactorMeans(dfg::AbstractDFG, fctsyms::AbstractVector{Symbol}
     nextsym =
       1 < length(fctsyms) ? intersect(vars, ls(dfg, fctsyms[nextidx + 1])) : vars[end]
     currsym = 1 < length(fctsyms) ? setdiff(vars, nextsym)[1] : vars[1]
-    calcPPE(dfg, currsym).suggested
+    calcPPE(dfg, currsym; solveKey).suggested
   end
 
   srcsym = currsym
@@ -146,7 +150,7 @@ function accumulateFactorMeans(dfg::AbstractDFG, fctsyms::AbstractVector{Symbol}
     # first find direction of solve
     vars = getVariableOrder(fct)
     trgsym = setdiff(vars, [srcsym])[1]
-    val = solveFactorParameteric(dfg, fct, [srcsym => val;], trgsym)
+    val = solveFactorParameteric(dfg, fct, [srcsym => val;], trgsym; solveKey)
     srcsym = trgsym
   end
 

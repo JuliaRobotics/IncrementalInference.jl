@@ -264,6 +264,7 @@ function _prepParamVec(
   # TODO --rather define reusable memory for the proposal
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
   if sfidx > 0
+    # FIXME, POSSIBLE SOURCE OF HUGE MEMORY CONSUMPTION ALLOCATION
     varParamsAll[sfidx] = deepcopy(varParamsAll[sfidx])
   end
 

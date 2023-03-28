@@ -609,8 +609,8 @@ function _evalFactorTemporary!(
     varTypes,
     pts;
     dfg = tfg,
-    solveKey = solveKey,
-    newFactor = newFactor,
+    solveKey,
+    newFactor,
     buildgraphkw...,
   )
 
@@ -624,9 +624,9 @@ function _evalFactorTemporary!(
     solvefor,
     measurement;
     needFreshMeasurements = false,
-    solveKey = solveKey,
+    solveKey,
     inflateCycles = 1,
-    _slack = _slack,
+    _slack,
   )
 
   return sfPts
