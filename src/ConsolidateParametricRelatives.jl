@@ -25,8 +25,8 @@ function solveFactorParameteric(
   fct::DFGFactor,
   # currval::P1,
   srcsym_vals::AbstractVector{Pair{Symbol, P}},
-  trgsym::Symbol,
-  solveKey::Symbol = :default;
+  trgsym::Symbol;
+  solveKey::Symbol = :default,
   evaltmpkw...,
 ) where {P}
   #
@@ -71,7 +71,7 @@ function solveFactorParameteric(
     sfidx,
     measT,
     pts;
-    solveKey = solveKey,
+    solveKey,
     evaltmpkw...,
   )[1]
 

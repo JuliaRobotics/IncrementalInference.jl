@@ -1,3 +1,50 @@
+
+## ================================================================================================
+## Manifold and ManifoldDiff use with Optim
+## ================================================================================================
+
+# Modified from: https://gist.github.com/mateuszbaran/0354c0edfb9cdf25e084a2b915816a09
+"""
+    ManifoldWrapper{TM<:AbstractManifold} <: Optim.Manifold
+    
+Adapts Manifolds.jl manifolds for use in Optim.jl
+"""
+struct ManifoldWrapper{TM<:AbstractManifold} <: Optim.Manifold
+    M::TM
+end
+
+function Optim.retract!(M::ManifoldWrapper, x)
+    ManifoldsBase.embed_project!(M.M, x, x)
+    return x
+end
+
+function Optim.project_tangent!(M::ManifoldWrapper, g, x)
+    ManifoldsBase.embed_project!(M.M, g, x, g)
+    return g
+end
+
+# experimental
+function optimizeManifold_FD(
+  M::AbstractManifold, 
+  cost::Function,
+  x0::AbstractArray;
+  algorithm = Optim.ConjugateGradient(; manifold=ManifoldWrapper(M))
+)
+  # finitediff setup
+  r_backend = ManifoldDiff.TangentDiffBackend(
+    ManifoldDiff.FiniteDifferencesBackend()
+  )
+  
+  ## finitediff gradient (non-manual)
+  function costgrad_FD!(X,p)
+    X .= ManifoldDiff.gradient(M, cost, p, r_backend)
+    X
+  end
+
+  Optim.optimize(cost, costgrad_FD!, x0, algorithm)
+end
+
+
 ## ================================================================================================
 ## AbstractPowerManifold with N as field to avoid excessive compiling time.
 ## ================================================================================================

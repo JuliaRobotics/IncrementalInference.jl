@@ -388,7 +388,7 @@ function DefaultNodeDataParametric(
   else
     # dimIDs = round.(Int, range(dodims; stop = dodims + dims - 1, length = dims))
     ϵ = getPointIdentity(variableType)
-    return VariableNodeData(;
+    return VariableNodeData(variableType;
       id=nothing,
       val=[ϵ],
       bw=zeros(dims, dims),
@@ -398,7 +398,6 @@ function DefaultNodeDataParametric(
       # false,
       # :_null,
       # Symbol[],
-      variableType,
       initialized=false,
       infoPerCoord=zeros(dims),
       ismargin=false,
@@ -474,7 +473,7 @@ function setDefaultNodeData!(
   # make and set the new solverData
   setSolverData!(
     v,
-    VariableNodeData(;
+    VariableNodeData(varType;
       id=nothing,
       val,
       bw,
@@ -484,7 +483,6 @@ function setDefaultNodeData!(
       # false,
       # :_null,
       # Symbol[],
-      variableType=varType,
       initialized=isinit,
       infoPerCoord=zeros(getDimension(v)),
       ismargin=false,
