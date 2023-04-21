@@ -385,7 +385,7 @@ function _solveCCWNumeric!(
   ## using CalcFactor legacy path inside (::CalcFactor)
   # _hypoObj = (x) -> (target.=x; unrollHypo!())
   function _hypoObj(x)
-    target[] .= x
+    target[] = x
     return unrollHypo!()
   end
 
@@ -413,7 +413,7 @@ function _solveCCWNumeric!(
   # end
 
   # FIXME insert result back at the correct variable element location
-  ccwl.varValsAll[sfidx][smpid] .= retval
+  ccwl.varValsAll[sfidx][smpid] = retval
 
   return nothing
 end
