@@ -57,7 +57,7 @@ using ManifoldsBase
 # for BayesTree
 using MetaGraphs
 using Logging
-using SnoopPrecompile
+using PrecompileTools
 
 # bringing in BSD 3-clause ccolamd
 include("ccolamd.jl")
@@ -253,7 +253,7 @@ function __init__()
   end
 end
 
-@precompile_all_calls begin
+@compile_workload begin
   # In here put "toy workloads" that exercise the code you want to precompile
   fg = generateGraph_Kaess()
   initAll!(fg)
