@@ -66,7 +66,8 @@ end
 function samplePoint(
   M::AbstractDecoratorManifold,
   sbelief::ManifoldKernelDensity,
-  p = identity_element(M, mean(sbelief)),
+  # p = identity_element(M, mean(sbelief)), # 8.671254 seconds (82.64 M allocations: 3.668 GiB, 7.50% gc time)
+  p = getPointIdentity(M), #6.713209 seconds (66.42 M allocations: 3.141 GiB, 7.52% gc time)
   retraction_method::AbstractRetractionMethod = ExponentialRetraction(),
 )
   X = sampleTangent(M, sbelief, p)
