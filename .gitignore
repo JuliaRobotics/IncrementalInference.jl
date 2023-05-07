@@ -8,3 +8,4 @@ Manifest.toml
 /dev
 *.cov
 lcov.info
+benchmark/results.md
