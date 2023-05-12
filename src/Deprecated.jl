@@ -1,4 +1,12 @@
 ## ================================================================================================
+## ================================================================================================
+
+# TODO maybe upstream to DFG
+DFG.MeanMaxPPE(solveKey::Symbol, suggested::SVector, max::SVector, mean::SVector) =
+  DFG.MeanMaxPPE(solveKey, collect(suggested), collect(max), collect(mean))
+
+
+## ================================================================================================
 ## Manifolds.jl Consolidation
 ## TODO: Still to be completed and tested.
 ## ================================================================================================

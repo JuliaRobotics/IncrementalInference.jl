@@ -370,16 +370,6 @@ function evalPotentialSpecific(
   return ccwl.varValsAll[ccwl.varidx[]], ipc
 end
 
-
-#TODO workaround for supporting bitstypes, need rewrite, can do with `PowerManifoldNestedReplacing` or similar
-function AMP.setPointsMani!(dest::AbstractArray{T}, src::AbstractArray{U}, destIdx, srcIdx=destIdx) where {T<:AbstractArray,U<:AbstractArray}
-  if isbitstype(T)
-    dest[destIdx] = src[srcIdx]
-  else
-    setPointsMani!(dest[destIdx],src[srcIdx])
-  end
-end
-
 # TODO `measurement` might not be properly wired up yet
 # TODO consider 1051 here to inflate proposals as general behaviour
 function evalPotentialSpecific(
@@ -477,10 +467,12 @@ function evalPotentialSpecific(
 
         setPointPartial!(
           mani,
-          addEntr[m],
+          addEntr,
           Msrc,
-          ccwl.measurement[m], # FIXME, measurements are tangents=>relative or points=>priors
+          ccwl.measurement, # FIXME, measurements are tangents=>relative or points=>priors
           partialCoords,
+          m,
+          m,
           asPartial,
         )
       else

@@ -52,7 +52,7 @@ end
 
 function Base.setindex!(
   flatVar::FlatVariables{T},
-  val::Vector{T},
+  val::AbstractVector{T},
   vId::Symbol,
 ) where {T <: Real}
   if length(val) == length(flatVar.idx[vId])
@@ -858,15 +858,15 @@ function initParametricFrom!(
     for v in getVariables(fg)
       fromvnd = getSolverData(v, fromkey)
       dims = getDimension(v)
-      getSolverData(v, parkey).val[1] .= fromvnd.val[1]
-      getSolverData(v, parkey).bw[1:dims, 1:dims] .= LinearAlgebra.I(dims)
+      getSolverData(v, parkey).val[1] = fromvnd.val[1]
+      getSolverData(v, parkey).bw[1:dims, 1:dims] = LinearAlgebra.I(dims)
     end
   else
     for var in getVariables(fg)
       dims = getDimension(var)
       μ, Σ = calcMeanCovar(var, fromkey)
-      getSolverData(var, parkey).val[1] .= μ
-      getSolverData(var, parkey).bw[1:dims, 1:dims] .= Σ
+      getSolverData(var, parkey).val[1] = μ
+      getSolverData(var, parkey).bw[1:dims, 1:dims] = Σ
     end
   end
 end
@@ -986,7 +986,7 @@ function autoinitParametric!(
 
     vnd.initialized = true
     #fill in ppe as mean
-    Xc = getCoordinates(getVariableType(xi), val)
+    Xc = collect(getCoordinates(getVariableType(xi), val))
     ppe = MeanMaxPPE(:parametric, Xc, Xc, Xc)
     getPPEDict(xi)[:parametric] = ppe
 

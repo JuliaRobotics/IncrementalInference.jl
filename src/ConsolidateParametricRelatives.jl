@@ -52,11 +52,12 @@ function solveFactorParameteric(
     # hasp ? getPPE(vari, key).suggested : calcMean(getBelief(vari, key))
     pt = calcMean(getBelief(vari, key))
 
-    return getCoordinates(getVariableType(vari), pt)
+    return collect(getCoordinates(getVariableType(vari), pt))
   end
 
   # overwrite specific src values from user
   coordVals = _getParametric.(getVariable.(dfg, varLbls), solveKey)
+
   for (srcsym, currval) in srcsym_vals
     coordVals[findfirst(varLbls .== srcsym)] = currval
   end

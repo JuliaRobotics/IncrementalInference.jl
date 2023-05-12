@@ -27,6 +27,11 @@ function (cf::CalcFactor{<:CircularCircular})(X, p, q)
   return distanceTangent2Point(M, X, p, q)
 end
 
+function getSample(cf::CalcFactor{<:CircularCircular})
+  # FIXME workaround for issue with manifolds CircularGroup, 
+  return [rand(cf.factor.Z)]
+end
+
 function Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{CircularCircular})
   return Manifolds.RealCircleGroup()
 end
@@ -59,6 +64,7 @@ function getSample(cf::CalcFactor{<:PriorCircular})
   # JuliaManifolds/Manifolds.jl#415
   # no method similar(::Float64, ::Type{Float64})
   return samplePoint(cf.manifold, cf.factor.Z, [0.0])
+  # return [Manifolds.sym_rem(rand(cf.factor.Z))]
 end
 
 function (cf::CalcFactor{<:PriorCircular})(m, p)

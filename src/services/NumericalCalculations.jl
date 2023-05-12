@@ -98,7 +98,11 @@ function _solveLambdaNumeric(
   r = if islen1
     Optim.optimize((x) -> (residual .= objResX(x); sum(residual .^ 2)), u0, Optim.BFGS())
   else
-    Optim.optimize((x) -> (residual .= objResX(x); sum(residual .^ 2)), u0)
+    Optim.optimize((x) -> (residual .= objResX(x); sum(residual .^ 2)), u0, Optim.Options(;iterations=1000))
+  end
+
+  if !Optim.converged(r)
+    @warn "Optim did not converge:" r maxlog=10
   end
 
   # 
@@ -106,6 +110,20 @@ function _solveLambdaNumeric(
 end
 
 function _solveLambdaNumeric(
+  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  objResX::Function,
+  residual::AbstractVector{<:Real},
+  u0,#::AbstractVector{<:Real},
+  variableType::InferenceVariable,
+  islen1::Bool = false,
+) where {N_, F <: AbstractManifoldMinimize, S, T}
+
+  return _solveCCWNumeric_test_SA(fcttype, objResX, residual, u0, variableType, islen1)
+  # return _solveLambdaNumeric_test_optim_manifold(fcttype, objResX, residual, u0, variableType, islen1)
+
+end
+
+function _solveLambdaNumeric_original(
   fcttype::Union{F, <:Mixture{N_, F, S, T}},
   objResX::Function,
   residual::AbstractVector{<:Real},
@@ -151,6 +169,93 @@ function _solveLambdaNumeric(
     @debug "Optim did not converge:" r
   end
   return exp(M, ϵ, hat(M, ϵ, r.minimizer))
+end
+
+# 1.355700 seconds (11.78 M allocations: 557.677 MiB, 6.96% gc time)
+function _solveCCWNumeric_test_SA(
+  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  objResX::Function,
+  residual::AbstractVector{<:Real},
+  u0,#::AbstractVector{<:Real},
+  variableType::InferenceVariable,
+  islen1::Bool = false,
+) where {N_, F <: AbstractManifoldMinimize, S, T}
+  #
+  M = getManifold(variableType) #fcttype.M
+  # the variable is a manifold point, we are working on the tangent plane in optim for now.
+  # 
+  #TODO this is not general to all manifolds, should work for lie groups.
+  # ϵ = identity_element(M, u0)
+  ϵ = getPointIdentity(variableType)
+
+  X0c = zero(MVector{getDimension(M),Float64})
+  X0c .= vee(M, u0, log(M, ϵ, u0))
+
+  #TODO check performance
+  function cost(Xc)
+    X = hat(M, ϵ, Xc)
+    p = exp(M, ϵ, X)  
+    residual = objResX(p)
+    return sum(residual .^ 2)
+  end
+
+  alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
+
+  r = Optim.optimize(cost, X0c, alg)
+  if !Optim.converged(r)
+    # TODO find good way for a solve to store diagnostics about number of failed converges etc.
+    @warn "Optim did not converge (maxlog=10):" r maxlog=10
+  end
+  return exp(M, ϵ, hat(M, ϵ, r.minimizer))
+end
+
+# sloooowwww and does not always converge, unusable slow with gradient
+# NelderMead 5.513693 seconds (38.60 M allocations: 1.613 GiB, 6.62% gc time)
+function _solveLambdaNumeric_test_optim_manifold(
+  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  objResX::Function,
+  residual::AbstractVector{<:Real},
+  u0,#::AbstractVector{<:Real},
+  variableType::InferenceVariable,
+  islen1::Bool = false,
+) where {N_, F <: AbstractManifoldMinimize, S, T}
+  #
+  M = getManifold(variableType) #fcttype.M
+  # the variable is a manifold point, we are working on the tangent plane in optim for now.
+  # 
+  #TODO this is not general to all manifolds, should work for lie groups.
+  ϵ = getPointIdentity(variableType)
+
+  function cost(p)
+    residual = objResX(p)
+    return sum(residual .^ 2)
+  end
+
+  alg = islen1 ? Optim.BFGS(;manifold=ManifoldWrapper(M)) : Optim.NelderMead(;manifold=ManifoldWrapper(M))
+  # alg = Optim.ConjugateGradient(; manifold=ManifoldWrapper(M))
+  # alg = Optim.BFGS(; manifold=ManifoldWrapper(M))
+
+  # r_backend = ManifoldDiff.TangentDiffBackend(
+  #   ManifoldDiff.FiniteDifferencesBackend()
+  # )
+  
+  # ## finitediff gradient
+  # function costgrad_FD!(X,p)
+  #   copyto!(X, ManifoldDiff.gradient(M, cost, p, r_backend))
+  #   X
+  # end
+
+  u0_m = allocate(M, u0)
+  u0_m .= u0 
+  # r = Optim.optimize(cost, costgrad_FD!, u0_m, alg)
+  r = Optim.optimize(cost, u0_m, alg)
+  
+  if !Optim.converged(r)
+    @warn "Optim did not converge:" r maxlog=10
+  end
+
+  return r.minimizer
+  # return exp(M, ϵ, hat(M, ϵ, r.minimizer))
 end
 
 #TODO Consolidate with _solveLambdaNumeric, see #1374
@@ -317,15 +422,25 @@ function _solveCCWNumeric!(
   # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
 
   # build the pre-objective function for this sample's hypothesis selection
-  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid; _slack = _slack)
+  unrollHypo!, target = _buildCalcFactorLambdaSample(
+      ccwl, 
+      smpid, 
+      view(ccwl.varValsAll[ccwl.varidx[]], smpid);
+      _slack = _slack
+  )
 
   # broadcast updates original view memory location
   ## using CalcFactor legacy path inside (::CalcFactor)
-  _hypoObj = (x) -> (target .= x; unrollHypo!())
+
+  # _hypoObj = (x) -> (target[] = x; unrollHypo!())
+  function _hypoObj(x)
+    target[] = x
+    return unrollHypo!()
+  end
 
   # TODO small off-manifold perturbation is a numerical workaround only, make on-manifold requires RoME.jl #244
   # use all element dimensions : ==> 1:ccwl.xDim
-  target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
+  # target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
 
   sfidx = ccwl.varidx[]
   # do the parameter search over defined decision variables using Minimization
@@ -345,7 +460,7 @@ function _solveCCWNumeric!(
   end
 
   # insert result back at the correct variable element location
-  ccwl.varValsAll[sfidx][smpid][ccwl.partialDims] .= retval
+  copyto!(ccwl.varValsAll[sfidx][smpid][ccwl.partialDims], retval)
 
   return nothing
 end
