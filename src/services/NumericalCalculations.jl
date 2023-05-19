@@ -336,7 +336,7 @@ DevNotes
 function _buildCalcFactorLambdaSample(
   ccwl::CommonConvWrapper,
   smpid::Integer,
-  target = view(ccwl.varValsAll[ccwl.varidx[]][smpid], ccwl.partialDims),
+  target,
   measurement_ = ccwl.measurement;
   # fmd_::FactorMetadata = cpt_.factormetadata;
   _slack = nothing,
@@ -421,11 +421,16 @@ function _solveCCWNumeric!(
   islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
   # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
 
+  if ccwl.partial
+    target = view(ccwl.varValsAll[ccwl.varidx[]][smpid], ccwl.partialDims)
+  else
+    target = ccwl.varValsAll[ccwl.varidx[]][smpid];
+  end
   # build the pre-objective function for this sample's hypothesis selection
-  unrollHypo!, target = _buildCalcFactorLambdaSample(
+  unrollHypo!, _ = _buildCalcFactorLambdaSample(
       ccwl, 
       smpid, 
-      view(ccwl.varValsAll[ccwl.varidx[]], smpid);
+      target;
       _slack = _slack
   )
 
@@ -434,7 +439,7 @@ function _solveCCWNumeric!(
 
   # _hypoObj = (x) -> (target[] = x; unrollHypo!())
   function _hypoObj(x)
-    target[] = x
+    copyto!(target, x)
     return unrollHypo!()
   end
 
@@ -444,7 +449,11 @@ function _solveCCWNumeric!(
 
   sfidx = ccwl.varidx[]
   # do the parameter search over defined decision variables using Minimization
-  X = ccwl.varValsAll[sfidx][smpid][ccwl.partialDims]
+  if ccwl.partial
+    X = collect(view(ccwl.varValsAll[sfidx][smpid], ccwl.partialDims))
+  else
+    X = ccwl.varValsAll[sfidx][smpid][ccwl.partialDims]
+  end
   retval = _solveLambdaNumeric(
     getFactorType(ccwl), 
     _hypoObj, 
@@ -460,7 +469,11 @@ function _solveCCWNumeric!(
   end
 
   # insert result back at the correct variable element location
-  copyto!(ccwl.varValsAll[sfidx][smpid][ccwl.partialDims], retval)
+  if ccwl.partial
+    ccwl.varValsAll[sfidx][smpid][ccwl.partialDims] .= retval
+  else
+    copyto!(ccwl.varValsAll[sfidx][smpid], retval)
+  end
 
   return nothing
 end
