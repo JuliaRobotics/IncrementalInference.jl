@@ -725,7 +725,7 @@ function getDefaultFactorData(
   
   # allocate temporary state for convolutional operations (not stored)
   userCache = preambleCache(dfg, Xi, usrfnc)
-  ccw = _prepCCW(
+  ccw = _createCCW(
     Xi,
     usrfnc;
     multihypo = mhcat,

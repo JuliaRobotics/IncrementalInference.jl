@@ -83,7 +83,7 @@ Related
 Base.@kwdef struct CommonConvWrapper{
   T <: AbstractFactor, 
   VT <: Tuple,
-  NTP <: Tuple, 
+  TP <: Tuple, 
   CT,
   AM <: AbstractManifold,
   HP <: Union{Nothing, <:Distributions.Categorical{Float64, Vector{Float64}}},
@@ -98,8 +98,9 @@ Base.@kwdef struct CommonConvWrapper{
   fullvariables::VT
   # shortcuts to numerical containers
   """ Numerical containers for all connected variables.  Hypo selection needs to be passed 
-      to each hypothesis evaluation event on user function via CalcFactor, #1321 """
-  varValsAll::NTP
+      to each hypothesis evaluation event on user function via CalcFactor, #1321.
+      Points directly at the variable VND.val (not a deepcopy). """
+  varValsAll::TP
   """ dummy cache value to be deep copied later for each of the CalcFactor instances """
   dummyCache::CT = nothing
   # derived config parameters for this factor

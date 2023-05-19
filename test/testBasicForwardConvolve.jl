@@ -68,3 +68,6 @@ X2__ = forwardConvolve(X1, statemodel)
 ##
 
 end
+
+
+@error "Add a test to ensure that approxConv does NOT change target variable VND.val values!"
