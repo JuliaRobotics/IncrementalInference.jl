@@ -12,23 +12,36 @@ function approxConvBelief(
   skipSolve::Bool = false,
 )
   #
-  v1 = getVariable(dfg, target)
-  N = N == 0 ? getNumPts(v1; solveKey = solveKey) : N
+  v_trg = getVariable(dfg, target)
+  N = N == 0 ? getNumPts(v_trg; solveKey = solveKey) : N
+  # approxConv should push its result into duplicate memory destination, NOT the variable.VND.val itself.  ccw.varValsAll always points directly to variable.VND.val
   # points and infoPerCoord
-  pts, ipc = evalFactor(dfg, fc, v1.label, measurement; solveKey, N, skipSolve, nullSurplus)
+
+  pts, ipc = evalFactor(
+    dfg, 
+    fc, 
+    v_trg.label, 
+    measurement; 
+    solveKey, 
+    N, 
+    skipSolve, 
+    nullSurplus
+  )
 
   len = length(ipc)
   mask = 1e-14 .< abs.(ipc)
   partl = collect(1:len)[mask]
 
   # is the convolution infoPerCoord full or partial
-  if sum(mask) == len
+  res = if sum(mask) == len
     # not partial
-    return manikde!(getManifold(getVariable(dfg, target)), pts; partial = nothing)
+    manikde!(getManifold(getVariable(dfg, target)), pts; partial = nothing)
   else
     # is partial
-    return manikde!(getManifold(getVariable(dfg, target)), pts; partial = partl)
+    manikde!(getManifold(getVariable(dfg, target)), pts; partial = partl)
   end
+    
+  return res
 end
 
 approxConv(w...; kw...) = getPoints(approxConvBelief(w...; kw...), false)
@@ -96,7 +109,9 @@ function approxConvBelief(
     neMsk = exists.(tfg, varLbls) .|> x -> xor(x, true)
     # put the non-existing variables into the temporary graph `tfg`
     # bring all the solveKeys too
-    addVariable!.(tfg, getVariable.(dfg, varLbls[neMsk]))
+    for v in getVariable.(dfg, varLbls[neMsk])
+      addVariable!(tfg, v.label, getVariableType(v))
+    end
     # variables adjacent to the shortest path should be initialized from dfg
     setdiff(varLbls, path[xor.(fctMsk, true)]) .|>
     x -> initVariable!(tfg, x, getBelief(dfg, x))
