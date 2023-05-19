@@ -553,10 +553,10 @@ function _beforeSolveCCW!(
 
   # setup the partial or complete decision variable dimensions for this ccwl object
   # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
-  _setCCWDecisionDimsConv!(ccwl, getDimension(getVariableType(Xi[sfidx])))
+  _setCCWDecisionDimsConv!(ccwl, getDimension(getVariableType(Xi[ccwl.varidx[]])))
 
-  solveForPts = getVal(Xi[sfidx]; solveKey)
-  maxlen = maximum([N; length(solveForPts); length(ccwl.varValsAll[sfidx])])  # calcZDim(ccwl); length(measurement[1])
+  solveForPts = getVal(Xi[ccwl.varidx[]]; solveKey)
+  maxlen = maximum([N; length(solveForPts); length(ccwl.varValsAll[ccwl.varidx[]])])  # calcZDim(ccwl); length(measurement[1])
 
   # FIXME do not divert Mixture for sampling
   # update ccwl.measurement values
