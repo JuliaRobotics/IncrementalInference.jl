@@ -159,7 +159,7 @@ function computeAcrossHypothesis!(
   activehypo = hyporecipe.activehypo
   certainidx = hyporecipe.certainidx
 
-  @assert ccwl.certainhypo == hyporecipe.certainidx "expected hyporecipe.certainidx to be the same as cached in ccw"
+  @assert ccwl.hyporecipe.certainhypo == hyporecipe.certainidx "expected hyporecipe.certainidx to be the same as cached in ccw"
   for (hypoidx, vars) in activehypo
     count += 1
 
@@ -167,8 +167,8 @@ function computeAcrossHypothesis!(
     if sfidx in certainidx && hypoidx != 0 || hypoidx in certainidx || hypoidx == sfidx
       # hypo case hypoidx, sfidx = $hypoidx, $sfidx
       # for i = 1:Threads.nthreads()
-        resize!(ccwl.activehypo, length(vars))
-        ccwl.activehypo[:] = vars
+        resize!(ccwl.hyporecipe.activehypo, length(vars))
+        ccwl.hyporecipe.activehypo[:] = vars
       # end
 
       addEntr = view(destinationVarVals, allelements[count])
@@ -346,7 +346,7 @@ function evalPotentialSpecific(
   # nullSurplus see #1517
   runnullhypo = maximum((ccwl.nullhypo, nullSurplus))
   hyporecipe =
-    _prepareHypoRecipe!(ccwl.hypotheses, maxlen, sfidx, length(variables), isinit, runnullhypo)
+    _prepareHypoRecipe!(ccwl.hyporecipe.hypotheses, maxlen, sfidx, length(variables), isinit, runnullhypo)
 
   # get manifold add operations
   # TODO, make better use of dispatch, see JuliaRobotics/RoME.jl#244
@@ -358,7 +358,7 @@ function evalPotentialSpecific(
 
   # perform the numeric solutions on the indicated elements
   # FIXME consider repeat solve as workaround for inflation off-zero 
-  # NOTE alternate use of ccwl.certainidx to hyporecipe, certainidx = ccwl.certainhypo
+  # NOTE alternate use of ccwl.certainidx to hyporecipe, certainidx = ccwl.hyporecipe.certainhypo
   computeAcrossHypothesis!(
     ccwl,
     hyporecipe,
@@ -425,7 +425,7 @@ function evalPotentialSpecific(
   # nullSurplus see #1517
   runnullhypo = maximum((ccwl.nullhypo, nullSurplus))
   hyporecipe =
-    _prepareHypoRecipe!(ccwl.hypotheses, maxlen, sfidx, length(variables), isinit, runnullhypo)
+    _prepareHypoRecipe!(ccwl.hyporecipe.hypotheses, maxlen, sfidx, length(variables), isinit, runnullhypo)
 
   # get solvefor manifolds, FIXME ON FIRE, upgrade to new Manifolds.jl
   mani = getManifold(variables[sfidx])

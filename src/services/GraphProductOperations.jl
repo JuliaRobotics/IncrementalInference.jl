@@ -23,6 +23,7 @@ function propagateBelief(
   needFreshMeasurements::Bool = true,
   dbg::Bool = false,
   logger = ConsoleLogger(),
+  asPartial::Bool=false,
 )
   #
 
@@ -44,7 +45,7 @@ function propagateBelief(
   varType = getVariableType(destvar)
   M = getManifold(varType)
   # @info "BUILDING MKD" varType M isPartial.(dens)
-
+  
   # take the product
   mkd = AMP.manifoldProduct(
     dens,
@@ -74,7 +75,7 @@ function propagateBelief(
 end
 #
 
-propagateBelief(dfg::AbstractDFG, destlbl::Symbol, ::Colon; kw...) = return propagateBelief(dfg, destlbl, getNeighbors(dfg, destlbl); kw...)
+propagateBelief(dfg::AbstractDFG, destlbl::Symbol, ::Colon; kw...) = propagateBelief(dfg, destlbl, getNeighbors(dfg, destlbl); kw...)
 
 
 

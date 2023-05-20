@@ -60,18 +60,19 @@ function doFMCIteration(
   vert = DFG.getVariable(fgl, vsym)
   if !getSolverData(vert, solveKey).ismargin
     # potprod = nothing
-    densPts, ipc = predictbelief(
+    dens, ipc = propagateBelief(
       fgl,
       vsym,
       :;
-      needFreshMeasurements = needFreshMeasurements,
-      N = N,
-      dbg = dbg,
-      logger = logger,
+      needFreshMeasurements,
+      N,
+      dbg,
+      logger,
     )
 
-    if 0 < length(densPts)
-      setValKDE!(vert, densPts, true, ipc)
+    if 0 < length(getPoints(dens))
+      setBelief!(vert, dens, true, ipc)
+      # setValKDE!(vert, densPts, true, ipc)
       # TODO perhaps more debugging inside `propagateBelief`?
     end
   end
