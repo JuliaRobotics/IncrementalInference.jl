@@ -125,7 +125,12 @@ end
 
 
 @deprecate _prepCCW(w...;kw...) _createCCW(w...;kw...)
-@deprecate predictbelief(w...;asPartial::Bool=false,kw...)  ((bel,ipc)=getPoints(propagateBelief(w...;asPartial,kw...)), (getPoints(bel),ipc))
+
+predictbelief(w...;asPartial::Bool=false,kw...) = begin 
+  @warn("predictbelief is deprecated, use propagateBelief instead")
+  bel,ipc = propagateBelief(w...;asPartial,kw...)
+  getPoints(bel), ipc
+end
 
 # """
 #     $SIGNATURES
@@ -269,6 +274,9 @@ function Base.getproperty(ccw::CommonConvWrapper, f::Symbol)
     return getfield(ccw, f)
   end
 end
+
+
+
 
 ##==============================================================================
 ## Deprecate code below before v0.35

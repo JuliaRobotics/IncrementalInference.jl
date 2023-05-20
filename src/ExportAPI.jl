@@ -153,6 +153,7 @@ export CSMHistory,
   getNumPts,
   getBWVal,
   setBW!,
+  setBelief!,
   setValKDE!,
   buildCliqSubgraph,
 

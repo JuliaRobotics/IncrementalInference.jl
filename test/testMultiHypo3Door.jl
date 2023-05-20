@@ -1,4 +1,5 @@
 # load requried packages
+# using Revise
 using IncrementalInference
 using Test
 
