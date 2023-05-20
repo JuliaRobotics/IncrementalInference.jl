@@ -349,7 +349,7 @@ function _buildCalcFactorLambdaSample(
   # DevNotes, also see new `hyporecipe` approach (towards consolidation CCW CPT FMd CF...)
 
   # build a view to the decision variable memory
-  varValsHypo = ccwl.varValsAll[ccwl.activehypo]
+  varValsHypo = ccwl.varValsAll[ccwl.hyporecipe.activehypo]
   # tup = tuple(varParams...)
   # nms = keys(ccwl.varValsAll)[cpt_.activehypo]
   # varValsHypo = NamedTuple{nms,typeof(tup)}(tup)
@@ -364,7 +364,7 @@ function _buildCalcFactorLambdaSample(
   #                         fmd_.cachedata  )
   #
   # get the operational CalcFactor object
-  cf = _buildCalcFactor(ccwl, smpid, varValsHypo, ccwl.activehypo)
+  cf = _buildCalcFactor(ccwl, smpid, varValsHypo, ccwl.hyporecipe.activehypo)
   # new dev work on CalcFactor
   # cf = CalcFactor(ccwl.usrfnc!, _fmd_, smpid, 
   #                 varValsHypo)

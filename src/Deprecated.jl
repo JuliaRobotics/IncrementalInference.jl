@@ -256,6 +256,15 @@ function Base.getproperty(ccw::CommonConvWrapper, f::Symbol)
   elseif f == :vartypes
     @warn "CommonConvWrapper.vartypes is deprecated, use typeof.(getVariableType.(ccw.fullvariables) instead" maxlog=3
     return typeof.(getVariableType.(ccw.fullvariables))
+  elseif f == :hypotheses
+    @warn "CommonConvWrapper.hypotheses is now under ccw.hyporecipe.hypotheses" maxlog=5
+    return ccw.hyporecipe.hypotheses
+  elseif f == :certainhypo
+    @warn "CommonConvWrapper.certainhypo is now under ccw.hyporecipe.certainhypo" maxlog=5
+    return ccw.hyporecipe.certainhypo
+  elseif f == :activehypo
+    @warn "CommonConvWrapper.activehypo is now under ccw.hyporecipe.activehypo" maxlog=5
+    return ccw.hyporecipe.activehypo
   else
     return getfield(ccw, f)
   end

@@ -23,12 +23,7 @@ function getHypothesesVectors(
   return (allmhp, certainidx, uncertnidx)
 end
 
-Base.@kwdef struct HypoRecipe
-  certainidx::Vector{Int}
-  allelements::Vector{Vector{Int}}
-  activehypo::Vector{Tuple{Int,Vector{Int}}}
-  mhidx::Vector{Int}
-end
+
 
 """
     $(SIGNATURES)
