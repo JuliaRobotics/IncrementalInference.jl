@@ -10,7 +10,7 @@ Default linear offset between two scalar variables.
 X_2 = X_1 + η_Z
 ```
 """
-struct LinearRelative{N, T <: SamplableBelief} <: AbstractRelativeRoots
+struct LinearRelative{N, T <: SamplableBelief} <: AbstractRelativeMinimize
   Z::T
 end
 
