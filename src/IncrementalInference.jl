@@ -125,6 +125,7 @@ include("ManifoldsExtentions.jl")
 # regular
 include("entities/SolverParams.jl")
 
+include("entities/HypoRecipe.jl")
 include("entities/FactorOperationalMemory.jl")
 
 include("Factors/GenericMarginal.jl")

@@ -63,6 +63,8 @@ $(TYPEDEF)
 """
 struct MultiThreaded <: _AbstractThreadModel end
 
+
+
 """
 $(TYPEDEF)
 
@@ -86,8 +88,7 @@ Base.@kwdef struct CommonConvWrapper{
   TP <: Tuple, 
   CT,
   AM <: AbstractManifold,
-  HP <: Union{Nothing, <:Distributions.Categorical{Float64, Vector{Float64}}},
-  CH <: Union{Nothing, Vector{Int}},
+  HR <: HypoRecipeCompute,
   MT, 
   G
 } <: FactorOperationalMemory
@@ -114,13 +115,8 @@ Base.@kwdef struct CommonConvWrapper{
   nullhypo::Float64 = 0.0
   """ inflationSpread particular to this factor (by how much to dispurse the belief initial values before numerical optimization is run).  Analogous to stochastic search """
   inflation::Float64 = SolverParams().inflation
-  # multihypo specific field containers for recipe of hypotheses to compute
-  """ multi hypothesis settings #NOTE no need for a parameter as type is known from `parseusermultihypo` """
-  hypotheses::HP = nothing
-  """ categorical to select which hypothesis is being considered during convolution operation """
-  certainhypo::CH = nothing
-  """ subsection indices to select which params should be used for this hypothesis evaluation """
-  activehypo::Vector{Int} = collect(1:length(varValsAll))
+  """ multihypo specific field containers for recipe of hypotheses to compute """
+  hyporecipe::HR = HypoRecipeCompute(;activehypo=collect(1:length(varValsAll)))
   # buffers and indices to point numerical computations to specific memory locations
   """ user defined measurement values for each approxConv operation
       FIXME make type stable, JT should now be type stable if rest works.

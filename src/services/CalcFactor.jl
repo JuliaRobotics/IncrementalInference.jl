@@ -436,8 +436,10 @@ function _createCCW(
     partial,
     nullhypo = float(nullhypo),
     inflation = float(inflation),
-    hypotheses = multihypo,
-    certainhypo,
+    hyporecipe = HypoRecipeCompute(;
+      hypotheses = multihypo,
+      certainhypo,
+    ),
     measurement,
     _gradients,
   )
