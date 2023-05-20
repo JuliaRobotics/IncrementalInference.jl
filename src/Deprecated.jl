@@ -123,7 +123,49 @@ end
 ## Deprecate code below before v0.35
 ##==============================================================================
 
+
 @deprecate _prepCCW(w...;kw...) _createCCW(w...;kw...)
+@deprecate predictbelief(w...;asPartial::Bool=false,kw...)  ((bel,ipc)=getPoints(propagateBelief(w...;asPartial,kw...)), (getPoints(bel),ipc))
+
+# """
+#     $SIGNATURES
+
+# This is an old function name that will be replaced by [`propagateBelief`](@ref).
+# """
+# function predictbelief(
+#   dfg::AbstractDFG,
+#   destvert::DFGVariable,
+#   factors::AbstractVector; #{<:DFGFactor};
+#   asPartial::Bool = false,
+#   kw...,
+# )
+#   #
+#   # new
+#   mkd, ifd = propagateBelief(dfg, destvert, factors; kw...)
+
+#   # legacy interface
+#   return getPoints(mkd, asPartial), ifd
+# end
+
+# function predictbelief(
+#   dfg::AbstractDFG,
+#   destlbl::Symbol,
+#   fctlbls::AbstractVector{Symbol};
+#   kw...,
+# )
+#   return predictbelief(
+#     dfg,
+#     getVariable(dfg, destlbl),
+#     map(x -> getFactor(dfg, x), fctlbls);
+#     kw...,
+#   )
+# end
+# #
+
+# function predictbelief(dfg::AbstractDFG, destlbl::Symbol, ::Colon; kw...)
+#   return predictbelief(dfg, destlbl, getNeighbors(dfg, destlbl); kw...)
+# end
+#
 
 ##==============================================================================
 ## Deprecate code below before v0.34

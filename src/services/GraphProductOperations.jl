@@ -59,33 +59,13 @@ function propagateBelief(
   return mkd, ipc
 end
 
-"""
-    $SIGNATURES
-
-This is an old function name that will be replaced by [`propagateBelief`](@ref).
-"""
-function predictbelief(
-  dfg::AbstractDFG,
-  destvert::DFGVariable,
-  factors::AbstractVector; #{<:DFGFactor};
-  asPartial::Bool = false,
-  kw...,
-)
-  #
-  # new
-  mkd, ifd = propagateBelief(dfg, destvert, factors; kw...)
-
-  # legacy interface
-  return getPoints(mkd, asPartial), ifd
-end
-
-function predictbelief(
+function propagateBelief(
   dfg::AbstractDFG,
   destlbl::Symbol,
   fctlbls::AbstractVector{Symbol};
   kw...,
 )
-  return predictbelief(
+  return propagateBelief(
     dfg,
     getVariable(dfg, destlbl),
     map(x -> getFactor(dfg, x), fctlbls);
@@ -94,10 +74,9 @@ function predictbelief(
 end
 #
 
-function predictbelief(dfg::AbstractDFG, destlbl::Symbol, ::Colon; kw...)
-  return predictbelief(dfg, destlbl, getNeighbors(dfg, destlbl); kw...)
-end
-#
+propagateBelief(dfg::AbstractDFG, destlbl::Symbol, ::Colon; kw...) = return propagateBelief(dfg, destlbl, getNeighbors(dfg, destlbl); kw...)
+
+
 
 """
     $(SIGNATURES)
