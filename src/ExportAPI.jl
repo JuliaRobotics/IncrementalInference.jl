@@ -240,7 +240,6 @@ export CSMHistory,
   getCliqNumAssocFactorsPerVar,
 
   # user functions
-  predictbelief,
   propagateBelief,
   getCliqMat,
   getCliqAssocMat,
