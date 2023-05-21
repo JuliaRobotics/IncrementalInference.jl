@@ -97,4 +97,14 @@ approxConvBelief(fg, :x0f1, :x0)
 ##
 end
 
+
+@testset "Test all approxConv versions have same parameter behavior" begin
+##
+
+@warn("TODO .inflateCycles ignored in chain version of approxConv(fg, :x0, :x1)!")
+@test_broken false
+
+##
+end
+
 #
