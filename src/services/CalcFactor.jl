@@ -26,7 +26,7 @@ function CalcFactor(
   ccwl::CommonConvWrapper;
   factor = ccwl.usrfnc!,
   _sampleIdx = 0,
-  _legacyParams = ccwl.varValsAll,
+  _legacyParams = ccwl.varValsAll[],
   _allowThreads = true,
   cache = ccwl.dummyCache,
   fullvariables = ccwl.fullvariables,
@@ -211,6 +211,14 @@ function _resizePointsVector!(
   return vecP
 end
 
+function _checkVarValPointers(dfg::AbstractDFG, fclb::Symbol)
+  vars = getVariable.(dfg, getVariableOrder(dfg,fclb))
+  ptrsV = pointer.(getVal.(vars))
+  ccw = _getCCW(dfg, fclb)
+  ptrsC = pointer.(ccw.varValsAll[])
+  ptrsV, ptrsC
+end
+
 """
     $(SIGNATURES)
 
@@ -228,12 +236,16 @@ Notes
 - `P = getPointType(<:InferenceVariable)`
 """
 function _createVarValsAll(
-  Xi::Vector{<:DFGVariable};
+  variables::AbstractVector{<:DFGVariable};
   solveKey::Symbol = :default,
 )
   #
   # Note, NamedTuple once upon a time created way too much recompile load on repeat solves, #1564
-  varValsAll = map(var_i->getVal(var_i; solveKey), tuple(Xi...))
+  varValsAll = map(var_i->getVal(var_i; solveKey), tuple(variables...))
+
+  for (i,vv) in enumerate(varValsAll)
+    @assert pointer(vv) == pointer(getVal(variables[i]; solveKey)) "Developer check that ccw.varValsAll pointers go to same memory as getVal(variable)"
+  end
 
   # how many points
   LEN = length.(varValsAll)
@@ -241,15 +253,16 @@ function _createVarValsAll(
   # NOTE, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
   # maxlen = N == 0 ? maxlen : N
 
-  # allow each variable to have a different number of points, which is resized during compute here
-  # resample variables with too few kernels (manifolds points)
-  SAMP = LEN .< maxlen
-  for i = 1:length(Xi)
-    if SAMP[i]
-      Pr = getBelief(Xi[i], solveKey)
-      _resizePointsVector!(varValsAll[i], Pr, maxlen)
-    end
-  end
+  # NOTE resize! moves the pointer!!!!!!
+    # # allow each variable to have a different number of points, which is resized during compute here
+    # # resample variables with too few kernels (manifolds points)
+  # SAMP = LEN .< maxlen
+  # for i = 1:length(variables)
+  #   if SAMP[i]
+  #     Pr = getBelief(variables[i], solveKey)
+  #     _resizePointsVector!(varValsAll[i], Pr, maxlen)
+  #   end
+  # end
 
   # TODO --rather define reusable memory for the proposal
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
@@ -429,7 +442,7 @@ function _createCCW(
   return CommonConvWrapper(;
     usrfnc! = usrfnc,
     fullvariables,
-    varValsAll = _varValsAll,
+    varValsAll = Ref(_varValsAll),
     dummyCache = userCache,
     manifold,
     partialDims,
@@ -498,8 +511,9 @@ function _beforeSolveCCW!(
   # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
   # ccwl.varidx[] = findfirst(==(solvefor), getLabel.(variables))
   # everybody use maxlen number of points in belief function estimation
-  maxlen = maximum((N, length.(ccwl.varValsAll)...,))
+  maxlen = maximum((N, length.(ccwl.varValsAll[])...,))
 
+  ccwl.varValsAll[] = map(s->getVal(s; solveKey), tuple(variables...))
   ## PLAN B, make deep copy of ccwl.varValsAll[ccwl.varidx[]] just before the numerical solve 
 
   # maxlen, ccwl.varidx[] = _updateParamVec(variables, solvefor, ccwl.varValsAll, N; solveKey)
@@ -558,7 +572,7 @@ function _beforeSolveCCW!(
   _setCCWDecisionDimsConv!(ccwl, getDimension(getVariableType(Xi[ccwl.varidx[]])))
 
   solveForPts = getVal(Xi[ccwl.varidx[]]; solveKey)
-  maxlen = maximum([N; length(solveForPts); length(ccwl.varValsAll[ccwl.varidx[]])])  # calcZDim(ccwl); length(measurement[1])
+  maxlen = maximum([N; length(solveForPts); length(ccwl.varValsAll[][ccwl.varidx[]])])  # calcZDim(ccwl); length(measurement[1])
 
   # FIXME do not divert Mixture for sampling
   # update ccwl.measurement values

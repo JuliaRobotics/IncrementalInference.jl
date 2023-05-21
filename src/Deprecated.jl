@@ -257,7 +257,7 @@ function Base.getproperty(ccw::CommonConvWrapper, f::Symbol)
     # return SingleThreaded
   elseif f == :params
     error("CommonConvWrapper.params is deprecated, use .varValsAll instead")
-    return ccw.varValsAll
+    return ccw.varValsAll[]
   elseif f == :vartypes
     @warn "CommonConvWrapper.vartypes is deprecated, use typeof.(getVariableType.(ccw.fullvariables) instead" maxlog=3
     return typeof.(getVariableType.(ccw.fullvariables))

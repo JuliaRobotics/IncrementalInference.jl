@@ -349,9 +349,9 @@ function _buildCalcFactorLambdaSample(
   # DevNotes, also see new `hyporecipe` approach (towards consolidation CCW CPT FMd CF...)
 
   # build a view to the decision variable memory
-  varValsHypo = ccwl.varValsAll[ccwl.hyporecipe.activehypo]
+  varValsHypo = ccwl.varValsAll[][ccwl.hyporecipe.activehypo]
   # tup = tuple(varParams...)
-  # nms = keys(ccwl.varValsAll)[cpt_.activehypo]
+  # nms = keys(ccwl.varValsAll[])[cpt_.activehypo]
   # varValsHypo = NamedTuple{nms,typeof(tup)}(tup)
 
   # prepare fmd according to hypo selection
@@ -474,7 +474,6 @@ end
 # should only be calling a new arg list according to activehypo at start of particle
 # Try calling an existing lambda
 # sensitive to which hypo of course , see #1024
-# need to shuffle content inside .cpt.fmd as well as .varValsAll accordingly
 #
 
 function _solveCCWNumeric!(
