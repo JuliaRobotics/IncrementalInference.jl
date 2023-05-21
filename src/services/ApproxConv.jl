@@ -79,7 +79,7 @@ function approxConvBelief(
   measurement::AbstractVector = Tuple[];
   solveKey::Symbol = :default,
   N::Int = length(measurement),
-  tfg::AbstractDFG = initfg(),
+  tfg::AbstractDFG = LocalDFG(;solverParams=getSolverParams(dfg)),
   setPPEmethod::Union{Nothing, Type{<:AbstractPointParametricEst}} = nothing,
   setPPE::Bool = setPPEmethod !== nothing,
   path::AbstractVector{Symbol} = Symbol[],
