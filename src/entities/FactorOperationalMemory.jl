@@ -85,7 +85,7 @@ Related
 Base.@kwdef struct CommonConvWrapper{
   T <: AbstractFactor, 
   VT <: Tuple,
-  TP <: Tuple, 
+  TP <: Base.RefValue{<:Tuple},
   CT,
   AM <: AbstractManifold,
   HR <: HypoRecipeCompute,

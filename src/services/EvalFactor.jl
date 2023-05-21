@@ -42,7 +42,7 @@ function calcVariableDistanceExpectedFractional(
   sfidx::Integer,
   certainidx::AbstractVector{<:Integer};
   kappa::Real = 3.0,
-  readonlyVarVals = ccwl.varValsAll[sfidx]
+  readonlyVarVals = ccwl.varValsAll[][sfidx]
 )
   #
   varTypes = getVariableType.(ccwl.fullvariables)
@@ -54,14 +54,14 @@ function calcVariableDistanceExpectedFractional(
 
   # get mean of all fractional variables
   # ccwl.params::Vector{Vector{P}}
-  uncertainidx = setdiff(1:length(ccwl.varValsAll), certainidx)
+  uncertainidx = setdiff(1:length(ccwl.varValsAll[]), certainidx)
   dists = zeros(length(uncertainidx) + length(certainidx))
 
   dims = manifold_dimension(getManifold(varTypes[sfidx]))
 
   uncMeans = zeros(dims, length(uncertainidx))
   for (count, i) in enumerate(uncertainidx)
-    u = mean(getManifold(varTypes[i]), ccwl.varValsAll[i])
+    u = mean(getManifold(varTypes[i]), ccwl.varValsAll[][i])
     uncMeans[:, count] .= getCoordinates(varTypes[i], u)
   end
   count = 0
@@ -79,7 +79,7 @@ function calcVariableDistanceExpectedFractional(
   # also check distance to certainidx for general scale reference (workaround heuristic)
   for cidx in certainidx
     count += 1
-    cerMeanPnt = mean(getManifold(varTypes[cidx]), ccwl.varValsAll[cidx])
+    cerMeanPnt = mean(getManifold(varTypes[cidx]), ccwl.varValsAll[][cidx])
     cerMean = getCoordinates(varTypes[cidx], cerMeanPnt)
     dists[count] = norm(refMean[1:dims] - cerMean[1:dims])
   end
@@ -145,7 +145,7 @@ function computeAcrossHypothesis!(
   sfidx::Int,
   maxlen::Int,
   mani::ManifoldsBase.AbstractManifold; # maniAddOps::Tuple;
-  destinationVarVals = deepcopy(ccwl.varValsAll[sfidx]),
+  destinationVarVals = deepcopy(ccwl.varValsAll[][sfidx]),
   spreadNH::Real = 5.0,
   inflateCycles::Int = 3,
   skipSolve::Bool = false,
@@ -263,7 +263,7 @@ function _calcIPCRelative(
   sfidx_active = sum(active_mask[1:sfidx])
 
   # build a view to the decision variable memory
-  activeParams = view(ccwl.varValsAll, activeids)
+  activeParams = view(ccwl.varValsAll[], activeids)
   activeVars = Xi[active_mask]
 
   # assume gradients are just done for the first sample values
@@ -320,8 +320,8 @@ function evalPotentialSpecific(
   needFreshMeasurements::Bool = true,    # superceeds over measurement
   solveKey::Symbol = :default,
   sfidx::Integer=findfirst(==(solvefor), getLabel.(variables)),
-  destinationVarVals = deepcopy(ccwl.varValsAll[sfidx]),
-  N::Int = 0 < length(measurement) ? length(measurement) : maximum(Npts.(getBelief.(Xi, solveKey))),
+  destinationVarVals = deepcopy(ccwl.varValsAll[][sfidx]),
+  N::Int = 0 < length(measurement) ? length(measurement) : maximum(Npts.(getBelief.(variables, solveKey))),
   spreadNH::Real = 3.0,
   inflateCycles::Int = 3,
   nullSurplus::Real = 0,
@@ -353,7 +353,7 @@ function evalPotentialSpecific(
   # addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
   mani = getManifold(variables[sfidx])
 
-  @assert destinationVarVals !== ccwl.varValsAll[ccwl.varidx[]] "destination of evalPotential for AbstractRelative not be ccwl.varValsAll[sfidx]"
+  @assert destinationVarVals !== ccwl.varValsAll[][ccwl.varidx[]] "destination of evalPotential for AbstractRelative not be ccwl.varValsAll[sfidx]"
   @assert destinationVarVals !== getVal(variables[ccwl.varidx[]]) "destination of evalPotential for AbstractRelative not be variable.VND.val"
 
   # perform the numeric solutions on the indicated elements
@@ -389,6 +389,7 @@ function evalPotentialSpecific(
   return destinationVarVals, ipc
   # return ccwl.varValsAll[sfidx], ipc
 end
+
 
 # TODO `measurement` might not be properly wired up yet
 # TODO consider 1051 here to inflate proposals as general behaviour
