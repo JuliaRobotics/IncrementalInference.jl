@@ -119,7 +119,7 @@ function manikde!(
   variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
   pts::AbstractVector{P};
   kw...,
-) where {P <: Union{<:AbstractArray, <:Number, <:ProductRepr, <:Manifolds.ArrayPartition}}
+) where {P <: Union{<:AbstractArray, <:Number, <:Manifolds.ArrayPartition}}
   #
   M = getManifold(variableType)
   infoPerCoord = ones(AMP.getNumberCoords(M, pts[1]))
