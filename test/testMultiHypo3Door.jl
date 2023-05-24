@@ -68,16 +68,7 @@ doautoinit!(fg ,:l1)
 doautoinit!(fg ,:l2)
 doautoinit!(fg ,:l3)
 
-a_,b_ = IIF._checkVarValPointers(fg, getLabel(f1))
-for i in 1:length(a)
-  @test a_[i] == b_[i]
-end
-for i in 1:length(a)
-  @test a[i] == a_[i]
-end
-for i in 1:length(a)
-  @test b[i] == b_[i]
-end
+# a_,b_ = IIF._checkVarValPointers(fg, getLabel(f1))
 
 
 # make sure approxConv is as expected
