@@ -37,12 +37,12 @@ function reconstFactorData(
   vars = map(f -> getVariable(dfg, f), varOrder)
   userCache = preambleCache(dfg, vars, usrfnc)
 
-  # TODO -- improve _prepCCW for hypotheses and certainhypo field recovery when deserializing
+  # TODO -- improve _createCCW for hypotheses and certainhypo field recovery when deserializing
   # reconstitute from stored data
   # FIXME, add threadmodel=threadmodel
   # FIXME https://github.com/JuliaRobotics/DistributedFactorGraphs.jl/issues/590#issuecomment-776838053
   # FIXME dont know what manifolds to use in ccw
-  ccw = _prepCCW(
+  ccw = _createCCW(
     vars,
     usrfnc;
     multihypo,
@@ -145,7 +145,7 @@ function rebuildFactorMetadata!(
   end
 
   #... Copying neighbor data into the factor?
-  # JT TODO it looks like this is already updated in getDefaultFactorData -> _prepCCW
+  # JT TODO it looks like this is already updated in getDefaultFactorData -> _createCCW
   # factormetadata.variableuserdata is deprecated, remove when removing deprecation
   # for i in 1:Threads.nthreads()
   #   ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(neighborUserData)

@@ -153,6 +153,7 @@ export CSMHistory,
   getNumPts,
   getBWVal,
   setBW!,
+  setBelief!,
   setValKDE!,
   buildCliqSubgraph,
 
@@ -240,7 +241,6 @@ export CSMHistory,
   getCliqNumAssocFactorsPerVar,
 
   # user functions
-  predictbelief,
   propagateBelief,
   getCliqMat,
   getCliqAssocMat,

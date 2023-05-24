@@ -1,4 +1,5 @@
 # load requried packages
+# using Revise
 using IncrementalInference
 using Test
 
@@ -32,6 +33,8 @@ x3 = 40.0
 fg = initfg()
 getSolverParams(fg).N = n_samples
 getSolverParams(fg).gibbsIters = 5
+# forcefully work with ccw.varValsAll to check the pointers are pointing to getVal.(variables)
+getSolverParams(fg).graphinit = false
 
 # Place strong prior on locations of three "doors"
 addVariable!(fg, :l0, ContinuousScalar, N=n_samples)
@@ -51,7 +54,37 @@ addFactor!(fg, [:l3], Prior(Normal(l3, lm_prior_noise)))
 addVariable!(fg, :x0, ContinuousScalar, N=n_samples)
 
 # Make first "door" measurement
-addFactor!(fg, [:x0; :l0; :l1; :l2; :l3], LinearRelative(Normal(0, meas_noise)), multihypo=[1.0; (1/4 for _=1:4)...])
+f1 = addFactor!(fg, [:x0; :l0; :l1; :l2; :l3], LinearRelative(Normal(0, meas_noise)), multihypo=[1.0; (1/4 for _=1:4)...])
+
+# check pointers before init
+a,b = IIF._checkVarValPointers(fg, getLabel(f1))
+for i in 1:length(a)
+  @test a[i] == b[i]
+end
+
+# do init (and check that the var pointers did not change)
+doautoinit!(fg ,:l0)
+doautoinit!(fg ,:l1)
+doautoinit!(fg ,:l2)
+doautoinit!(fg ,:l3)
+
+# a_,b_ = IIF._checkVarValPointers(fg, getLabel(f1))
+
+
+# make sure approxConv is as expected
+@test isInitialized.(fg, [:l0;:l1;:l2;:l3]) |> all
+X0 = approxConvBelief(fg, getLabel(f1), :x0)
+# smpls = sampleFactor(fg, f1.label,10)
+
+##
+
+# should have four equal sized peaks at landmark locations
+@test 0.1 < X0([l0])[1]
+@test 0.1 < X0([l1])[1]
+@test 0.1 < X0([l2])[1]
+@test 0.1 < X0([l3])[1]
+
+
 
 # Add second pose
 addVariable!(fg, :x1, ContinuousScalar, N=n_samples)
