@@ -424,14 +424,19 @@ function _solveCCWNumeric!(
   islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
   # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
 
+  if ccwl.partial
+    target = view(ccwl.varValsAll[ccwl.varidx[]][smpid], ccwl.partialDims)
+  else
+    target = ccwl.varValsAll[ccwl.varidx[]][smpid];
+  end
   # build the pre-objective function for this sample's hypothesis selection
-  unrollHypo!, target = _buildCalcFactorLambdaSample(
-    destVarVals,
-    ccwl, 
-    smpid, 
-    view(destVarVals, smpid), # SUPER IMPORTANT, this `target` is mem pointer that will be updated by optim library
-    ccwl.measurement,
-    _slack,
+  unrollHypo!, _ = _buildCalcFactorLambdaSample(
+      destVarVals,
+      ccwl, 
+      smpid, 
+      target,
+      # ccwl.measurement,
+      _slack,
   )
 
 
@@ -440,8 +445,7 @@ function _solveCCWNumeric!(
 
   # _hypoObj = (x) -> (target[] = x; unrollHypo!())
   function _hypoObj(x)
-    # for partials we are relying on optim / manopt to not fiddle with unconstrained partial dims (thanks to zero gradients)
-    target[] = x
+    copyto!(target, x)
     return unrollHypo!()
   end
 
@@ -450,7 +454,13 @@ function _solveCCWNumeric!(
   # target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
   sfidx = ccwl.varidx[]
   # do the parameter search over defined decision variables using Minimization
-  X = destVarVals[smpid]#[ccwl.partialDims]
+  if ccwl.partial
+    X = collect(view(ccwl.varValsAll[sfidx][smpid], ccwl.partialDims))
+  else
+    X = ccwl.varValsAll[sfidx][smpid][ccwl.partialDims]
+  end
+  # X = destVarVals[smpid]#[ccwl.partialDims]
+      
   retval = _solveLambdaNumeric(
     getFactorType(ccwl), 
     _hypoObj, 
@@ -466,7 +476,12 @@ function _solveCCWNumeric!(
   end
 
   # insert result back at the correct variable element location
-  copyto!(destVarVals[smpid][ccwl.partialDims], retval)
+  if ccwl.partial
+    ccwl.varValsAll[sfidx][smpid][ccwl.partialDims] .= retval
+  else
+    # copyto!(ccwl.varValsAll[sfidx][smpid], retval)
+    copyto!(destVarVals[smpid][ccwl.partialDims], retval)
+  end
 
   return nothing
 end

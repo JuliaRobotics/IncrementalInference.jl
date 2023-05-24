@@ -144,5 +144,5 @@ function getPointIdentity(
 end
 
 function getPointIdentity(G::RealCircleGroup, ::Type{T} = Float64) where {T <: Real}
-  return zero(T)
+  return [zero(T)] #FIXME we cannot support scalars yet
 end
