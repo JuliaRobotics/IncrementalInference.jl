@@ -241,11 +241,22 @@ function _createVarValsAll(
 )
   #
   # Note, NamedTuple once upon a time created way too much recompile load on repeat solves, #1564
-  varValsAll = map(var_i->getVal(var_i; solveKey), tuple(variables...))
+  # FIXME ON FIRE issue on deserialization
+  valsAll = []
 
-  for (i,vv) in enumerate(varValsAll)
-    @assert pointer(vv) == pointer(getVal(variables[i]; solveKey)) "Developer check that ccw.varValsAll pointers go to same memory as getVal(variable)"
+  # when deserializing a factor, a new ccw gets created but the variables may not yet have VND entries
+  for var_i in variables
+    push!(
+      valsAll,
+      if haskey(getSolverDataDict(var_i), solveKey)
+        getVal(var_i; solveKey)
+      else
+        Vector{typeof(getPointDefault(getVariableType(var_i)))}()
+      end
+    )
   end
+
+  varValsAll = tuple(valsAll...)
 
   # how many points
   LEN = length.(varValsAll)
