@@ -46,7 +46,7 @@ pts = getPoints(dens[1], false)
 
 ##
 
-predictbelief(fg, :x0, [:x0f1;])
+propagateBelief(fg, :x0, [:x0f1;])
 @test true
 
 ##

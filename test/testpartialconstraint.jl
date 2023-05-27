@@ -181,12 +181,13 @@ global fg
 ##
 
 initAll!(fg)
-valx2_ = getVal(fg, :x2)
-@cast valx2[i,j] := valx2_[j][i]
 pts_ = approxConv(fg, :x1x2f1, :x2, N=N)
 @cast pts[i,j] := pts_[j][i]
 @test size(pts,1) == 2
 @test norm(Statistics.mean(pts,dims=2)[2] .- [10.0]) < 3.0
+# not the same memory, ccw.varValsAll[][sfidx] is now a deepcopy as alternate destination memory
+valx2_ = IIF._getCCW(fg[:x1x2f1]).varValsAll[][2] # getVal(fg, :x2)
+@cast valx2[i,j] := valx2_[j][i]
 @test norm(valx2[1,:] - pts[1,:]) < 1e-5
 
 pts_ = approxConv(fg, :x2f1, :x2, N=N)
@@ -201,7 +202,7 @@ end
 
 ##
 
-# keep previous values to ensure funciton evaluation is modifying correct data fields
+# keep previous values to ensure function evaluation is modifying correct data fields
 
 @warn "restore calcProposalBelief as testset!"
 # @testset "test calcProposalBelief..." begin

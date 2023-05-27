@@ -55,7 +55,7 @@ function approxDeconv(
   fctSmpls = deepcopy(measurement)
 
   # TODO assuming vector on only first container in measurement::Tuple
-  makeTarget = (i) -> measurement[i] # TODO does not support copy-primitive types like Float64, only Ref()
+  makeTarget = (smpidx) -> measurement[smpidx] # TODO does not support copy-primitive types like Float64, only Ref()
   # makeTarget = (i) -> view(measurement[1][i],:)
   # makeTarget = (i) -> view(measurement[1], :, i)
 
@@ -71,24 +71,27 @@ function approxDeconv(
 
   islen1 = zDim == 1
 
+  # FIXME, is this still in use
+  destVarVals = Vector{Int}()
+
   for idx = 1:N
     # towards each particle in their own thread (not 100% ready yet, factors should be separate memory)
-    targeti_ = makeTarget(idx)
+    target_smpl = makeTarget(idx)
 
     # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
     resize!(ccw.activehypo, length(hyporecipe.activehypo[2][2]))
     ccw.activehypo[:] = hyporecipe.activehypo[2][2]
 
-    onehypo!, _ = _buildCalcFactorLambdaSample(ccw, idx, targeti_, measurement)
+    onehypo!, _ = _buildCalcFactorLambdaSample(destVarVals, ccw, idx, target_smpl, measurement)
     #
 
     # lambda with which to find best measurement values
-    hypoObj = (tgt) -> (targeti_ .= tgt; onehypo!())
+    hypoObj = (tgt) -> (target_smpl .= tgt; onehypo!())
 
     # find solution via SubArray view pointing to original memory location
     if fcttype isa AbstractManifoldMinimize
       sfidx = ccw.varidx[]
-      targeti_ .= _solveLambdaNumericMeas(
+      target_smpl .= _solveLambdaNumericMeas(
         fcttype,
         hypoObj,
         res_,
@@ -97,7 +100,7 @@ function approxDeconv(
         islen1,
       )
     else
-      targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx], islen1)
+      target_smpl .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx], islen1)
     end
   end
 

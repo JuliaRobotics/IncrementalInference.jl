@@ -41,7 +41,7 @@ pGM = getPoints( AMP.manifoldProduct(dens, getManifold(varType), N=100, oldPoint
 
 ##
 
-densPts, inferdim = predictbelief(fg, :x0, :, needFreshMeasurements=true )
+densPts, inferdim = propagateBelief(fg, :x0, :, needFreshMeasurements=true )
 
 ##
 

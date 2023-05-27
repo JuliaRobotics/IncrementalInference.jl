@@ -26,7 +26,7 @@ function CalcFactor(
   ccwl::CommonConvWrapper;
   factor = ccwl.usrfnc!,
   _sampleIdx = 0,
-  _legacyParams = ccwl.varValsAll,
+  _legacyParams = ccwl.varValsAll[],
   _allowThreads = true,
   cache = ccwl.dummyCache,
   fullvariables = ccwl.fullvariables,
@@ -211,6 +211,14 @@ function _resizePointsVector!(
   return vecP
 end
 
+function _checkVarValPointers(dfg::AbstractDFG, fclb::Symbol)
+  vars = getVariable.(dfg, getVariableOrder(dfg,fclb))
+  ptrsV = pointer.(getVal.(vars))
+  ccw = _getCCW(dfg, fclb)
+  ptrsC = pointer.(ccw.varValsAll[])
+  ptrsV, ptrsC
+end
+
 """
     $(SIGNATURES)
 
@@ -220,58 +228,58 @@ Function returns with ARR[sfidx] pointing at newly allocated deepcopy of the
 existing values in getVal(Xi[.label==solvefor]).
 
 Notes
+- 2023Q2 intended use, only create VarValsAll the first time a factor added/reconstructed
 - Return values `sfidx` is the element in ARR where `Xi.label==solvefor` and
 - `maxlen` is length of all (possibly resampled) `ARR` contained particles.
 - `Xi` is order sensitive.
 - for initialization, solveFor = Nothing.
 - `P = getPointType(<:InferenceVariable)`
-
-DevNotes
-- FIXME ARR internally should become a NamedTuple
 """
-function _prepParamVec(
-  Xi::Vector{<:DFGVariable},
-  solvefor::Union{Nothing, Symbol},
-  N::Int = 0;
+function _createVarValsAll(
+  variables::AbstractVector{<:DFGVariable};
   solveKey::Symbol = :default,
 )
   #
-  # FIXME refactor to new NamedTuple instead
-  varParamsAll = getVal.(Xi; solveKey)
-  # Xi_labels = getLabel.(Xi)
-  sfidx = if isnothing(solvefor)
-    0
-  else
-    findfirst(==(solvefor), getLabel.(Xi))
+  # Note, NamedTuple once upon a time created way too much recompile load on repeat solves, #1564
+  # FIXME ON FIRE issue on deserialization
+  valsAll = []
+
+  # when deserializing a factor, a new ccw gets created but the variables may not yet have VND entries
+  for var_i in variables
+    push!(
+      valsAll,
+      if haskey(getSolverDataDict(var_i), solveKey)
+        getVal(var_i; solveKey)
+      else
+        Vector{typeof(getPointDefault(getVariableType(var_i)))}()
+      end
+    )
   end
-  # sfidx = isnothing(sfidx) ? 0 : sfidx
 
-  # this line does nothing...
-  # maxlen = N # FIXME see #105
+  varValsAll = tuple(valsAll...)
 
-  LEN = length.(varParamsAll)
-  maxlen = maximum([N; LEN])
+  # how many points
+  LEN = length.(varValsAll)
+  maxlen = maximum(LEN)
+  # NOTE, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
+  # maxlen = N == 0 ? maxlen : N
 
-  # resample variables with too few kernels (manifolds points)
-  SAMP = LEN .< maxlen
-  for i = 1:length(Xi)
-    if SAMP[i]
-      Pr = getBelief(Xi[i], solveKey)
-      _resizePointsVector!(varParamsAll[i], Pr, maxlen)
-    end
-  end
+  # NOTE resize! moves the pointer!!!!!!
+    # # allow each variable to have a different number of points, which is resized during compute here
+    # # resample variables with too few kernels (manifolds points)
+  # SAMP = LEN .< maxlen
+  # for i = 1:length(variables)
+  #   if SAMP[i]
+  #     Pr = getBelief(variables[i], solveKey)
+  #     _resizePointsVector!(varValsAll[i], Pr, maxlen)
+  #   end
+  # end
 
   # TODO --rather define reusable memory for the proposal
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
-  if sfidx > 0
-    # FIXME, POSSIBLE SOURCE OF HUGE MEMORY CONSUMPTION ALLOCATION
-    varParamsAll[sfidx] = deepcopy(varParamsAll[sfidx])
-  end
+  #  POSSIBLE SOURCE OF HUGE MEMORY CONSUMPTION ALLOCATION
 
-  varValsAll = tuple(varParamsAll...)
-  # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
-  # maxlen = N == 0 ? maxlen : N
-  return varValsAll, maxlen, sfidx
+  return varValsAll
 end
 
 """
@@ -352,10 +360,12 @@ end
     $SIGNATURES
 
 Notes
+- _createCCW is likely only used when adding or reconstructing a new factor in the graph,
+  - else use _updateCCW 
 - Can be called with `length(Xi)==0`
 """
-function _prepCCW(
-  Xi::Vector{<:DFGVariable},
+function _createCCW(
+  Xi::AbstractVector{<:DFGVariable},
   usrfnc::T;
   multihypo::Union{Nothing, <:Distributions.Categorical} = nothing,
   nullhypo::Real = 0.0,
@@ -378,7 +388,8 @@ function _prepCCW(
   end
 
   # TODO check no Anys, see #1321
-  _varValsAll, maxlen, sfidx = _prepParamVec(Xi, nothing, 0; solveKey) # Nothing for init.
+  # NOTE, _varValsAll is only a reference to the actual VND.val memory of each variable
+  _varValsAll = _createVarValsAll(Xi; solveKey)
 
   manifold = getManifold(usrfnc)
   # standard factor metadata
@@ -435,22 +446,24 @@ function _prepCCW(
   pttypes = getVariableType.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
   if !isconcretetype(PointType)
-    @warn "_prepCCW PointType is not concrete $PointType" maxlog=50
+    @warn "_createCCW PointType is not concrete $PointType" maxlog=50
   end
 
   # PointType[],
   return CommonConvWrapper(;
     usrfnc! = usrfnc,
     fullvariables,
-    varValsAll = _varValsAll,
+    varValsAll = Ref(_varValsAll),
     dummyCache = userCache,
     manifold,
     partialDims,
     partial,
     nullhypo = float(nullhypo),
     inflation = float(inflation),
-    hypotheses = multihypo,
-    certainhypo,
+    hyporecipe = HypoRecipeCompute(;
+      hypotheses = multihypo,
+      certainhypo,
+    ),
     measurement,
     _gradients,
   )
@@ -487,40 +500,56 @@ approximate convolution computations.
 DevNotes
 - TODO consolidate with others, see https://github.com/JuliaRobotics/IncrementalInference.jl/projects/6
 """
-function _updateCCW!(
+function _beforeSolveCCW!(
   F_::Type{<:AbstractRelative},
   ccwl::CommonConvWrapper{F},
-  Xi::AbstractVector{<:DFGVariable},
-  solvefor::Symbol,
+  variables::AbstractVector{<:DFGVariable},
+  destVarVals::AbstractVector,
+  sfidx::Int,
   N::Integer;
   measurement = Vector{Tuple{}}(),
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
 ) where {F <: AbstractFactor} # F might be Mixture
   #
-  if length(Xi) !== 0
+  if length(variables) !== 0
     nothing
   else
-    @debug("cannot prep ccw.param list with length(Xi)==0, see DFG #590")
+    @debug("cannot prep ccw.param list with length(variables)==0, see DFG #590")
   end
 
-  # FIXME, order of fmd ccwl cf are a little weird and should be revised.
-  # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
-  _varValsAll, maxlen, sfidx = _prepParamVec(Xi, solvefor, N; solveKey)
-
-  # TODO, ensure all values (not just multihypothesis) is correctly used from here
-  for (i,varVal) in enumerate(_varValsAll)
-    resize!(ccwl.varValsAll[i],length(varVal))
-    ccwl.varValsAll[i][:] = varVal
-  end
-
-  # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
+  # in forward solve case, important to set which variable is being solved early in this sequence
   ccwl.varidx[] = sfidx
+
+  # TBD, order of fmd ccwl cf are a little weird and should be revised.
+  # TODO, maxlen should parrot N (barring multi-/nullhypo issues)
+  # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
+  # ccwl.varidx[] = findfirst(==(solvefor), getLabel.(variables))
+  # everybody use maxlen number of points in belief function estimation
+  maxlen = maximum((N, length.(ccwl.varValsAll[])...,))
+
+  # not type-stable
+  varvals = [getVal(s; solveKey) for s in variables]
+  # splice
+  varvals[sfidx] = destVarVals
+  # varvals_ = [varvals[1:sfidx-1]..., destVarVals, varvals[sfidx+1:end]...]
+  tvarv = tuple(varvals...)
+  # @info "TYPES" typeof(ccwl.varValsAll[]) typeof(tvarv)
+  ccwl.varValsAll[] = tvarv
+  # ccwl.varValsAll[] = map(s->getVal(s; solveKey), tuple(variables...))
+  ## PLAN B, make deep copy of ccwl.varValsAll[ccwl.varidx[]] just before the numerical solve 
+
+  # maxlen, ccwl.varidx[] = _updateParamVec(variables, solvefor, ccwl.varValsAll, N; solveKey)
+  # # TODO, ensure all values (not just multihypothesis) is correctly used from here
+  # for (i,varVal) in enumerate(_varValsAll)
+  #   resize!(ccwl.varValsAll[i],length(varVal))
+  #   ccwl.varValsAll[i][:] = varVal #TODO Kyk hierna: this looks like it will effectively result in vnd.val memory being overwritten 
+  # end
 
   # TODO better consolidation still possible
   # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
-  # FIXME, confirm this is hypo sensitive selection from Xi, better to use double indexing for clarity getDimension(ccw.fullvariables[hypoidx[sfidx]])
-  xDim = getDimension(getVariableType(Xi[sfidx])) # ccwl.varidx[]
+  # FIXME, confirm this is hypo sensitive selection from variables, better to use double indevariablesng for clarity getDimension(ccw.fullvariables[hypoidx[ccwl.varidx[]]])
+  xDim = getDimension(getVariableType(variables[ccwl.varidx[]])) # ccwl.varidx[]
   # ccwl.xDim = xDim
   # TODO maybe refactor different type or api call?
 
@@ -540,60 +569,67 @@ function _updateCCW!(
   # calculate new gradients
   # J = ccwl.gradients(measurement..., pts...)
 
-  return sfidx, maxlen
+  return maxlen
 end
 
-function _updateCCW!(
+function _beforeSolveCCW!(
   F_::Type{<:AbstractPrior},
   ccwl::CommonConvWrapper{F},
-  Xi::AbstractVector{<:DFGVariable},
-  solvefor::Symbol,
+  variables::AbstractVector{<:DFGVariable},
+  destVarVals::AbstractVector,
+  sfidx::Int,
   N::Integer;
   measurement = Vector{Tuple{}}(),
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
 ) where {F <: AbstractFactor} # F might be Mixture
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
+
+  ccwl.varidx[] = sfidx
   # fnc = ccwl.usrfnc!
-  sfidx = findfirst(getLabel.(Xi) .== solvefor)
-  @assert sfidx == 1 "Solving on Prior with CCW should have sfidx=1, priors are unary factors."
+  # sfidx = findfirst(getLabel.(variables) .== solvefor)
+  @assert ccwl.varidx[] == 1 "Solving on Prior with CCW should have sfidx=1, priors are unary factors."
+  # @assert sfidx == 1 "Solving on Prior with CCW should have sfidx=1, priors are unary factors."
+  # ccwl.varidx[] = sfidx
   # sfidx = 1 #  why hardcoded to 1, maybe for only the AbstractPrior case here
 
   # setup the partial or complete decision variable dimensions for this ccwl object
   # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
-  _setCCWDecisionDimsConv!(ccwl, getDimension(getVariableType(Xi[sfidx])))
+  _setCCWDecisionDimsConv!(ccwl, getDimension(getVariableType(variables[ccwl.varidx[]])))
 
-  solveForPts = getVal(Xi[sfidx]; solveKey)
-  maxlen = maximum([N; length(solveForPts); length(ccwl.varValsAll[sfidx])])  # calcZDim(ccwl); length(measurement[1])
+  solveForPts = getVal(variables[ccwl.varidx[]]; solveKey)
+  maxlen = maximum([N; length(solveForPts); length(ccwl.varValsAll[][ccwl.varidx[]])])  # calcZDim(ccwl); length(measurement[1])
 
   # FIXME do not divert Mixture for sampling
   # update ccwl.measurement values
   updateMeasurement!(ccwl, maxlen; needFreshMeasurements, measurement, _allowThreads=true)
 
-  return sfidx, maxlen
+  return maxlen
 end
 
 # TODO, can likely deprecate this
-function _updateCCW!(
+function _beforeSolveCCW!(
   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
   Xi::AbstractVector{<:DFGVariable},
-  solvefor::Symbol,
+  destVarVals::AbstractVector,
+  sfidx::Int,
   N::Integer;
   kw...,
 ) where {N_, F <: AbstractRelative, S, T}
   #
-  return _updateCCW!(F, ccwl, Xi, solvefor, N; kw...)
+  return _beforeSolveCCW!(F, ccwl, Xi, destVarVals, sfidx, N; kw...)
 end
 
-function _updateCCW!(
+function _beforeSolveCCW!(
   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
   Xi::AbstractVector{<:DFGVariable},
-  solvefor::Symbol,
+  destVarVals::AbstractVector,
+  sfidx::Int,
   N::Integer;
   kw...,
 ) where {N_, F <: AbstractPrior, S, T}
   #
-  return _updateCCW!(F, ccwl, Xi, solvefor, N; kw...)
+  return _beforeSolveCCW!(F, ccwl, Xi, destVarVals, sfidx, N; kw...)
 end
 
 

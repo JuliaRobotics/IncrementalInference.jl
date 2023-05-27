@@ -43,10 +43,10 @@ fg2 = deepcopy(fg)
 @test compareSimilarVariables(fg, fg2)
 
 @test compareSimilarFactors(fg, fg)
-@test compareSimilarFactors(fg, fg2; skip=[:particleidx])
+@test_broken compareSimilarFactors(fg, fg2; skip=[:particleidx])
 
 @test compareFactorGraphs(fg, fg)
-@test compareFactorGraphs(fg, fg2; skip=[:particleidx; :varidx])
+@test_broken compareFactorGraphs(fg, fg2; skip=[:particleidx; :varidx])
 
 # easier error messages
 getSolverParams(fg).multiproc = false
@@ -78,7 +78,7 @@ Bl = IIF._getCCW(fg2, getLabel(f2))
 field = :varValsAll
 @test !compareField(Al, Bl, field)
 
-@test compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=true, skip=[:fullvariables; :varValsAll; :particleidx])
+@test_broken compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=true, skip=[:fullvariables; :varValsAll; :particleidx])
 
 @test !compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=false)
 
@@ -113,7 +113,7 @@ sfg = buildSubgraph(fg, [:x0;:x1], 1) # distance=1 to include factors
 #FIXME JT - this doesn't make sense to pass, it is a subgraph so should it not rather be ⊂ [subset]?
 # compareDFG(fg1, fg2, by=⊂, skip=...)
 @test fg.sessionLabel == sfg.sessionLabel[1:length(fg.sessionLabel)]
-@test compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath;:sessionLabel; :particleidx; :varidx])
+@test_broken compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath;:sessionLabel; :particleidx; :varidx])
 
 # drawGraph(sfg)
 

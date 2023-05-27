@@ -101,6 +101,7 @@ function _solveLambdaNumeric(
     Optim.optimize((x) -> (residual .= objResX(x); sum(residual .^ 2)), u0, Optim.Options(;iterations=1000))
   end
 
+
   if !Optim.converged(r)
     @warn "Optim did not converge:" r maxlog=10
   end
@@ -334,11 +335,11 @@ DevNotes
 - TODO refactor relationship and common fields between (CCW, FMd, CPT, CalcFactor)
 """
 function _buildCalcFactorLambdaSample(
+  destVarVals::AbstractVector,
   ccwl::CommonConvWrapper,
   smpid::Integer,
-  target,
-  measurement_ = ccwl.measurement;
-  # fmd_::FactorMetadata = cpt_.factormetadata;
+  target, # partials no longer on coordinates at this level # = view(destVarVals[smpid], ccwl.partialDims), # target = view(ccwl.varValsAll[ccwl.varidx[]][smpid], ccwl.partialDims),
+  measurement_, # since JL@v1.9, don't use default ccwl.measurement here, must pass from caller
   _slack = nothing,
 )
   #
@@ -348,9 +349,9 @@ function _buildCalcFactorLambdaSample(
   # DevNotes, also see new `hyporecipe` approach (towards consolidation CCW CPT FMd CF...)
 
   # build a view to the decision variable memory
-  varValsHypo = ccwl.varValsAll[ccwl.activehypo]
+  varValsHypo = ccwl.varValsAll[][ccwl.hyporecipe.activehypo]
   # tup = tuple(varParams...)
-  # nms = keys(ccwl.varValsAll)[cpt_.activehypo]
+  # nms = keys(ccwl.varValsAll[])[cpt_.activehypo]
   # varValsHypo = NamedTuple{nms,typeof(tup)}(tup)
 
   # prepare fmd according to hypo selection
@@ -363,7 +364,7 @@ function _buildCalcFactorLambdaSample(
   #                         fmd_.cachedata  )
   #
   # get the operational CalcFactor object
-  cf = _buildCalcFactor(ccwl, smpid, varValsHypo, ccwl.activehypo)
+  cf = _buildCalcFactor(ccwl, smpid, varValsHypo, ccwl.hyporecipe.activehypo)
   # new dev work on CalcFactor
   # cf = CalcFactor(ccwl.usrfnc!, _fmd_, smpid, 
   #                 varValsHypo)
@@ -374,6 +375,7 @@ function _buildCalcFactorLambdaSample(
 
   # build static lambda
   unrollHypo! = if _slack === nothing
+    # DESIGN DECISION WAS MADE THAT CALCFACTOR CALLS DO NOT DO INPLACE CHANGES TO ARGUMENTS, INSTEAD USING ISBITSTYPEs!!!!!!!!!
     () -> cf(measurement_[smpid], map(vvh -> getindex(vvh, smpid), varValsHypo)...)
   else
     # slack is used to shift the residual away from the natural "zero" tension position of a factor, 
@@ -406,10 +408,11 @@ DevNotes
 - TODO perhaps consolidate perturbation with inflation or nullhypo
 """
 function _solveCCWNumeric!(
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}};
+  destVarVals::AbstractVector,
+  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  _slack = nothing;
   perturb::Real = 1e-10,
   # testshuffle::Bool=false,
-  _slack = nothing,
 ) where {N_, F <: AbstractRelative, S, T}
   #
 
@@ -421,18 +424,27 @@ function _solveCCWNumeric!(
   islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
   # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
 
+  # NOTE the factor residual function will receive as input args a slice from ccwl.varValsAll, hence 
+  #  ccwl.varValsAll[][ccwl.varidx[]] and target should point to the same memory; BUT
+  #  remember that during approxConv the graph variable cannot be directly updated and
+  #  a separate deepcopy of the destination (aka target) memory is necessary.
+  #  Choosen solution is to splice together ccwl.varValsAll each time, with destination as 
+  #  deepcopy but other input variables are just point to the source variable values directly. 
   if ccwl.partial
-    target = view(ccwl.varValsAll[ccwl.varidx[]][smpid], ccwl.partialDims)
+    target = view(ccwl.varValsAll[][ccwl.varidx[]][smpid], ccwl.partialDims)
   else
-    target = ccwl.varValsAll[ccwl.varidx[]][smpid];
+    target = ccwl.varValsAll[][ccwl.varidx[]][smpid];
   end
   # build the pre-objective function for this sample's hypothesis selection
   unrollHypo!, _ = _buildCalcFactorLambdaSample(
+      destVarVals,
       ccwl, 
       smpid, 
-      target;
-      _slack = _slack
+      target,
+      ccwl.measurement,
+      _slack,
   )
+
 
   # broadcast updates original view memory location
   ## using CalcFactor legacy path inside (::CalcFactor)
@@ -446,14 +458,15 @@ function _solveCCWNumeric!(
   # TODO small off-manifold perturbation is a numerical workaround only, make on-manifold requires RoME.jl #244
   # use all element dimensions : ==> 1:ccwl.xDim
   # target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
-
   sfidx = ccwl.varidx[]
   # do the parameter search over defined decision variables using Minimization
   if ccwl.partial
-    X = collect(view(ccwl.varValsAll[sfidx][smpid], ccwl.partialDims))
+    X = collect(view(ccwl.varValsAll[][sfidx][smpid], ccwl.partialDims))
   else
-    X = ccwl.varValsAll[sfidx][smpid][ccwl.partialDims]
+    X = ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims]
   end
+  # X = destVarVals[smpid]#[ccwl.partialDims]
+      
   retval = _solveLambdaNumeric(
     getFactorType(ccwl), 
     _hypoObj, 
@@ -470,9 +483,10 @@ function _solveCCWNumeric!(
 
   # insert result back at the correct variable element location
   if ccwl.partial
-    ccwl.varValsAll[sfidx][smpid][ccwl.partialDims] .= retval
+    ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims] .= retval
   else
-    copyto!(ccwl.varValsAll[sfidx][smpid], retval)
+    # copyto!(ccwl.varValsAll[sfidx][smpid], retval)
+    copyto!(destVarVals[smpid][ccwl.partialDims], retval)
   end
 
   return nothing
@@ -481,14 +495,14 @@ end
 # should only be calling a new arg list according to activehypo at start of particle
 # Try calling an existing lambda
 # sensitive to which hypo of course , see #1024
-# need to shuffle content inside .cpt.fmd as well as .varValsAll accordingly
 #
 
 function _solveCCWNumeric!(
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}};
+  destVarVals::AbstractVector,
+  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  _slack = nothing;
   perturb::Real = 1e-10,
   # testshuffle::Bool=false,
-  _slack = nothing,
 ) where {N_, F <: AbstractManifoldMinimize, S, T}
   #
   #   # FIXME, move this check higher and out of smpid loop
@@ -502,11 +516,14 @@ function _solveCCWNumeric!(
   islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
 
   # build the pre-objective function for this sample's hypothesis selection
+  # SUPER IMPORTANT ON PARTIALS, RESIDUAL FUNCTION MUST DEAL WITH PARTIAL AND WILL GET FULL VARIABLE POINTS REGARDLESS
   unrollHypo!, target = _buildCalcFactorLambdaSample(
+    destVarVals,
     ccwl,
     smpid,
-    view(ccwl.varValsAll[ccwl.varidx[]], smpid);
-    _slack = _slack,
+    view(destVarVals, smpid), # SUPER IMPORTANT, this `target` is mem pointer that will be updated by optim library
+    ccwl.measurement,
+    _slack,
   )
 
   # broadcast updates original view memory location
@@ -523,7 +540,7 @@ function _solveCCWNumeric!(
 
   # do the parameter search over defined decision variables using Minimization
   sfidx = ccwl.varidx[]
-  X = ccwl.varValsAll[sfidx][smpid]
+  X = destVarVals[smpid]
   retval = _solveLambdaNumeric(
     getFactorType(ccwl),
     _hypoObj,
@@ -541,7 +558,7 @@ function _solveCCWNumeric!(
   # end
 
   # FIXME insert result back at the correct variable element location
-  ccwl.varValsAll[sfidx][smpid] = retval
+  destVarVals[smpid] = retval
 
   return nothing
 end

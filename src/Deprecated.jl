@@ -119,10 +119,63 @@ function solveGraphParametric2(
   return d, result, flatvar.idx, Σ
 end
 
+##==============================================================================
+## Deprecate code below before v0.35
+##==============================================================================
+
+
+@deprecate _prepCCW(w...;kw...) _createCCW(w...;kw...)
+
+predictbelief(w...;asPartial::Bool=false,kw...) = begin 
+  @warn("predictbelief is deprecated, use propagateBelief instead")
+  bel,ipc = propagateBelief(w...;asPartial,kw...)
+  getPoints(bel), ipc
+end
+
+# """
+#     $SIGNATURES
+
+# This is an old function name that will be replaced by [`propagateBelief`](@ref).
+# """
+# function predictbelief(
+#   dfg::AbstractDFG,
+#   destvert::DFGVariable,
+#   factors::AbstractVector; #{<:DFGFactor};
+#   asPartial::Bool = false,
+#   kw...,
+# )
+#   #
+#   # new
+#   mkd, ifd = propagateBelief(dfg, destvert, factors; kw...)
+
+#   # legacy interface
+#   return getPoints(mkd, asPartial), ifd
+# end
+
+# function predictbelief(
+#   dfg::AbstractDFG,
+#   destlbl::Symbol,
+#   fctlbls::AbstractVector{Symbol};
+#   kw...,
+# )
+#   return predictbelief(
+#     dfg,
+#     getVariable(dfg, destlbl),
+#     map(x -> getFactor(dfg, x), fctlbls);
+#     kw...,
+#   )
+# end
+# #
+
+# function predictbelief(dfg::AbstractDFG, destlbl::Symbol, ::Colon; kw...)
+#   return predictbelief(dfg, destlbl, getNeighbors(dfg, destlbl); kw...)
+# end
+#
 
 ##==============================================================================
 ## Deprecate code below before v0.34
 ##==============================================================================
+
 
 # function CommonConvWrapper(
 #   usrfnc::T,
@@ -204,14 +257,26 @@ function Base.getproperty(ccw::CommonConvWrapper, f::Symbol)
     # return SingleThreaded
   elseif f == :params
     error("CommonConvWrapper.params is deprecated, use .varValsAll instead")
-    return ccw.varValsAll
+    return ccw.varValsAll[]
   elseif f == :vartypes
     @warn "CommonConvWrapper.vartypes is deprecated, use typeof.(getVariableType.(ccw.fullvariables) instead" maxlog=3
     return typeof.(getVariableType.(ccw.fullvariables))
+  elseif f == :hypotheses
+    @warn "CommonConvWrapper.hypotheses is now under ccw.hyporecipe.hypotheses" maxlog=5
+    return ccw.hyporecipe.hypotheses
+  elseif f == :certainhypo
+    @warn "CommonConvWrapper.certainhypo is now under ccw.hyporecipe.certainhypo" maxlog=5
+    return ccw.hyporecipe.certainhypo
+  elseif f == :activehypo
+    @warn "CommonConvWrapper.activehypo is now under ccw.hyporecipe.activehypo" maxlog=5
+    return ccw.hyporecipe.activehypo
   else
     return getfield(ccw, f)
   end
 end
+
+
+
 
 ##==============================================================================
 ## Deprecate code below before v0.35
