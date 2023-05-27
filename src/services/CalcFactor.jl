@@ -504,7 +504,7 @@ function _beforeSolveCCW!(
   F_::Type{<:AbstractRelative},
   ccwl::CommonConvWrapper{F},
   variables::AbstractVector{<:DFGVariable},
-  destVarVals::AbstractVector,
+  # destVarVals::AbstractVector,
   sfidx::Int,
   N::Integer;
   measurement = Vector{Tuple{}}(),
@@ -520,20 +520,28 @@ function _beforeSolveCCW!(
 
   # in forward solve case, important to set which variable is being solved early in this sequence
   ccwl.varidx[] = sfidx
-
+  
   # TBD, order of fmd ccwl cf are a little weird and should be revised.
   # TODO, maxlen should parrot N (barring multi-/nullhypo issues)
   # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
   # ccwl.varidx[] = findfirst(==(solvefor), getLabel.(variables))
   # everybody use maxlen number of points in belief function estimation
   maxlen = maximum((N, length.(ccwl.varValsAll[])...,))
-
-  # not type-stable
-  varvals = [getVal(s; solveKey) for s in variables]
+  
   # splice
-  varvals[sfidx] = destVarVals
+  # should be type stable
+  tvarv = tuple(
+    map(s->getVal(s; solveKey), variables[1:sfidx-1])..., 
+    deepcopy(ccwl.varValsAll[][sfidx]), # destVarVals = deepcopy(ccwl.varValsAll[][sfidx])
+    map(s->getVal(s; solveKey), variables[sfidx+1:end])...,
+    )
+  # not type-stable
+  # varvals = [getVal(s; solveKey) for s in variables]
+  # varvals[sfidx] = destVarVals
   # varvals_ = [varvals[1:sfidx-1]..., destVarVals, varvals[sfidx+1:end]...]
-  tvarv = tuple(varvals...)
+  # tvarv = tuple(varvals...)
+
+
   # @info "TYPES" typeof(ccwl.varValsAll[]) typeof(tvarv)
   ccwl.varValsAll[] = tvarv
   # ccwl.varValsAll[] = map(s->getVal(s; solveKey), tuple(variables...))
@@ -576,7 +584,7 @@ function _beforeSolveCCW!(
   F_::Type{<:AbstractPrior},
   ccwl::CommonConvWrapper{F},
   variables::AbstractVector{<:DFGVariable},
-  destVarVals::AbstractVector,
+  # destVarVals::AbstractVector,
   sfidx::Int,
   N::Integer;
   measurement = Vector{Tuple{}}(),
@@ -611,25 +619,25 @@ end
 function _beforeSolveCCW!(
   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
   Xi::AbstractVector{<:DFGVariable},
-  destVarVals::AbstractVector,
+  # destVarVals::AbstractVector,
   sfidx::Int,
   N::Integer;
   kw...,
 ) where {N_, F <: AbstractRelative, S, T}
   #
-  return _beforeSolveCCW!(F, ccwl, Xi, destVarVals, sfidx, N; kw...)
+  return _beforeSolveCCW!(F, ccwl, Xi, sfidx, N; kw...)
 end
 
 function _beforeSolveCCW!(
   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
   Xi::AbstractVector{<:DFGVariable},
-  destVarVals::AbstractVector,
+  # destVarVals::AbstractVector,
   sfidx::Int,
   N::Integer;
   kw...,
 ) where {N_, F <: AbstractPrior, S, T}
   #
-  return _beforeSolveCCW!(F, ccwl, Xi, destVarVals, sfidx, N; kw...)
+  return _beforeSolveCCW!(F, ccwl, Xi, sfidx, N; kw...)
 end
 
 
