@@ -42,12 +42,13 @@ function calcVariableDistanceExpectedFractional(
   sfidx::Integer,
   certainidx::AbstractVector{<:Integer};
   kappa::Real = 3.0,
-  readonlyVarVals = ccwl.varValsAll[][sfidx]
+  # readonlyVarVals = ccwl.varValsAll[][sfidx]
 )
   #
+  @assert sfidx == ccwl.varidx[] "ccwl.varidx[] is expected to be the same as sfidx"
   varTypes = getVariableType.(ccwl.fullvariables)
   if sfidx in certainidx
-    msst_ = calcStdBasicSpread(varTypes[sfidx], readonlyVarVals)
+    msst_ = calcStdBasicSpread(varTypes[sfidx], ccwl.varValsAll[][sfidx])
     return kappa * msst_
   end
   # @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
@@ -68,7 +69,7 @@ function calcVariableDistanceExpectedFractional(
 
   refMean = getCoordinates(
     varTypes[sfidx],
-    mean(getManifold(varTypes[sfidx]), readonlyVarVals),
+    mean(getManifold(varTypes[sfidx]), ccwl.varValsAll[][sfidx]),
   )
 
   # calc for uncertain and certain
@@ -107,7 +108,7 @@ function addEntropyOnManifold!(
   #allocate to change SMatrix to MMatrix
   X = allocate(get_vector(M, points[1], Xc, DefaultOrthogonalBasis()))
 
-  for idx = 1:length(points)
+  for idx in 1:length(points)
     # build tangent coordinate random
     for dim in dimIdx
       if (p === :) || dim in p
@@ -145,7 +146,7 @@ function computeAcrossHypothesis!(
   sfidx::Int,
   maxlen::Int,
   mani::ManifoldsBase.AbstractManifold; # maniAddOps::Tuple;
-  destinationVarVals = deepcopy(ccwl.varValsAll[][sfidx]),
+  # destinationVarVals = ccwl.varValsAll[][sfidx], # deepcopy
   spreadNH::Real = 5.0,
   inflateCycles::Int = 3,
   skipSolve::Bool = false,
@@ -159,6 +160,7 @@ function computeAcrossHypothesis!(
   activehypo = hyporecipe.activehypo
   certainidx = hyporecipe.certainidx
 
+  @assert ccwl.varidx[] == sfidx "duplicate registers for solve for index should be the same in ccw.varidx"
   @assert ccwl.hyporecipe.certainhypo == hyporecipe.certainidx "expected hyporecipe.certainidx to be the same as cached in ccw"
   for (hypoidx, vars) in activehypo
     count += 1
@@ -171,7 +173,8 @@ function computeAcrossHypothesis!(
         ccwl.hyporecipe.activehypo[:] = vars
       # end
 
-      addEntr = view(destinationVarVals, allelements[count])
+      # ccwl.varValsAll[][ccwl.varidx[]] should be an alternate/duplicate memory from getVal(variable; solveKey)
+      addEntr = view(ccwl.varValsAll[][ccwl.varidx[]], allelements[count]) # destinationVarVals
 
       # do proposal inflation step, see #1051
       # consider duplicate convolution approximations for inflation off-zero
@@ -183,7 +186,7 @@ function computeAcrossHypothesis!(
           sfidx,
           certainidx;
           kappa = ccwl.inflation,
-          readonlyVarVals = destinationVarVals,
+          # readonlyVarVals = ccwl.varValsAll[][ccwl.varidx[]],
         )
         addEntropyOnManifold!(
           mani,
@@ -197,7 +200,7 @@ function computeAcrossHypothesis!(
         if skipSolve
           @warn("skipping numerical solve operation")
         else
-          approxConvOnElements!(destinationVarVals, ccwl, allelements[count], _slack)
+          approxConvOnElements!(ccwl.varValsAll[][ccwl.varidx[]], ccwl, allelements[count], _slack)
         end
       end
     elseif hypoidx != sfidx && hypoidx != 0
@@ -206,22 +209,22 @@ function computeAcrossHypothesis!(
       # sfidx=2, hypoidx=3:  2 should take a value from 3
       # sfidx=3, hypoidx=2:  3 should take a value from 2
       # DEBUG sfidx=2, hypoidx=1 -- bad when do something like multihypo=[0.5;0.5] -- issue 424
-      # destinationVarVals[:,allelements[count]] = view(ccwl.varValsAll[hypoidx],:,allelements[count])
+      # ccwl.varValsAll[][ccwl.varidx[]][:,allelements[count]] = view(ccwl.varValsAll[hypoidx],:,allelements[count])
       # NOTE make alternative case only operate as null hypo
-      addEntr = view(destinationVarVals, allelements[count])
+      addEntr = view(ccwl.varValsAll[][ccwl.varidx[]], allelements[count])
       # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist =
-        calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx; kappa = spreadNH,readonlyVarVals = destinationVarVals)
+        calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx; kappa = spreadNH) #,readonlyVarVals = ccwl.varValsAll[][ccwl.varidx[]])
       addEntropyOnManifold!(mani, addEntr, 1:getDimension(mani), spreadDist)
 
     elseif hypoidx == 0
       # basically do nothing since the factor is not active for these allelements[count]
       # inject more entropy in nullhypo case
       # add noise (entropy) to spread out search in convolution proposals
-      addEntr = view(destinationVarVals, allelements[count])
+      addEntr = view(ccwl.varValsAll[][ccwl.varidx[]], allelements[count])
       # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist =
-        calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx; kappa = spreadNH, readonlyVarVals = destinationVarVals)
+        calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx; kappa = spreadNH) #, readonlyVarVals = ccwl.varValsAll[][ccwl.varidx[]])
       # # make spread (1σ) equal to mean distance of other fractionals
       addEntropyOnManifold!(mani, addEntr, 1:getDimension(mani), spreadDist)
     else
@@ -337,8 +340,7 @@ function evalPotentialSpecific(
   # add user desired measurement values if 0 < length
   # 2023Q2, ccwl.varValsAll always points at the variable.VND.val memory locations
   #  remember when doing approxConv to make a deepcopy of the destination memory first.
-  destinationVarVals = deepcopy(ccwl.varValsAll[][sfidx])
-  maxlen = _beforeSolveCCW!(ccwl, variables, destinationVarVals, sfidx, N; solveKey, needFreshMeasurements, measurement)
+  maxlen = _beforeSolveCCW!(ccwl, variables, sfidx, N; solveKey, needFreshMeasurements, measurement)
   
   # Check which variables have been initialized
   isinit = map(x -> isInitialized(x), variables)
@@ -367,7 +369,7 @@ function evalPotentialSpecific(
     sfidx,
     maxlen,
     mani;
-    destinationVarVals,
+    # destinationVarVals,
     spreadNH,
     inflateCycles,
     skipSolve,
@@ -415,8 +417,7 @@ function evalPotentialSpecific(
   #
   
   # Prep computation variables
-  destinationVarVals = deepcopy(ccwl.varValsAll[][sfidx])
-  maxlen = _beforeSolveCCW!(ccwl, variables, destinationVarVals, sfidx, N; solveKey, needFreshMeasurements, measurement)
+  maxlen = _beforeSolveCCW!(ccwl, variables, sfidx, N; solveKey, needFreshMeasurements, measurement)
 
   # # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
@@ -622,7 +623,6 @@ function _evalFactorTemporary!(
   solveKey::Symbol = :default,
   newFactor::Bool = true,
   _slack = nothing,
-  # FIXME ON FIRE ADD destinationVarVals,
   buildgraphkw...,
 )
   #
