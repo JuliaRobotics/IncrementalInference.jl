@@ -68,13 +68,27 @@ doautoinit!(fg ,:l1)
 doautoinit!(fg ,:l2)
 doautoinit!(fg ,:l3)
 
-# a_,b_ = IIF._checkVarValPointers(fg, getLabel(f1))
-
 
 # make sure approxConv is as expected
 @test isInitialized.(fg, [:l0;:l1;:l2;:l3]) |> all
+x0_beforeConv = getVal(fg, :x0) |> deepcopy
+
+# do the computation
 X0 = approxConvBelief(fg, getLabel(f1), :x0)
 # smpls = sampleFactor(fg, f1.label,10)
+
+# check that the x0 variable memory has not be changed
+@test all(norm.(x0_beforeConv - getVal(fg, :x0)) .< 1e-10)
+
+# specifically after approxConv to :x0
+a_,b_ = IIF._checkVarValPointers(fg, getLabel(f1))
+# deep copy on destination memory for x0, given just did approxConv to x0s
+@test a_[1] != b_[1]
+@test a_[2] == b_[2]
+@test a_[3] == b_[3]
+@test a_[4] == b_[4]
+@test a_[5] == b_[5]
+
 
 ##
 
@@ -83,7 +97,6 @@ X0 = approxConvBelief(fg, getLabel(f1), :x0)
 @test 0.1 < X0([l1])[1]
 @test 0.1 < X0([l2])[1]
 @test 0.1 < X0([l3])[1]
-
 
 
 # Add second pose

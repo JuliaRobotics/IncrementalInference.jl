@@ -237,6 +237,8 @@ end
 #   for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = ah; end
 #   approxConvOnElements!(ccwl, allelements[count])
 
+
+
 # TODO what about nullhypo in recipe (when .mhidx[smpid]==0)?
 # TODO figure out how best to combine with computeAcrossHypothesis!
 function _calcIPCRelative(
@@ -319,8 +321,8 @@ function evalPotentialSpecific(
   measurement::AbstractVector = Tuple[]; # TODO make this a concrete type
   needFreshMeasurements::Bool = true,    # superceeds over measurement
   solveKey::Symbol = :default,
-  sfidx::Integer=findfirst(==(solvefor), getLabel.(variables)),
-  destinationVarVals = deepcopy(ccwl.varValsAll[][sfidx]),
+  sfidx::Integer = findfirst(==(solvefor), getLabel.(variables)),
+  # destinationVarVals = deepcopy(ccwl.varValsAll[][sfidx]),
   N::Int = 0 < length(measurement) ? length(measurement) : maximum(Npts.(getBelief.(variables, solveKey))),
   spreadNH::Real = 3.0,
   inflateCycles::Int = 3,
@@ -330,32 +332,32 @@ function evalPotentialSpecific(
   _slack = nothing,
 ) where {T <: AbstractFactor}
   #
-
+  
   # Prep computation variables
   # add user desired measurement values if 0 < length
   # 2023Q2, ccwl.varValsAll always points at the variable.VND.val memory locations
-  #  remember when doing approxConv to make a deepcopy of the destination memory first. 
-  ccwl.varidx[] = sfidx # NOTE must happen before _beforeSolveCCW! (gets used in there!!!! ARGGG) 
-  maxlen = _beforeSolveCCW!(ccwl, variables, N; solveKey, needFreshMeasurements, measurement)
+  #  remember when doing approxConv to make a deepcopy of the destination memory first.
+  destinationVarVals = deepcopy(ccwl.varValsAll[][sfidx])
+  maxlen = _beforeSolveCCW!(ccwl, variables, destinationVarVals, sfidx, N; solveKey, needFreshMeasurements, measurement)
   
-
   # Check which variables have been initialized
   isinit = map(x -> isInitialized(x), variables)
-
+  
   # assemble how hypotheses should be computed
   # nullSurplus see #1517
   runnullhypo = maximum((ccwl.nullhypo, nullSurplus))
   hyporecipe =
     _prepareHypoRecipe!(ccwl.hyporecipe.hypotheses, maxlen, sfidx, length(variables), isinit, runnullhypo)
-
+  
   # get manifold add operations
   # TODO, make better use of dispatch, see JuliaRobotics/RoME.jl#244
   # addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
   mani = getManifold(variables[sfidx])
-
-  @assert destinationVarVals !== ccwl.varValsAll[][ccwl.varidx[]] "destination of evalPotential for AbstractRelative not be ccwl.varValsAll[sfidx]"
-  @assert destinationVarVals !== getVal(variables[ccwl.varidx[]]) "destination of evalPotential for AbstractRelative not be variable.VND.val"
-
+  
+  # @assert destinationVarVals !== ccwl.varValsAll[][ccwl.varidx[]] "destination of evalPotential for AbstractRelative not be ccwl.varValsAll[sfidx]"
+  # NOTE disabled getVal part of this assert because solveKey may not yet exist in different use cases, new graph or loadDFG etc.
+  # @assert destinationVarVals !== getVal(variables[ccwl.varidx[]]) "destination of evalPotential for AbstractRelative not be variable.VND.val"
+  
   # perform the numeric solutions on the indicated elements
   # FIXME consider repeat solve as workaround for inflation off-zero 
   # NOTE alternate use of ccwl.certainidx to hyporecipe, certainidx = ccwl.hyporecipe.certainhypo
@@ -371,7 +373,7 @@ function evalPotentialSpecific(
     skipSolve,
     _slack,
   )
-
+  
   #
   # FIXME do info per coord
   # ipc_ = _calcIPCRelative(variables, ccwl, hyporecipe, sfidx)
@@ -384,10 +386,9 @@ function evalPotentialSpecific(
       ipc[_i] = 0.0
     end
   end
-
+  
   # return the found points, and info per coord
-  return destinationVarVals, ipc
-  # return ccwl.varValsAll[sfidx], ipc
+  return ccwl.varValsAll[][sfidx], ipc # same memory locazation as (destinationVarVals, ipc)
 end
 
 
@@ -402,6 +403,7 @@ function evalPotentialSpecific(
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
   sfidx::Integer=findfirst(==(solvefor), getLabel.(variables)),
+  # destinationVarVals = deepcopy(ccwl.varValsAll[][sfidx]),
   N::Int = 0 < length(measurement) ? length(measurement) : maximum(Npts.(getBelief.(variables, solveKey))),
   spreadNH::Real = 3.0,
   inflateCycles::Int = 3,
@@ -413,8 +415,8 @@ function evalPotentialSpecific(
   #
   
   # Prep computation variables
-  ccwl.varidx[] = sfidx
-  maxlen = _beforeSolveCCW!(ccwl, variables, N; solveKey, needFreshMeasurements, measurement)
+  destinationVarVals = deepcopy(ccwl.varValsAll[][sfidx])
+  maxlen = _beforeSolveCCW!(ccwl, variables, destinationVarVals, sfidx, N; solveKey, needFreshMeasurements, measurement)
 
   # # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!

@@ -309,7 +309,7 @@ Related
 
 [`getMultihypoDistribution`](@ref)
 """
-isMultihypo(fct::DFGFactor) = isa(_getCCW(fct).hypotheses, Distribution)
+isMultihypo(fct::DFGFactor) = isa(_getCCW(fct).hyporecipe.hypotheses, Distribution)
 
 """
     $SIGNATURES
@@ -320,7 +320,7 @@ Related
 
 isMultihypo
 """
-getMultihypoDistribution(fct::DFGFactor) = _getCCW(fct).hypotheses
+getMultihypoDistribution(fct::DFGFactor) = _getCCW(fct).hyporecipe.hypotheses
 
 """
     $SIGNATURES

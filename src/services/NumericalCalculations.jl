@@ -339,7 +339,7 @@ function _buildCalcFactorLambdaSample(
   ccwl::CommonConvWrapper,
   smpid::Integer,
   target, # partials no longer on coordinates at this level # = view(destVarVals[smpid], ccwl.partialDims), # target = view(ccwl.varValsAll[ccwl.varidx[]][smpid], ccwl.partialDims),
-  measurement_ = ccwl.measurement,
+  measurement_, # since JL@v1.9, don't use default ccwl.measurement here, must pass from caller
   _slack = nothing,
 )
   #
@@ -424,10 +424,16 @@ function _solveCCWNumeric!(
   islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
   # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
 
+  # NOTE the factor residual function will receive as input args a slice from ccwl.varValsAll, hence 
+  #  ccwl.varValsAll[][ccwl.varidx[]] and target should point to the same memory; BUT
+  #  remember that during approxConv the graph variable cannot be directly updated and
+  #  a separate deepcopy of the destination (aka target) memory is necessary.
+  #  Choosen solution is to splice together ccwl.varValsAll each time, with destination as 
+  #  deepcopy but other input variables are just point to the source variable values directly. 
   if ccwl.partial
-    target = view(ccwl.varValsAll[ccwl.varidx[]][smpid], ccwl.partialDims)
+    target = view(ccwl.varValsAll[][ccwl.varidx[]][smpid], ccwl.partialDims)
   else
-    target = ccwl.varValsAll[ccwl.varidx[]][smpid];
+    target = ccwl.varValsAll[][ccwl.varidx[]][smpid];
   end
   # build the pre-objective function for this sample's hypothesis selection
   unrollHypo!, _ = _buildCalcFactorLambdaSample(
@@ -435,7 +441,7 @@ function _solveCCWNumeric!(
       ccwl, 
       smpid, 
       target,
-      # ccwl.measurement,
+      ccwl.measurement,
       _slack,
   )
 
@@ -455,9 +461,9 @@ function _solveCCWNumeric!(
   sfidx = ccwl.varidx[]
   # do the parameter search over defined decision variables using Minimization
   if ccwl.partial
-    X = collect(view(ccwl.varValsAll[sfidx][smpid], ccwl.partialDims))
+    X = collect(view(ccwl.varValsAll[][sfidx][smpid], ccwl.partialDims))
   else
-    X = ccwl.varValsAll[sfidx][smpid][ccwl.partialDims]
+    X = ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims]
   end
   # X = destVarVals[smpid]#[ccwl.partialDims]
       
@@ -467,7 +473,7 @@ function _solveCCWNumeric!(
     ccwl.res, 
     X, 
     islen1
-    )
+  )
 
   # Check for NaNs
   if sum(isnan.(retval)) != 0
@@ -477,7 +483,7 @@ function _solveCCWNumeric!(
 
   # insert result back at the correct variable element location
   if ccwl.partial
-    ccwl.varValsAll[sfidx][smpid][ccwl.partialDims] .= retval
+    ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims] .= retval
   else
     # copyto!(ccwl.varValsAll[sfidx][smpid], retval)
     copyto!(destVarVals[smpid][ccwl.partialDims], retval)

@@ -504,7 +504,8 @@ function _beforeSolveCCW!(
   F_::Type{<:AbstractRelative},
   ccwl::CommonConvWrapper{F},
   variables::AbstractVector{<:DFGVariable},
-  # solvefor::Symbol,
+  destVarVals::AbstractVector,
+  sfidx::Int,
   N::Integer;
   measurement = Vector{Tuple{}}(),
   needFreshMeasurements::Bool = true,
@@ -517,6 +518,9 @@ function _beforeSolveCCW!(
     @debug("cannot prep ccw.param list with length(variables)==0, see DFG #590")
   end
 
+  # in forward solve case, important to set which variable is being solved early in this sequence
+  ccwl.varidx[] = sfidx
+
   # TBD, order of fmd ccwl cf are a little weird and should be revised.
   # TODO, maxlen should parrot N (barring multi-/nullhypo issues)
   # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
@@ -524,7 +528,15 @@ function _beforeSolveCCW!(
   # everybody use maxlen number of points in belief function estimation
   maxlen = maximum((N, length.(ccwl.varValsAll[])...,))
 
-  ccwl.varValsAll[] = map(s->getVal(s; solveKey), tuple(variables...))
+  # not type-stable
+  varvals = [getVal(s; solveKey) for s in variables]
+  # splice
+  varvals[sfidx] = destVarVals
+  # varvals_ = [varvals[1:sfidx-1]..., destVarVals, varvals[sfidx+1:end]...]
+  tvarv = tuple(varvals...)
+  # @info "TYPES" typeof(ccwl.varValsAll[]) typeof(tvarv)
+  ccwl.varValsAll[] = tvarv
+  # ccwl.varValsAll[] = map(s->getVal(s; solveKey), tuple(variables...))
   ## PLAN B, make deep copy of ccwl.varValsAll[ccwl.varidx[]] just before the numerical solve 
 
   # maxlen, ccwl.varidx[] = _updateParamVec(variables, solvefor, ccwl.varValsAll, N; solveKey)
@@ -563,16 +575,19 @@ end
 function _beforeSolveCCW!(
   F_::Type{<:AbstractPrior},
   ccwl::CommonConvWrapper{F},
-  Xi::AbstractVector{<:DFGVariable},
-  # solvefor::Symbol,
+  variables::AbstractVector{<:DFGVariable},
+  destVarVals::AbstractVector,
+  sfidx::Int,
   N::Integer;
   measurement = Vector{Tuple{}}(),
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
 ) where {F <: AbstractFactor} # F might be Mixture
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
+
+  ccwl.varidx[] = sfidx
   # fnc = ccwl.usrfnc!
-  # sfidx = findfirst(getLabel.(Xi) .== solvefor)
+  # sfidx = findfirst(getLabel.(variables) .== solvefor)
   @assert ccwl.varidx[] == 1 "Solving on Prior with CCW should have sfidx=1, priors are unary factors."
   # @assert sfidx == 1 "Solving on Prior with CCW should have sfidx=1, priors are unary factors."
   # ccwl.varidx[] = sfidx
@@ -580,9 +595,9 @@ function _beforeSolveCCW!(
 
   # setup the partial or complete decision variable dimensions for this ccwl object
   # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
-  _setCCWDecisionDimsConv!(ccwl, getDimension(getVariableType(Xi[ccwl.varidx[]])))
+  _setCCWDecisionDimsConv!(ccwl, getDimension(getVariableType(variables[ccwl.varidx[]])))
 
-  solveForPts = getVal(Xi[ccwl.varidx[]]; solveKey)
+  solveForPts = getVal(variables[ccwl.varidx[]]; solveKey)
   maxlen = maximum([N; length(solveForPts); length(ccwl.varValsAll[][ccwl.varidx[]])])  # calcZDim(ccwl); length(measurement[1])
 
   # FIXME do not divert Mixture for sampling
@@ -596,23 +611,25 @@ end
 function _beforeSolveCCW!(
   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
   Xi::AbstractVector{<:DFGVariable},
-  # solvefor::Symbol,
+  destVarVals::AbstractVector,
+  sfidx::Int,
   N::Integer;
   kw...,
 ) where {N_, F <: AbstractRelative, S, T}
   #
-  return _beforeSolveCCW!(F, ccwl, Xi, N; kw...)
+  return _beforeSolveCCW!(F, ccwl, Xi, destVarVals, sfidx, N; kw...)
 end
 
 function _beforeSolveCCW!(
   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
   Xi::AbstractVector{<:DFGVariable},
-  # solvefor::Symbol,
+  destVarVals::AbstractVector,
+  sfidx::Int,
   N::Integer;
   kw...,
 ) where {N_, F <: AbstractPrior, S, T}
   #
-  return _beforeSolveCCW!(F, ccwl, Xi, N; kw...)
+  return _beforeSolveCCW!(F, ccwl, Xi, destVarVals, sfidx, N; kw...)
 end
 
 
