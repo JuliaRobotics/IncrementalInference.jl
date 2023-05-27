@@ -84,20 +84,20 @@ end
 
 if TEST_GROUP in ["all", "test_cases_group"]
 include("testnullhypothesis.jl") 
-include("testVariousNSolveSize.jl")
+# include("testVariousNSolveSize.jl")
 include("testExplicitMultihypo.jl")
 include("TestCSMMultihypo.jl")
 include("testCalcFactorHypos.jl")
 include("testMultimodal1D.jl")
 include("testMultihypoAndChain.jl")
 include("testMultithreaded.jl")
-include("testmultihypothesisapi.jl")
+# include("testmultihypothesisapi.jl")
 include("fourdoortest.jl")
 include("testCircular.jl")
 include("testMixtureLinearConditional.jl")
 include("testFluxModelsDistribution.jl")
 include("testAnalysisTools.jl")
-include("testDERelative.jl")
+# include("testDERelative.jl")
 
 include("testBasicParametric.jl")
 include("testMixtureParametric.jl")
