@@ -390,7 +390,7 @@ function evalPotentialSpecific(
   end
   
   # return the found points, and info per coord
-  return ccwl.varValsAll[][sfidx], ipc # same memory locazation as (destinationVarVals, ipc)
+  return ccwl.varValsAll[][sfidx], ipc
 end
 
 

@@ -504,7 +504,6 @@ function _beforeSolveCCW!(
   F_::Type{<:AbstractRelative},
   ccwl::CommonConvWrapper{F},
   variables::AbstractVector{<:DFGVariable},
-  # destVarVals::AbstractVector,
   sfidx::Int,
   N::Integer;
   measurement = Vector{Tuple{}}(),
@@ -519,46 +518,27 @@ function _beforeSolveCCW!(
   end
 
   # in forward solve case, important to set which variable is being solved early in this sequence
-  ccwl.varidx[] = sfidx
-  
-  # TBD, order of fmd ccwl cf are a little weird and should be revised.
-  # TODO, maxlen should parrot N (barring multi-/nullhypo issues)
   # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
+  ccwl.varidx[] = sfidx
   # ccwl.varidx[] = findfirst(==(solvefor), getLabel.(variables))
+  
+  # TODO, maxlen should parrot N (barring multi-/nullhypo issues)
   # everybody use maxlen number of points in belief function estimation
   maxlen = maximum((N, length.(ccwl.varValsAll[])...,))
   
-  # splice
-  # should be type stable
+  # splice, type stable
+  # make deepcopy of destination variable since multiple approxConv type computations should happen from different factors to the same variable
   tvarv = tuple(
     map(s->getVal(s; solveKey), variables[1:sfidx-1])..., 
-    deepcopy(ccwl.varValsAll[][sfidx]), # destVarVals = deepcopy(ccwl.varValsAll[][sfidx])
+    deepcopy(getVal(variables[sfidx]; solveKey)), # deepcopy(ccwl.varValsAll[][sfidx]),
     map(s->getVal(s; solveKey), variables[sfidx+1:end])...,
-    )
-  # not type-stable
-  # varvals = [getVal(s; solveKey) for s in variables]
-  # varvals[sfidx] = destVarVals
-  # varvals_ = [varvals[1:sfidx-1]..., destVarVals, varvals[sfidx+1:end]...]
-  # tvarv = tuple(varvals...)
-
-
-  # @info "TYPES" typeof(ccwl.varValsAll[]) typeof(tvarv)
+  )
   ccwl.varValsAll[] = tvarv
-  # ccwl.varValsAll[] = map(s->getVal(s; solveKey), tuple(variables...))
-  ## PLAN B, make deep copy of ccwl.varValsAll[ccwl.varidx[]] just before the numerical solve 
 
-  # maxlen, ccwl.varidx[] = _updateParamVec(variables, solvefor, ccwl.varValsAll, N; solveKey)
-  # # TODO, ensure all values (not just multihypothesis) is correctly used from here
-  # for (i,varVal) in enumerate(_varValsAll)
-  #   resize!(ccwl.varValsAll[i],length(varVal))
-  #   ccwl.varValsAll[i][:] = varVal #TODO Kyk hierna: this looks like it will effectively result in vnd.val memory being overwritten 
-  # end
 
-  # TODO better consolidation still possible
-  # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
-  # FIXME, confirm this is hypo sensitive selection from variables, better to use double indevariablesng for clarity getDimension(ccw.fullvariables[hypoidx[ccwl.varidx[]]])
-  xDim = getDimension(getVariableType(variables[ccwl.varidx[]])) # ccwl.varidx[]
-  # ccwl.xDim = xDim
+  # FIXME, confirm what happens when this is a partial dimension factor?  See #1246
+  # indexing over all possible hypotheses
+  xDim = getDimension(getVariableType(variables[ccwl.varidx[]]))
   # TODO maybe refactor different type or api call?
 
   # setup the partial or complete decision variable dimensions for this ccwl object
@@ -567,7 +547,6 @@ function _beforeSolveCCW!(
   _setCCWDecisionDimsConv!(ccwl, xDim)
 
   # FIXME do not divert Mixture for sampling
-
   updateMeasurement!(ccwl, maxlen; needFreshMeasurements, measurement, _allowThreads=true)
 
   # used in ccw functor for AbstractRelativeMinimize
@@ -584,7 +563,6 @@ function _beforeSolveCCW!(
   F_::Type{<:AbstractPrior},
   ccwl::CommonConvWrapper{F},
   variables::AbstractVector{<:DFGVariable},
-  # destVarVals::AbstractVector,
   sfidx::Int,
   N::Integer;
   measurement = Vector{Tuple{}}(),
@@ -594,12 +572,7 @@ function _beforeSolveCCW!(
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
 
   ccwl.varidx[] = sfidx
-  # fnc = ccwl.usrfnc!
-  # sfidx = findfirst(getLabel.(variables) .== solvefor)
   @assert ccwl.varidx[] == 1 "Solving on Prior with CCW should have sfidx=1, priors are unary factors."
-  # @assert sfidx == 1 "Solving on Prior with CCW should have sfidx=1, priors are unary factors."
-  # ccwl.varidx[] = sfidx
-  # sfidx = 1 #  why hardcoded to 1, maybe for only the AbstractPrior case here
 
   # setup the partial or complete decision variable dimensions for this ccwl object
   # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase

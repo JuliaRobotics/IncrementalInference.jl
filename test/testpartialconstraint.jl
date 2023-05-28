@@ -263,7 +263,8 @@ global v2, fg
 X2pts_ = getVal(v2)
 @cast X2pts[i,j] := X2pts_[j][i]
 # NOTE, SUPER IMPORTANT, predictbelief returns full dimension points (even if only partials are sent in for proposals)
-val_, = predictbelief(fg, v2, [f4], N=N)
+valB, = propagateBelief(fg, v2, [f4], N=N)
+val_ = getPoints(valB, false)
 @cast val[i,j] := val_[j][i]
 @show X2pts_[1]';
 @show val_[1]';
@@ -275,7 +276,8 @@ val_, = predictbelief(fg, v2, [f4], N=N)
 # partial pairwise
 X2pts_ = getVal(v2)
 @cast X2pts[i,j] := X2pts_[j][i]
-val_, = predictbelief(fg, v2, [f3], N=N)
+valB, = propagateBelief(fg, v2, [f3], N=N)
+val_ = getPoints(valB, false)
 @cast val[i,j] := val_[j][i]
 @test norm(X2pts[1,:] - val[1,:]) < 1e-10
 @test 0.0 < norm(X2pts[2,:] - val[2,:])
@@ -286,7 +288,8 @@ val2_ = getVal(v1)
 ##
 
 # combination of partials
-val_, = predictbelief(fg, v2, [f3;f4], N=N)
+valB, = propagateBelief(fg, v2, [f3;f4], N=N)
+val_ = getPoints(valB, false)
 @cast val[i,j] := val_[j][i]
 # plotKDE(kde!(val),levels=3)
 @test norm(Statistics.mean(val,dims=2)[1] .- [-20.0]) < 1

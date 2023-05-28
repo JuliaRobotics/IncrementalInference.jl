@@ -56,7 +56,6 @@ include("testDefaultDeconv.jl")
 
 include("testPartialFactors.jl")
 include("testPartialPrior.jl")
-@error "MUST RESTORE PARTIALCONSTRAINT TEST"
 include("testpartialconstraint.jl")
 include("testPartialNH.jl")
 include("testMixturePrior.jl")
