@@ -43,8 +43,8 @@ include("testTreeFunctions.jl")
 include("testTreeSaveLoad.jl")
 
 @error "Gradient tests must be updated and restored for new ccw.varValsAll[]"
-# include("testGradientUtils.jl")
-# include("testFactorGradients.jl")
+include("testGradientUtils.jl")
+include("testFactorGradients.jl")
 include("testSpecialSampler.jl") # TODO, rename, refine
 include("testNLsolve.jl")
 include("testCommonConvWrapper.jl")
@@ -97,7 +97,7 @@ include("testCircular.jl")
 include("testMixtureLinearConditional.jl")
 include("testFluxModelsDistribution.jl")
 include("testAnalysisTools.jl")
-# include("testDERelative.jl")
+include("testDERelative.jl")
 
 include("testBasicParametric.jl")
 include("testMixtureParametric.jl")
