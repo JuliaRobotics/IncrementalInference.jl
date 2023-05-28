@@ -164,6 +164,7 @@ end
 # start a new factor graph
 N = 200
 fg = initfg()
+getSolverParams(fg).N = N
 
 ##
 
@@ -179,7 +180,7 @@ f1 = addFactor!(fg,[:x1],pr)
 
 initAll!(fg)
 
-# Juno.breakpoint("/home/dehann/.julia/v0.5/IncrementalInference/src/ApproxConv.jl",121)
+@test length(getVal(fg, :x1)) == N 
 
 pts_ = approxConv(fg, Symbol(f1.label), :x1, N=N)
 @cast pts[i,j] := pts_[j][i]

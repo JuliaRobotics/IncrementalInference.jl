@@ -175,7 +175,7 @@ M = Manifolds.SpecialEuclidean(3)
 e0 = ArrayPartition([0,0,0.], Matrix(_Rot.RotXYZ(0,0,0.)))
 
 x0 = deepcopy(e0)
-Cq = 0.5*randn(6)
+Cq = 0.25*randn(6)
 q  = exp(M,e0,hat(M,e0,Cq))
 
 f(p) = distance(M, p, q)^2
