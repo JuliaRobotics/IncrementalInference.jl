@@ -57,7 +57,7 @@ include("testDefaultDeconv.jl")
 include("testPartialFactors.jl")
 include("testPartialPrior.jl")
 @error "MUST RESTORE PARTIALCONSTRAINT TEST"
-# include("testpartialconstraint.jl")
+include("testpartialconstraint.jl")
 include("testPartialNH.jl")
 include("testMixturePrior.jl")
 
@@ -84,14 +84,14 @@ end
 
 if TEST_GROUP in ["all", "test_cases_group"]
 include("testnullhypothesis.jl") 
-# include("testVariousNSolveSize.jl")
+include("testVariousNSolveSize.jl")
 include("testExplicitMultihypo.jl")
 include("TestCSMMultihypo.jl")
 include("testCalcFactorHypos.jl")
 include("testMultimodal1D.jl")
 include("testMultihypoAndChain.jl")
 include("testMultithreaded.jl")
-# include("testmultihypothesisapi.jl")
+include("testmultihypothesisapi.jl")
 include("fourdoortest.jl")
 include("testCircular.jl")
 include("testMixtureLinearConditional.jl")
