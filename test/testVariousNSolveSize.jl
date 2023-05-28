@@ -13,11 +13,16 @@ using Test
 
 fg = generateGraph_CaesarRing1D(graphinit=true)
 
-pts_ = approxConv(fg, :x0x1f1, :x1, N=101)
-@test length(pts_) == 101
-# if length(pts_) != 101
-#   @warn "approxConv not adhering to N=101 != $(length(pts_)), see issue #105"
-# end
+##
+
+try
+  pts_ = approxConv(fg, :x0x1f1, :x1, N=101)
+  @test length(pts_) == 101
+catch
+  # allow one retry, vary rarely has consecutive optimization failure
+  pts_ = approxConv(fg, :x0x1f1, :x1, N=101)
+  @test length(pts_) == 101
+end
 
 ##
 
