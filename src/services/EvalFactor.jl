@@ -21,7 +21,7 @@ function approxConvOnElements!(
   #
   for n in elements
     ccwl.particleidx[] = n
-    _solveCCWNumeric!(destVarVals, ccwl, _slack)
+    _solveCCWNumeric!(ccwl, _slack)
   end
   return nothing
 end
@@ -47,7 +47,9 @@ function calcVariableDistanceExpectedFractional(
   #
   @assert sfidx == ccwl.varidx[] "ccwl.varidx[] is expected to be the same as sfidx"
   varTypes = getVariableType.(ccwl.fullvariables)
+  # @info "WHAT" isdefined(ccwl.varValsAll[][sfidx], 101)
   if sfidx in certainidx
+    # on change of destination variable count N, only use the defined values before a solve
     msst_ = calcStdBasicSpread(varTypes[sfidx], ccwl.varValsAll[][sfidx])
     return kappa * msst_
   end
@@ -335,7 +337,7 @@ function evalPotentialSpecific(
   _slack = nothing,
 ) where {T <: AbstractFactor}
   #
-  
+
   # Prep computation variables
   # add user desired measurement values if 0 < length
   # 2023Q2, ccwl.varValsAll always points at the variable.VND.val memory locations
@@ -369,7 +371,6 @@ function evalPotentialSpecific(
     sfidx,
     maxlen,
     mani;
-    # destinationVarVals,
     spreadNH,
     inflateCycles,
     skipSolve,

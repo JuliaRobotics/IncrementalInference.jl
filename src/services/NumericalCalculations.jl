@@ -335,7 +335,7 @@ DevNotes
 - TODO refactor relationship and common fields between (CCW, FMd, CPT, CalcFactor)
 """
 function _buildCalcFactorLambdaSample(
-  destVarVals::AbstractVector,
+  # destVarVals::AbstractVector,
   ccwl::CommonConvWrapper,
   smpid::Integer,
   target, # partials no longer on coordinates at this level # = view(destVarVals[smpid], ccwl.partialDims), # target = view(ccwl.varValsAll[ccwl.varidx[]][smpid], ccwl.partialDims),
@@ -373,17 +373,23 @@ function _buildCalcFactorLambdaSample(
   # reset the residual vector
   fill!(ccwl.res, 0.0) # Roots->xDim | Minimize->zDim
 
+  _getindex_anyn(vec, n) = begin
+    len = length(vec)
+    # 1:len or any random element in that range
+    getindex(vec, n <= len ? n : rand(1:len) )
+  end
+
   # build static lambda
   unrollHypo! = if _slack === nothing
     # DESIGN DECISION WAS MADE THAT CALCFACTOR CALLS DO NOT DO INPLACE CHANGES TO ARGUMENTS, INSTEAD USING ISBITSTYPEs!!!!!!!!!
-    () -> cf(measurement_[smpid], map(vvh -> getindex(vvh, smpid), varValsHypo)...)
+    () -> cf(measurement_[smpid], map(vvh -> _getindex_anyn(vvh, smpid), varValsHypo)...)
   else
     # slack is used to shift the residual away from the natural "zero" tension position of a factor, 
     # this is useful when calculating factor gradients at a variety of param locations resulting in "non-zero slack" of the residual.
     # see `IIF.calcFactorResidualTemporary`
     # NOTE this minus operation assumes _slack is either coordinate or tangent vector element (not a manifold or group element)
     () ->
-      cf(measurement_[smpid], map(vvh -> getindex(vvh, smpid), varValsHypo)...) .- _slack
+      cf(measurement_[smpid], map(vvh -> _getindex_anyn(vvh, smpid), varValsHypo)...) .- _slack
   end
 
   return unrollHypo!, target
@@ -408,7 +414,7 @@ DevNotes
 - TODO perhaps consolidate perturbation with inflation or nullhypo
 """
 function _solveCCWNumeric!(
-  destVarVals::AbstractVector,
+  # destVarVals::AbstractVector,
   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
   _slack = nothing;
   perturb::Real = 1e-10,
@@ -437,7 +443,7 @@ function _solveCCWNumeric!(
   end
   # build the pre-objective function for this sample's hypothesis selection
   unrollHypo!, _ = _buildCalcFactorLambdaSample(
-      destVarVals,
+      # destVarVals,
       ccwl, 
       smpid, 
       target,
@@ -477,7 +483,7 @@ function _solveCCWNumeric!(
 
   # Check for NaNs
   if sum(isnan.(retval)) != 0
-    @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(retval)\n"
+    @error "$(ccwl.usrfnc!), got NaN, smpid = $(smpid), r=$(retval)\n"
     return nothing
   end
 
@@ -486,7 +492,7 @@ function _solveCCWNumeric!(
     ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims] .= retval
   else
     # copyto!(ccwl.varValsAll[sfidx][smpid], retval)
-    copyto!(destVarVals[smpid][ccwl.partialDims], retval)
+    copyto!(ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims], retval)
   end
 
   return nothing
@@ -498,7 +504,7 @@ end
 #
 
 function _solveCCWNumeric!(
-  destVarVals::AbstractVector,
+  # destVarVals::AbstractVector,
   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
   _slack = nothing;
   perturb::Real = 1e-10,
@@ -509,7 +515,7 @@ function _solveCCWNumeric!(
   # _checkErrorCCWNumerics(ccwl, testshuffle)
 
   #
-  thrid = Threads.threadid()
+  # thrid = Threads.threadid()
 
   smpid = ccwl.particleidx[]
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
@@ -518,10 +524,10 @@ function _solveCCWNumeric!(
   # build the pre-objective function for this sample's hypothesis selection
   # SUPER IMPORTANT ON PARTIALS, RESIDUAL FUNCTION MUST DEAL WITH PARTIAL AND WILL GET FULL VARIABLE POINTS REGARDLESS
   unrollHypo!, target = _buildCalcFactorLambdaSample(
-    destVarVals,
+    # destVarVals,
     ccwl,
     smpid,
-    view(destVarVals, smpid), # SUPER IMPORTANT, this `target` is mem pointer that will be updated by optim library
+    view(ccwl.varValsAll[][ccwl.varidx[]], smpid), # SUPER IMPORTANT, this `target` is mem pointer that will be updated by optim library
     ccwl.measurement,
     _slack,
   )
@@ -540,7 +546,7 @@ function _solveCCWNumeric!(
 
   # do the parameter search over defined decision variables using Minimization
   sfidx = ccwl.varidx[]
-  X = destVarVals[smpid]
+  X = ccwl.varValsAll[][ccwl.varidx[]][smpid]
   retval = _solveLambdaNumeric(
     getFactorType(ccwl),
     _hypoObj,
@@ -558,7 +564,7 @@ function _solveCCWNumeric!(
   # end
 
   # FIXME insert result back at the correct variable element location
-  destVarVals[smpid] = retval
+  ccwl.varValsAll[][ccwl.varidx[]][smpid] = retval
 
   return nothing
 end

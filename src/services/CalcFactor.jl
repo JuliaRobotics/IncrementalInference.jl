@@ -522,19 +522,31 @@ function _beforeSolveCCW!(
   ccwl.varidx[] = sfidx
   # ccwl.varidx[] = findfirst(==(solvefor), getLabel.(variables))
   
-  # TODO, maxlen should parrot N (barring multi-/nullhypo issues)
-  # everybody use maxlen number of points in belief function estimation
-  maxlen = maximum((N, length.(ccwl.varValsAll[])...,))
-  
   # splice, type stable
   # make deepcopy of destination variable since multiple approxConv type computations should happen from different factors to the same variable
   tvarv = tuple(
-    map(s->getVal(s; solveKey), variables[1:sfidx-1])..., 
-    deepcopy(getVal(variables[sfidx]; solveKey)), # deepcopy(ccwl.varValsAll[][sfidx]),
-    map(s->getVal(s; solveKey), variables[sfidx+1:end])...,
+    map(s->getVal(s; solveKey), variables[1:ccwl.varidx[]-1])..., 
+    deepcopy(getVal(variables[ccwl.varidx[]]; solveKey)), # deepcopy(ccwl.varValsAll[][sfidx]),
+    map(s->getVal(s; solveKey), variables[ccwl.varidx[]+1:end])...,
   )
   ccwl.varValsAll[] = tvarv
+  
+  # TODO, maxlen should parrot N (barring multi-/nullhypo issues)
+  # everybody use maxlen number of points in belief function estimation
+  maxlen = maximum((N, length.(ccwl.varValsAll[])...,))
 
+  # if solving for more or less points in destination
+  if N != length(ccwl.varValsAll[][ccwl.varidx[]])
+    varT = getVariableType(variables[ccwl.varidx[]])
+    # make vector right length
+    resize!(ccwl.varValsAll[][ccwl.varidx[]], N)
+    # define any new memory that might have been allocated
+    for i in 1:N
+      if !isdefined(ccwl.varValsAll[][ccwl.varidx[]], i)
+        ccwl.varValsAll[][ccwl.varidx[]][i] = getPointDefault(varT)
+      end
+    end
+  end
 
   # FIXME, confirm what happens when this is a partial dimension factor?  See #1246
   # indexing over all possible hypotheses
