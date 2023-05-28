@@ -26,7 +26,7 @@ end
 
 ##
 
-@error "MUST RESTORE SOLVE WITH DIFFERENT SIZE N"
+@error "MUST RESTORE SOLVE WITH DIFFERENT SIZE N, see #1722"
 if false
 # Change to N=150 AFTER constructing the graph, so solver must update the belief sample values during inference
 getSolverParams(fg).N = 150
