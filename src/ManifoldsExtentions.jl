@@ -88,6 +88,18 @@ function Manifolds.exp!(M::NPowerManifold, q, p, X)
   return q
 end
 
+function Manifolds.allocate_result(M::NPowerManifold, f, x...)
+  if length(x) == 0
+    return [Manifolds.allocate_result(M.manifold, f) for _ in Manifolds.get_iterator(M)]
+  else
+    return copy(x[1])
+  end
+end
+
+function Manifolds.allocate_result(::NPowerManifold, ::typeof(get_vector), p, X)
+  return copy(p)
+end
+
 ## ================================================================================================
 ## ArrayPartition getPointIdentity (identity_element)
 ## ================================================================================================

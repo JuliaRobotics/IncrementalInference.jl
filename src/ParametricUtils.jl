@@ -191,7 +191,7 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
 end
 
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
-function (cfp::CalcFactorMahalanobis{1, D, L, Nothing})(variables...) where {D, L}# AbstractArray{T} where T <: Real
+@inline function (cfp::CalcFactorMahalanobis{1, D, L, Nothing})(variables...) where {D, L}# AbstractArray{T} where T <: Real
   # call the user function 
   res = cfp.calcfactor!(cfp.meas..., variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
@@ -264,8 +264,9 @@ end
 ## GraphSolveStructures
 ## ================================================================================================
 
-function getVariableTypesCount(fg::AbstractDFG)
-  vars = getVariables(fg)
+getVariableTypesCount(fg::AbstractDFG) = getVariableTypesCount(getVariables(fg))
+
+function getVariableTypesCount(vars::Vector{<:DFGVariable})
   typedict = OrderedDict{DataType, Int}()
   alltypes = OrderedDict{DataType, Vector{Symbol}}()
   for v in vars
@@ -278,7 +279,7 @@ function getVariableTypesCount(fg::AbstractDFG)
   end
   #TODO tuple or vector?
   # vartypes = tuple(keys(typedict)...)
-  vartypes = collect(keys(typedict))
+  vartypes::Vector{DataType} = collect(keys(typedict))
   return vartypes, typedict, alltypes
 end
 
@@ -686,6 +687,10 @@ function solveConditionalsParametric(
 
   # result = Optim.optimize((x)->_totalCost(fg, flatvar, [x;sX]), fX, alg, options)
   result = Optim.optimize(tdtotalCost, fX, alg, options)
+
+  if !Optim.converged(result)
+    @warn "Optim did not converge:" result maxlog=10
+  end
 
   rv = Optim.minimizer(result)
 

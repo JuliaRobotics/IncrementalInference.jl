@@ -85,17 +85,14 @@ function getSample(cf::CalcFactor{<:ManifoldFactor{M, Z}}) where {M, Z}
   else
     ret = rand(cf.factor.Z)
   end
+  # ret = sampleTangent(M, cf.factor.Z)
   #return coordinates as we do not know the point here #TODO separate Lie group
   return ret
 end
 
 # function (cf::CalcFactor{<:ManifoldFactor{<:AbstractDecoratorManifold}})(Xc, p, q)
-function (cf::CalcFactor{<:ManifoldFactor})(Xc, p, q)
-  # function (cf::ManifoldFactor)(X, p, q)
-  M = cf.manifold # .factor.M
-  # M = cf.M
-  X = hat(M, p, Xc)
-  return distanceTangent2Point(M, X, p, q)
+function (cf::CalcFactor{<:ManifoldFactor})(X, p, q)
+  return distanceTangent2Point(cf.manifold, X, p, q)
 end
 
 ## ======================================================================================

@@ -120,5 +120,7 @@ vnd = getVariableSolverData(fg, :x1)
 @test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
 @test all(is_point.(Ref(M), vnd.val))
 
+
+IIF.solveGraphParametric!(fg)
 ##
 end
