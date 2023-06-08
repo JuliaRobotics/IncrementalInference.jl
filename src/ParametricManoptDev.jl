@@ -185,52 +185,16 @@ function solve_RLM(
   fro_p = first.(getVal.(frontal_vars, solveKey = :parametric))
   sep_p::Vector{eltype(fro_p)} = first.(getVal.(fg, separators, solveKey = :parametric))
 
+  #cost and jacobian functions
+  # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
+  costF! = CostF_RLM!(calcfacs, fro_p, sep_p)
+  # jacobian of function for Riemannian Levenberg-Marquardt
+  jacF! = JacF_RLM!(MM, costF!)
+  
+  num_components = length(jacF!.res)
 
-  if false
-    # non-in-place version updated bolow to in-place
-    fullp::Vector{eltype(fro_p)} = [fro_p; sep_p] 
-    # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
-    function costF_RLM(M::AbstractManifold, p::Vector{T}) where T
-      fullp[1:length(p)] .= p
-      return Vector(mapreduce(f -> f(fullp), vcat, calcfacs))
-    end
-
-    # jacobian of function for Riemannian Levenberg-Marquardt
-    function jacF_RLM(
-      M::AbstractManifold,
-      p;
-      basis_domain::AbstractBasis = DefaultOrthogonalBasis(),
-    )
-      X0 = zeros(manifold_dimension(M))
-      J = FiniteDiff.finite_difference_jacobian(
-        x -> costF_RLM(M, exp(M, p, get_vector(M, p, x, basis_domain))),
-        X0,
-      )
-      # J = ForwardDiff.jacobian(
-      #     x -> costF_RLM(M, exp(M, p, get_vector(M, p, x, basis_domain))),
-      #     X0,
-      # )
-      return J
-    end
-
-    # 0.296639 seconds (2.46 M allocations: 164.722 MiB, 12.83% gc time)
-    p0 = deepcopy(fro_p)
-    lm_r = LevenbergMarquardt(MM, costF_RLM, jacF_RLM, p0)
-
-    # 81.185117 seconds (647.20 M allocations: 41.680 GiB, 8.61% gc time)
-  else
-    # 74.420872 seconds (567.70 M allocations: 34.698 GiB, 8.30% gc time, 0.66% compilation time)
-    #cost and jacobian functions
-    # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
-    costF! = CostF_RLM!(calcfacs, fro_p, sep_p)
-    # jacobian of function for Riemannian Levenberg-Marquardt
-    jacF! = JacF_RLM!(MM, costF!)
-    
-    num_components = length(jacF!.res)
-
-    p0 = deepcopy(fro_p)
-    lm_r = LevenbergMarquardt(MM, costF!, jacF!, p0, num_components; evaluation=InplaceEvaluation())
-  end
+  p0 = deepcopy(fro_p)
+  lm_r = LevenbergMarquardt(MM, costF!, jacF!, p0, num_components; evaluation=InplaceEvaluation())
 
   return vartypeslist, lm_r
 end
