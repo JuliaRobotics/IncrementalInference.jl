@@ -88,6 +88,18 @@ function Manifolds.exp!(M::NPowerManifold, q, p, X)
   return q
 end
 
+function Manifolds.compose!(M::NPowerManifold, x, p, q)
+  rep_size = representation_size(M.manifold)
+  for i in Manifolds.get_iterator(M)
+    x[i] = compose(
+      M.manifold,
+      Manifolds._read(M, rep_size, p, i),
+      Manifolds._read(M, rep_size, q, i),
+    )
+  end
+  return x
+end
+
 function Manifolds.allocate_result(M::NPowerManifold, f, x...)
   if length(x) == 0
     return [Manifolds.allocate_result(M.manifold, f) for _ in Manifolds.get_iterator(M)]

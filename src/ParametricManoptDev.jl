@@ -1,5 +1,9 @@
 using Manopt
 using FiniteDiff
+using SparseDiffTools
+using BlockArrays
+using SparseArrays
+
 # using ForwardDiff
 # using Zygote
 
@@ -18,9 +22,10 @@ struct CalcFactorManopt{
   varOrderIdxs::Vector{Int}
   meas::MEAS
   iΣ::SMatrix{D, D, Float64, L}
+  sqrt_iΣ::SMatrix{D, D, Float64, L}
 end
 
-function CalcFactorManopt(fg, fct::DFGFactor, varIntLabel)
+function CalcFactorManopt(fct::DFGFactor, varIntLabel)
   fac_func = getFactorType(fct)
   varOrder = getVariableOrder(fct)
 
@@ -45,6 +50,7 @@ function CalcFactorManopt(fg, fct::DFGFactor, varIntLabel)
   # make sure its an SMatrix
   iΣ = convert(SMatrix{dims, dims}, _iΣ)
 
+  sqrt_iΣ = convert(SMatrix{dims, dims}, sqrt(iΣ))
   # cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
 
   calcf = CalcFactor(
@@ -57,13 +63,14 @@ function CalcFactorManopt(fg, fct::DFGFactor, varIntLabel)
     0,
     getManifold(fac_func),
   )
-  return CalcFactorManopt(fct.label, calcf, varOrder, varOrderIdxs, meas, iΣ)
+  return CalcFactorManopt(fct.label, calcf, varOrder, varOrderIdxs, meas, iΣ, sqrt_iΣ)
 end
 
 function (cfm::CalcFactorManopt)(p)
   meas = cfm.meas
   idx = cfm.varOrderIdxs
   return cfm.calcfactor!(meas, p[idx]...)
+  # return cfm.sqrt_iΣ * cfm.calcfactor!(meas, p[idx]...)
 end
 
 # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
@@ -95,7 +102,7 @@ function JacF_RLM!(M, costF!; basis_domain::AbstractBasis = DefaultOrthogonalBas
   
   p = costF!.points
   
-  res = mapreduce(f -> f(p), vcat, costF!.costfuns)
+  res = Vector(mapreduce(f -> f(p), vcat, costF!.costfuns))
 
   X0 = zeros(manifold_dimension(M))
   
@@ -125,25 +132,52 @@ function (jacF!::JacF_RLM!)(
 
   fill!(X0, 0)
 
-  # J .= FiniteDiff.finite_difference_jacobian(
-  #   Xc -> jacF!.costF!(M, jacF!.res, exp!(M, q, p, get_vector!(M, X, p, Xc, basis_domain))),
-  #   X0,
-  # )
+  # TODO maybe move to struct
+  colorvec = matrix_colors(J)
+
+  # ϵ = getPointIdentity(M)
+  # function jaccost(res, Xc)
+  #   exp!(M, q, ϵ, get_vector!(M, X, p, Xc, basis_domain))
+  #   compose!(M, q, p, q)
+  #   jacF!.costF!(M, res, q)
+  # end
+
   FiniteDiff.finite_difference_jacobian!(
     J,
     (res,Xc) -> jacF!.costF!(M, res, exp!(M, q, p, get_vector!(M, X, p, Xc, basis_domain))),
-    X0,
+    X0;
+    colorvec
   )
+  # @warn "1" Matrix(J)[1:3,1:3]
+  @warn "2" Matrix(J)[4:6,1:6]
   return J
 end
 
+function getSparsityPattern(fg)
+  biadj = getBiadjacencyMatrix(fg)
+
+  vdims = getDimension.(getVariable.(fg, biadj.varLabels))
+  fdims = getDimension.(getFactor.(fg, biadj.facLabels))
+
+  sm = map(eachindex(biadj.B)) do i
+    vdim = vdims[i[2]]
+    fdim = fdims[i[1]]
+    if biadj.B[i] > 0
+      trues(fdim,vdim)
+    else
+      falses(fdim,vdim)
+    end
+  end
+
+  return SparseMatrixCSC(mortar(sm))
+
+end
 
 function solve_RLM(
   fg,
   frontals::Vector{Symbol} = ls(fg),
   separators::Vector{Symbol} = setdiff(ls(fg), frontals);
 )
-  @error "#FIXME, use covariances" maxlog=1
 
   # get the subgraph formed by all frontals, separators and fully connected factors
   varlabels = union(frontals, separators)
@@ -162,7 +196,7 @@ function solve_RLM(
   # varIntLabel_frontals = filter(p->first(p) in frontals, varIntLabel)
   # varIntLabel_separators = filter(p->first(p) in separators, varIntLabel)
 
-  calcfacs = CalcFactorManopt.(fg, facs, Ref(varIntLabel))
+  calcfacs = CalcFactorManopt.(facs, Ref(varIntLabel))
 
   
   # get the manifold and variable types
@@ -194,7 +228,92 @@ function solve_RLM(
   num_components = length(jacF!.res)
 
   p0 = deepcopy(fro_p)
-  lm_r = LevenbergMarquardt(MM, costF!, jacF!, p0, num_components; evaluation=InplaceEvaluation())
+
+  initial_residual_values = zeros(num_components)
+  initial_jacF = zeros(num_components, manifold_dimension(MM))
+# 
+  #HEX solve
+  # sparse J 0.025235 seconds (133.65 k allocations: 9.964 MiB
+  # dense  J 0.022079 seconds (283.54 k allocations: 18.146 MiB)
+
+  lm_r = LevenbergMarquardt(
+    MM,
+    costF!,
+    jacF!,
+    p0,
+    num_components;
+    evaluation=InplaceEvaluation(),
+    initial_residual_values,
+    initial_jacF,
+  )
+
+  return vartypeslist, lm_r
+end
+
+function solve_RLM_sparse(fg)
+
+  # get the subgraph formed by all frontals, separators and fully connected factors
+  varlabels = ls(fg)
+  faclabels = lsf(fg)
+
+  facs = getFactor.(fg, faclabels)
+
+  # so the subgraph consists of varlabels(frontals + separators) and faclabels
+
+  varIntLabel = OrderedDict(zip(varlabels, collect(1:length(varlabels))))
+
+  calcfacs = CalcFactorManopt.(facs, Ref(varIntLabel))
+
+  # get the manifold and variable types
+  vars = getVariable.(fg, varlabels)
+  vartypes, vartypecount, vartypeslist = getVariableTypesCount(vars)
+  
+  PMs = map(vartypes) do vartype
+    N = vartypecount[vartype]
+    G = getManifold(vartype)
+    return IIF.NPowerManifold(G, N)
+  end
+  M = ProductManifold(PMs...)
+  
+  #
+  #FIXME 
+  @assert length(M.manifolds) == 1 "#FIXME, this only works with 1 manifold type component"
+  MM = M.manifolds[1]
+
+  # inital values and separators from fg
+  fro_p = first.(getVal.(vars, solveKey = :parametric))
+  sep_p = eltype(fro_p)[]
+
+  #cost and jacobian functions
+  # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
+  costF! = CostF_RLM!(calcfacs, fro_p, sep_p)
+  # jacobian of function for Riemannian Levenberg-Marquardt
+  jacF! = JacF_RLM!(MM, costF!)
+  
+  num_components = length(jacF!.res)
+
+  p0 = deepcopy(fro_p)
+
+  initial_residual_values = zeros(num_components)
+  initial_jacF = Float64.(getSparsityPattern(fg)) 
+
+  #HEX solve
+  # sparse J 0.025235 seconds (133.65 k allocations: 9.964 MiB
+  # dense  J 0.022079 seconds (283.54 k allocations: 18.146 MiB)
+
+  # 9.125818 seconds (86.35 M allocations: 6.412 GiB, 14.34% gc time)
+  # 0.841720 seconds (7.96 M allocations: 751.825 MiB)
+
+  lm_r = LevenbergMarquardt(
+    MM,
+    costF!,
+    jacF!,
+    p0,
+    num_components;
+    evaluation=InplaceEvaluation(),
+    initial_residual_values,
+    initial_jacF,
+  )
 
   return vartypeslist, lm_r
 end
