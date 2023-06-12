@@ -69,8 +69,7 @@ end
 function (cfm::CalcFactorManopt)(p)
   meas = cfm.meas
   idx = cfm.varOrderIdxs
-  return cfm.calcfactor!(meas, p[idx]...)
-  # return cfm.sqrt_iΣ * cfm.calcfactor!(meas, p[idx]...)
+  return cfm.sqrt_iΣ * cfm.calcfactor!(meas, p[idx]...)
 end
 
 # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
@@ -84,7 +83,7 @@ function CostF_RLM!(costfuns::Vector{<:CalcFactorManopt}, frontals_p::Vector{T},
   return CostF_RLM!(points, costfuns)
 end
 
-function (cfm::CostF_RLM!)(M::AbstractManifold, x, p::Vector{T}) where T
+function (cfm::CostF_RLM!)(M::AbstractManifold, x::Vector, p::Vector{T}) where T
   cfm.points[1:length(p)] .= p
   return x .= mapreduce(f -> f(cfm.points), vcat, cfm.costfuns)
 end
@@ -148,8 +147,6 @@ function (jacF!::JacF_RLM!)(
     X0;
     colorvec
   )
-  # @warn "1" Matrix(J)[1:3,1:3]
-  @warn "2" Matrix(J)[4:6,1:6]
   return J
 end
 
