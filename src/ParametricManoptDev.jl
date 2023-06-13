@@ -292,7 +292,7 @@ function solve_RLM_sparse(fg)
   p0 = deepcopy(fro_p)
 
   initial_residual_values = zeros(num_components)
-  initial_jacF = Float64.(getSparsityPattern(fg)) 
+  initial_jacobian_f = Float64.(getSparsityPattern(fg)) 
 
   #HEX solve
   # sparse J 0.025235 seconds (133.65 k allocations: 9.964 MiB
@@ -309,7 +309,7 @@ function solve_RLM_sparse(fg)
     num_components;
     evaluation=InplaceEvaluation(),
     initial_residual_values,
-    initial_jacF,
+    initial_jacobian_f,
   )
 
   return vartypeslist, lm_r
