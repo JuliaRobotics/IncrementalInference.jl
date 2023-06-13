@@ -193,8 +193,7 @@ function solve_RLM(
   # varIntLabel_frontals = filter(p->first(p) in frontals, varIntLabel)
   # varIntLabel_separators = filter(p->first(p) in separators, varIntLabel)
 
-  calcfacs = CalcFactorManopt.(facs, Ref(varIntLabel))
-
+  calcfacs = map(f->CalcFactorManopt(f, varIntLabel), facs)
   
   # get the manifold and variable types
   frontal_vars = getVariable.(fg, frontals)
