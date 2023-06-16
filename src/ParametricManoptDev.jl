@@ -174,6 +174,7 @@ function solve_RLM(
   fg,
   frontals::Vector{Symbol} = ls(fg),
   separators::Vector{Symbol} = setdiff(ls(fg), frontals);
+  kwargs...
 )
 
   # get the subgraph formed by all frontals, separators and fully connected factors
@@ -226,7 +227,7 @@ function solve_RLM(
   p0 = deepcopy(fro_p)
 
   initial_residual_values = zeros(num_components)
-  initial_jacF = zeros(num_components, manifold_dimension(MM))
+  initial_jacobian_f = zeros(num_components, manifold_dimension(MM))
 # 
   #HEX solve
   # sparse J 0.025235 seconds (133.65 k allocations: 9.964 MiB
@@ -240,13 +241,14 @@ function solve_RLM(
     num_components;
     evaluation=InplaceEvaluation(),
     initial_residual_values,
-    initial_jacF,
+    initial_jacobian_f,
+    kwargs...
   )
 
   return vartypeslist, lm_r
 end
 
-function solve_RLM_sparse(fg)
+function solve_RLM_sparse(fg; kwargs...)
 
   # get the subgraph formed by all frontals, separators and fully connected factors
   varlabels = ls(fg)
@@ -309,6 +311,7 @@ function solve_RLM_sparse(fg)
     evaluation=InplaceEvaluation(),
     initial_residual_values,
     initial_jacobian_f,
+    kwargs...
   )
 
   return vartypeslist, lm_r
