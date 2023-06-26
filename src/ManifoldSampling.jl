@@ -23,7 +23,7 @@ function sampleTangent(x::ManifoldKernelDensity, p = mean(x))
 end
 
 # Sampling Distributions
-function sampleTangent(M::AbstractManifold, z::Distribution, p, basis::AbstractBasis)
+function sampleTangent(M::AbstractManifold, z::Distribution, p = getPointIdentity(M), basis::AbstractBasis = DefaultOrthogonalBasis())
   return get_vector(M, p, rand(z), basis)
 end
 
