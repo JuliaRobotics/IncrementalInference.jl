@@ -80,12 +80,14 @@ DFG.getManifold(f::ManifoldFactor) = f.M
 function getSample(cf::CalcFactor{<:ManifoldFactor{M, Z}}) where {M, Z}
   #TODO @assert dim == cf.factor.Z's dimension
   #TODO investigate use of SVector if small dims
-  if M isa ManifoldKernelDensity
-    ret = sample(cf.factor.Z.belief)[1]
-  else
-    ret = rand(cf.factor.Z)
-  end
-  # ret = sampleTangent(M, cf.factor.Z)
+  # if M isa ManifoldKernelDensity
+  #   ret = sample(cf.factor.Z.belief)[1]
+  # else
+  #   ret = rand(cf.factor.Z)
+  # end
+
+  # ASSUME this function is only used for RelativeFactors which must use measurements as tangents
+  ret = sampleTangent(cf.factor.M, cf.factor.Z)
   #return coordinates as we do not know the point here #TODO separate Lie group
   return ret
 end

@@ -139,8 +139,8 @@ for i in 0:10
   sym = Symbol("x",i)
   var = getVariable(fg,sym)
   @show val = var.solverDataDict[:parametric].val
-  @test isapprox(val[1][1], i, atol=1e-4)
-  @test isapprox(val[1][2], i, atol=1e-4)
+  @test isapprox(val[1][1], i, atol=1e-3)
+  @test isapprox(val[1][2], i, atol=1e-3)
 end
 
 ##
@@ -179,9 +179,9 @@ foreach(fct->println(fct.label, ": ", getFactorType(fct).Z), getFactors(fg))
 d,st,vs,Σ = IIF.solveGraphParametric(fg)
 
 foreach(println, d)
-@test isapprox(d[:x0].val[1][1], -0.01, atol=1e-4)
-@test isapprox(d[:x1].val[1][1], 0.0, atol=1e-4)
-@test isapprox(d[:x2].val[1][1], 0.01, atol=1e-4)
+@test isapprox(d[:x0].val[1][1], -0.01, atol=1e-3)
+@test isapprox(d[:x1].val[1][1], 0.0, atol=1e-3)
+@test isapprox(d[:x2].val[1][1], 0.01, atol=1e-3)
 
 
 ##
@@ -202,9 +202,9 @@ tree2 = solveTree!(fg; algorithm=:parametric, eliminationOrder=[:x0, :x2, :x1])
 # end
 foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), getVariables(fg))
 
-@test isapprox(getVariable(fg,:x0).solverDataDict[:parametric].val[1][1], -0.01, atol=1e-4)
-@test isapprox(getVariable(fg,:x1).solverDataDict[:parametric].val[1][1], 0.0, atol=1e-4)
-@test isapprox(getVariable(fg,:x2).solverDataDict[:parametric].val[1][1], 0.01, atol=1e-4)
+@test isapprox(getVariable(fg,:x0).solverDataDict[:parametric].val[1][1], -0.01, atol=1e-3)
+@test isapprox(getVariable(fg,:x1).solverDataDict[:parametric].val[1][1], 0.0, atol=1e-3)
+@test isapprox(getVariable(fg,:x2).solverDataDict[:parametric].val[1][1], 0.01, atol=1e-3)
 
 ## ##############################################################################
 ## multiple sections

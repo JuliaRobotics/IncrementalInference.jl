@@ -388,9 +388,23 @@ doautoinit!(fg, :x0)
 @test length(getPoints(getBelief(fg, :x0))) == getSolverParams(fg).N # 120
 # @info "PassThrough transfers the full point count to the graph, unless a product is calculated during the propagateBelief step."
 
+
+
+## check the partials magic
+
+dens, ipc = propagateBelief(fg,:x0,:)
+testv = deepcopy(getVariable(fg, :x0))
+setBelief!(testv, dens, true, ipc)
+
+
 ##
 
-solveGraph!(fg);
+smtasks = Task[]
+solveGraph!(fg; smtasks);
+# hists = fetchCliqHistoryAll!(smtasks)
+# printCSMHistoryLogical(hists)
+# hists_ = deepcopy(hists)
+# repeatCSMStep!(hists, 1, 6)
 
 @test 120 == length(getPoints(fg, :x0))
 

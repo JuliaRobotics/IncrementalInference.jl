@@ -4,22 +4,25 @@ using Manifolds
 using StaticArrays
 using Test
 
+import Manifolds: identity_element
+
 ##
 
 @testset "Test Sphere(2) prior and relative" begin
 ##
 
 #FIXME REMOVE! this is type piracy and not a good idea, for testing only!!!
-Manifolds.identity_element(::Sphere{2, ℝ}, p::Vector{Float64}) = Float64[1,0,0]
+Manifolds.identity_element(::Sphere{2, ℝ}) = SVector(1.0, 0.0, 0.0)
+Manifolds.identity_element(::Sphere{2, ℝ}, p::AbstractVector) = SVector(1.0, 0.0, 0.0) # Float64[1,0,0]
 
 Base.convert(::Type{<:Tuple}, M::Sphere{2, ℝ}) = (:Euclid, :Euclid)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{Sphere{2, ℝ}})  = (:Euclid, :Euclid)
 
-@defVariable Sphere2 Sphere(2) [1.0, 0.0, 0.0]
+@defVariable Sphere2 Sphere(2) SVector(1.0, 0.0, 0.0)
 M = getManifold(Sphere2)
 @test M == Sphere(2)
 pT = getPointType(Sphere2)
-@test pT == Vector{Float64}
+@test pT == SVector{3,Float64}
 pϵ = getPointIdentity(Sphere2)
 @test pϵ == [1.0, 0.0, 0.0]
 
