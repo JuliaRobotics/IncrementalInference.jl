@@ -18,8 +18,13 @@ function Statistics.cov(
   return cov(getManifold(vartype), ptsArr; basis, kwargs...)
 end
 
-function calcStdBasicSpread(vartype::InferenceVariable, ptsArr::Vector{P}) where {P}
-  σ = std(vartype, ptsArr)
+function calcStdBasicSpread(vartype::InferenceVariable, ptsArr::AbstractVector) # {P}) where {P}
+  _makemutable(s) = s
+  _makemutable(s::StaticArray{Tuple{S},T,N}) where {S,T,N} = MArray{Tuple{S},T,N,S}(s)
+  _makemutable(s::SMatrix{N,N,T,D}) where {N,T,D} = MMatrix{N,N,T,D}(s)
+  
+  # silly conversion since Manifolds.std internally replicates eltype ptsArr which doesn't work on StaticArrays
+  σ = std(vartype, _makemutable.(ptsArr))
 
   #if no std yet, set to 1
   msst = 1e-10 < σ ? σ : 1.0

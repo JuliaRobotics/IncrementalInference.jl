@@ -15,7 +15,7 @@ M = SpecialEuclidean(3)
 Mr = M.manifold[2]
 pPq = ArrayPartition(zeros(3), exp(Mr, Identity(Mr), hat(Mr, Identity(Mr), w)))
 rPc_ = exp(M, Identity(M), hat(M, Identity(M), [zeros(3);w]))
-rPc = ArrayPartition(rPc_.parts[1], rPc_.parts[2])
+rPc = ArrayPartition(rPc_.x[1], rPc_.x[2])
 
 @test isapprox(pPq.x[1], rPc.x[1])
 @test isapprox(pPq.x[2], rPc.x[2])

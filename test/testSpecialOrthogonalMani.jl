@@ -1,5 +1,6 @@
 using DistributedFactorGraphs
 using IncrementalInference
+using LineSearches
 using Manifolds
 using StaticArrays
 using Test
@@ -14,13 +15,13 @@ Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{2}) = (:Circular,)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{2}})  = (:Circular,)
 
 # @defVariable SpecialOrthogonal2 SpecialOrthogonal(2) @MMatrix([1.0 0.0; 0.0 1.0])
-@defVariable SpecialOrthogonal2 SpecialOrthogonal(2) [1.0 0.0; 0.0 1.0]
+@defVariable SpecialOrthogonal2 SpecialOrthogonal(2) SMatrix{2,2}(1.0, 0.0, 0.0, 1.0)
 
 M = getManifold(SpecialOrthogonal2)
 @test M == SpecialOrthogonal(2)
 pT = getPointType(SpecialOrthogonal2)
 # @test pT == MMatrix{2, 2, Float64, 4}
-@test pT == Matrix{Float64}
+@test pT == SMatrix{2,2,Float64,4}
 pϵ = getPointIdentity(SpecialOrthogonal2)
 @test pϵ == [1.0 0.0; 0.0 1.0]
 
@@ -43,6 +44,7 @@ vnd = getVariableSolverData(fg, :x0)
 
 
 ##
+
 v1 = addVariable!(fg, :x1, SpecialOrthogonal2)
 mf = ManifoldFactor(SpecialOrthogonal(2), MvNormal([pi], [0.01]))
 f = addFactor!(fg, [:x0, :x1], mf)
@@ -69,13 +71,13 @@ Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{3}) = (:Euclid, :Euclid, :Euc
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{3}})  =  (:Euclid, :Euclid, :Euclid)
 
 # @defVariable SO3 SpecialOrthogonal(3) @MMatrix([1.0 0.0; 0.0 1.0])
-@defVariable SO3 SpecialOrthogonal(3) [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0]
+@defVariable SO3 SpecialOrthogonal(3) SMatrix{3,3}(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0)
 
 M = getManifold(SO3)
 @test M == SpecialOrthogonal(3)
 pT = getPointType(SO3)
 # @test pT == MMatrix{2, 2, Float64, 4}
-@test pT == Matrix{Float64}
+@test pT == SMatrix{3,3,Float64,9}
 pϵ = getPointIdentity(SO3)
 @test pϵ == [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0]
 
@@ -98,6 +100,7 @@ points = sampleFactor(fg, :x0f1, 100)
 std(SpecialOrthogonal(3), points)
 
 ##
+
 v1 = addVariable!(fg, :x1, SO3)
 mf = ManifoldFactor(SpecialOrthogonal(3), MvNormal([0.01,0.01,0.01], [0.01,0.01,0.01]))
 f = addFactor!(fg, [:x0, :x1], mf)
@@ -121,6 +124,10 @@ vnd = getVariableSolverData(fg, :x1)
 @test all(is_point.(Ref(M), vnd.val))
 
 
-IIF.solveGraphParametric!(fg)
+IIF.solveGraphParametric!(
+  fg;
+  algorithmkwargs=(;alphaguess = LineSearches.InitialStatic(), linesearch = LineSearches.MoreThuente())
+)
+
 ##
 end
