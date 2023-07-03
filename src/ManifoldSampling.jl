@@ -23,6 +23,7 @@ function sampleTangent(x::ManifoldKernelDensity, p = mean(x))
 end
 
 # Sampling Distributions
+# assumes M is a group and will break for Riemannian, but leaving that enhancement as TODO
 function sampleTangent(M::AbstractManifold, z::Distribution, p = getPointIdentity(M), basis::AbstractBasis = DefaultOrthogonalBasis())
   return get_vector(M, p, rand(z), basis)
 end
