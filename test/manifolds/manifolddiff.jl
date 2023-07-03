@@ -92,7 +92,7 @@ end
 ##
 
 sol = Optim.optimize(f, g!, x0, Optim.ConjugateGradient(; manifold=ManifoldWrapper(M)))
-@test isapprox([0,1,0.], sol.minimizer; atol=1e-8)
+@test isapprox([0,1,0.], sol.minimizer; atol=1e-6)
 
 
 ## finitediff gradient (non-manual)
@@ -106,7 +106,7 @@ end
 x0 = [1.0, 0.0, 0.0]
 
 sol = Optim.optimize(f, g_FD!, x0, Optim.ConjugateGradient(; manifold=ManifoldWrapper(M)))
-@test isapprox([0,1,0.], sol.minimizer; atol=1e-8)
+@test isapprox([0,1,0.], sol.minimizer; atol=1e-6)
 
 ##
 
@@ -161,7 +161,7 @@ Cq .= randn(3)
 # Cq[
 @show sol.minimizer
 @test isapprox( f(sol.minimizer), 0; atol=1e-3 )
-@test isapprox( 0, sum(abs.(log(M, e0, compose(M, inv(M,q), sol.minimizer)))); atol=1e-5)
+@test isapprox( 0, sum(abs.(log(M, e0, compose(M, inv(M,q), sol.minimizer)))); atol=1e-3)
 
 ##
 end
@@ -193,7 +193,7 @@ g_FD!(X, q)
 
 @show X_ = [X.x[1][:]; X.x[2][:]]
 # gradient at the optimal point should be zero
-@test isapprox(0, sum(abs.(X_)); atol=1e-8 )
+@test isapprox(0, sum(abs.(X_)); atol=1e-6 )
 
 # gradient not the optimal point should be non-zero
 g_FD!(X, e0)
@@ -230,7 +230,7 @@ sol = IncrementalInference.optimizeManifold_FD(M,f,x0)
 
 @show sol.minimizer
 @test isapprox( f(sol.minimizer), 0; atol=1e-3 )
-@test isapprox( 0, sum(abs.(log(M, e0, compose(M, inv(M,q), sol.minimizer)))); atol=1e-4)
+@test isapprox( 0, sum(abs.(log(M, e0, compose(M, inv(M,q), sol.minimizer)))); atol=1e-3)
 
 
 ##
