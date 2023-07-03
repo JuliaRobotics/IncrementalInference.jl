@@ -23,7 +23,7 @@ function calcStdBasicSpread(vartype::InferenceVariable, ptsArr::AbstractVector) 
   _makemutable(s::StaticArray{Tuple{S},T,N}) where {S,T,N} = MArray{Tuple{S},T,N,S}(s)
   _makemutable(s::SMatrix{N,N,T,D}) where {N,T,D} = MMatrix{N,N,T,D}(s)
   
-  # silly conversion since Manifolds.std internally replicates eltype ptsArr which doesn't work on StaticArrays
+  # FIXME, silly conversion since Manifolds.std internally replicates eltype ptsArr which doesn't work on StaticArrays
   σ = std(vartype, _makemutable.(ptsArr))
 
   #if no std yet, set to 1
