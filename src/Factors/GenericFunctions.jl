@@ -69,8 +69,10 @@ export ManifoldFactor
 # For now, `Z` is on the tangent space in coordinates at the point used in the factor.
 # For groups just the lie algebra
 # As transition it will be easier this way, we can reevaluate
-struct ManifoldFactor{M <: AbstractManifold, T <: SamplableBelief} <:
-       AbstractManifoldMinimize #AbstractFactor
+struct ManifoldFactor{
+  M <: AbstractManifold, 
+  T <: SamplableBelief
+} <: AbstractManifoldMinimize
   M::M
   Z::T
 end
@@ -80,22 +82,21 @@ DFG.getManifold(f::ManifoldFactor) = f.M
 function getSample(cf::CalcFactor{<:ManifoldFactor{M, Z}}) where {M, Z}
   #TODO @assert dim == cf.factor.Z's dimension
   #TODO investigate use of SVector if small dims
-  if M isa ManifoldKernelDensity
-    ret = sample(cf.factor.Z.belief)[1]
-  else
-    ret = rand(cf.factor.Z)
-  end
+  # if M isa ManifoldKernelDensity
+  #   ret = sample(cf.factor.Z.belief)[1]
+  # else
+  #   ret = rand(cf.factor.Z)
+  # end
+
+  # ASSUME this function is only used for RelativeFactors which must use measurements as tangents
+  ret = sampleTangent(cf.factor.M, cf.factor.Z)
   #return coordinates as we do not know the point here #TODO separate Lie group
   return ret
 end
 
 # function (cf::CalcFactor{<:ManifoldFactor{<:AbstractDecoratorManifold}})(Xc, p, q)
-function (cf::CalcFactor{<:ManifoldFactor})(Xc, p, q)
-  # function (cf::ManifoldFactor)(X, p, q)
-  M = cf.manifold # .factor.M
-  # M = cf.M
-  X = hat(M, p, Xc)
-  return distanceTangent2Point(M, X, p, q)
+function (cf::CalcFactor{<:ManifoldFactor})(X, p, q)
+  return distanceTangent2Point(cf.manifold, X, p, q)
 end
 
 ## ======================================================================================

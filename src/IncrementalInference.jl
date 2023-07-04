@@ -213,6 +213,7 @@ include("CliqueStateMachine/services/CliqStateMachineUtils.jl")
 #EXPERIMENTAL parametric
 include("ParametricCSMFunctions.jl")
 include("ParametricUtils.jl")
+include("ParametricManoptDev.jl")
 include("services/MaxMixture.jl")
 
 #X-stroke

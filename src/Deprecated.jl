@@ -119,6 +119,29 @@ function solveGraphParametric2(
   return d, result, flatvar.idx, Σ
 end
 
+
+##==============================================================================
+## Deprecate code below before v0.35
+##==============================================================================
+
+
+
+function _solveLambdaNumeric(
+  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  objResX::Function,
+  residual::AbstractVector{<:Real},
+  u0::AbstractVector{<:Real},
+  islen1::Bool = false,
+) where {N_, F <: AbstractRelativeRoots, S, T}
+  #
+
+  #
+  r = NLsolve.nlsolve((res, x) -> res .= objResX(x), u0; inplace = true) #, ftol=1e-14)
+
+  #
+  return r.zero
+end
+
 ##==============================================================================
 ## Deprecate code below before v0.35
 ##==============================================================================
