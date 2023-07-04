@@ -6,7 +6,7 @@ $(TYPEDEF)
 
 Default linear offset between two scalar variables.
 """
-struct EuclidDistance{T <: SamplableBelief} <: AbstractRelativeMinimize
+struct EuclidDistance{T <: SamplableBelief} <: AbstractManifoldMinimize # AbstractRelativeMinimize
   Z::T
 end
 

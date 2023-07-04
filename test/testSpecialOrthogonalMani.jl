@@ -126,7 +126,8 @@ vnd = getVariableSolverData(fg, :x1)
 # 23Q2 default HagerZhang fails with `AssertionError: isfinite(phi_c) && isfinite(dphi_c)`, using alternate LineSearch
 IIF.solveGraphParametric!(
   fg;
-  algorithmkwargs=(;alphaguess = LineSearches.InitialStatic(), linesearch = LineSearches.MoreThuente())
+  algorithmkwargs=(;alphaguess = LineSearches.InitialStatic(), linesearch = LineSearches.MoreThuente()),
+  verbose=true
 )
 
 ##

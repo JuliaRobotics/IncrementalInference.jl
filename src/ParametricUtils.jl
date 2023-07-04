@@ -515,6 +515,7 @@ end
 
 function solveGraphParametric(
   fg::AbstractDFG;
+  verbose::Bool = false,
   computeCovariance::Bool = true,
   solveKey::Symbol = :parametric,
   autodiff = :forward,
@@ -571,6 +572,8 @@ function solveGraphParametric(
   tdtotalCost = Optim.TwiceDifferentiable(gsc, initValues; autodiff = autodiff)
 
   result = Optim.optimize(tdtotalCost, initValues, alg, options)
+  !verbose ? nothing : @show(result)
+
   rv = Optim.minimizer(result)
 
   # optionally compute hessian for covariance
@@ -827,6 +830,7 @@ function DFG.solveGraphParametric!(
   init::Bool = true, 
   solveKey::Symbol = :parametric, # FIXME, moot since only :parametric used for parametric solves
   initSolveKey::Symbol = :default, 
+  verbose = false,
   kwargs...
 )
   # make sure variables has solverData, see #1637
@@ -837,7 +841,7 @@ function DFG.solveGraphParametric!(
     initParametricFrom!(fg, initSolveKey; parkey=solveKey)
   end
 
-  vardict, result, varIds, Σ = solveGraphParametric(fg; kwargs...)
+  vardict, result, varIds, Σ = solveGraphParametric(fg; verbose, kwargs...)
 
   updateParametricSolution!(fg, vardict)
 
