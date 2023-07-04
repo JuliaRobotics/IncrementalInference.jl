@@ -2,25 +2,7 @@
 ## FactorOperationalMemory for parametric, TODO move back to FactorOperationalMemory.jl
 ## ================================================================================================
 
-abstract type AbstractMaxMixtureSolver end
 
-"""
-$TYPEDEF
-
-Internal parametric extension to [`CalcFactor`](@ref) used for buffering measurement and calculating Mahalanobis distance
-
-Related
-
-[`CalcFactor`](@ref)
-"""
-struct CalcFactorMahalanobis{N, D, L, S <: Union{Nothing, AbstractMaxMixtureSolver}}
-  faclbl::Symbol
-  calcfactor!::CalcFactor
-  varOrder::Vector{Symbol}
-  meas::NTuple{N, <:AbstractArray}
-  iΣ::NTuple{N, SMatrix{D, D, Float64, L}}
-  specialAlg::S
-end
 # struct CalcFactorMahalanobis{CF<:CalcFactor, S<:Union{Nothing,AbstractMaxMixtureSolver}, N}
 #   calcfactor!::CF
 #   varOrder::Vector{Symbol}
@@ -436,6 +418,10 @@ function (gsc::GraphSolveContainer)(Xc::Vector{T}) where {T <: Real}
 
   return obj / 2
 end
+
+
+# FIXME, deprecate and improve legacy use of `MultiThreaded` type
+struct MultiThreaded end
 
 function (gsc::GraphSolveContainer)(Xc::Vector{T}, ::MultiThreaded) where {T <: Real}
   #

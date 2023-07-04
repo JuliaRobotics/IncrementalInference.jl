@@ -126,6 +126,7 @@ include("ExportAPI.jl")
 include("entities/SolverParams.jl")
 
 include("entities/HypoRecipe.jl")
+include("entities/CalcFactor.jl")
 include("entities/FactorOperationalMemory.jl")
 
 include("Factors/GenericMarginal.jl")
