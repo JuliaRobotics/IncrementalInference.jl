@@ -40,11 +40,11 @@ function CalcFactorManopt(fct::DFGFactor, varIntLabel)
   if fac_func isa ManifoldPrior
     meas = _meas # already a point on M
   elseif fac_func isa AbstractPrior
-    X = get_vector(M, ϵ, _meas, DefaultOrthogonalBasis())
+    X = get_vector(M, ϵ, _meas, DefaultOrthonormalBasis())
     meas = exp(M, ϵ, X) # convert to point on M
   else
     # its a relative factor so should be a tangent vector 
-    meas = convert(typeof(ϵ), get_vector(M, ϵ, _meas, DefaultOrthogonalBasis()))
+    meas = convert(typeof(ϵ), get_vector(M, ϵ, _meas, DefaultOrthonormalBasis()))
   end
 
   # make sure its an SMatrix
@@ -97,7 +97,7 @@ struct JacF_RLM!{CF, T}
   res::Vector{Float64}
 end
 
-function JacF_RLM!(M, costF!; basis_domain::AbstractBasis = DefaultOrthogonalBasis())
+function JacF_RLM!(M, costF!; basis_domain::AbstractBasis = DefaultOrthonormalBasis())
   
   p = costF!.points
   
@@ -122,7 +122,7 @@ function (jacF!::JacF_RLM!)(
   M::AbstractManifold,
   J,
   p;
-  basis_domain::AbstractBasis = DefaultOrthogonalBasis(),
+  basis_domain::AbstractBasis = DefaultOrthonormalBasis(),
 )
   
   X0 = jacF!.X0
