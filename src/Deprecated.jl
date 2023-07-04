@@ -124,6 +124,17 @@ end
 ## Deprecate code below before v0.35
 ##==============================================================================
 
+# should probably deprecate the abstract type approach?
+abstract type _AbstractThreadModel end
+
+"""
+$(TYPEDEF)
+"""
+struct SingleThreaded <: _AbstractThreadModel end
+# """
+# $(TYPEDEF)
+# """
+# struct MultiThreaded <: _AbstractThreadModel end
 
 
 function _solveLambdaNumeric(

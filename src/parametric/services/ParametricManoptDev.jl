@@ -9,21 +9,7 @@ using SparseArrays
 
 ##
 
-struct CalcFactorManopt{
-  D,
-  L,
-  FT <: AbstractFactor,
-  M <: AbstractManifold,
-  MEAS <: AbstractArray,
-}
-  faclbl::Symbol
-  calcfactor!::CalcFactor{FT, Nothing, Nothing, Tuple{}, M}
-  varOrder::Vector{Symbol}
-  varOrderIdxs::Vector{Int}
-  meas::MEAS
-  iΣ::SMatrix{D, D, Float64, L}
-  sqrt_iΣ::SMatrix{D, D, Float64, L}
-end
+
 
 function CalcFactorManopt(fct::DFGFactor, varIntLabel)
   fac_func = getFactorType(fct)
