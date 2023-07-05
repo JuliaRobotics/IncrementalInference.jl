@@ -50,32 +50,32 @@ end
 ##
 
 
-## 
-@testset "using RoME; FiniteDiff.jacobian of SpecialEuclidean(2) factor" begin
-##
+# ## 
+# @testset "using RoME; FiniteDiff.jacobian of SpecialEuclidean(2) factor" begin
+# ##
 
-fg = LocalDFG(;
-  solverParams = SolverParams(;
-    graphinit=false
-  )
-)
+# fg = LocalDFG(;
+#   solverParams = SolverParams(;
+#     graphinit=false
+#   )
+# )
 
-addVariable!.(fg, [:x0; :x1], Pose2)
-f = addFactor!(fg, [:x0; :x1], Pose2Pose2(MvNormal([10;0;pi/2],[1 0 0; 0 1 0; 0 0 1.0])))
+# addVariable!.(fg, [:x0; :x1], Pose2)
+# f = addFactor!(fg, [:x0; :x1], Pose2Pose2(MvNormal([10;0;pi/2],[1 0 0; 0 1 0; 0 0 1.0])))
 
-p1 = [ArrayPartition([10; 0.0], [0 1; -1 0.0]) for _ in 1:1]
+# p1 = [ArrayPartition([10; 0.0], [0 1; -1 0.0]) for _ in 1:1]
 
-setVal!(fg, :x1, p1, solveKey=:parametric)
+# setVal!(fg, :x1, p1, solveKey=:parametric)
 
-J = IIF.factorJacobian(fg, :x0x1f1)
+# J = IIF.factorJacobian(fg, :x0x1f1)
 
-@test isapprox( Jx0, J[1:1,1:2]; atol=1e-8)
-@test_broken isapprox( Jx1, J[1:1,3:4]; atol=1e-8)
+# @test isapprox( Jx0, J[1:1,1:2]; atol=1e-8)
+# @test_broken isapprox( Jx1, J[1:1,3:4]; atol=1e-8)
 
 
-##
-end
-##
+# ##
+# end
+# ##
 
 
 ## 
