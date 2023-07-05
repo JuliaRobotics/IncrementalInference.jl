@@ -1,5 +1,79 @@
 # utilities for calculating the gradient over factors
 
+struct FactorGradient{A <: AbstractMatrix}
+  manifold::AbstractManifold
+  JacF!::JacF_RLM!
+  J::A
+end
+
+function factorJacobian(
+  fg,
+  faclabel::Symbol,
+  fro_p = first.(getVal.(fg, getVariableOrder(fg, faclabel), solveKey = :parametric))
+)
+  faclabels = Symbol[faclabel;]
+  frontals = ls(fg, faclabel)
+  separators = Symbol[] # setdiff(ls(fg), frontals)
+
+  # get the subgraph formed by all frontals, separators and fully connected factors
+  varlabels = union(frontals, separators)
+
+  filter!(faclabels) do fl
+    return issubset(getVariableOrder(fg, fl), varlabels)
+  end
+
+  facs = getFactor.(fg, faclabels)
+
+  # so the subgraph consists of varlabels(frontals + separators) and faclabels
+
+  varIntLabel = OrderedDict(zip(varlabels, collect(1:length(varlabels))))
+
+  # varIntLabel_frontals = filter(p->first(p) in frontals, varIntLabel)
+  # varIntLabel_separators = filter(p->first(p) in separators, varIntLabel)
+
+  calcfacs = map(f->IIF.CalcFactorManopt(f, varIntLabel), facs)
+
+  # get the manifold and variable types
+  frontal_vars = getVariable.(fg, frontals)
+  vartypes, vartypecount, vartypeslist = IIF.getVariableTypesCount(frontal_vars)
+
+  PMs = map(vartypes) do vartype
+    N = vartypecount[vartype]
+    G = getManifold(vartype)
+    return IIF.NPowerManifold(G, N)
+  end
+  M = ProductManifold(PMs...)
+
+  #
+  #FIXME 
+  @assert length(M.manifolds) == 1 "#FIXME, this only works with 1 manifold type component"
+  MM = M.manifolds[1]
+
+  # inital values and separators from fg
+  # fro_p = first.(getVal.(frontal_vars, solveKey = :parametric))
+  # sep_p::Vector{eltype(fro_p)} = first.(getVal.(fg, separators, solveKey = :parametric))
+  sep_p = Vector{eltype(fro_p)}()
+
+  #cost and jacobian functions
+  # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
+  costF! = IIF.CostF_RLM!(calcfacs, fro_p, sep_p)
+  # jacobian of function for Riemannian Levenberg-Marquardt
+  jacF! = IIF.JacF_RLM!(MM, costF!)
+
+  num_components = length(jacF!.res)
+
+  p0 = deepcopy(fro_p)
+
+  # initial_residual_values = zeros(num_components)
+  J = zeros(num_components, manifold_dimension(MM))
+
+  jacF!(MM, J, p0)
+
+  J
+end
+
+
+
 export getCoordSizes
 export checkGradientsToleranceMask, calcPerturbationFromVariable
 
