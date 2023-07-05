@@ -12,6 +12,7 @@ end
 if TEST_GROUP in ["all", "basic_functional_group"]
 # more frequent stochasic failures from numerics
 include("manifolds/manifolddiff.jl")
+include("manifolds/factordiff.jl")
 include("testSpecialEuclidean2Mani.jl")
 include("testEuclidDistance.jl")
 

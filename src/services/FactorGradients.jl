@@ -1,10 +1,6 @@
 # utilities for calculating the gradient over factors
 
-struct FactorGradient{A <: AbstractMatrix}
-  manifold::AbstractManifold
-  JacF!::JacF_RLM!
-  J::A
-end
+
 
 function factorJacobian(
   fg,
