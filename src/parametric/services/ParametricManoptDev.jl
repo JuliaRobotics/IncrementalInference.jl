@@ -116,24 +116,40 @@ function (jacF!::JacF_RLM!)(
   q = jacF!.q
 
   fill!(X0, 0)
+  
+    # ϵ = getPointIdentity(M)
+    # function jaccost(res, Xc)
+    #   exp!(M, q, ϵ, get_vector!(M, X, p, Xc, basis_domain))
+    #   compose!(M, q, p, q)
+    #   jacF!.costF!(M, res, q)
+    # end
+
 
   # TODO maybe move to struct
   colorvec = matrix_colors(J)
 
-  # ϵ = getPointIdentity(M)
-  # function jaccost(res, Xc)
-  #   exp!(M, q, ϵ, get_vector!(M, X, p, Xc, basis_domain))
-  #   compose!(M, q, p, q)
-  #   jacF!.costF!(M, res, q)
-  # end
-
+  # TBD would the non-mutating staticarrays version be better?
   FiniteDiff.finite_difference_jacobian!(
     J,
     (res,Xc) -> jacF!.costF!(M, res, exp!(M, q, p, get_vector!(M, X, p, Xc, basis_domain))),
     X0;
     colorvec
   )
+
+  # ManifoldDiff._jacobian!(
+  #   J, 
+  #   (Xc)->jacF!.costF!(M, jacF!.res, exp!(M, q, p, get_vector!(M, X, p, Xc, basis_domain))),
+  #   X0,
+  #   ManifoldDiff.default_differential_backend()
+  # )
+
   return J
+end
+
+struct FactorGradient{A <: AbstractMatrix}
+  manifold::AbstractManifold
+  JacF!::JacF_RLM!
+  J::A
 end
 
 function getSparsityPattern(fg)

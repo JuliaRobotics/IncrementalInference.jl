@@ -97,6 +97,7 @@ Manopt = "0fc0a36d-df90-57f3-8f93-d78a9fc72bb5"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [targets]
-test = ["DifferentialEquations", "Flux", "Graphs", "Manopt", "InteractiveUtils", "Interpolations", "LineSearches", "Pkg", "Rotations", "Test"]
+test = ["DifferentialEquations", "Flux", "Graphs", "Manopt", "InteractiveUtils", "Interpolations", "LineSearches", "Pkg", "Rotations", "Test", "Zygote"]
