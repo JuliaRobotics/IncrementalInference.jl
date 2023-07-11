@@ -124,22 +124,46 @@ end
 ## Deprecate code below before v0.35
 ##==============================================================================
 
-function _checkErrorCCWNumerics(
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
-  testshuffle::Bool = false,
-) where {N_, F <: AbstractRelativeRoots, S, T}
-  #
-  # error("<:AbstractRelativeRoots is obsolete, use one of the other <:AbstractRelative types instead.")
-  # TODO get xDim = getDimension(getVariableType(Xi[sfidx])) but without having Xi
-  if testshuffle || ccwl.partial
-    error(
-      "<:AbstractRelativeRoots factors with less or more measurement dimensions than variable dimensions have been discontinued, rather use <:AbstractManifoldMinimize.",
-    )
-  # elseif !(_getZDim(ccwl) >= ccwl.xDim && !ccwl.partial)
-  #   error("Unresolved numeric <:AbstractRelativeRoots solve case")
-  end
-  return nothing
-end
+# function _perturbIfNecessary(
+#   fcttype::Union{F, <:Mixture{N_, F, S, T}},
+#   len::Int = 1,
+#   perturbation::Real = 1e-10,
+# ) where {N_, F <: AbstractRelativeRoots, S, T}
+#   return perturbation * randn(len)
+# end
+
+# function _checkErrorCCWNumerics(
+#   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+#   testshuffle::Bool = false,
+# ) where {N_, F <: AbstractRelativeRoots, S, T}
+#   #
+#   # error("<:AbstractRelativeRoots is obsolete, use one of the other <:AbstractRelative types instead.")
+#   # TODO get xDim = getDimension(getVariableType(Xi[sfidx])) but without having Xi
+#   if testshuffle || ccwl.partial
+#     error(
+#       "<:AbstractRelativeRoots factors with less or more measurement dimensions than variable dimensions have been discontinued, rather use <:AbstractManifoldMinimize.",
+#     )
+#   # elseif !(_getZDim(ccwl) >= ccwl.xDim && !ccwl.partial)
+#   #   error("Unresolved numeric <:AbstractRelativeRoots solve case")
+#   end
+#   return nothing
+# end
+
+# function _solveLambdaNumeric(
+#   fcttype::Union{F, <:Mixture{N_, F, S, T}},
+#   objResX::Function,
+#   residual::AbstractVector{<:Real},
+#   u0::AbstractVector{<:Real},
+#   islen1::Bool = false,
+# ) where {N_, F <: AbstractRelativeRoots, S, T}
+#   #
+
+#   #
+#   r = NLsolve.nlsolve((res, x) -> res .= objResX(x), u0; inplace = true) #, ftol=1e-14)
+
+#   #
+#   return r.zero
+# end
 
 # should probably deprecate the abstract type approach?
 abstract type _AbstractThreadModel end
@@ -153,22 +177,6 @@ struct SingleThreaded <: _AbstractThreadModel end
 # """
 # struct MultiThreaded <: _AbstractThreadModel end
 
-
-function _solveLambdaNumeric(
-  fcttype::Union{F, <:Mixture{N_, F, S, T}},
-  objResX::Function,
-  residual::AbstractVector{<:Real},
-  u0::AbstractVector{<:Real},
-  islen1::Bool = false,
-) where {N_, F <: AbstractRelativeRoots, S, T}
-  #
-
-  #
-  r = NLsolve.nlsolve((res, x) -> res .= objResX(x), u0; inplace = true) #, ftol=1e-14)
-
-  #
-  return r.zero
-end
 
 ##==============================================================================
 ## Deprecate code below before v0.35
