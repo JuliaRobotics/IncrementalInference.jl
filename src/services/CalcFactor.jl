@@ -294,7 +294,7 @@ function _setCCWDecisionDimsConv!(
   F <: Union{
     AbstractManifoldMinimize,
     AbstractRelativeMinimize,
-    AbstractRelativeRoots,
+    # AbstractRelativeRoots,
     AbstractPrior,
   },
   S,

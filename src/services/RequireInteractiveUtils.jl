@@ -14,7 +14,7 @@ Return all factors currently registered in the workspace.
 function getCurrentWorkspaceFactors()
   return [
     InteractiveUtils.subtypes(AbstractPrior)...,
-    InteractiveUtils.subtypes(AbstractRelativeRoots)...,
+    # InteractiveUtils.subtypes(AbstractRelativeRoots)...,
     InteractiveUtils.subtypes(AbstractRelativeMinimize)...,
   ]
 end

@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - develop
       - release**
   workflow_dispatch:
 jobs:
@@ -55,7 +54,7 @@ jobs:
         arch: 
           - x64
         version:
-          - '1.9'
+          - '~1.10.0-0'
         group:
           - 'basic_functional_group'
     steps:
@@ -97,7 +96,7 @@ jobs:
         arch: 
           - x64
         version:
-          - '1.9'
+          - '~1.10.0-0'
         group:
           - 'test_cases_group'
     steps:
