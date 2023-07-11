@@ -30,7 +30,7 @@ export AbstractDFG,
 # Inference types
 export AbstractPackedFactor, AbstractFactor
 export AbstractPrior, AbstractRelative
-export AbstractRelativeRoots, AbstractRelativeMinimize, AbstractManifoldMinimize
+export AbstractRelativeMinimize, AbstractManifoldMinimize
 
 # not sure if this is necessary
 export convert, *

@@ -78,7 +78,7 @@ export checkGradientsToleranceMask, calcPerturbationFromVariable
 function _prepFactorGradientLambdas(
   fct::Union{
     <:AbstractRelativeMinimize,
-    <:AbstractRelativeRoots,
+    # <:AbstractRelativeRoots,
     <:AbstractManifoldMinimize,
   },
   measurement,
@@ -171,7 +171,7 @@ end
 function FactorGradientsCached!(
   fct::Union{
     <:AbstractRelativeMinimize,
-    <:AbstractRelativeRoots,
+    # <:AbstractRelativeRoots,
     <:AbstractManifoldMinimize,
   },
   varTypes::Tuple,

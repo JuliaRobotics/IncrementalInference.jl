@@ -13,22 +13,6 @@ function _checkErrorCCWNumerics(
   return nothing
 end
 
-function _checkErrorCCWNumerics(
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
-  testshuffle::Bool = false,
-) where {N_, F <: AbstractRelativeRoots, S, T}
-  #
-  # error("<:AbstractRelativeRoots is obsolete, use one of the other <:AbstractRelative types instead.")
-  # TODO get xDim = getDimension(getVariableType(Xi[sfidx])) but without having Xi
-  if testshuffle || ccwl.partial
-    error(
-      "<:AbstractRelativeRoots factors with less or more measurement dimensions than variable dimensions have been discontinued, rather use <:AbstractManifoldMinimize.",
-    )
-  # elseif !(_getZDim(ccwl) >= ccwl.xDim && !ccwl.partial)
-  #   error("Unresolved numeric <:AbstractRelativeRoots solve case")
-  end
-  return nothing
-end
 
 function _perturbIfNecessary(
   fcttype::Union{F, <:Mixture{N_, F, S, T}},
