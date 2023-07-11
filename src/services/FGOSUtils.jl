@@ -119,9 +119,10 @@ function manikde!(
   variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
   pts::AbstractVector{P};
   kw...,
-) where {P <: Union{<:AbstractArray, <:Number, <:ProductRepr, <:Manifolds.ArrayPartition}}
+) where {P <: Union{<:AbstractArray, <:Number, <:Manifolds.ArrayPartition}}
   #
   M = getManifold(variableType)
+  # @info "pts" P typeof(pts[1]) pts[1]
   infoPerCoord = ones(AMP.getNumberCoords(M, pts[1]))
   return AMP.manikde!(M, pts; infoPerCoord, kw...)
 end
@@ -309,7 +310,7 @@ Related
 
 [`getMultihypoDistribution`](@ref)
 """
-isMultihypo(fct::DFGFactor) = isa(_getCCW(fct).hypotheses, Distribution)
+isMultihypo(fct::DFGFactor) = isa(_getCCW(fct).hyporecipe.hypotheses, Distribution)
 
 """
     $SIGNATURES
@@ -320,7 +321,7 @@ Related
 
 isMultihypo
 """
-getMultihypoDistribution(fct::DFGFactor) = _getCCW(fct).hypotheses
+getMultihypoDistribution(fct::DFGFactor) = _getCCW(fct).hyporecipe.hypotheses
 
 """
     $SIGNATURES

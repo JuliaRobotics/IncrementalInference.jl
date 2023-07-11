@@ -1,67 +1,5 @@
 
-"""
-$TYPEDEF
 
-User factor interface method for computing the residual values of factors.
-
-Notes
-- Also see #467 on API consolidation
-
-```julia
-function (cf::CalcFactor{<:LinearRelative})(res::AbstractVector{<:Real}, z, xi, xj)
-  cf.variablelist
-  cf.cache
-  # generic on-manifold residual function 
-  return distance(z, distance(xj, xi))
-end
-```
-
-DevNotes
-- Follow the Github project in IIF to better consolidate CCW FMD CPT CF CFM
-
-Related 
-
-[`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref)
-"""
-struct CalcFactor{
-  FT <: AbstractFactor, 
-  X, 
-  C, 
-  VT <: Tuple, 
-  M <: AbstractManifold
-}
-  """ the interface compliant user object functor containing the data and logic """
-  factor::FT
-  """ what is the sample (particle) id for which the residual is being calculated """
-  _sampleIdx::Int
-  """ legacy support for variable values old functor residual functions.
-      TBD, this is still being used by DERelative factors. """
-  _legacyParams::X
-  """ allow threading for either sampling or residual calculations (workaround for thread yield issue) """
-  _allowThreads::Bool
-  """ user cache of arbitrary type, overload the [`preambleCache`](@ref) function. NOT YET THREADSAFE """
-  cache::C
-
-  ## TODO Consolidation WIP with FactorMetadata
-  # full list of variables connected to the factor
-  # TODO make sure this list is of the active hypo only
-  fullvariables::VT # Vector{<:DFGVariable} # FIXME change to tuple for better type stability
-  # which index is being solved for?
-  solvefor::Int
-  manifold::M
-end
-
-# should probably deprecate the abstract type approach?
-abstract type _AbstractThreadModel end
-
-"""
-$(TYPEDEF)
-"""
-struct SingleThreaded <: _AbstractThreadModel end
-"""
-$(TYPEDEF)
-"""
-struct MultiThreaded <: _AbstractThreadModel end
 
 """
 $(TYPEDEF)
@@ -83,11 +21,10 @@ Related
 Base.@kwdef struct CommonConvWrapper{
   T <: AbstractFactor, 
   VT <: Tuple,
-  NTP <: Tuple, 
+  TP <: Base.RefValue{<:Tuple},
   CT,
   AM <: AbstractManifold,
-  HP <: Union{Nothing, <:Distributions.Categorical{Float64, Vector{Float64}}},
-  CH <: Union{Nothing, Vector{Int}},
+  HR <: HypoRecipeCompute,
   MT, 
   G
 } <: FactorOperationalMemory
@@ -98,8 +35,9 @@ Base.@kwdef struct CommonConvWrapper{
   fullvariables::VT
   # shortcuts to numerical containers
   """ Numerical containers for all connected variables.  Hypo selection needs to be passed 
-      to each hypothesis evaluation event on user function via CalcFactor, #1321 """
-  varValsAll::NTP
+      to each hypothesis evaluation event on user function via CalcFactor, #1321.
+      Points directly at the variable VND.val (not a deepcopy). """
+  varValsAll::TP
   """ dummy cache value to be deep copied later for each of the CalcFactor instances """
   dummyCache::CT = nothing
   # derived config parameters for this factor
@@ -113,13 +51,8 @@ Base.@kwdef struct CommonConvWrapper{
   nullhypo::Float64 = 0.0
   """ inflationSpread particular to this factor (by how much to dispurse the belief initial values before numerical optimization is run).  Analogous to stochastic search """
   inflation::Float64 = SolverParams().inflation
-  # multihypo specific field containers for recipe of hypotheses to compute
-  """ multi hypothesis settings #NOTE no need for a parameter as type is known from `parseusermultihypo` """
-  hypotheses::HP = nothing
-  """ categorical to select which hypothesis is being considered during convolution operation """
-  certainhypo::CH = nothing
-  """ subsection indices to select which params should be used for this hypothesis evaluation """
-  activehypo::Vector{Int} = collect(1:length(varValsAll))
+  """ multihypo specific field containers for recipe of hypotheses to compute """
+  hyporecipe::HR = HypoRecipeCompute(;activehypo=collect(1:length(varValsAll)))
   # buffers and indices to point numerical computations to specific memory locations
   """ user defined measurement values for each approxConv operation
       FIXME make type stable, JT should now be type stable if rest works.

@@ -181,12 +181,13 @@ global fg
 ##
 
 initAll!(fg)
-valx2_ = getVal(fg, :x2)
-@cast valx2[i,j] := valx2_[j][i]
 pts_ = approxConv(fg, :x1x2f1, :x2, N=N)
 @cast pts[i,j] := pts_[j][i]
 @test size(pts,1) == 2
 @test norm(Statistics.mean(pts,dims=2)[2] .- [10.0]) < 3.0
+# not the same memory, ccw.varValsAll[][sfidx] is now a deepcopy as alternate destination memory
+valx2_ = IIF._getCCW(fg[:x1x2f1]).varValsAll[][2] # getVal(fg, :x2)
+@cast valx2[i,j] := valx2_[j][i]
 @test norm(valx2[1,:] - pts[1,:]) < 1e-5
 
 pts_ = approxConv(fg, :x2f1, :x2, N=N)
@@ -201,7 +202,7 @@ end
 
 ##
 
-# keep previous values to ensure funciton evaluation is modifying correct data fields
+# keep previous values to ensure function evaluation is modifying correct data fields
 
 @warn "restore calcProposalBelief as testset!"
 # @testset "test calcProposalBelief..." begin
@@ -262,7 +263,8 @@ global v2, fg
 X2pts_ = getVal(v2)
 @cast X2pts[i,j] := X2pts_[j][i]
 # NOTE, SUPER IMPORTANT, predictbelief returns full dimension points (even if only partials are sent in for proposals)
-val_, = predictbelief(fg, v2, [f4], N=N)
+valB, = propagateBelief(fg, v2, [f4], N=N)
+val_ = getPoints(valB, false)
 @cast val[i,j] := val_[j][i]
 @show X2pts_[1]';
 @show val_[1]';
@@ -274,7 +276,8 @@ val_, = predictbelief(fg, v2, [f4], N=N)
 # partial pairwise
 X2pts_ = getVal(v2)
 @cast X2pts[i,j] := X2pts_[j][i]
-val_, = predictbelief(fg, v2, [f3], N=N)
+valB, = propagateBelief(fg, v2, [f3], N=N)
+val_ = getPoints(valB, false)
 @cast val[i,j] := val_[j][i]
 @test norm(X2pts[1,:] - val[1,:]) < 1e-10
 @test 0.0 < norm(X2pts[2,:] - val[2,:])
@@ -285,7 +288,8 @@ val2_ = getVal(v1)
 ##
 
 # combination of partials
-val_, = predictbelief(fg, v2, [f3;f4], N=N)
+valB, = propagateBelief(fg, v2, [f3;f4], N=N)
+val_ = getPoints(valB, false)
 @cast val[i,j] := val_[j][i]
 # plotKDE(kde!(val),levels=3)
 @test norm(Statistics.mean(val,dims=2)[1] .- [-20.0]) < 1

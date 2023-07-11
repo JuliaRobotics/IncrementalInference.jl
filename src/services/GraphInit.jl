@@ -351,7 +351,7 @@ function initVariable!(
   if solveKey == :parametric
     μ, iΣ = getMeasurementParametric(samplable_belief)
     vnd = getSolverData(variable, solveKey)
-    vnd.val[1] .= getPoint(getVariableType(variable), μ)
+    vnd.val[1] = getPoint(getVariableType(variable), μ)
     vnd.bw .= inv(iΣ)
   else
     points = [samplePoint(M, samplable_belief) for _ = 1:N]
@@ -363,13 +363,14 @@ end
 function initVariable!(
   dfg::AbstractDFG,
   label::Symbol,
-  usefcts::Vector{Symbol},
+  usefcts::AbstractVector{Symbol},
   solveKey::Symbol = :default;
   N::Int = getSolverParams(dfg).N,
   kwargs...,
 )
   #
-  pts = predictbelief(dfg, label, usefcts; solveKey = solveKey)[1]
+  pts = propagateBelief(dfg, label, usefcts; solveKey = solveKey)[1]
+  # pts = predictbelief(dfg, label, usefcts; solveKey = solveKey)[1]
   vert = getVariable(dfg, label)
   Xpre = manikde!(getManifold(getVariableType(vert)), pts)
   return initVariable!(vert, Xpre, solveKey; N, kwargs...)

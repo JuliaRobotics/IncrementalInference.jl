@@ -11,6 +11,14 @@ Alternatively, either use the Github Blame, or the Github `/compare/v0.18.0...v0
 
 The list below highlights breaking changes according to normal semver workflow -- i.e. breaking changes go through at least one deprecatation (via warnings) on the dominant number in the version number.  E.g. v0.18 -> v0.19 (warnings) -> v0.20 (breaking).  Note that ongoing efforts are made to properly deprecate old code/APIs
 
+# Changes in v0.34
+
+- Start transition to Manopt.jl via Riemannian Levenberg Marquart.
+- Deprecate `AbstractRelativeRoots`.
+
+# Changes in v0.33
+
+- Upgrades for DFG using StructTypes.jl (serialization).
 # Changes in v0.32
 
 - Major internal refactoring of `CommonConvWrapper` to avoid abstract field types, and better standardization; towards cleanup of internal multihypo handling and naming conventions.

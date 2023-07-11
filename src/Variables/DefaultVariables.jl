@@ -16,7 +16,7 @@ function DFG.getDimension(val::InstanceType{Position{N}}) where {N}
   return manifold_dimension(getManifold(val))
 end
 DFG.getPointType(::Type{Position{N}}) where {N} = Vector{Float64}
-DFG.getPointIdentity(M_::Type{Position{N}}) where {N} = zeros(N) # identity_element(getManifold(M_), zeros(N)) 
+DFG.getPointIdentity(M_::Type{Position{N}}) where {N} = @SVector(zeros(N)) # identity_element(getManifold(M_), zeros(N)) 
 
 function Base.convert(
   ::Type{<:ManifoldsBase.AbstractManifold},
@@ -50,5 +50,7 @@ $(TYPEDEF)
 Circular is a `Manifolds.Circle{ℝ}` mechanization of one rotation, with `theta in [-pi,pi)`.
 """
 @defVariable Circular RealCircleGroup() [0.0;]
+#TODO This is an example of what we want working, possible issue upstream in Manifolds.jl
+# @defVariable Circular RealCircleGroup() Scalar(0.0)
 
 #

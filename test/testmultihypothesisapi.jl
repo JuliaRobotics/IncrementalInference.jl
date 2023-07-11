@@ -72,8 +72,8 @@ f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=[1.0;0.5;0.5])
 
 
 # @test IIIF._getCCW(f3).hypoverts == [:x3, :x4]
-@test sum(abs.(IIF._getCCW(f3).hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience
-@test sum(abs.(IIF._getCCW(f3).hypotheses.p[2:3] .- 0.5)) < 0.1
+@test sum(abs.(IIF._getCCW(f3).hyporecipe.hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience
+@test sum(abs.(IIF._getCCW(f3).hyporecipe.hypotheses.p[2:3] .- 0.5)) < 0.1
 
 
 initVariable!(fg, :x2, [1*ones(1) for _ in 1:N])
@@ -151,8 +151,8 @@ dd = convert(PackedFunctionNodeData{PackedDevelopLikelihood},topack)
 unpacked = reconstFactorData(fg, [:x2;:x3;:x4], FunctionNodeData{CommonConvWrapper{DevelopLikelihood}},dd)
 
 # @test IIF._getCCW(unpacked).hypoverts == Symbol[:x3; :x4]
-@test sum(abs.(IIF._getCCW(unpacked).hypotheses.p[1] .- 0.0)) < 0.1
-@test sum(abs.(IIF._getCCW(unpacked).hypotheses.p[2:3] .- 0.5)) < 0.1
+@test sum(abs.(IIF._getCCW(unpacked).hyporecipe.hypotheses.p[1] .- 0.0)) < 0.1
+@test sum(abs.(IIF._getCCW(unpacked).hyporecipe.hypotheses.p[2:3] .- 0.5)) < 0.1
 
 
 ##
@@ -164,6 +164,7 @@ end
 # start a new factor graph
 N = 200
 fg = initfg()
+getSolverParams(fg).N = N
 
 ##
 
@@ -179,7 +180,7 @@ f1 = addFactor!(fg,[:x1],pr)
 
 initAll!(fg)
 
-# Juno.breakpoint("/home/dehann/.julia/v0.5/IncrementalInference/src/ApproxConv.jl",121)
+@test length(getVal(fg, :x1)) == N 
 
 pts_ = approxConv(fg, Symbol(f1.label), :x1, N=N)
 @cast pts[i,j] := pts_[j][i]
@@ -211,10 +212,10 @@ f3 = addFactor!(fg, [:x2;:x3;:x4;:x5], ppMH, multihypo=[1.0,0.333,0.333,0.334])
 
 
 # @test IIF._getCCW(f3).hypoverts == [:x3, :x4]
-@test sum(abs.(IIF._getCCW(f3).hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience
-@test sum(abs.(IIF._getCCW(f3).hypotheses.p[2] .- 0.333)) < 0.001
-@test sum(abs.(IIF._getCCW(f3).hypotheses.p[3] .- 0.333)) < 0.001
-@test sum(abs.(IIF._getCCW(f3).hypotheses.p[4] .- 0.334)) < 0.001
+@test sum(abs.(IIF._getCCW(f3).hyporecipe.hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience
+@test sum(abs.(IIF._getCCW(f3).hyporecipe.hypotheses.p[2] .- 0.333)) < 0.001
+@test sum(abs.(IIF._getCCW(f3).hyporecipe.hypotheses.p[3] .- 0.333)) < 0.001
+@test sum(abs.(IIF._getCCW(f3).hyporecipe.hypotheses.p[4] .- 0.334)) < 0.001
 
 
 initVariable!(fg, :x2 ,[1*ones(1) for _ in 1:N])

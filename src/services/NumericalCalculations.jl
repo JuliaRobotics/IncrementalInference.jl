@@ -13,22 +13,6 @@ function _checkErrorCCWNumerics(
   return nothing
 end
 
-function _checkErrorCCWNumerics(
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
-  testshuffle::Bool = false,
-) where {N_, F <: AbstractRelativeRoots, S, T}
-  #
-  # error("<:AbstractRelativeRoots is obsolete, use one of the other <:AbstractRelative types instead.")
-  # TODO get xDim = getDimension(getVariableType(Xi[sfidx])) but without having Xi
-  if testshuffle || ccwl.partial
-    error(
-      "<:AbstractRelativeRoots factors with less or more measurement dimensions than variable dimensions have been discontinued, rather use <:AbstractManifoldMinimize.",
-    )
-  # elseif !(_getZDim(ccwl) >= ccwl.xDim && !ccwl.partial)
-  #   error("Unresolved numeric <:AbstractRelativeRoots solve case")
-  end
-  return nothing
-end
 
 function _perturbIfNecessary(
   fcttype::Union{F, <:Mixture{N_, F, S, T}},
@@ -69,21 +53,6 @@ function _solveLambdaNumeric(
 end
 #
 
-function _solveLambdaNumeric(
-  fcttype::Union{F, <:Mixture{N_, F, S, T}},
-  objResX::Function,
-  residual::AbstractVector{<:Real},
-  u0::AbstractVector{<:Real},
-  islen1::Bool = false,
-) where {N_, F <: AbstractRelativeRoots, S, T}
-  #
-
-  #
-  r = NLsolve.nlsolve((res, x) -> res .= objResX(x), u0; inplace = true) #, ftol=1e-14)
-
-  #
-  return r.zero
-end
 
 function _solveLambdaNumeric(
   fcttype::Union{F, <:Mixture{N_, F, S, T}},
@@ -98,7 +67,12 @@ function _solveLambdaNumeric(
   r = if islen1
     Optim.optimize((x) -> (residual .= objResX(x); sum(residual .^ 2)), u0, Optim.BFGS())
   else
-    Optim.optimize((x) -> (residual .= objResX(x); sum(residual .^ 2)), u0)
+    Optim.optimize((x) -> (residual .= objResX(x); sum(residual .^ 2)), u0, Optim.Options(;iterations=1000))
+  end
+
+
+  if !Optim.converged(r)
+    @warn "Optim did not converge:" r maxlog=10
   end
 
   # 
@@ -106,6 +80,20 @@ function _solveLambdaNumeric(
 end
 
 function _solveLambdaNumeric(
+  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  objResX::Function,
+  residual::AbstractVector{<:Real},
+  u0,#::AbstractVector{<:Real},
+  variableType::InferenceVariable,
+  islen1::Bool = false,
+) where {N_, F <: AbstractManifoldMinimize, S, T}
+
+  return _solveCCWNumeric_test_SA(fcttype, objResX, residual, u0, variableType, islen1)
+  # return _solveLambdaNumeric_test_optim_manifold(fcttype, objResX, residual, u0, variableType, islen1)
+
+end
+
+function _solveLambdaNumeric_original(
   fcttype::Union{F, <:Mixture{N_, F, S, T}},
   objResX::Function,
   residual::AbstractVector{<:Real},
@@ -153,6 +141,93 @@ function _solveLambdaNumeric(
   return exp(M, ϵ, hat(M, ϵ, r.minimizer))
 end
 
+# 1.355700 seconds (11.78 M allocations: 557.677 MiB, 6.96% gc time)
+function _solveCCWNumeric_test_SA(
+  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  objResX::Function,
+  residual::AbstractVector{<:Real},
+  u0,#::AbstractVector{<:Real},
+  variableType::InferenceVariable,
+  islen1::Bool = false,
+) where {N_, F <: AbstractManifoldMinimize, S, T}
+  #
+  M = getManifold(variableType) #fcttype.M
+  # the variable is a manifold point, we are working on the tangent plane in optim for now.
+  # 
+  #TODO this is not general to all manifolds, should work for lie groups.
+  # ϵ = identity_element(M, u0)
+  ϵ = getPointIdentity(variableType)
+
+  X0c = zero(MVector{getDimension(M),Float64})
+  X0c .= vee(M, u0, log(M, ϵ, u0))
+
+  #TODO check performance
+  function cost(Xc)
+    X = hat(M, ϵ, Xc)
+    p = exp(M, ϵ, X)  
+    residual = objResX(p)
+    return sum(residual .^ 2)
+  end
+
+  alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
+
+  r = Optim.optimize(cost, X0c, alg)
+  if !Optim.converged(r)
+    # TODO find good way for a solve to store diagnostics about number of failed converges etc.
+    @warn "Optim did not converge (maxlog=10):" r maxlog=10
+  end
+  return exp(M, ϵ, hat(M, ϵ, r.minimizer))
+end
+
+# sloooowwww and does not always converge, unusable slow with gradient
+# NelderMead 5.513693 seconds (38.60 M allocations: 1.613 GiB, 6.62% gc time)
+function _solveLambdaNumeric_test_optim_manifold(
+  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  objResX::Function,
+  residual::AbstractVector{<:Real},
+  u0,#::AbstractVector{<:Real},
+  variableType::InferenceVariable,
+  islen1::Bool = false,
+) where {N_, F <: AbstractManifoldMinimize, S, T}
+  #
+  M = getManifold(variableType) #fcttype.M
+  # the variable is a manifold point, we are working on the tangent plane in optim for now.
+  # 
+  #TODO this is not general to all manifolds, should work for lie groups.
+  ϵ = getPointIdentity(variableType)
+
+  function cost(p)
+    residual = objResX(p)
+    return sum(residual .^ 2)
+  end
+
+  alg = islen1 ? Optim.BFGS(;manifold=ManifoldWrapper(M)) : Optim.NelderMead(;manifold=ManifoldWrapper(M))
+  # alg = Optim.ConjugateGradient(; manifold=ManifoldWrapper(M))
+  # alg = Optim.BFGS(; manifold=ManifoldWrapper(M))
+
+  # r_backend = ManifoldDiff.TangentDiffBackend(
+  #   ManifoldDiff.FiniteDifferencesBackend()
+  # )
+  
+  # ## finitediff gradient
+  # function costgrad_FD!(X,p)
+  #   copyto!(X, ManifoldDiff.gradient(M, cost, p, r_backend))
+  #   X
+  # end
+
+  u0_m = allocate(M, u0)
+  u0_m .= u0 
+  # r = Optim.optimize(cost, costgrad_FD!, u0_m, alg)
+  r = Optim.optimize(cost, u0_m, alg)
+  
+  if !Optim.converged(r)
+    @warn "Optim did not converge:" r maxlog=10
+  end
+
+  return r.minimizer
+  # return exp(M, ϵ, hat(M, ϵ, r.minimizer))
+end
+
 #TODO Consolidate with _solveLambdaNumeric, see #1374
 function _solveLambdaNumericMeas(
   fcttype::Union{F, <:Mixture{N_, F, S, T}},
@@ -198,7 +273,6 @@ _getusrfnc(ccwl::CommonConvWrapper{<:Mixture}) = ccwl.usrfnc!.mechanics
 function _buildCalcFactor(
   ccwl::CommonConvWrapper,
   smpid,
-  # measurement_, # deprecate
   varParams,
   activehypo,
 )
@@ -231,9 +305,8 @@ DevNotes
 function _buildCalcFactorLambdaSample(
   ccwl::CommonConvWrapper,
   smpid::Integer,
-  target = view(ccwl.varValsAll[ccwl.varidx[]][smpid], ccwl.partialDims),
-  measurement_ = ccwl.measurement;
-  # fmd_::FactorMetadata = cpt_.factormetadata;
+  target, # partials no longer on coordinates at this level # = view(destVarVals[smpid], ccwl.partialDims), # target = view(ccwl.varValsAll[ccwl.varidx[]][smpid], ccwl.partialDims),
+  measurement_, # since JL@v1.9, don't use default ccwl.measurement here, must pass from caller
   _slack = nothing,
 )
   #
@@ -243,40 +316,31 @@ function _buildCalcFactorLambdaSample(
   # DevNotes, also see new `hyporecipe` approach (towards consolidation CCW CPT FMd CF...)
 
   # build a view to the decision variable memory
-  varValsHypo = ccwl.varValsAll[ccwl.activehypo]
-  # tup = tuple(varParams...)
-  # nms = keys(ccwl.varValsAll)[cpt_.activehypo]
-  # varValsHypo = NamedTuple{nms,typeof(tup)}(tup)
+  varValsHypo = ccwl.varValsAll[][ccwl.hyporecipe.activehypo]
 
-  # prepare fmd according to hypo selection
-  # FIXME must refactor (memory waste) and consolidate with CCW CPT FMd CF
-  # FIXME move up out of smpid loop and only update bare minimal fields
-  # _fmd_ = FactorMetadata( view(fmd_.fullvariables, cpt_.activehypo), 
-  #                         view(fmd_.variablelist, cpt_.activehypo),
-  #                         varValsHypo, #varParams, # view(fmd_.arrRef, cpt_.activehypo),
-  #                         fmd_.solvefor,
-  #                         fmd_.cachedata  )
-  #
   # get the operational CalcFactor object
-  cf = _buildCalcFactor(ccwl, smpid, varValsHypo, ccwl.activehypo)
-  # new dev work on CalcFactor
-  # cf = CalcFactor(ccwl.usrfnc!, _fmd_, smpid, 
-  #                 varValsHypo)
-  #
+  cf = _buildCalcFactor(ccwl, smpid, varValsHypo, ccwl.hyporecipe.activehypo)
 
   # reset the residual vector
   fill!(ccwl.res, 0.0) # Roots->xDim | Minimize->zDim
 
+  _getindex_anyn(vec, n) = begin
+    len = length(vec)
+    # 1:len or any random element in that range
+    getindex(vec, n <= len ? n : rand(1:len) )
+  end
+
   # build static lambda
   unrollHypo! = if _slack === nothing
-    () -> cf(measurement_[smpid], map(vvh -> getindex(vvh, smpid), varValsHypo)...)
+    # DESIGN DECISION WAS MADE THAT CALCFACTOR CALLS DO NOT DO INPLACE CHANGES TO ARGUMENTS, INSTEAD USING ISBITSTYPEs!!!!!!!!!
+    () -> cf(measurement_[smpid], map(vvh -> _getindex_anyn(vvh, smpid), varValsHypo)...)
   else
     # slack is used to shift the residual away from the natural "zero" tension position of a factor, 
     # this is useful when calculating factor gradients at a variety of param locations resulting in "non-zero slack" of the residual.
     # see `IIF.calcFactorResidualTemporary`
     # NOTE this minus operation assumes _slack is either coordinate or tangent vector element (not a manifold or group element)
     () ->
-      cf(measurement_[smpid], map(vvh -> getindex(vvh, smpid), varValsHypo)...) .- _slack
+      cf(measurement_[smpid], map(vvh -> _getindex_anyn(vvh, smpid), varValsHypo)...) .- _slack
   end
 
   return unrollHypo!, target
@@ -301,10 +365,9 @@ DevNotes
 - TODO perhaps consolidate perturbation with inflation or nullhypo
 """
 function _solveCCWNumeric!(
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}};
+  ccwl::Union{<:CommonConvWrapper{F}, <:CommonConvWrapper{<:Mixture{N_, F, S, T}}},
+  _slack = nothing;
   perturb::Real = 1e-10,
-  # testshuffle::Bool=false,
-  _slack = nothing,
 ) where {N_, F <: AbstractRelative, S, T}
   #
 
@@ -316,20 +379,49 @@ function _solveCCWNumeric!(
   islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
   # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
 
+  # NOTE the factor residual function will receive as input args a slice from ccwl.varValsAll, hence 
+  #  ccwl.varValsAll[][ccwl.varidx[]] and target should point to the same memory; BUT
+  #  remember that during approxConv the graph variable cannot be directly updated and
+  #  a separate deepcopy of the destination (aka target) memory is necessary.
+  #  Choosen solution is to splice together ccwl.varValsAll each time, with destination as 
+  #  deepcopy but other input variables are just point to the source variable values directly. 
+  if ccwl.partial
+    target = view(ccwl.varValsAll[][ccwl.varidx[]][smpid], ccwl.partialDims)
+  else
+    target = ccwl.varValsAll[][ccwl.varidx[]][smpid];
+  end
   # build the pre-objective function for this sample's hypothesis selection
-  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid; _slack = _slack)
+  unrollHypo!, _ = _buildCalcFactorLambdaSample(
+      # destVarVals,
+      ccwl, 
+      smpid, 
+      target,
+      ccwl.measurement,
+      _slack,
+  )
+
 
   # broadcast updates original view memory location
   ## using CalcFactor legacy path inside (::CalcFactor)
-  _hypoObj = (x) -> (target .= x; unrollHypo!())
+
+  # _hypoObj = (x) -> (target[] = x; unrollHypo!())
+  function _hypoObj(x)
+    copyto!(target, x)
+    return unrollHypo!()
+  end
 
   # TODO small off-manifold perturbation is a numerical workaround only, make on-manifold requires RoME.jl #244
   # use all element dimensions : ==> 1:ccwl.xDim
-  target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
-
+  # target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
   sfidx = ccwl.varidx[]
   # do the parameter search over defined decision variables using Minimization
-  X = ccwl.varValsAll[sfidx][smpid][ccwl.partialDims]
+  if ccwl.partial
+    X = collect(view(ccwl.varValsAll[][sfidx][smpid], ccwl.partialDims))
+  else
+    X = ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims]
+  end
+  # X = destVarVals[smpid]#[ccwl.partialDims]
+      
   retval = _solveLambdaNumeric(
     getFactorType(ccwl), 
     _hypoObj, 
@@ -340,12 +432,17 @@ function _solveCCWNumeric!(
 
   # Check for NaNs
   if sum(isnan.(retval)) != 0
-    @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(retval)\n"
+    @error "$(ccwl.usrfnc!), got NaN, smpid = $(smpid), r=$(retval)\n"
     return nothing
   end
 
   # insert result back at the correct variable element location
-  ccwl.varValsAll[sfidx][smpid][ccwl.partialDims] .= retval
+  if ccwl.partial
+    ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims] .= retval
+  else
+    # copyto!(ccwl.varValsAll[sfidx][smpid], retval)
+    copyto!(ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims], retval)
+  end
 
   return nothing
 end
@@ -353,49 +450,46 @@ end
 # should only be calling a new arg list according to activehypo at start of particle
 # Try calling an existing lambda
 # sensitive to which hypo of course , see #1024
-# need to shuffle content inside .cpt.fmd as well as .varValsAll accordingly
 #
 
 function _solveCCWNumeric!(
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}};
+  ccwl::Union{<:CommonConvWrapper{F}, <:CommonConvWrapper{<:Mixture{N_, F, S, T}}},
+  _slack = nothing;
   perturb::Real = 1e-10,
-  # testshuffle::Bool=false,
-  _slack = nothing,
 ) where {N_, F <: AbstractManifoldMinimize, S, T}
   #
   #   # FIXME, move this check higher and out of smpid loop
   # _checkErrorCCWNumerics(ccwl, testshuffle)
-
-  #
-  thrid = Threads.threadid()
 
   smpid = ccwl.particleidx[]
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
   islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
 
   # build the pre-objective function for this sample's hypothesis selection
+  # SUPER IMPORTANT ON PARTIALS, RESIDUAL FUNCTION MUST DEAL WITH PARTIAL AND WILL GET FULL VARIABLE POINTS REGARDLESS
   unrollHypo!, target = _buildCalcFactorLambdaSample(
+    # destVarVals,
     ccwl,
     smpid,
-    view(ccwl.varValsAll[ccwl.varidx[]], smpid);
-    _slack = _slack,
+    view(ccwl.varValsAll[][ccwl.varidx[]], smpid), # SUPER IMPORTANT, this `target` is mem pointer that will be updated by optim library
+    ccwl.measurement,
+    _slack,
   )
 
   # broadcast updates original view memory location
   ## using CalcFactor legacy path inside (::CalcFactor)
   # _hypoObj = (x) -> (target.=x; unrollHypo!())
   function _hypoObj(x)
-    target[] .= x
+    target[] = x
     return unrollHypo!()
   end
 
   # TODO small off-manifold perturbation is a numerical workaround only, make on-manifold requires RoME.jl #244
-  # use all element dimensions : ==> 1:ccwl.xDim
-  # F <: AbstractRelativeRoots && (target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb))
+  # _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
 
   # do the parameter search over defined decision variables using Minimization
   sfidx = ccwl.varidx[]
-  X = ccwl.varValsAll[sfidx][smpid]
+  X = ccwl.varValsAll[][ccwl.varidx[]][smpid]
   retval = _solveLambdaNumeric(
     getFactorType(ccwl),
     _hypoObj,
@@ -405,15 +499,10 @@ function _solveCCWNumeric!(
     islen1,
   )
 
-  # Check for NaNs
-  # FIXME isnan for manifold ProductRepr
-  # if sum(isnan.(retval)) != 0
-  # @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(retval)\n"
-  # return nothing
-  # end
+  # TBD Check for NaNs
 
-  # FIXME insert result back at the correct variable element location
-  ccwl.varValsAll[sfidx][smpid] .= retval
+  # NOTE insert result back at the correct variable element location
+  ccwl.varValsAll[][ccwl.varidx[]][smpid] = retval
 
   return nothing
 end

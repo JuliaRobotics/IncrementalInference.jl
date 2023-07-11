@@ -2,25 +2,7 @@
 ## FactorOperationalMemory for parametric, TODO move back to FactorOperationalMemory.jl
 ## ================================================================================================
 
-abstract type AbstractMaxMixtureSolver end
 
-"""
-$TYPEDEF
-
-Internal parametric extension to [`CalcFactor`](@ref) used for buffering measurement and calculating Mahalanobis distance
-
-Related
-
-[`CalcFactor`](@ref)
-"""
-struct CalcFactorMahalanobis{N, D, L, S <: Union{Nothing, AbstractMaxMixtureSolver}}
-  faclbl::Symbol
-  calcfactor!::CalcFactor
-  varOrder::Vector{Symbol}
-  meas::NTuple{N, <:AbstractArray}
-  iΣ::NTuple{N, SMatrix{D, D, Float64, L}}
-  specialAlg::S
-end
 # struct CalcFactorMahalanobis{CF<:CalcFactor, S<:Union{Nothing,AbstractMaxMixtureSolver}, N}
 #   calcfactor!::CF
 #   varOrder::Vector{Symbol}
@@ -52,7 +34,7 @@ end
 
 function Base.setindex!(
   flatVar::FlatVariables{T},
-  val::Vector{T},
+  val::AbstractVector{T},
   vId::Symbol,
 ) where {T <: Real}
   if length(val) == length(flatVar.idx[vId])
@@ -191,7 +173,7 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
 end
 
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
-function (cfp::CalcFactorMahalanobis{1, D, L, Nothing})(variables...) where {D, L}# AbstractArray{T} where T <: Real
+@inline function (cfp::CalcFactorMahalanobis{1, D, L, Nothing})(variables...) where {D, L}# AbstractArray{T} where T <: Real
   # call the user function 
   res = cfp.calcfactor!(cfp.meas..., variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
@@ -264,8 +246,9 @@ end
 ## GraphSolveStructures
 ## ================================================================================================
 
-function getVariableTypesCount(fg::AbstractDFG)
-  vars = getVariables(fg)
+getVariableTypesCount(fg::AbstractDFG) = getVariableTypesCount(getVariables(fg))
+
+function getVariableTypesCount(vars::Vector{<:DFGVariable})
   typedict = OrderedDict{DataType, Int}()
   alltypes = OrderedDict{DataType, Vector{Symbol}}()
   for v in vars
@@ -278,7 +261,7 @@ function getVariableTypesCount(fg::AbstractDFG)
   end
   #TODO tuple or vector?
   # vartypes = tuple(keys(typedict)...)
-  vartypes = collect(keys(typedict))
+  vartypes::Vector{DataType} = collect(keys(typedict))
   return vartypes, typedict, alltypes
 end
 
@@ -436,6 +419,10 @@ function (gsc::GraphSolveContainer)(Xc::Vector{T}) where {T <: Real}
   return obj / 2
 end
 
+
+# FIXME, deprecate and improve legacy use of `MultiThreaded` type
+struct MultiThreaded end
+
 function (gsc::GraphSolveContainer)(Xc::Vector{T}, ::MultiThreaded) where {T <: Real}
   #
   buffs = getGraphSolveCache!(gsc, T)
@@ -514,6 +501,7 @@ end
 
 function solveGraphParametric(
   fg::AbstractDFG;
+  verbose::Bool = false,
   computeCovariance::Bool = true,
   solveKey::Symbol = :parametric,
   autodiff = :forward,
@@ -570,6 +558,8 @@ function solveGraphParametric(
   tdtotalCost = Optim.TwiceDifferentiable(gsc, initValues; autodiff = autodiff)
 
   result = Optim.optimize(tdtotalCost, initValues, alg, options)
+  !verbose ? nothing : @show(result)
+
   rv = Optim.minimizer(result)
 
   # optionally compute hessian for covariance
@@ -686,6 +676,10 @@ function solveConditionalsParametric(
 
   # result = Optim.optimize((x)->_totalCost(fg, flatvar, [x;sX]), fX, alg, options)
   result = Optim.optimize(tdtotalCost, fX, alg, options)
+
+  if !Optim.converged(result)
+    @warn "Optim did not converge:" result maxlog=10
+  end
 
   rv = Optim.minimizer(result)
 
@@ -822,6 +816,7 @@ function DFG.solveGraphParametric!(
   init::Bool = true, 
   solveKey::Symbol = :parametric, # FIXME, moot since only :parametric used for parametric solves
   initSolveKey::Symbol = :default, 
+  verbose = false,
   kwargs...
 )
   # make sure variables has solverData, see #1637
@@ -832,7 +827,7 @@ function DFG.solveGraphParametric!(
     initParametricFrom!(fg, initSolveKey; parkey=solveKey)
   end
 
-  vardict, result, varIds, Σ = solveGraphParametric(fg; kwargs...)
+  vardict, result, varIds, Σ = solveGraphParametric(fg; verbose, kwargs...)
 
   updateParametricSolution!(fg, vardict)
 
@@ -858,15 +853,15 @@ function initParametricFrom!(
     for v in getVariables(fg)
       fromvnd = getSolverData(v, fromkey)
       dims = getDimension(v)
-      getSolverData(v, parkey).val[1] .= fromvnd.val[1]
-      getSolverData(v, parkey).bw[1:dims, 1:dims] .= LinearAlgebra.I(dims)
+      getSolverData(v, parkey).val[1] = fromvnd.val[1]
+      getSolverData(v, parkey).bw[1:dims, 1:dims] = LinearAlgebra.I(dims)
     end
   else
     for var in getVariables(fg)
       dims = getDimension(var)
       μ, Σ = calcMeanCovar(var, fromkey)
-      getSolverData(var, parkey).val[1] .= μ
-      getSolverData(var, parkey).bw[1:dims, 1:dims] .= Σ
+      getSolverData(var, parkey).val[1] = μ
+      getSolverData(var, parkey).bw[1:dims, 1:dims] = Σ
     end
   end
 end
@@ -986,7 +981,7 @@ function autoinitParametric!(
 
     vnd.initialized = true
     #fill in ppe as mean
-    Xc = getCoordinates(getVariableType(xi), val)
+    Xc = collect(getCoordinates(getVariableType(xi), val))
     ppe = MeanMaxPPE(:parametric, Xc, Xc, Xc)
     getPPEDict(xi)[:parametric] = ppe
 

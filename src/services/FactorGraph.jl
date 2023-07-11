@@ -282,6 +282,10 @@ function setValKDE!(
   return nothing
 end
 
+function setBelief!(vari::DFGVariable, bel::ManifoldKernelDensity, setinit::Bool=true,ipc::AbstractVector{<:Real}=[0.0;])
+  setValKDE!(vari,getPoints(bel),setinit, ipc)
+end
+
 """
     $SIGNATURES
 
@@ -725,7 +729,7 @@ function getDefaultFactorData(
   
   # allocate temporary state for convolutional operations (not stored)
   userCache = preambleCache(dfg, Xi, usrfnc)
-  ccw = _prepCCW(
+  ccwl = _createCCW(
     Xi,
     usrfnc;
     multihypo = mhcat,
@@ -737,13 +741,13 @@ function getDefaultFactorData(
   )
   
   # and the factor data itself
-  return FunctionNodeData{typeof(ccw)}(
+  return FunctionNodeData{typeof(ccwl)}(
     eliminated,
     potentialused,
     edgeIDs,
-    ccw,
+    ccwl,
     multihypo,
-    ccw.certainhypo,
+    ccwl.hyporecipe.certainhypo,
     nullhypo,
     solveInProgress,
     inflation,

@@ -30,7 +30,7 @@ export AbstractDFG,
 # Inference types
 export AbstractPackedFactor, AbstractFactor
 export AbstractPrior, AbstractRelative
-export AbstractRelativeRoots, AbstractRelativeMinimize, AbstractManifoldMinimize
+export AbstractRelativeMinimize, AbstractManifoldMinimize
 
 # not sure if this is necessary
 export convert, *
@@ -153,6 +153,7 @@ export CSMHistory,
   getNumPts,
   getBWVal,
   setBW!,
+  setBelief!,
   setValKDE!,
   buildCliqSubgraph,
 
@@ -240,7 +241,6 @@ export CSMHistory,
   getCliqNumAssocFactorsPerVar,
 
   # user functions
-  predictbelief,
   propagateBelief,
   getCliqMat,
   getCliqAssocMat,
