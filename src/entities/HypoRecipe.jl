@@ -44,7 +44,7 @@ function Base.isapprox(
 end
 
 
-Base.==(
+Base.:(==)(
   a::HypoRecipe, 
   b::HypoRecipe
 ) = isapprox(a,b)
