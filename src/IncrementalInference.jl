@@ -135,6 +135,8 @@ include("entities/AliasScalarSampling.jl")
 include("entities/OptionalDensities.jl")
 include("entities/BeliefTypes.jl")
 
+include("services/HypoRecipe.jl")
+
 #
 include("manifolds/services/ManifoldsExtentions.jl")
 include("manifolds/services/ManifoldSampling.jl")

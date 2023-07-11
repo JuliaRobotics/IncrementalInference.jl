@@ -20,31 +20,3 @@ Base.@kwdef struct HypoRecipeCompute{
   activehypo::Vector{Int} = Int[]
 end
 
-
-function Base.isapprox(
-  a::HypoRecipe, 
-  b::HypoRecipe
-)
-  if !(isnothing(a.hypotheses) && isnothing(b.hypotheses))
-    return isapprox(a.hypotheses.p, b.hypotheses.p)
-  end
-  if !(isnothing(a.certainhypo) && isnothing(b.certainhypo))
-    return isapprox(a.certainhypo, b.certainhypo)
-  end
-  
-  if 0 < length(a.activehypo)
-    if length(a.activehypo) == length(b.activehypo)
-      return isapprox(a.activehypo, b.activehypo)
-    else
-      return false
-    end
-  end
-
-  return true
-end
-
-
-Base.:(==)(
-  a::HypoRecipe, 
-  b::HypoRecipe
-) = isapprox(a,b)
