@@ -171,7 +171,6 @@ end
 function FactorGradientsCached!(
   fct::Union{
     <:AbstractRelativeMinimize,
-    # <:AbstractRelativeRoots,
     <:AbstractManifoldMinimize,
   },
   varTypes::Tuple,

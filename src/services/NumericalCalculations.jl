@@ -31,14 +31,6 @@ function _perturbIfNecessary(
 end
 #
 
-function _perturbIfNecessary(
-  fcttype::Union{F, <:Mixture{N_, F, S, T}},
-  len::Int = 1,
-  perturbation::Real = 1e-10,
-) where {N_, F <: AbstractRelativeRoots, S, T}
-  return perturbation * randn(len)
-end
-#
 
 # internal use only, and selected out from approxDeconv functions
 function _solveLambdaNumeric(
