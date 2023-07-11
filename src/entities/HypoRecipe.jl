@@ -19,3 +19,32 @@ Base.@kwdef struct HypoRecipeCompute{
   """ subsection indices to select which params should be used for this hypothesis evaluation """
   activehypo::Vector{Int} = Int[]
 end
+
+
+function Base.isapprox(
+  a::HypoRecipe, 
+  b::HypoRecipe
+)
+  if !(isnothing(a.hypotheses) && isnothing(B.hypotheses))
+    return isapprox(a.hypotheses.p, b.hypotheses.p)
+  end
+  if !(isnothing(a.certainhypo) && isnothing(B.certainhypo))
+    return isapprox(a.certainhypo, b.certainhypo)
+  end
+  
+  if 0 < length(a.activehypo)
+    if length(a.activehypo) == length(b.activehypo)
+      return isapprox(a.activehypo, b.activehypo)
+    else
+      return false
+    end
+  end
+
+  return true
+end
+
+
+Base.==(
+  a::HypoRecipe, 
+  b::HypoRecipe
+) = isapprox(a,b)
