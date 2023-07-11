@@ -25,10 +25,10 @@ function Base.isapprox(
   a::HypoRecipe, 
   b::HypoRecipe
 )
-  if !(isnothing(a.hypotheses) && isnothing(B.hypotheses))
+  if !(isnothing(a.hypotheses) && isnothing(b.hypotheses))
     return isapprox(a.hypotheses.p, b.hypotheses.p)
   end
-  if !(isnothing(a.certainhypo) && isnothing(B.certainhypo))
+  if !(isnothing(a.certainhypo) && isnothing(b.certainhypo))
     return isapprox(a.certainhypo, b.certainhypo)
   end
   
