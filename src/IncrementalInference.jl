@@ -27,8 +27,6 @@ export TranslationGroup, RealCircleGroup
 # common non-groups -- TODO still teething problems to sort out in IIF v0.25-v0.26.
 export Euclidean, Circle
 
-import NLsolve
-import NLSolversBase
 import Optim
 
 using Dates,
