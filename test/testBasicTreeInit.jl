@@ -1,7 +1,7 @@
 
 using Test
 using IncrementalInference
-using Gadfly
+# using Gadfly
 
 ##
 @testset "basic per clique stopping criteria" begin
