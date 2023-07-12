@@ -4,7 +4,7 @@ module GadflyExt
 
 using Gadfly
 using DocStringExtensions
-using IncrementalInference: AbstractBayesTree, TreeCliq, getCliqueData, getCliqAssocMat, getCliqMat, getLabel, getCliqMsgMat, getClique
+using IncrementalInference: AbstractBayesTree, TreeClique, getCliqueData, getCliqAssocMat, getCliqMat, getLabel, getCliqMsgMat, getClique
 import IncrementalInference: exportimg, spyCliqMat
 
 export exportimg, spyCliqMat
