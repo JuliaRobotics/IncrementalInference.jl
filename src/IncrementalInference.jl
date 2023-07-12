@@ -246,9 +246,9 @@ function __init__()
   # @require Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004" include(
   #   "services/EmbeddedPlottingUtils.jl",
   # )
-  @require DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa" include(
-    "ODE/DERelative.jl",
-  )
+  # @require DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa" include(
+  #   "ODE/DERelative.jl",
+  # )
   # @require Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59" include(
   #   "services/HeatmapSampler.jl",
   # )
