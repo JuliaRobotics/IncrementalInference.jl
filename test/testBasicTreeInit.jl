@@ -107,7 +107,8 @@ for var in good_vars
 end
 
 
-pl = spyCliqMat(getClique(tree,1));
+@error "Restore test on GadflyExt.spyCliqMat"
+# pl = spyCliqMat(getClique(tree,1));
 
 ##
 end
