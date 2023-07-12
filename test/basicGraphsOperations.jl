@@ -1,4 +1,5 @@
 using IncrementalInference
+using InteractiveUtils
 using Test
 
 ##
@@ -40,6 +41,19 @@ manikde!(varT, pts)
 pts = [(randn(2), [1 0; 0 1.]) for _ in 1:100]
 varT = _TestManiKde
 manikde!(varT, pts)
+
+
+##
+end
+
+
+@testset "test InteractiveUtilsExt" begin
+##
+
+IIF.listTypeTree(AbstractManifoldMinimize)
+
+IIF.getCurrentWorkspaceFactors()
+IIF.getCurrentWorkspaceVariables()
 
 
 ##

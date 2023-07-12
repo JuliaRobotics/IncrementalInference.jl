@@ -358,4 +358,8 @@ export makeSolverData!
 
 export MetaPrior
 
+# weakdeps on InteractiveUtils.jl
+export getCurrentWorkspaceFactors, getCurrentWorkspaceVariables
+export listTypeTree
+
 #
