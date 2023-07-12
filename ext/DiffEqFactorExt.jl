@@ -5,6 +5,8 @@ module DiffEqFactorExt
 using DifferentialEquations
 import DifferentialEquations: solve
 
+using Dates
+
 using IncrementalInference
 import IncrementalInference: getSample, getManifold, DERelative
 
@@ -108,6 +110,8 @@ function _solveFactorODE!(measArr, prob, u0pts, Xtra...)
   measArr[:] = sol.u[end]
   return sol
 end
+
+getSample(cf::CalcFactor{<:DERelative}) = error("getSample(::CalcFactor{<:DERelative}) not implemented yet")
 
 # FIXME see #1025, `multihypo=` will not work properly yet
 function sampleFactor(cf::CalcFactor{<:DERelative}, N::Int = 1)

@@ -96,7 +96,11 @@ include("testCircular.jl")
 include("testMixtureLinearConditional.jl")
 include("testFluxModelsDistribution.jl")
 include("testAnalysisTools.jl")
-# include("testDERelative.jl")
+try
+  include("testDERelative.jl")
+catch
+  @error "[FAILED]  Fix testDERelative.jl, likely just requires implementing DiffEqFactorExt.getSample(::CalcFactor{<:DERelative})."
+end
 
 include("testBasicParametric.jl")
 include("testMixtureParametric.jl")
