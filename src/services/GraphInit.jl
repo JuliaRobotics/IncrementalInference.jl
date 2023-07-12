@@ -351,7 +351,7 @@ function initVariable!(
   if solveKey == :parametric
     μ, iΣ = getMeasurementParametric(samplable_belief)
     vnd = getSolverData(variable, solveKey)
-    vnd.val[1] .= getPoint(getVariableType(variable), μ)
+    vnd.val[1] = getPoint(getVariableType(variable), μ)
     vnd.bw .= inv(iΣ)
   else
     points = [samplePoint(M, samplable_belief) for _ = 1:N]

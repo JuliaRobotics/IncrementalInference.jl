@@ -13,22 +13,6 @@ function _checkErrorCCWNumerics(
   return nothing
 end
 
-function _checkErrorCCWNumerics(
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
-  testshuffle::Bool = false,
-) where {N_, F <: AbstractRelativeRoots, S, T}
-  #
-  # error("<:AbstractRelativeRoots is obsolete, use one of the other <:AbstractRelative types instead.")
-  # TODO get xDim = getDimension(getVariableType(Xi[sfidx])) but without having Xi
-  if testshuffle || ccwl.partial
-    error(
-      "<:AbstractRelativeRoots factors with less or more measurement dimensions than variable dimensions have been discontinued, rather use <:AbstractManifoldMinimize.",
-    )
-  # elseif !(_getZDim(ccwl) >= ccwl.xDim && !ccwl.partial)
-  #   error("Unresolved numeric <:AbstractRelativeRoots solve case")
-  end
-  return nothing
-end
 
 function _perturbIfNecessary(
   fcttype::Union{F, <:Mixture{N_, F, S, T}},
@@ -47,14 +31,6 @@ function _perturbIfNecessary(
 end
 #
 
-function _perturbIfNecessary(
-  fcttype::Union{F, <:Mixture{N_, F, S, T}},
-  len::Int = 1,
-  perturbation::Real = 1e-10,
-) where {N_, F <: AbstractRelativeRoots, S, T}
-  return perturbation * randn(len)
-end
-#
 
 # internal use only, and selected out from approxDeconv functions
 function _solveLambdaNumeric(
@@ -69,21 +45,6 @@ function _solveLambdaNumeric(
 end
 #
 
-function _solveLambdaNumeric(
-  fcttype::Union{F, <:Mixture{N_, F, S, T}},
-  objResX::Function,
-  residual::AbstractVector{<:Real},
-  u0::AbstractVector{<:Real},
-  islen1::Bool = false,
-) where {N_, F <: AbstractRelativeRoots, S, T}
-  #
-
-  #
-  r = NLsolve.nlsolve((res, x) -> res .= objResX(x), u0; inplace = true) #, ftol=1e-14)
-
-  #
-  return r.zero
-end
 
 function _solveLambdaNumeric(
   fcttype::Union{F, <:Mixture{N_, F, S, T}},
@@ -304,7 +265,6 @@ _getusrfnc(ccwl::CommonConvWrapper{<:Mixture}) = ccwl.usrfnc!.mechanics
 function _buildCalcFactor(
   ccwl::CommonConvWrapper,
   smpid,
-  # measurement_, # deprecate
   varParams,
   activehypo,
 )
@@ -335,7 +295,6 @@ DevNotes
 - TODO refactor relationship and common fields between (CCW, FMd, CPT, CalcFactor)
 """
 function _buildCalcFactorLambdaSample(
-  # destVarVals::AbstractVector,
   ccwl::CommonConvWrapper,
   smpid::Integer,
   target, # partials no longer on coordinates at this level # = view(destVarVals[smpid], ccwl.partialDims), # target = view(ccwl.varValsAll[ccwl.varidx[]][smpid], ccwl.partialDims),
@@ -350,25 +309,9 @@ function _buildCalcFactorLambdaSample(
 
   # build a view to the decision variable memory
   varValsHypo = ccwl.varValsAll[][ccwl.hyporecipe.activehypo]
-  # tup = tuple(varParams...)
-  # nms = keys(ccwl.varValsAll[])[cpt_.activehypo]
-  # varValsHypo = NamedTuple{nms,typeof(tup)}(tup)
 
-  # prepare fmd according to hypo selection
-  # FIXME must refactor (memory waste) and consolidate with CCW CPT FMd CF
-  # FIXME move up out of smpid loop and only update bare minimal fields
-  # _fmd_ = FactorMetadata( view(fmd_.fullvariables, cpt_.activehypo), 
-  #                         view(fmd_.variablelist, cpt_.activehypo),
-  #                         varValsHypo, #varParams, # view(fmd_.arrRef, cpt_.activehypo),
-  #                         fmd_.solvefor,
-  #                         fmd_.cachedata  )
-  #
   # get the operational CalcFactor object
   cf = _buildCalcFactor(ccwl, smpid, varValsHypo, ccwl.hyporecipe.activehypo)
-  # new dev work on CalcFactor
-  # cf = CalcFactor(ccwl.usrfnc!, _fmd_, smpid, 
-  #                 varValsHypo)
-  #
 
   # reset the residual vector
   fill!(ccwl.res, 0.0) # Roots->xDim | Minimize->zDim
@@ -406,7 +349,7 @@ Notes
 - Assumes `cpt_.p` is already set to desired X decision variable dimensions and size. 
 - Assumes only `ccw.particleidx` will be solved for
 - small random (off-manifold) perturbation used to prevent trivial solver cases, div by 0 etc.
-  - perturb is necessary for NLsolve cases, and smaller than 1e-10 will result in test failure
+  - perturb is necessary for NLsolve (obsolete) cases, and smaller than 1e-10 will result in test failure
 - Also incorporates the active hypo lookup
 
 DevNotes
@@ -414,11 +357,9 @@ DevNotes
 - TODO perhaps consolidate perturbation with inflation or nullhypo
 """
 function _solveCCWNumeric!(
-  # destVarVals::AbstractVector,
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  ccwl::Union{<:CommonConvWrapper{F}, <:CommonConvWrapper{<:Mixture{N_, F, S, T}}},
   _slack = nothing;
   perturb::Real = 1e-10,
-  # testshuffle::Bool=false,
 ) where {N_, F <: AbstractRelative, S, T}
   #
 
@@ -504,18 +445,13 @@ end
 #
 
 function _solveCCWNumeric!(
-  # destVarVals::AbstractVector,
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  ccwl::Union{<:CommonConvWrapper{F}, <:CommonConvWrapper{<:Mixture{N_, F, S, T}}},
   _slack = nothing;
   perturb::Real = 1e-10,
-  # testshuffle::Bool=false,
 ) where {N_, F <: AbstractManifoldMinimize, S, T}
   #
   #   # FIXME, move this check higher and out of smpid loop
   # _checkErrorCCWNumerics(ccwl, testshuffle)
-
-  #
-  # thrid = Threads.threadid()
 
   smpid = ccwl.particleidx[]
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
@@ -541,8 +477,7 @@ function _solveCCWNumeric!(
   end
 
   # TODO small off-manifold perturbation is a numerical workaround only, make on-manifold requires RoME.jl #244
-  # use all element dimensions : ==> 1:ccwl.xDim
-  # F <: AbstractRelativeRoots && (target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb))
+  # _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
 
   # do the parameter search over defined decision variables using Minimization
   sfidx = ccwl.varidx[]
@@ -556,14 +491,9 @@ function _solveCCWNumeric!(
     islen1,
   )
 
-  # Check for NaNs
-  # FIXME isnan for manifold ProductRepr
-  # if sum(isnan.(retval)) != 0
-  # @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(retval)\n"
-  # return nothing
-  # end
+  # TBD Check for NaNs
 
-  # FIXME insert result back at the correct variable element location
+  # NOTE insert result back at the correct variable element location
   ccwl.varValsAll[][ccwl.varidx[]][smpid] = retval
 
   return nothing

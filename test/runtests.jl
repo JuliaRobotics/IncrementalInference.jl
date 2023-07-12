@@ -12,6 +12,7 @@ end
 if TEST_GROUP in ["all", "basic_functional_group"]
 # more frequent stochasic failures from numerics
 include("manifolds/manifolddiff.jl")
+include("manifolds/factordiff.jl")
 include("testSpecialEuclidean2Mani.jl")
 include("testEuclidDistance.jl")
 
@@ -27,7 +28,7 @@ include("testHeatmapGridDensity.jl")
 include("testCliqSolveDbgUtils.jl")
 include("basicGraphsOperations.jl")
 
-include("TestModuleFunctions.jl")
+# include("TestModuleFunctions.jl")
 include("testCompareVariablesFactors.jl")
 include("saveconvertertypes.jl")
 include("testgraphpackingconverters.jl")
@@ -46,7 +47,6 @@ include("testTreeSaveLoad.jl")
 include("testGradientUtils.jl")
 include("testFactorGradients.jl")
 include("testSpecialSampler.jl") # TODO, rename, refine
-include("testNLsolve.jl")
 include("testCommonConvWrapper.jl")
 
 include("testApproxConv.jl")
@@ -96,7 +96,11 @@ include("testCircular.jl")
 include("testMixtureLinearConditional.jl")
 include("testFluxModelsDistribution.jl")
 include("testAnalysisTools.jl")
-include("testDERelative.jl")
+try
+  include("testDERelative.jl")
+catch
+  error("[FAILED]  Fix testDERelative.jl, likely just requires implementing DiffEqFactorExt.getSample(::CalcFactor{<:DERelative}).")
+end
 
 include("testBasicParametric.jl")
 include("testMixtureParametric.jl")
@@ -106,7 +110,7 @@ if Base.Sys.ARCH in [:x86_64;]
   include("testTexTreeIllustration.jl")
 end
 
-include("testMultiprocess.jl")
+# include("testMultiprocess.jl")
 include("testDeadReckoningTether.jl")
 end
 

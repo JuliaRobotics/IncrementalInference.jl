@@ -27,8 +27,6 @@ export TranslationGroup, RealCircleGroup
 # common non-groups -- TODO still teething problems to sort out in IIF v0.25-v0.26.
 export Euclidean, Circle
 
-import NLsolve
-import NLSolversBase
 import Optim
 
 using Dates,
@@ -60,7 +58,7 @@ using Logging
 using PrecompileTools
 
 # bringing in BSD 3-clause ccolamd
-include("ccolamd.jl")
+include("services/ccolamd.jl")
 using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
 using .Ccolamd
 
@@ -120,12 +118,13 @@ include("ExportAPI.jl")
 # FIXME, move up to DFG
 # abstract type AbstractManifoldMinimize <: AbstractRelative end
 
-#
-include("ManifoldsExtentions.jl")
+
+
 # regular
 include("entities/SolverParams.jl")
 
 include("entities/HypoRecipe.jl")
+include("entities/CalcFactor.jl")
 include("entities/FactorOperationalMemory.jl")
 
 include("Factors/GenericMarginal.jl")
@@ -133,10 +132,17 @@ include("Factors/GenericMarginal.jl")
 include("entities/AliasScalarSampling.jl")
 include("entities/OptionalDensities.jl")
 include("entities/BeliefTypes.jl")
+
+include("services/HypoRecipe.jl")
+
+#
+include("manifolds/services/ManifoldsExtentions.jl")
+include("manifolds/services/ManifoldSampling.jl")
+
 include("entities/FactorGradients.jl")
 
 # Statistics helpers on manifolds
-include("VariableStatistics.jl")
+include("services/VariableStatistics.jl")
 
 # factors needed for belief propagation on the tree
 include("Factors/MsgPrior.jl")
@@ -201,8 +207,6 @@ include("services/ExplicitDiscreteMarginalizations.jl")
 include("services/EvalFactor.jl")
 include("services/ApproxConv.jl")
 
-# FIXME CONSOLIDATE
-include("ConsolidateParametricRelatives.jl")
 
 include("services/GraphProductOperations.jl")
 include("services/SolveTree.jl")
@@ -210,41 +214,44 @@ include("services/TetherUtils.jl")
 include("services/TreeDebugTools.jl")
 include("CliqueStateMachine/services/CliqStateMachineUtils.jl")
 
+# FIXME CONSOLIDATE
+include("parametric/services/ConsolidateParametricRelatives.jl")
 #EXPERIMENTAL parametric
-include("ParametricCSMFunctions.jl")
-include("ParametricUtils.jl")
+include("parametric/services/ParametricCSMFunctions.jl")
+include("parametric/services/ParametricUtils.jl")
+include("parametric/services/ParametricOptim.jl")
+include("parametric/services/ParametricManoptDev.jl")
 include("services/MaxMixture.jl")
 
 #X-stroke
 include("CliqueStateMachine/services/CliqueStateMachine.jl")
 
-include("CanonicalGraphExamples.jl")
+include("services/CanonicalGraphExamples.jl")
 
 include("services/AdditionalUtils.jl")
-include("SolverAPI.jl")
+include("services/SolverAPI.jl")
 
 # Symbolic tree analysis files.
-include("AnalysisTools.jl")
+include("services/AnalysisTools.jl")
 
-include("ManifoldSampling.jl")
+include("../ext/WeakDepsPrototypes.jl")
 
 # deprecation legacy support
 include("Deprecated.jl")
 
-exportimg(pl) = error("Please do `using Gadfly` to allow image export.")
 function __init__()
-  @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" include(
-    "RequireInteractiveUtils.jl",
-  )
-  @require Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004" include(
-    "EmbeddedPlottingUtils.jl",
-  )
-  @require DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa" include(
-    "ODE/DERelative.jl",
-  )
-  @require Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59" include(
-    "services/HeatmapSampler.jl",
-  )
+  # @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" include(
+  #   "services/RequireInteractiveUtils.jl",
+  # )
+  # @require Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004" include(
+  #   "services/EmbeddedPlottingUtils.jl",
+  # )
+  # @require DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa" include(
+  #   "ODE/DERelative.jl",
+  # )
+  # @require Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59" include(
+  #   "services/HeatmapSampler.jl",
+  # )
 
   # combining neural networks natively into the non-Gaussian  factor graph object
   @require Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c" begin

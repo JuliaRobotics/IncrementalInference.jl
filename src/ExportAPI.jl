@@ -30,7 +30,7 @@ export AbstractDFG,
 # Inference types
 export AbstractPackedFactor, AbstractFactor
 export AbstractPrior, AbstractRelative
-export AbstractRelativeRoots, AbstractRelativeMinimize, AbstractManifoldMinimize
+export AbstractRelativeMinimize, AbstractManifoldMinimize
 
 # not sure if this is necessary
 export convert, *
@@ -357,5 +357,14 @@ export buildTreeFromOrdering! # TODO make internal and deprecate external use to
 export makeSolverData!
 
 export MetaPrior
+
+export DERelative
+
+# weakdeps on InteractiveUtils.jl
+export getCurrentWorkspaceFactors, getCurrentWorkspaceVariables
+export listTypeTree
+
+# weakdeps on Gadfly.jl
+export exportimg, spyCliqMat
 
 #

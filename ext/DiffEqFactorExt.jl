@@ -1,41 +1,20 @@
+module DiffEqFactorExt
 
-@info "IncrementalInference.jl is loading tools related to DifferentialEquations.jl"
+@info "IncrementalInference.jl is loading extensions related to DifferentialEquations.jl"
 
-using .DifferentialEquations
+using DifferentialEquations
+import DifferentialEquations: solve
 
-import .DifferentialEquations: solve
+using Dates
 
-import IncrementalInference: getSample, getManifold
+using IncrementalInference
+import IncrementalInference: getSample, getManifold, DERelative
+
+using DocStringExtensions
 
 export DERelative
 
-"""
-    $TYPEDEF
 
-Build a full ODE solution into a relative factor to condense possible sensor data into a relative transformation,
-but keeping the parameter estimation process fluid.  Assumes first and second variable in order 
-are of same dimension and compatible manifolds, such that ODE runs from Xi to Xi+1 on all
-dimensions.  Internal state vector can be decoupled onto different domain as needed.
-
-Notes
-- Based on DifferentialEquations.jl
-- `getSample` step does the `solve(ODEProblem)` step.
-- `tspan` is taken from variables only once at object construction -- i.e. won't detect changed timestamps.
-- Regular factor evaluation is done as full dimension `AbstractRelativeRoots`, and is basic linear difference.
-
-DevNotes
-- FIXME see 1025, `multihypo=` will not yet work. 
-- FIXME Lots of consolidation and standardization to do, see RoME.jl #244 regarding Manifolds.jl.
-- TODO does not yet handle case where a factor spans across two timezones.
-"""
-struct DERelative{T <: InferenceVariable, P, D} <: AbstractRelativeRoots
-  domain::Type{T}
-  forwardProblem::P
-  backwardProblem::P
-  # second element of this data tuple is additional variables that will be passed down as a parameter
-  data::D
-  specialSampler::Function
-end
 
 getManifold(de::DERelative{T}) where {T} = getManifold(de.domain)
 
@@ -132,6 +111,8 @@ function _solveFactorODE!(measArr, prob, u0pts, Xtra...)
   return sol
 end
 
+getSample(cf::CalcFactor{<:DERelative}) = error("getSample(::CalcFactor{<:DERelative}) not implemented yet")
+
 # FIXME see #1025, `multihypo=` will not work properly yet
 function sampleFactor(cf::CalcFactor{<:DERelative}, N::Int = 1)
   #
@@ -220,3 +201,5 @@ end
 # ode.problem.f.f
 
 #
+
+end # module

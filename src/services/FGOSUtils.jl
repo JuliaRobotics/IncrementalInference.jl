@@ -122,6 +122,7 @@ function manikde!(
 ) where {P <: Union{<:AbstractArray, <:Number, <:Manifolds.ArrayPartition}}
   #
   M = getManifold(variableType)
+  # @info "pts" P typeof(pts[1]) pts[1]
   infoPerCoord = ones(AMP.getNumberCoords(M, pts[1]))
   return AMP.manikde!(M, pts; infoPerCoord, kw...)
 end

@@ -79,19 +79,23 @@ function approxDeconv(
     target_smpl = makeTarget(idx)
 
     # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
-    resize!(ccw.activehypo, length(hyporecipe.activehypo[2][2]))
-    ccw.activehypo[:] = hyporecipe.activehypo[2][2]
+    resize!(ccw.hyporecipe.activehypo, length(hyporecipe.activehypo[2][2]))
+    ccw.hyporecipe.activehypo[:] = hyporecipe.activehypo[2][2]
 
     onehypo!, _ = _buildCalcFactorLambdaSample(ccw, idx, target_smpl, measurement)
     #
 
     # lambda with which to find best measurement values
-    hypoObj = (tgt) -> (target_smpl .= tgt; onehypo!())
+    function hypoObj(tgt)
+      copyto!(target_smpl, tgt)
+      return onehypo!()
+    end
+    # hypoObj = (tgt) -> (target_smpl .= tgt; onehypo!())
 
     # find solution via SubArray view pointing to original memory location
     if fcttype isa AbstractManifoldMinimize
       sfidx = ccw.varidx[]
-      target_smpl .= _solveLambdaNumericMeas(
+      ts = _solveLambdaNumericMeas(
         fcttype,
         hypoObj,
         res_,
@@ -99,8 +103,10 @@ function approxDeconv(
         getVariableType(ccw.fullvariables[sfidx]), # ccw.vartypes[sfidx](),
         islen1,
       )
+      copyto!(target_smpl, ts) 
     else
-      target_smpl .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx], islen1)
+      ts = _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx], islen1)
+      copyto!(target_smpl, ts)
     end
   end
 

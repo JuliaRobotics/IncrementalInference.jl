@@ -23,27 +23,6 @@ function Optim.project_tangent!(M::ManifoldWrapper, g, x)
     return g
 end
 
-# experimental
-function optimizeManifold_FD(
-  M::AbstractManifold, 
-  cost::Function,
-  x0::AbstractArray;
-  algorithm = Optim.ConjugateGradient(; manifold=ManifoldWrapper(M))
-)
-  # finitediff setup
-  r_backend = ManifoldDiff.TangentDiffBackend(
-    ManifoldDiff.FiniteDifferencesBackend()
-  )
-  
-  ## finitediff gradient (non-manual)
-  function costgrad_FD!(X,p)
-    X .= ManifoldDiff.gradient(M, cost, p, r_backend)
-    X
-  end
-
-  Optim.optimize(cost, costgrad_FD!, x0, algorithm)
-end
-
 
 ## ================================================================================================
 ## AbstractPowerManifold with N as field to avoid excessive compiling time.
@@ -86,6 +65,30 @@ function Manifolds.exp!(M::NPowerManifold, q, p, X)
     )
   end
   return q
+end
+
+function Manifolds.compose!(M::NPowerManifold, x, p, q)
+  rep_size = representation_size(M.manifold)
+  for i in Manifolds.get_iterator(M)
+    x[i] = compose(
+      M.manifold,
+      Manifolds._read(M, rep_size, p, i),
+      Manifolds._read(M, rep_size, q, i),
+    )
+  end
+  return x
+end
+
+function Manifolds.allocate_result(M::NPowerManifold, f, x...)
+  if length(x) == 0
+    return [Manifolds.allocate_result(M.manifold, f) for _ in Manifolds.get_iterator(M)]
+  else
+    return copy(x[1])
+  end
+end
+
+function Manifolds.allocate_result(::NPowerManifold, ::typeof(get_vector), p, X)
+  return copy(p)
 end
 
 ## ================================================================================================
