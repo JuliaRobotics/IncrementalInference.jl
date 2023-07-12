@@ -124,6 +124,8 @@ end
 ## Deprecate code below before v0.35
 ##==============================================================================
 
+# exportimg(pl) = error("Please do `using Gadfly` to allow image export.")
+
 # function _perturbIfNecessary(
 #   fcttype::Union{F, <:Mixture{N_, F, S, T}},
 #   len::Int = 1,

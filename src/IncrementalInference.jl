@@ -239,14 +239,13 @@ include("../ext/WeakDepsPrototypes.jl")
 # deprecation legacy support
 include("Deprecated.jl")
 
-exportimg(pl) = error("Please do `using Gadfly` to allow image export.")
 function __init__()
   # @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" include(
   #   "services/RequireInteractiveUtils.jl",
   # )
-  @require Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004" include(
-    "services/EmbeddedPlottingUtils.jl",
-  )
+  # @require Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004" include(
+  #   "services/EmbeddedPlottingUtils.jl",
+  # )
   @require DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa" include(
     "ODE/DERelative.jl",
   )
