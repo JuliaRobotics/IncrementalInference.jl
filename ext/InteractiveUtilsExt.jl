@@ -1,7 +1,9 @@
+module InteractiveUtilsExt
 
-@info "IncrementalInference.jl is loading tools related to InteractiveUtils.jl."
+@info "IncrementalInference.jl is loading extension related to InteractiveUtils.jl."
 
-# this requires InteractiveUtils
+using InteractiveUtils
+using DocStringExtensions
 
 export getCurrentWorkspaceFactors, getCurrentWorkspaceVariables
 export listTypeTree
@@ -50,3 +52,5 @@ function listTypeTree(T)
   println(T)
   return _listTypeTree(T, 0)
 end
+
+end #module
