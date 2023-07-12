@@ -8,6 +8,9 @@ using Flux
 using DataStructures: OrderedDict
 using LinearAlgebra
 using Base64
+using Manifolds
+using DocStringExtensions
+using BSON
 
 import Base: convert
 
