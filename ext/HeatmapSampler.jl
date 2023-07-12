@@ -1,15 +1,5 @@
 # heatmap sampler (experimental)
 
-@info "IncrementalInference.jl is loading tools related to Interpolations.jl."
-
-using .Interpolations
-
-# only export on Requires.jl
-export HeatmapGridDensity, PackedHeatmapGridDensity
-export LevelSetGridNormal, PackedLevelSetGridNormal
-
-export sampleHeatmap
-
 ##
 
 getManifold(hgd::HeatmapGridDensity) = getManifold(hgd.densityFnc)

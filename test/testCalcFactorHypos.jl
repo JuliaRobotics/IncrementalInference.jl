@@ -8,7 +8,7 @@ import IncrementalInference: getSample, getManifold
 
 ##
 
-struct MyFactor{T <: SamplableBelief} <: IIF.AbstractRelativeRoots
+struct MyFactor{T <: SamplableBelief} <: IIF.AbstractManifoldMinimize
   Z::T
   # specialSampler approach will be deprecated
   # specialSampler::Function

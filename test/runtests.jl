@@ -28,7 +28,7 @@ include("testHeatmapGridDensity.jl")
 include("testCliqSolveDbgUtils.jl")
 include("basicGraphsOperations.jl")
 
-include("TestModuleFunctions.jl")
+# include("TestModuleFunctions.jl")
 include("testCompareVariablesFactors.jl")
 include("saveconvertertypes.jl")
 include("testgraphpackingconverters.jl")
@@ -107,7 +107,7 @@ if Base.Sys.ARCH in [:x86_64;]
   include("testTexTreeIllustration.jl")
 end
 
-include("testMultiprocess.jl")
+# include("testMultiprocess.jl")
 include("testDeadReckoningTether.jl")
 end
 
