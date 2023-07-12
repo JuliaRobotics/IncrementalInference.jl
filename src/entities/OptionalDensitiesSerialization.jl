@@ -1,5 +1,5 @@
 
-export PackedFluxModelsDistribution
+
 
 Base.@kwdef mutable struct PackedFluxModelsDistribution <: PackedSamplableBelief
   # standardized _type field

@@ -111,7 +111,7 @@ function _solveFactorODE!(measArr, prob, u0pts, Xtra...)
   return sol
 end
 
-getSample(cf::CalcFactor{<:DERelative}) = error("getSample(::CalcFactor{<:DERelative}) not implemented yet")
+getSample(cf::CalcFactor{<:DERelative}) = error("getSample(::CalcFactor{<:DERelative}) must still be implemented in new IIF design")
 
 # FIXME see #1025, `multihypo=` will not work properly yet
 function sampleFactor(cf::CalcFactor{<:DERelative}, N::Int = 1)

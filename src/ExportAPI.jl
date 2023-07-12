@@ -310,7 +310,7 @@ export PackedUniform, PackedNormal
 export PackedZeroMeanDiagNormal,
   PackedZeroMeanFullNormal, PackedDiagNormal, PackedFullNormal
 export PackedManifoldKernelDensity
-export PackedAliasingScalarSampler, PackedHeatmapGridDensity, PackedLevelSetGridNormal
+export PackedAliasingScalarSampler
 export PackedRayleigh
 
 export Mixture, PackedMixture
@@ -358,7 +358,17 @@ export makeSolverData!
 
 export MetaPrior
 
+
+# weakdeps on Interpolations.jl
+export HeatmapGridDensity, LevelSetGridNormal
+export PackedHeatmapGridDensity, PackedLevelSetGridNormal
+
+# weakdeps on DifferentialEquations.jl
 export DERelative
+
+# weakdeps on Flux.jl
+export FluxModelsDistribution, PackedFluxModelsDistribution
+export MixtureFluxModels
 
 # weakdeps on InteractiveUtils.jl
 export getCurrentWorkspaceFactors, getCurrentWorkspaceVariables
@@ -366,5 +376,6 @@ export listTypeTree
 
 # weakdeps on Gadfly.jl
 export exportimg, spyCliqMat
+
 
 #
