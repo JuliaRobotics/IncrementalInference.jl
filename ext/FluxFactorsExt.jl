@@ -19,7 +19,7 @@ using Random, Statistics
 import Random: rand
 
 using IncrementalInference
-import IncrementalInference: samplePoint, sampleTangent
+import IncrementalInference: samplePoint, sampleTangent, MixtureFluxModels, getSample
 
 # the factor definitions
 # export FluxModelsDistribution

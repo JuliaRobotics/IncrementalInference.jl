@@ -1,4 +1,6 @@
 
+# Flux.jl
+function MixtureFluxModels end
 
 # InteractiveUtils.jl
 function getCurrentWorkspaceFactors end

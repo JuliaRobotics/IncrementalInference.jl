@@ -368,6 +368,7 @@ export DERelative
 
 # weakdeps on Flux.jl
 export FluxModelsDistribution, PackedFluxModelsDistribution
+export MixtureFluxModels
 
 # weakdeps on InteractiveUtils.jl
 export getCurrentWorkspaceFactors, getCurrentWorkspaceVariables
