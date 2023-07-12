@@ -47,7 +47,6 @@ include("testTreeSaveLoad.jl")
 # include("testGradientUtils.jl")
 # include("testFactorGradients.jl")
 include("testSpecialSampler.jl") # TODO, rename, refine
-include("testNLsolve.jl")
 include("testCommonConvWrapper.jl")
 
 include("testApproxConv.jl")

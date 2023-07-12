@@ -349,7 +349,7 @@ Notes
 - Assumes `cpt_.p` is already set to desired X decision variable dimensions and size. 
 - Assumes only `ccw.particleidx` will be solved for
 - small random (off-manifold) perturbation used to prevent trivial solver cases, div by 0 etc.
-  - perturb is necessary for NLsolve cases, and smaller than 1e-10 will result in test failure
+  - perturb is necessary for NLsolve (obsolete) cases, and smaller than 1e-10 will result in test failure
 - Also incorporates the active hypo lookup
 
 DevNotes
