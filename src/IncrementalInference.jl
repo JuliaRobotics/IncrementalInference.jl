@@ -3,7 +3,6 @@ module IncrementalInference
 # @info "Multithreaded  convolutions possible, Threads.nthreads()=$(Threads.nthreads()).  See `addFactor!(.;threadmodel=MultiThreaded)`."
 
 using Distributed
-using Requires
 using Reexport
 
 @reexport using Distributions
