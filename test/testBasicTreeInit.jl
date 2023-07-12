@@ -1,8 +1,11 @@
 
 using Test
 using IncrementalInference
+using Gadfly
 
+##
 @testset "basic per clique stopping criteria" begin
+##
 
 fg = generateGraph_LineStep(1)
 smtasks = Task[]
@@ -94,7 +97,7 @@ addFactor!(fg, [:s1;:s2], LinearRelative(Normal()))
 
 smtasks = Task[]
 
-solveTree!(fg; smtasks=smtasks, verbose=true)
+tree = solveTree!(fg; smtasks=smtasks, verbose=true)
 
 
 for var in good_vars
@@ -104,6 +107,9 @@ for var in good_vars
 end
 
 
+pl = spyCliqMat(getClique(tree,1));
+
+##
 end
 
 #

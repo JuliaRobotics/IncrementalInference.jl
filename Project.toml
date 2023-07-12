@@ -50,10 +50,12 @@ TimeZones = "f269a46b-ccf7-5d73-abea-4c690281aa53"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [weakdeps]
+Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 
 [extensions]
+GadflyExt = "Gadfly"
 InteractiveUtilsExt = "InteractiveUtils"
 InterpolationsExt = "Interpolations"
 
@@ -105,4 +107,4 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [targets]
-test = ["DifferentialEquations", "Flux", "Graphs", "Manopt", "InteractiveUtils", "Interpolations", "LineSearches", "Pkg", "Rotations", "Test", "Zygote"]
+test = ["DifferentialEquations", "Flux", "Gadfly", "Graphs", "Manopt", "InteractiveUtils", "Interpolations", "LineSearches", "Pkg", "Rotations", "Test", "Zygote"]

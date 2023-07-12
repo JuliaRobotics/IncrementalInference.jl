@@ -1,9 +1,15 @@
+module GadflyExt
 
-@info "Defining spyCliqMat(..) for visualizing association matrix of a clique in the Bayes (Junction) tree"
+@info "IncrementalInference.jl is loading plotting extensions relating to Gadfly.jl"
+
+using Gadfly
+using DocStringExtensions
+using IncrementalInference: AbstractBayesTree, TreeCliq, getCliqueData, getCliqAssocMat, getCliqMat, getLabel, getCliqMsgMat, getClique
+import IncrementalInference: exportimg, spyCliqMat
+
+export exportimg, spyCliqMat
 
 exportimg(pl) = Gadfly.PNG(pl)
-
-export spyCliqMat
 
 """
     $SIGNATURES
@@ -58,4 +64,7 @@ function spyCliqMat(
   suppressprint::Bool = false,
 )
   return spyCliqMat(getClique(bt, lbl); showmsg = showmsg, suppressprint = suppressprint)
+end
+
+
 end

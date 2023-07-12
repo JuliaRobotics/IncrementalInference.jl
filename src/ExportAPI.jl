@@ -362,4 +362,7 @@ export MetaPrior
 export getCurrentWorkspaceFactors, getCurrentWorkspaceVariables
 export listTypeTree
 
+# weakdeps on Gadfly.jl
+export exportimg, spyCliqMat
+
 #
