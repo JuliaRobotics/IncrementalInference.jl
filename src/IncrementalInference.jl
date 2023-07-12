@@ -130,7 +130,7 @@ include("entities/FactorOperationalMemory.jl")
 include("Factors/GenericMarginal.jl")
 # Special belief types for sampling as a distribution
 include("entities/AliasScalarSampling.jl")
-include("entities/OptionalDensities.jl")
+include("entities/OptionalDensities.jl") # used in BeliefTypes.jl::SamplableBeliefs
 include("entities/BeliefTypes.jl")
 
 include("services/HypoRecipe.jl")
@@ -234,6 +234,10 @@ include("services/SolverAPI.jl")
 # Symbolic tree analysis files.
 include("services/AnalysisTools.jl")
 
+# optional densities on weakdeps
+include("Serialization/entities/SerializingOptionalDensities.jl")
+include("Serialization/services/SerializingOptionalDensities.jl")
+
 include("../ext/WeakDepsPrototypes.jl")
 
 # deprecation legacy support
@@ -253,12 +257,11 @@ function __init__()
   #   "services/HeatmapSampler.jl",
   # )
 
-  # combining neural networks natively into the non-Gaussian  factor graph object
-  @require Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c" begin
-    include("Flux/FluxModelsDistribution.jl")
-    include("Serialization/entities/FluxModelsSerialization.jl")
-    include("Serialization/services/FluxModelsSerialization.jl") # uses BSON
-  end
+  # # combining neural networks natively into the non-Gaussian  factor graph object
+  # @require Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c" begin
+  #   # include("Flux/FluxModelsDistribution.jl")
+  #   include("Serialization/services/FluxModelsSerialization.jl") # uses BSON
+  # end
 end
 
 @compile_workload begin

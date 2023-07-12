@@ -11,7 +11,8 @@ using ApproxManifoldProducts
 import ApproxManifoldProducts: sample
 const AMP = ApproxManifoldProducts
 
-import IncrementalInference: getManifold
+import Base: show
+import IncrementalInference: getManifold, sampleTangent
 import IncrementalInference: HeatmapGridDensity, PackedHeatmapGridDensity
 import IncrementalInference: LevelSetGridNormal, PackedLevelSetGridNormal
 

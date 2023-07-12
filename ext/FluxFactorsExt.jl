@@ -1,17 +1,26 @@
+module FluxFactorsExt
 
-@info "IncrementalInference is adding Flux related functionality."
 
-# the factor definitions
-export FluxModelsDistribution
-export MixtureFluxModels
+@info "IncrementalInference is loading extension functionality related to Flux.jl"
 
 # Required packages
-using .Flux
+using Flux
 using DataStructures: OrderedDict
-using Random, Statistics
+using LinearAlgebra
+using Base64
+
+import Base: convert
 
 # import Base: convert
+using Random, Statistics
 import Random: rand
+
+using IncrementalInference
+import IncrementalInference: samplePoint, sampleTangent
+
+# the factor definitions
+# export FluxModelsDistribution
+export MixtureFluxModels
 
 const _IIFListTypes = Union{<:AbstractVector, <:Tuple, <:NTuple, <:NamedTuple}
 
@@ -164,3 +173,8 @@ function MixtureFluxModels(::Type{F}, w...; kw...) where {F <: AbstractFactor}
 end
 
 #
+
+include("FluxModelsSerialization.jl")
+
+
+end # module
