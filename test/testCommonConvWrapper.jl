@@ -72,7 +72,7 @@ end
 
 # abstract Nonparametric <: Function
 # This is what the internmediate user would be contributing
-mutable struct Pose1Pose1Test{T} <: AbstractRelativeRoots
+mutable struct Pose1Pose1Test{T} <: AbstractManifoldMinimize
   Dx::T
 end
 

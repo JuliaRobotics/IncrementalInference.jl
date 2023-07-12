@@ -251,9 +251,9 @@ function __init__()
   @require DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa" include(
     "ODE/DERelative.jl",
   )
-  @require Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59" include(
-    "services/HeatmapSampler.jl",
-  )
+  # @require Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59" include(
+  #   "services/HeatmapSampler.jl",
+  # )
 
   # combining neural networks natively into the non-Gaussian  factor graph object
   @require Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c" begin
