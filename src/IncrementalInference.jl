@@ -234,6 +234,7 @@ include("services/SolverAPI.jl")
 # Symbolic tree analysis files.
 include("services/AnalysisTools.jl")
 
+include("../ext/WeakDepsPrototypes.jl")
 
 # deprecation legacy support
 include("Deprecated.jl")

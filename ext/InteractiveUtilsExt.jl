@@ -4,6 +4,9 @@ module InteractiveUtilsExt
 
 using InteractiveUtils
 using DocStringExtensions
+using IncrementalInference: InferenceVariable, AbstractPrior, AbstractRelativeMinimize, AbstractManifoldMinimize
+# using IncrementalInference: getCurrentWorkspaceFactors, getCurrentWorkspaceVariables, listTypeTree
+import IncrementalInference: getCurrentWorkspaceFactors, getCurrentWorkspaceVariables, listTypeTree
 
 export getCurrentWorkspaceFactors, getCurrentWorkspaceVariables
 export listTypeTree
@@ -27,7 +30,7 @@ end
 Return all variables currently registered in the workspace.
 """
 function getCurrentWorkspaceVariables()
-  return InteractiveUtils.subtypes(IIF.InferenceVariable)
+  return InteractiveUtils.subtypes(InferenceVariable)
 end
 
 function _listTypeTree(mytype, printlevel::Int)
