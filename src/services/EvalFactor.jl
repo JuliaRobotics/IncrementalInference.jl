@@ -454,11 +454,16 @@ function evalPotentialSpecific(
     ret
   end
 
+  # TODO consider improving isPartial(ccwl<:AbstractPrior) to also check dimensions since we know pretty well what varDim is.
+  # TODO workaround until partial manifold approach is standardized, see #1492
+  Msrc = getManifold(fnc)
+  asPartial = isPartial(ccwl) || manifold_dimension(Msrc) < manifold_dimension(mani)
+
   # view on elements marked for nullhypo
   addEntrNH = view(addEntr, nhmask)
   spreadDist = spreadNH * calcStdBasicSpread(getVariableType(variables[sfidx]), addEntr)
   # partials are treated differently
-  ipc = if !isPartial(ccwl) #ccwl.partial
+  ipc = if !asPartial # isPartial(ccwl) #ccwl.partial
     # TODO for now require measurements to be coordinates too
     # @show typeof(ccwl.measurement[1])
     for m in (1:length(addEntr))[ahmask]
@@ -473,7 +478,12 @@ function evalPotentialSpecific(
     ones(getDimension(variables[sfidx]))
   else
     # FIXME but how to add partial factor info only on affected dimensions fro general manifold points?
-    pvec = [fnc.partial...]
+    # pvec
+    partialCoords = if hasfield(typeof(fnc), :partial)
+      ccwl.partialDims # [fnc.partial...]
+    else
+      collect(1:manifold_dimension(Msrc))
+    end
 
     if !hasmethod(getManifold, (typeof(fnc),))
       @debug "No method getManifold for $(typeof(fnc)), using getManifoldPartial"
@@ -484,13 +494,13 @@ function evalPotentialSpecific(
       # addEntr is no longer in coordinates, these are now general manifold points!!
       # for (i,dimnum) in enumerate(fnc.partial)
       # FIXME, need ability to replace partial points
-      partialCoords = ccwl.partialDims
+      # partialCoords = ccwl.partialDims
 
       #FIXME check if getManifold is defined otherwise fall back to getManifoldPartial, JT: I would like to standardize to getManifold
       if hasmethod(getManifold, (typeof(fnc),))
-        Msrc = getManifold(fnc)
-        # TODO workaround until partial manifold approach is standardized, see #1492
-        asPartial = isPartial(fnc) || manifold_dimension(Msrc) < manifold_dimension(mani)
+        # Msrc = getManifold(fnc)
+        # # TODO workaround until partial manifold approach is standardized, see #1492
+        # asPartial = isPartial(fnc) || manifold_dimension(Msrc) < manifold_dimension(mani)
 
         setPointPartial!(
           mani,
@@ -520,10 +530,10 @@ function evalPotentialSpecific(
     # null hypo mask that needs to be perturbed by "noise"
     addEntrNHp = view(addEntr, nhmask)
     # ongoing part of RoME.jl #244
-    addEntropyOnManifold!(mani, addEntrNHp, 1:getDimension(mani), spreadDist, pvec)
+    addEntropyOnManifold!(mani, addEntrNHp, 1:getDimension(mani), spreadDist, partialCoords) # pvec
     # do info per coords
     ipc_ = zeros(getDimension(variables[sfidx]))
-    ipc_[pvec] .= 1.0
+    ipc_[partialCoords] .= 1.0 # pvec
     ipc_
   end
 
