@@ -2,23 +2,6 @@
 
 # only export once the convenience constructors are available along with conditional Interpolations dependency
 
-struct FluxModelsDistribution{ID, OD, P, D <: AbstractArray}
-  # shape of the input data
-  inputDim::NTuple{ID, Int}
-  # shape of the output data
-  outputDim::NTuple{OD, Int}
-  # actual Flux models
-  models::Vector{P}
-  # the data used for prediction, must be <: AbstractArray
-  data::D
-  # shuffle model predictions relative to particle index at each sampling
-  shuffle::Base.RefValue{Bool}
-  """ EXPL: false for default serialization with model info, set true for separate storage of models. TODO rename as to useStashing, see [docs](@ref section_stash_unstash) """
-  serializeHollow::Base.RefValue{Bool}
-  # # TODO remove requirement and standardize sampler API
-  # specialSampler::Function
-end
-
 """
     $TYPEDEF
 
@@ -58,79 +41,6 @@ struct HeatmapGridDensity{
   densityFnc::B
 end
 
-(hmd::HeatmapGridDensity)(w...; kw...) = hmd.densityFnc(w...; kw...)
-
-function sampleTangent(M::AbstractManifold, hms::HeatmapGridDensity)
-  return sampleTangent(M, hms.densityFnc)
-end
-
-function Base.show(io::IO, x::HeatmapGridDensity{T, H, B}) where {T, H, B}
-  printstyled(io, "HeatmapGridDensity{"; bold = true, color = :blue)
-  println(io)
-  printstyled(io, "    T"; color = :magenta, bold = true)
-  println(io, "      = ", T)
-  printstyled(io, "    H"; color = :magenta, bold = true)
-  println(io, "`int  = ", H)
-  printstyled(io, "    B"; color = :magenta, bold = true)
-  println(io, "      = ", B)
-  printstyled(io, " }"; color = :blue, bold = true)
-  println(io, "(")
-  println(io, "  data:       ", size(x.data))
-  println(
-    io,
-    "    min/max:    ",
-    round(minimum(x.data); digits = 5),
-    " / ",
-    round(maximum(x.data); digits = 5),
-  )
-  println(io, "  domain:     ", size(x.domain[1]), ", ", size(x.domain[2]))
-  println(
-    io,
-    "    min/max:    ",
-    round(minimum(x.domain[1]); digits = 5),
-    " / ",
-    round(maximum(x.domain[1]); digits = 5),
-  )
-  println(
-    io,
-    "    min/max:    ",
-    round(minimum(x.domain[2]); digits = 5),
-    " / ",
-    round(maximum(x.domain[2]); digits = 5),
-  )
-  println(io, "  bw_factor:  ", x.bw_factor)
-  print(io, "  ")
-  show(io, x.densityFnc)
-  return nothing
-end
-
-Base.show(io::IO, ::MIME"text/plain", x::HeatmapGridDensity) = show(io, x)
-Base.show(io::IO, ::MIME"application/prs.juno.inline", x::HeatmapGridDensity) = show(io, x)
-
-"""
-    $SIGNATURES
-
-Internal function for updating HGD.  
-  
-Notes
-- Likely to be used for [unstashing packed factors](@ref section_stash_unstash) via [`preambleCache`](@ref).
-- Counterpart to `AMP._update!` function for stashing of either MKD or HGD.
-"""
-function _update!(
-  dst::HeatmapGridDensity{T, H, B},
-  src::HeatmapGridDensity{T, H, B},
-) where {T, H, B}
-  @assert size(dst.data) == size(src.data) "Updating HeatmapDensityGrid can only be done for data of the same size"
-  dst.data .= src.data
-  if !isapprox(dst.domain[1], src.domain[1])
-    dst.domain[1] .= src.domain[1]
-  end
-  if !isapprox(dst.domain[2], src.domain[2])
-    dst.domain[2] .= src.domain[2]
-  end
-  AMP._update!(dst.densityFnc, src.densityFnc)
-  return dst
-end
 
 ##
 
@@ -162,30 +72,62 @@ struct LevelSetGridNormal{T <: Real, H <: HeatmapGridDensity}
   heatmap::H
 end
 
-(lsg::LevelSetGridNormal)(w...; kw...) = lsg.densityFnc(w...; kw...)
+##
 
-function sampleTangent(M::AbstractManifold, lsg::LevelSetGridNormal)
-  return sampleTangent(M, lsg.heatmap.densityFnc)
+"""
+    $TYPEDEF
+
+Build a full ODE solution into a relative factor to condense possible sensor data into a relative transformation,
+but keeping the parameter estimation process fluid.  Assumes first and second variable in order 
+are of same dimension and compatible manifolds, such that ODE runs from Xi to Xi+1 on all
+dimensions.  Internal state vector can be decoupled onto different domain as needed.
+
+Notes
+- Based on DifferentialEquations.jl
+- `getSample` step does the `solve(ODEProblem)` step.
+- `tspan` is taken from variables only once at object construction -- i.e. won't detect changed timestamps.
+- Regular factor evaluation is done as full dimension `AbstractRelativeRoots`, and is basic linear difference.
+
+DevNotes
+- FIXME see 1025, `multihypo=` will not yet work. 
+- FIXME Lots of consolidation and standardization to do, see RoME.jl #244 regarding Manifolds.jl.
+- TODO does not yet handle case where a factor spans across two timezones.
+"""
+struct DERelative{T <: InferenceVariable, P, D} <: AbstractRelativeMinimize
+  domain::Type{T}
+  forwardProblem::P
+  backwardProblem::P
+  """ second element of this data tuple is additional variables that will be passed down as a parameter """
+  data::D
+  specialSampler::Function
 end
 
-function Base.show(io::IO, x::LevelSetGridNormal{T, H}) where {T, H}
-  printstyled(io, "LevelSetGridNormal{"; bold = true, color = :blue)
-  println(io)
-  printstyled(io, "    T"; color = :magenta, bold = true)
-  println(io, "      = ", T)
-  printstyled(io, "    H"; color = :magenta, bold = true)
-  println(io, "`int  = ", H)
-  printstyled(io, " }"; color = :blue, bold = true)
-  println(io, "(")
-  println(io, "  level:      ", x.level)
-  println(io, "  sigma:      ", x.sigma)
-  println(io, "  sig.scale:  ", x.sigma_scale)
-  println(io, "  heatmap:    ")
-  show(io, x.heatmap)
-  return nothing
+
+##
+
+
+"""
+    $SIGNATURES
+
+Distribution made from neural networks.
+
+Notes:
+- Weak dependency, extension functionality loads when using Flux.jl.
+"""
+struct FluxModelsDistribution{ID, OD, P, D <: AbstractArray}
+  """ shape of the input data """
+  inputDim::NTuple{ID, Int}
+  """ shape of the output data """
+  outputDim::NTuple{OD, Int}
+  """ actual Flux models """
+  models::Vector{P}
+  """ the data used for prediction, must be <: AbstractArray """
+  data::D
+  """ shuffle model predictions relative to particle index at each sampling """
+  shuffle::Base.RefValue{Bool}
+  """ EXPL: false for default serialization with model info, set true for separate storage of models. TODO rename as to useStashing, see [docs](@ref section_stash_unstash) """
+  serializeHollow::Base.RefValue{Bool}
+  # # TODO remove requirement and standardize sampler API
+  # specialSampler::Function
 end
 
-Base.show(io::IO, ::MIME"text/plain", x::LevelSetGridNormal) = show(io, x)
-Base.show(io::IO, ::MIME"application/prs.juno.inline", x::LevelSetGridNormal) = show(io, x)
-
-#

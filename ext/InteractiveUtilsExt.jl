@@ -1,7 +1,12 @@
+module InteractiveUtilsExt
 
-@info "IncrementalInference.jl is loading tools related to InteractiveUtils.jl."
+@info "IncrementalInference.jl is loading extension related to InteractiveUtils.jl."
 
-# this requires InteractiveUtils
+using InteractiveUtils
+using DocStringExtensions
+using IncrementalInference: InferenceVariable, AbstractPrior, AbstractRelativeMinimize, AbstractManifoldMinimize
+# using IncrementalInference: getCurrentWorkspaceFactors, getCurrentWorkspaceVariables, listTypeTree
+import IncrementalInference: getCurrentWorkspaceFactors, getCurrentWorkspaceVariables, listTypeTree
 
 export getCurrentWorkspaceFactors, getCurrentWorkspaceVariables
 export listTypeTree
@@ -25,7 +30,7 @@ end
 Return all variables currently registered in the workspace.
 """
 function getCurrentWorkspaceVariables()
-  return InteractiveUtils.subtypes(IIF.InferenceVariable)
+  return InteractiveUtils.subtypes(InferenceVariable)
 end
 
 function _listTypeTree(mytype, printlevel::Int)
@@ -50,3 +55,5 @@ function listTypeTree(T)
   println(T)
   return _listTypeTree(T, 0)
 end
+
+end #module

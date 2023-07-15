@@ -119,10 +119,16 @@ function solveGraphParametric2(
   return d, result, flatvar.idx, Σ
 end
 
+##==============================================================================
+## Deprecate code below before v0.37
+##==============================================================================
+
 
 ##==============================================================================
-## Deprecate code below before v0.35
+## Deprecate code below before v0.36
 ##==============================================================================
+
+# exportimg(pl) = error("Please do `using Gadfly` to allow image export.")
 
 # function _perturbIfNecessary(
 #   fcttype::Union{F, <:Mixture{N_, F, S, T}},
@@ -191,123 +197,6 @@ predictbelief(w...;asPartial::Bool=false,kw...) = begin
   getPoints(bel), ipc
 end
 
-# """
-#     $SIGNATURES
-
-# This is an old function name that will be replaced by [`propagateBelief`](@ref).
-# """
-# function predictbelief(
-#   dfg::AbstractDFG,
-#   destvert::DFGVariable,
-#   factors::AbstractVector; #{<:DFGFactor};
-#   asPartial::Bool = false,
-#   kw...,
-# )
-#   #
-#   # new
-#   mkd, ifd = propagateBelief(dfg, destvert, factors; kw...)
-
-#   # legacy interface
-#   return getPoints(mkd, asPartial), ifd
-# end
-
-# function predictbelief(
-#   dfg::AbstractDFG,
-#   destlbl::Symbol,
-#   fctlbls::AbstractVector{Symbol};
-#   kw...,
-# )
-#   return predictbelief(
-#     dfg,
-#     getVariable(dfg, destlbl),
-#     map(x -> getFactor(dfg, x), fctlbls);
-#     kw...,
-#   )
-# end
-# #
-
-# function predictbelief(dfg::AbstractDFG, destlbl::Symbol, ::Colon; kw...)
-#   return predictbelief(dfg, destlbl, getNeighbors(dfg, destlbl); kw...)
-# end
-#
-
-##==============================================================================
-## Deprecate code below before v0.34
-##==============================================================================
-
-
-# function CommonConvWrapper(
-#   usrfnc::T,
-#   fullvariables, #::Tuple ::Vector{<:DFGVariable};
-#   varValsAll::Tuple,
-#   X::AbstractVector{P}; #TODO remove X completely
-#   # xDim::Int = size(X, 1),
-#   userCache::CT = nothing,
-#   manifold = getManifold(usrfnc),
-#   partialDims::AbstractVector{<:Integer} = 1:length(X),
-#   partial::Bool = false,
-#   nullhypo::Real = 0,
-#   inflation::Real = 3.0,
-#   hypotheses::H = nothing,
-#   certainhypo = nothing,
-#   activehypo = collect(1:length(varValsAll)),
-#   measurement::AbstractVector = Vector(Vector{Float64}()),
-#   varidx::Int = 1,
-#   particleidx::Int = 1,
-#   res::AbstractVector{<:Real} = zeros(manifold_dimension(manifold)), # zDim
-#   gradients = nothing,
-# ) where {T <: AbstractFactor, P, H, CT}
-#   #
-#   return CommonConvWrapper(
-#     usrfnc,
-#     tuple(fullvariables...),
-#     varValsAll,
-#     userCache,
-#     manifold,
-#     partialDims,
-#     partial,
-#     # xDim,
-#     float(nullhypo),
-#     float(inflation),
-#     hypotheses,
-#     certainhypo,
-#     activehypo,
-#     measurement,
-#     Ref(varidx),
-#     Ref(particleidx),
-#     res,
-#     gradients,
-#   )
-# end
-
-# function approxConvOnElements!(
-#   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
-#   elements::Union{Vector{Int}, UnitRange{Int}},
-#   ::Type{<:MultiThreaded},
-#   _slack = nothing,
-# ) where {N_, F <: AbstractRelative, S, T}
-#   #
-#   return error(
-#     "MultiThreaded `approxConvOnElements!` is deprecated and will soon be replaced",
-#   )
-#   # Threads.@threads for n in elements
-#   #   # ccwl.thrid_ = Threads.threadid()
-#   #   ccwl.cpt[Threads.threadid()].particleidx = n
-
-#   #   # ccall(:jl_, Nothing, (Any,), "starting loop, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx)")
-#   #   _solveCCWNumeric!( ccwl, _slack=_slack)
-#   # end
-#   # nothing
-# end
-
-# function approxConvOnElements!(
-#   ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
-#   elements::Union{Vector{Int}, UnitRange{Int}},
-#   _slack = nothing,
-# ) where {N_, F <: AbstractRelative, S, T}
-#   #
-#   return approxConvOnElements!(ccwl, elements, ccwl.threadmodel, _slack)
-# end
 
 # more legacy, dont delete yet
 function Base.getproperty(ccw::CommonConvWrapper, f::Symbol)
@@ -335,10 +224,26 @@ function Base.getproperty(ccw::CommonConvWrapper, f::Symbol)
 end
 
 
+# function __init__()
+#   # @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" include(
+#   #   "services/RequireInteractiveUtils.jl",
+#   # )
+#   # @require Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004" include(
+#   #   "services/EmbeddedPlottingUtils.jl",
+#   # )
+#   # @require DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa" include(
+#   #   "ODE/DERelative.jl",
+#   # )
+#   # @require Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59" include(
+#   #   "services/HeatmapSampler.jl",
+#   # )
 
+#   # # combining neural networks natively into the non-Gaussian  factor graph object
+#   # @require Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c" begin
+#   #   # include("Flux/FluxModelsDistribution.jl")
+#   #   include("Serialization/services/FluxModelsSerialization.jl") # uses BSON
+#   # end
+# end
 
-##==============================================================================
-## Deprecate code below before v0.35
-##==============================================================================
 
 ##

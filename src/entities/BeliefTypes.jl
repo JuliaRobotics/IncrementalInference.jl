@@ -21,13 +21,13 @@ abstract type PackedSamplableBelief end
 StructTypes.StructType(::Type{<:PackedSamplableBelief}) = StructTypes.UnorderedStruct()
 
 const SamplableBelief = Union{
-  Distributions.Distribution,
-  KDE.BallTreeDensity,
-  AMP.ManifoldKernelDensity,
-  AliasingScalarSampler,
-  FluxModelsDistribution,
-  HeatmapGridDensity,
-  LevelSetGridNormal,
+  <:Distributions.Distribution,
+  <:KDE.BallTreeDensity, # FIXME deprecate
+  <:AMP.ManifoldKernelDensity,
+  <:AliasingScalarSampler,
+  <:FluxModelsDistribution,
+  <:HeatmapGridDensity,
+  <:LevelSetGridNormal,
 }
 
 #Supported types for parametric

@@ -6,7 +6,7 @@ using Test
 
 ##
 
-mutable struct MutableLinearRelative{N, T <: SamplableBelief} <: AbstractRelativeRoots
+mutable struct MutableLinearRelative{N, T <: SamplableBelief} <: AbstractManifoldMinimize
     Z::T
     # timestamp::DateTime
 end

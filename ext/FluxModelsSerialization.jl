@@ -2,9 +2,6 @@
 
 # @info "IncrementalInference is adding Flux/BSON serialization functionality."
 
-using Base64
-
-import Base: convert
 
 function _serializeFluxModelBase64(model::Flux.Chain)
   io = IOBuffer()
