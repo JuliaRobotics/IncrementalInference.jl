@@ -12,7 +12,7 @@ function convert(
     d.edgeIDs,
     convert(P, _getCCW(d).usrfnc!),
     d.multihypo,
-    _getCCW(d).certainhypo,
+    _getCCW(d).hyporecipe.certainhypo,
     d.nullhypo,
     d.solveInProgress,
     d.inflation,
