@@ -46,4 +46,6 @@ Base.@kwdef mutable struct SolverParams <: DFG.AbstractParams
   #
 end
 
+StructTypes.omitempties(::Type{SolverParams}) = (:reference,)
+
 #
