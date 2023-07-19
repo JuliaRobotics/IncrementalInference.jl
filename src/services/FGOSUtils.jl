@@ -450,13 +450,6 @@ end
 """
     $SIGNATURES
 
-Convenience wrapper to `DFG.loadDFG!` taking only one argument, the file name, to load a DFG object in standard format.
-"""
-loadDFG(filename::AbstractString) = loadDFG!(initfg(), filename)
-
-"""
-    $SIGNATURES
-
 Find all factors that go `from` variable to any other complete variable set within `between`.
 
 Notes
