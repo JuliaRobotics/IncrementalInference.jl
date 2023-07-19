@@ -1,4 +1,4 @@
-module FluxFactorsExt
+module IncrInfrFluxFactorsExt
 
 
 @info "IncrementalInference is loading extension functionality related to Flux.jl"

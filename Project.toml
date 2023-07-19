@@ -56,11 +56,11 @@ InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 
 [extensions]
-DiffEqFactorExt = "DifferentialEquations"
-FluxFactorsExt = "Flux"
-GadflyExt = "Gadfly"
-InteractiveUtilsExt = "InteractiveUtils"
-InterpolationsExt = "Interpolations"
+IncrInfrDiffEqFactorExt = "DifferentialEquations"
+IncrInfrFluxFactorsExt = "Flux"
+IncrInfrGadflyExt = "Gadfly"
+IncrInfrInteractiveUtilsExt = "InteractiveUtils"
+IncrInfrInterpolationsExt = "Interpolations"
 
 [compat]
 ApproxManifoldProducts = "0.7"

@@ -1,4 +1,4 @@
-module DiffEqFactorExt
+module IncrInfrDiffEqFactorExt
 
 @info "IncrementalInference.jl is loading extensions related to DifferentialEquations.jl"
 

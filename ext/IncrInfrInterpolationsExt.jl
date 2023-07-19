@@ -1,4 +1,4 @@
-module InterpolationsExt
+module IncrInfrInterpolationsExt
 
 @info "IncrementalInference.jl is loading extensions related to Interpolations.jl."
 
