@@ -18,7 +18,7 @@ function propagateBelief(
   destvar::DFGVariable,
   factors::AbstractVector; #{<:DFGFactor};
   solveKey::Symbol = :default,
-  dens::AbstractVector{<:ManifoldKernelDensity} = Vector{ManifoldKernelDensity}(), # TODO, abstract is unstable
+  dens::AbstractVector{<:ManifoldKernelDensity} = Vector{ManifoldKernelDensity}(), # TODO, abstract requires dynamic dispatch (slow)
   N::Integer = getSolverParams(dfg).N,
   needFreshMeasurements::Bool = true,
   dbg::Bool = false,
@@ -75,7 +75,7 @@ function propagateBelief(
 end
 #
 
-propagateBelief(dfg::AbstractDFG, destlbl::Symbol, ::Colon; kw...) = propagateBelief(dfg, destlbl, getNeighbors(dfg, destlbl); kw...)
+propagateBelief(dfg::AbstractDFG, destlbl::Symbol, ::Colon; kw...) = propagateBelief(dfg, destlbl, listNeighbors(dfg, destlbl); kw...)
 
 
 
@@ -97,7 +97,7 @@ function localProduct(
 )
   #
   # vector of all neighbors as Symbols
-  lb = getNeighbors(dfg, sym)
+  lb = listNeighbors(dfg, sym)
 
   # store proposal beliefs, TODO replace Abstract with concrete type
   dens = Vector{ManifoldKernelDensity}()

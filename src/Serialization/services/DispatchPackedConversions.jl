@@ -92,7 +92,7 @@ Dev Notes:
 function rebuildFactorMetadata!(
   dfg::AbstractDFG{SolverParams},
   factor::DFGFactor,
-  neighbors = map(vId -> getVariable(dfg, vId), getNeighbors(dfg, factor));
+  neighbors = map(vId -> getVariable(dfg, vId), listNeighbors(dfg, factor));
   _blockRecursionGradients::Bool=false
 )
   #
