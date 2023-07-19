@@ -516,7 +516,7 @@ function getFactorsAmongVariablesOnly(
   # Select factors that have all variables in this clique var list
   usefcts = Symbol[]
   for fct in almostfcts
-    if length(setdiff(DFG.getNeighbors(dfg, fct), varlist)) == 0
+    if length(setdiff(listNeighbors(dfg, fct), varlist)) == 0
       push!(usefcts, fct)
     end
   end

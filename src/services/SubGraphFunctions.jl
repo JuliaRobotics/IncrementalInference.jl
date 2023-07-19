@@ -30,7 +30,7 @@ function buildCliqSubgraph!(
   #todo replace with the factor list (potentials) from the clique
   addfac = Symbol[]
   for sym in frontals
-    union!(addfac, getNeighbors(dfg, sym))
+    union!(addfac, listNeighbors(dfg, sym))
   end
 
   allfacs = Symbol[]
