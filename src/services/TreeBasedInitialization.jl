@@ -24,7 +24,7 @@ function getCliqVarInitOrderUp(subfg::AbstractDFG)
   nfcts = sum(B; dims = 1)[:]
 
   # variables with priors
-  varswithpriors = getNeighbors.(subfg, lsfPriors(subfg))
+  varswithpriors = listNeighbors.(subfg, lsfPriors(subfg))
   singids = union(Symbol[], varswithpriors...)
 
   # sort permutation order for increasing number of factor association
