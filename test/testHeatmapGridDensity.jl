@@ -29,6 +29,8 @@ end
 println("build a HeatmapGridDensity")
 hgd = IIF.HeatmapGridDensity(img, (x,y), nothing, 0.07; N=1000)
 
+@show hgd
+
 println("test packing converters")
 # check conversions to packed types
 phgd = convert(PackedSamplableBelief, hgd)
