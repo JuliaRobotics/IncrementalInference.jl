@@ -76,4 +76,6 @@ end
 
 StructTypes.omitempties(::Type{SolverParams}) = (:reference,)
 
+
+convert(::Type{SolverParams}, ::NoSolverParams) = SolverParams()
 #
