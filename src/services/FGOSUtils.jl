@@ -218,10 +218,13 @@ end
 # WIP
 # _getMeasurementRepresentation(::AbstractPrior, coord::AbstractVector{<:Number}) = 
 
+
 """
     $SIGNATURES
 
 Get the ParametricPointEstimates---based on full marginal belief estimates---of a variable in the distributed factor graph.
+Calculate new Parametric Point Estimates for a given variable.
+
 
 DevNotes
 - TODO update for manifold subgroups.
@@ -229,7 +232,7 @@ DevNotes
 
 Related
 
-[`getVariablePPE`](@ref), [`setVariablePosteriorEstimates!`](@ref), [`getVariablePPE!`](@ref)
+[`getVariablePPE`](@ref), [`setVariablePosteriorEstimates!`](@ref), [`getVariablePPE!`](@ref), [`setPPE!`](@ref)
 """
 function calcPPE(
   var::DFGVariable,
@@ -273,21 +276,7 @@ end
 
 # calcPPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcPPE(var, getVariableType(var), method=method, solveKey=solveKey)
 
-"""
-    $TYPEDSIGNATURES
 
-Calculate new Parametric Point Estimates for a given variable.
-
-Notes
-- Different methods are possible, currently [`MeanMaxPPE`](@ref) `<: AbstractPointParametricEst`.
-
-Aliases
-- `calcVariablePPE`
-
-Related
-
-[`setPPE!`](@ref)
-"""
 function calcPPE(
   dfg::AbstractDFG,
   label::Symbol;
