@@ -1,3 +1,4 @@
+using AMD
 using IncrementalInference
 using Test
 
