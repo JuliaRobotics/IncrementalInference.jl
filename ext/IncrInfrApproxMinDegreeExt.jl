@@ -31,7 +31,7 @@ function _ccolamd!(
     error("cmember must have length $n_col")
   end
 
-  Alen = AMD.recommended(length(A), n_row, n_col)
+  Alen = AMD.ccolamd_l_recommended(length(A), n_row, n_col)
   resize!(A, Alen)
 
   for i in eachindex(A)
@@ -40,7 +40,7 @@ function _ccolamd!(
   for i in eachindex(p)
     p[i] -= 1
   end
-  err = AMD.ccolamd( # ccolamd_l
+  err = AMD.ccolamd_l( # ccolamd_l
     n_row,
     n_col,
     Alen,
@@ -52,7 +52,7 @@ function _ccolamd!(
   )
 
   if err == 0
-    AMD.report(stats)
+    AMD.ccolamd_l_report(stats)
     error("call to ccolamd return with error code $(stats[4])")
   end
 
@@ -64,36 +64,36 @@ function _ccolamd!(
   return p
 end
 
-function ccolamd!(
+function _ccolamd!(
   n_row,
-  A::AbstractVector{T}, #SuiteSparse_long},
-  p::AbstractVector, # {SuiteSparse_long},
+  A::AbstractVector{T1}, #SuiteSparse_long},
+  p::AbstractVector{<:Real}, # {SuiteSparse_long},
   cmember::Union{Ptr{Nothing}, <:AbstractVector{T}}, # SuiteSparse_long
-) where T
+) where {T1<:Real, T}
   n_col = length(p) - 1
 
   if length(cmember) != n_col
     error("cmember must have length $n_col")
   end
 
-  Alen = AMD.recommended(length(A), n_row, n_col)
+  Alen = AMD.ccolamd_l_recommended(length(A), n_row, n_col)
   resize!(A, Alen)
-  stats = zeros(T, STATS)
+  stats = zeros(T1, STATS)
   return _ccolamd!(n_row, A, p, C_NULL, stats, cmember)
 end
 
-function _ccolamd!(
-  n_row,
-  A::AbstractVector{T}, # ::Vector{SuiteSparse_long},
-  p::AbstractVector, # ::Vector{SuiteSparse_long},
-  constraints = zeros(T,length(p) - 1), # SuiteSparse_long, 
-) where T
-  n_col = length(p) - 1
-  return _ccolamd!(n_row, A, p, constraints)
-end
+# function _ccolamd!(
+#   n_row,
+#   A::AbstractVector{T}, # ::Vector{SuiteSparse_long},
+#   p::AbstractVector, # ::Vector{SuiteSparse_long},
+#   constraints = zeros(T,length(p) - 1), # SuiteSparse_long, 
+# ) where T
+#   n_col = length(p) - 1
+#   return _ccolamd!(n_row, A, p, constraints)
+# end
 
 _ccolamd(n_row,A,p,constraints) = _ccolamd!(n_row, copy(A), copy(p), constraints)
-_ccolamd(badjMat, constraints) = _ccolamd(size(badjMat, 1), A.rowval, A.colptr, constraints)
+_ccolamd(biadjMat, constraints) = _ccolamd(size(biadjMat, 1), biadjMat.rowval, biadjMat.colptr, constraints)
 
 
 
