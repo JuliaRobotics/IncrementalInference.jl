@@ -43,10 +43,13 @@ function getEliminationOrder(
     q, r, p = qr(A, (v"1.7" <= VERSION ? ColumnNorm() : Val(true)))
     p .= p |> reverse
   elseif ordering == :ccolamd
-    cons = zeros(SuiteSparse_long, length(adjMat.colptr) - 1)
+    cons = zeros(length(adjMat.colptr) - 1)
     cons[findall(x -> x in constraints, permuteds)] .= 1
-    p = Ccolamd.ccolamd(adjMat, cons)
-    @warn "Ccolamd is experimental in IIF at this point in time."
+    p = _ccolamd(adjMat, cons)
+      # cons = zeros(SuiteSparse_long, length(adjMat.colptr) - 1)
+      # cons[findall(x -> x in constraints, permuteds)] .= 1
+      # p = Ccolamd.ccolamd(adjMat, cons)
+    @warn "Integration via AMD.ccolamd under development and replaces pre-Julia 1.9 direct ccall approach."
   else
     @error("getEliminationOrder -- cannot do the requested ordering $(ordering)")
   end
@@ -61,8 +64,8 @@ function addBayesNetVerts!(dfg::AbstractDFG, elimOrder::Array{Symbol, 1})
   #
   for pId in elimOrder
     vert = DFG.getVariable(dfg, pId)
-    if getSolverData(vert).BayesNetVertID == nothing ||
-       getSolverData(vert).BayesNetVertID == :_null # Special serialization case of nothing
+    if  getSolverData(vert).BayesNetVertID == nothing ||
+        getSolverData(vert).BayesNetVertID == :_null # Special serialization case of nothing
       @debug "[AddBayesNetVerts] Assigning $pId.data.BayesNetVertID = $pId"
       getSolverData(vert).BayesNetVertID = pId
     else
