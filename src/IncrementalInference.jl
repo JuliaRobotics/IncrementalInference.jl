@@ -56,10 +56,11 @@ using MetaGraphs
 using Logging
 using PrecompileTools
 
-# bringing in BSD 3-clause ccolamd
-include("services/ccolamd.jl")
-using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
-using .Ccolamd
+# JL 1.10 transition to IncrInfrApproxMinDegreeExt instead
+# # bringing in BSD 3-clause ccolamd
+# include("services/ccolamd.jl")
+# using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
+# using .Ccolamd
 
 # likely overloads or not exported by the upstream packages
 import Base: convert, ==, getproperty

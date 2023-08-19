@@ -342,6 +342,8 @@ x_,y_ = ([-9:2.0:9;],[-9:2.0:9;])
 hmd = LevelSetGridNormal(img_, (x_,y_), 5.5, 0.1, N=120)
 pthru = PartialPriorPassThrough(hmd, (1,2))
 
+@show hmd
+
 ## quick 
 
 pf = convert( AbstractPackedFactor, pthru )

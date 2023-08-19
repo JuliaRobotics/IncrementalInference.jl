@@ -13,39 +13,69 @@ Base.@kwdef mutable struct SolverParams <: DFG.AbstractParams
   dimID::Int = 0
   reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}} = nothing
   stateless::Bool = false
-  qfl::Int = (2^(Sys.WORD_SIZE - 1) - 1)# Quasi fixed length
-  isfixedlag::Bool = false          # true when adhering to qfl window size for solves
-  limitfixeddown::Bool = false      # if true, then fixed lag will not update marginalized during down pass on tree
-  incremental::Bool = true          # use incremental tree updates, TODO consolidate with recycling
-  useMsgLikelihoods::Bool = false   # Experimental, insert differential factors from upward joints
-  upsolve::Bool = true              # do tree upsolve
-  downsolve::Bool = true            # do tree downsolve
-  drawtree::Bool = false            # draw tree during solve
-  drawCSMIters::Bool = true         # show CSM iteration count on tree visualization
+  """ Quasi fixed length """
+  qfl::Int = (2^(Sys.WORD_SIZE - 1) - 1)
+  """ true when adhering to qfl window size for solves """
+  isfixedlag::Bool = false          
+  """ if true, then fixed lag will not update marginalized during down pass on tree """
+  limitfixeddown::Bool = false      
+  """ use incremental tree updates, TODO consolidate with recycling """
+  incremental::Bool = true          
+  """ Experimental, insert differential factors from upward joints """
+  useMsgLikelihoods::Bool = false   
+  """ do tree upsolve """
+  upsolve::Bool = true              
+  """ do tree downsolve """
+  downsolve::Bool = true            
+  """ draw tree during solve """
+  drawtree::Bool = false            
+  """ show CSM iteration count on tree visualization """
+  drawCSMIters::Bool = true         
   showtree::Bool = false
-  drawtreerate::Float64 = 0.5       # how fast should the tree vis file be redrawn
-  dbg::Bool = false                 # Experimental, enable additional tier debug features
-  async::Bool = false               # do not block on CSM tasks
-  limititers::Int = 500             # limit number of steps CSMs can take
-  N::Int = 100                      # default number of particles
-  multiproc::Bool = 1 < nprocs()    # should Distributed.jl tree solve compute features be used
-  logpath::String = "/tmp/caesar/$(now())" # unique temporary file storage location for a solve
-  graphinit::Bool = true            # default to graph-based initialization of variables
-  treeinit::Bool = false             # init variables on the tree
+  """ how fast should the tree vis file be redrawn """
+  drawtreerate::Float64 = 0.5       
+  """ Experimental, enable additional tier debug features """
+  dbg::Bool = false                 
+  """ do not block on CSM tasks """
+  async::Bool = false               
+  """ limit number of steps CSMs can take """
+  limititers::Int = 500             
+  """ default number of particles """
+  N::Int = 100                      
+  """ should Distributed.jl tree solve compute features be used """
+  multiproc::Bool = 1 < nprocs()    
+  """ "/tmp/caesar/logs/$(now())" # unique temporary file storage location for a solve """
+  logpath::String = joinpath(tempdir(),"caesar","logs","$(now(UTC))") 
+  """ default to graph-based initialization of variables """
+  graphinit::Bool = true            
+  """ init variables on the tree """
+  treeinit::Bool = false             
   limittreeinit_iters::Int = 10
-  algorithms::Vector{Symbol} = [:default, :parametric] # list of algorithms to run [:default] is mmisam
-  spreadNH::Float64 = 3.0           # entropy spread adjustment used for both null hypo cases.
-  inflation::Float64 = 5.0          # how much to disperse particles before convolution solves, #1051
-  nullSurplusAdd::Float64 = 0.3     # minimum nullhypo for relative factors sibling to multihypo factors onto a specific variable.
-  inflateCycles::Int = 3            # repeat convolutions for inflation to occur
-  gibbsIters::Int = 3               # number of Gibbs cycles to take per clique iteration variables
-  maxincidence::Int = 500           # maximum incidence to a variable in an effort to enhance sparsity
-  alwaysFreshMeasurements::Bool = true # Development feature on whether new samples should be sampled at each Gibbs cycle convolution
-  attemptGradients::Bool = false    # should factor gradients be calculated or attempted (UNDER DEVELOPMENT, 21Q3)
-  devParams::Dict{Symbol, String} = Dict{Symbol, String}() # empty container for new features, allowing workaround for breaking changes and legacy
+  """ list of algorithms to run [:default] is mmisam """
+  algorithms::Vector{Symbol} = [:default, :parametric] 
+  """ entropy spread adjustment used for both null hypo cases. """
+  spreadNH::Float64 = 3.0           
+  """ how much to disperse particles before convolution solves, #1051 """
+  inflation::Float64 = 5.0          
+  """ minimum nullhypo for relative factors sibling to multihypo factors onto a specific variable. """
+  nullSurplusAdd::Float64 = 0.3     
+  """ repeat convolutions for inflation to occur """
+  inflateCycles::Int = 3            
+  """ number of Gibbs cycles to take per clique iteration variables """
+  gibbsIters::Int = 3               
+  """ maximum incidence to a variable in an effort to enhance sparsity """
+  maxincidence::Int = 500           
+  """ Development feature on whether new samples should be sampled at each Gibbs cycle convolution """
+  alwaysFreshMeasurements::Bool = true 
+  """ should factor gradients be calculated or attempted (UNDER DEVELOPMENT, 21Q3) """
+  attemptGradients::Bool = false    
+  """ empty container for new features, allowing workaround for breaking changes and legacy """
+  devParams::Dict{Symbol, String} = Dict{Symbol, String}() 
   #
 end
 
 StructTypes.omitempties(::Type{SolverParams}) = (:reference,)
 
+
+convert(::Type{SolverParams}, ::NoSolverParams) = SolverParams()
 #

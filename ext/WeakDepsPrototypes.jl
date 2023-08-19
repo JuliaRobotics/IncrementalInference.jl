@@ -1,4 +1,8 @@
 
+# AMD.jl
+function _ccolamd! end
+function _ccolamd end
+
 # Flux.jl
 function MixtureFluxModels end
 
