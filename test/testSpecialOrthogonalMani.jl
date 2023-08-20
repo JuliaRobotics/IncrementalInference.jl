@@ -11,8 +11,11 @@ using Test
 
 ##
 
+# TODO remove past AMP.jl#41
 Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{2}) = (:Circular,)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{2}})  = (:Circular,)
+Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{3}) = (:Circular,:Circular,:Circular,)
+Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{3}})  = (:Circular,:Circular,:Circular,)
 
 # @defVariable SpecialOrthogonal2 SpecialOrthogonal(2) @MMatrix([1.0 0.0; 0.0 1.0])
 @defVariable SpecialOrthogonal2 SpecialOrthogonal(2) SMatrix{2,2}(1.0, 0.0, 0.0, 1.0)
