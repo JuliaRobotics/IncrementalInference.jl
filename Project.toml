@@ -65,7 +65,7 @@ IncrInfrInteractiveUtilsExt = "InteractiveUtils"
 IncrInfrInterpolationsExt = "Interpolations"
 
 [compat]
-ApproxManifoldProducts = "0.7"
+ApproxManifoldProducts = "0.7, 0.8"
 BSON = "0.2, 0.3"
 BlockArrays = "0.16"
 Combinatorics = "1.0"

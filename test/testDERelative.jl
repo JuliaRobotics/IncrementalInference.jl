@@ -20,9 +20,12 @@ using TensorCast
 
 ##
 
-function firstOrder!(dstate, state, force, t)
+# a user specified ODE in standard form
+# inplace `xdot = f(x, u, t)`
+# if linear, `xdot = F*x(t) + G*u(t)`
+function firstOrder!(dstate, state, u, t)
   β = -0.2
-  dstate[1] = β*state[1] + force(t)
+  dstate[1] = β*state[1] + u(t)
   nothing
 end
 
@@ -34,7 +37,8 @@ tstForce(t) = 0
 
 fg = initfg()
 # the starting points and "0 seconds"
-addVariable!(fg, :x0, ContinuousScalar, timestamp=DateTime(2000,1,1,0,0,0))
+# `accurate_time = trunc(getDatetime(var), Second) + (1e-9*getNstime(var) % 1)`
+addVariable!(fg, :x0, Position{1}, timestamp=DateTime(2000,1,1,0,0,0)) 
 # pin with a simple prior
 addFactor!(fg, [:x0], Prior(Normal(1,0.01)))
 
@@ -47,15 +51,16 @@ for i in 1:3
   nextSym = Symbol("x$i")
 
   # another point in the trajectory 5 seconds later
-  addVariable!(fg, nextSym, ContinuousScalar, timestamp=DateTime(2000,1,1,0,0,5*i))
-  oder = IIF.DERelative(fg, [prev; nextSym], 
-                        ContinuousEuclid{1}, 
+  addVariable!(fg, nextSym, Position{1}, timestamp=DateTime(2000,1,1,0,0,5*i))
+  # build factor against manifold Manifolds.TranslationGroup(1)
+  ode_fac = IIF.DERelative(fg, [prev; nextSym], 
+                        Position{1}, 
                         firstOrder!,
                         tstForce,
                         dt=0.05, 
                         problemType=ODEProblem )
   #
-  addFactor!( fg, [prev;nextSym], oder, graphinit=false )
+  addFactor!( fg, [prev;nextSym], ode_fac, graphinit=false )
   initVariable!(fg, nextSym, [zeros(1) for _ in 1:100])
 
   prev = nextSym
@@ -94,7 +99,7 @@ ref_ = (getBelief(fg, :x0) |> getPoints)
 ##
 
 oder_ = DERelative( fg, [:x0; :x3], 
-                    ContinuousEuclid{1}, 
+                    Position{1}, 
                     firstOrder!,
                     tstForce, 
                     dt=0.05, 
@@ -185,7 +190,7 @@ tstForce(t) = 0
 fg = initfg()
 
 # the starting points and "0 seconds"
-addVariable!(fg, :x0, ContinuousEuclid{2}, timestamp=DateTime(2000,1,1,0,0,0))
+addVariable!(fg, :x0, Position{2}, timestamp=DateTime(2000,1,1,0,0,0))
 # pin with a simple prior
 addFactor!(fg, [:x0], Prior(MvNormal([1;0],0.01*diagm(ones(2)))))
 
@@ -201,9 +206,9 @@ for i in 1:7
   nextSym = Symbol("x$i")
 
   # another point in the trajectory 5 seconds later
-  addVariable!(fg, nextSym, ContinuousEuclid{2}, timestamp=DateTime(2000,1,1,0,0,DT*i))
+  addVariable!(fg, nextSym, Position{2}, timestamp=DateTime(2000,1,1,0,0,DT*i))
   oder = DERelative( fg, [prev; nextSym], 
-                      ContinuousEuclid{2}, 
+                      Position{2}, 
                       dampedOscillator!,
                       tstForce, 
                       # (state, var)->(state[1] = var[1]),
@@ -258,7 +263,7 @@ pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg)
 
 
 oder_ = DERelative( fg, [:x0; :x7], 
-                    ContinuousEuclid{2}, 
+                    Position{2}, 
                     dampedOscillator!,
                     tstForce, 
                     # (state, var)->(state[1] = var[1]),
@@ -347,7 +352,7 @@ tstForce(t) = 0
 fg = initfg()
 
 # the starting points and "0 seconds"
-addVariable!(fg, :x0, ContinuousEuclid{2}, timestamp=DateTime(2000,1,1,0,0,0))
+addVariable!(fg, :x0, Position{2}, timestamp=DateTime(2000,1,1,0,0,0))
 # pin with a simple prior
 addFactor!(fg, [:x0], Prior(MvNormal([1;0],0.01*diagm(ones(2)))))
 doautoinit!(fg, :x0)
@@ -357,7 +362,7 @@ doautoinit!(fg, :x0)
 β = -0.3
 
 # these are the stochastic parameters
-addVariable!(fg, :ωβ, ContinuousEuclid{2}) # timestamp should not matter
+addVariable!(fg, :ωβ, Position{2}) # timestamp should not matter
 # pin with a simple prior
 addFactor!(fg, [:ωβ], Prior(MvNormal([ω;β],0.0001*diagm(ones(2)))))
 doautoinit!(fg, :ωβ)
@@ -373,9 +378,9 @@ for i in 1:7
   nextSym = Symbol("x$i")
 
   # another point in the trajectory 5 seconds later
-  addVariable!(fg, nextSym, ContinuousEuclid{2}, timestamp=DateTime(2000,1,1,0,0,DT*i))
+  addVariable!(fg, nextSym, Position{2}, timestamp=DateTime(2000,1,1,0,0,DT*i))
   oder = DERelative( fg, [prev; nextSym; :ωβ], 
-                      ContinuousEuclid{2}, 
+                      Position{2}, 
                       dampedOscillatorParametrized!,
                       tstForce, # this is passed in as `force_ωβ[1]`
                       # (state, var)->(state[1] = var[1]),
@@ -458,7 +463,7 @@ pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg, path=forcepath)
 
 
 oder_ = DERelative( fg, [:x0; :x7; :ωβ], 
-                    ContinuousEuclid{2}, 
+                    Position{2}, 
                     dampedOscillatorParametrized!,
                     tstForce,
                     # (state, var)->(state[1] = var[1]),
