@@ -131,6 +131,7 @@ include("Factors/GenericMarginal.jl")
 # Special belief types for sampling as a distribution
 include("entities/AliasScalarSampling.jl")
 include("entities/ExtDensities.jl") # used in BeliefTypes.jl::SamplableBeliefs
+include("entities/ExtFactors.jl")
 include("entities/BeliefTypes.jl")
 
 include("services/HypoRecipe.jl")
