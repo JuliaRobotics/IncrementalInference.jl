@@ -237,7 +237,6 @@ include("services/AnalysisTools.jl")
 # extension densities on weakdeps
 include("Serialization/entities/SerializingOptionalDensities.jl")
 include("Serialization/services/SerializingOptionalDensities.jl")
-include("entities/ExtDensitiesSerialization.jl")
 
 include("../ext/WeakDepsPrototypes.jl")
 
