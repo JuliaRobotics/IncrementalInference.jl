@@ -1,4 +1,4 @@
-module DiffEqFactorExt
+module IncrInfrDiffEqFactorExt
 
 @info "IncrementalInference.jl is loading extensions related to DifferentialEquations.jl"
 
@@ -9,6 +9,7 @@ using Dates
 
 using IncrementalInference
 import IncrementalInference: getSample, getManifold, DERelative
+import IncrementalInference: sampleFactor
 
 using DocStringExtensions
 
@@ -94,12 +95,12 @@ end
 #
 #
 
-# Xtra splat are variable points (X3::Matrix, X4::Matrix,...)
+# n-ary factor: Xtra splat are variable points (X3::Matrix, X4::Matrix,...)
 function _solveFactorODE!(measArr, prob, u0pts, Xtra...)
-  # should more variables be included in calculation
+  # happens when more variables (n-ary) must be included in DE solve
   for (xid, xtra) in enumerate(Xtra)
     # update the data register before ODE solver calls the function
-    prob.p[xid + 1][:] = Xtra[xid][:]
+    prob.p[xid + 1][:] = xtra[:]
   end
 
   # set the initial condition
@@ -111,47 +112,47 @@ function _solveFactorODE!(measArr, prob, u0pts, Xtra...)
   return sol
 end
 
-getSample(cf::CalcFactor{<:DERelative}) = error("getSample(::CalcFactor{<:DERelative}) not implemented yet")
+# # # output for AbstractRelative is tangents (but currently we working in coordinates for integration with DiffEqs)
+# # # FIXME, how to consolidate DERelative with parametric solve which currently only goes through getMeasurementParametric
+# function getSample(cf::CalcFactor{<:DERelative})
+#   #
+#   oder = cf.factor
 
-# FIXME see #1025, `multihypo=` will not work properly yet
-function sampleFactor(cf::CalcFactor{<:DERelative}, N::Int = 1)
-  #
-  oder = cf.factor
+#   # how many trajectories to propagate?
+#   # @show getLabel(cf.fullvariables[2]), getDimension(cf.fullvariables[2])
+#   meas = zeros(getDimension(cf.fullvariables[2])) 
 
-  # how many trajectories to propagate?
-  # @show getLabel(cf.fullvariables[2]), getDimension(cf.fullvariables[2])
-  meas = [zeros(getDimension(cf.fullvariables[2])) for _ = 1:N]
+#   # pick forward or backward direction
+#   # set boundary condition
+#   u0pts = if cf.solvefor == 1
+#     # backward direction
+#     prob = oder.backwardProblem
+#     addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
+#       convert(Tuple, getManifold(getVariableType(cf.fullvariables[1]))),
+#     )
+#     # FIXME use ccw.varValsAll containter?
+#     (getBelief(cf.fullvariables[2]) |> getPoints)[cf._sampleIdx]
+#   else
+#     # forward backward
+#     prob = oder.forwardProblem
+#     # buffer manifold operations for use during factor evaluation
+#     addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
+#       convert(Tuple, getManifold(getVariableType(cf.fullvariables[2]))),
+#     )
+#     # FIXME use ccw.varValsAll containter?
+#     (getBelief(cf.fullvariables[1]) |> getPoints)[cf._sampleIdx]
+#   end
 
-  # pick forward or backward direction
-  # set boundary condition
-  u0pts = if cf.solvefor == 1
-    # backward direction
-    prob = oder.backwardProblem
-    addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
-      convert(Tuple, getManifold(getVariableType(cf.fullvariables[1]))),
-    )
-    getBelief(cf.fullvariables[2]) |> getPoints
-  else
-    # forward backward
-    prob = oder.forwardProblem
-    # buffer manifold operations for use during factor evaluation
-    addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
-      convert(Tuple, getManifold(getVariableType(cf.fullvariables[2]))),
-    )
-    getBelief(cf.fullvariables[1]) |> getPoints
-  end
+#   # solve likely elements
+#   # TODO, does this respect hyporecipe ???
+#   # TBD check if cf._legacyParams == ccw.varValsAll???
+#   idxArr = (k -> cf._legacyParams[k][cf._sampleIdx]).(1:length(cf._legacyParams))
+#   _solveFactorODE!(meas, prob, u0pts, _maketuplebeyond2args(idxArr...)...)
+#   # _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(cf._legacyParams...)...)
 
-  # solve likely elements
-  for i = 1:N
-    # TODO, does this respect hyporecipe ???
-    idxArr = (k -> cf._legacyParams[k][i]).(1:length(cf._legacyParams))
-    _solveFactorODE!(meas[i], prob, u0pts[i], _maketuplebeyond2args(idxArr...)...)
-    # _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(cf._legacyParams...)...)
-  end
+#   return meas, diffOp
+# end
 
-  return map(x -> (x, diffOp), meas)
-end
-# getDimension(oderel.domain)
 
 # NOTE see #1025, CalcFactor should fix `multihypo=` in `cf.__` fields; OBSOLETE
 function (cf::CalcFactor{<:DERelative})(measurement, X...)
@@ -196,6 +197,56 @@ function (cf::CalcFactor{<:DERelative})(measurement, X...)
   end
   return res
 end
+
+
+
+
+## =========================================================================
+## MAYBE legacy
+
+# FIXME see #1025, `multihypo=` will not work properly yet
+function IncrementalInference.sampleFactor(cf::CalcFactor{<:DERelative}, N::Int = 1)
+  #
+  oder = cf.factor
+
+  # how many trajectories to propagate?
+  # @show getLabel(cf.fullvariables[2]), getDimension(cf.fullvariables[2])
+  meas = [zeros(getDimension(cf.fullvariables[2])) for _ = 1:N]
+
+  # pick forward or backward direction
+  # set boundary condition
+  u0pts = if cf.solvefor == 1
+    # backward direction
+    prob = oder.backwardProblem
+    addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
+      convert(Tuple, getManifold(getVariableType(cf.fullvariables[1]))),
+    )
+    getBelief(cf.fullvariables[2]) |> getPoints
+  else
+    # forward backward
+    prob = oder.forwardProblem
+    # buffer manifold operations for use during factor evaluation
+    addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
+      convert(Tuple, getManifold(getVariableType(cf.fullvariables[2]))),
+    )
+    getBelief(cf.fullvariables[1]) |> getPoints
+  end
+
+  # solve likely elements
+  for i = 1:N
+    # TODO, does this respect hyporecipe ???
+    idxArr = (k -> cf._legacyParams[k][i]).(1:length(cf._legacyParams))
+    _solveFactorODE!(meas[i], prob, u0pts[i], _maketuplebeyond2args(idxArr...)...)
+    # _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(cf._legacyParams...)...)
+  end
+
+  return map(x -> (x, diffOp), meas)
+end
+# getDimension(oderel.domain)
+
+
+
+
 
 ## the function
 # ode.problem.f.f

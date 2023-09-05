@@ -43,10 +43,13 @@ function getEliminationOrder(
     q, r, p = qr(A, (v"1.7" <= VERSION ? ColumnNorm() : Val(true)))
     p .= p |> reverse
   elseif ordering == :ccolamd
-    cons = zeros(SuiteSparse_long, length(adjMat.colptr) - 1)
+    cons = zeros(length(adjMat.colptr) - 1)
     cons[findall(x -> x in constraints, permuteds)] .= 1
-    p = Ccolamd.ccolamd(adjMat, cons)
-    @warn "Ccolamd is experimental in IIF at this point in time."
+    p = _ccolamd(adjMat, cons)
+      # cons = zeros(SuiteSparse_long, length(adjMat.colptr) - 1)
+      # cons[findall(x -> x in constraints, permuteds)] .= 1
+      # p = Ccolamd.ccolamd(adjMat, cons)
+    @warn "Integration via AMD.ccolamd under development and replaces pre-Julia 1.9 direct ccall approach."
   else
     @error("getEliminationOrder -- cannot do the requested ordering $(ordering)")
   end
@@ -61,8 +64,8 @@ function addBayesNetVerts!(dfg::AbstractDFG, elimOrder::Array{Symbol, 1})
   #
   for pId in elimOrder
     vert = DFG.getVariable(dfg, pId)
-    if getSolverData(vert).BayesNetVertID == nothing ||
-       getSolverData(vert).BayesNetVertID == :_null # Special serialization case of nothing
+    if  getSolverData(vert).BayesNetVertID == nothing ||
+        getSolverData(vert).BayesNetVertID == :_null # Special serialization case of nothing
       @debug "[AddBayesNetVerts] Assigning $pId.data.BayesNetVertID = $pId"
       getSolverData(vert).BayesNetVertID = pId
     else
@@ -102,8 +105,8 @@ function rmVarFromMarg(dfg::AbstractDFG, fromvert::DFGVariable, gm::Vector{DFGFa
   @debug " - Removing $(fromvert.label)"
   for m in gm
     @debug "Looking at $(m.label)"
-    for n in DFG.getNeighbors(dfg, m) #x1, x2
-      if n == fromvert.label # n.label ==? x1
+    for n in listNeighbors(dfg, m) #x1, x2
+      if n == getLabel(fromvert) # n.label ==? x1
         @debug "   - Breaking link $(m.label)->$(fromvert.label)..."
         @debug "     - Original links: $(DFG.ls(dfg, m))"
         remvars = setdiff(DFG.ls(dfg, m), [fromvert.label])
@@ -125,7 +128,7 @@ function rmVarFromMarg(dfg::AbstractDFG, fromvert::DFGVariable, gm::Vector{DFGFa
       end
     end
     # Added back in chain rule.
-    if DFG.exists(dfg, m) && length(DFG.getNeighbors(dfg, m)) <= 1
+    if DFG.exists(dfg, m) && length(listNeighbors(dfg, m)) <= 1
       @warn "removing vertex id=$(m.label)"
       DFG.deleteFactor!(dfg, m)
     end
@@ -149,11 +152,11 @@ function buildBayesNet!(dfg::AbstractDFG, elimorder::Vector{Symbol}; solvable::I
     gm = DFGFactor[]
 
     vert = DFG.getVariable(dfg, v)
-    for fctId in DFG.getNeighbors(dfg, vert; solvable = solvable)
+    for fctId in listNeighbors(dfg, vert; solvable = solvable)
       fct = DFG.getFactor(dfg, fctId)
       if (getSolverData(fct).eliminated != true)
         push!(fi, fctId)
-        for sepNode in DFG.getNeighbors(dfg, fct; solvable = solvable)
+        for sepNode in listNeighbors(dfg, fct; solvable = solvable)
           # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
           if sepNode != v && !(sepNode in Si) # Symbol comparison!
             push!(Si, sepNode)

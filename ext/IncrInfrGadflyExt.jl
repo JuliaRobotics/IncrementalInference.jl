@@ -1,4 +1,4 @@
-module GadflyExt
+module IncrInfrGadflyExt
 
 @info "IncrementalInference.jl is loading plotting extensions relating to Gadfly.jl"
 

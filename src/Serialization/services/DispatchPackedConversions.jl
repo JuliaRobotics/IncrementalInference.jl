@@ -12,7 +12,7 @@ function convert(
     d.edgeIDs,
     convert(P, _getCCW(d).usrfnc!),
     d.multihypo,
-    _getCCW(d).certainhypo,
+    _getCCW(d).hyporecipe.certainhypo,
     d.nullhypo,
     d.solveInProgress,
     d.inflation,
@@ -92,7 +92,7 @@ Dev Notes:
 function rebuildFactorMetadata!(
   dfg::AbstractDFG{SolverParams},
   factor::DFGFactor,
-  neighbors = map(vId -> getVariable(dfg, vId), getNeighbors(dfg, factor));
+  neighbors = map(vId -> getVariable(dfg, vId), listNeighbors(dfg, factor));
   _blockRecursionGradients::Bool=false
 )
   #

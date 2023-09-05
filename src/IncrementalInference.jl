@@ -3,7 +3,6 @@ module IncrementalInference
 # @info "Multithreaded  convolutions possible, Threads.nthreads()=$(Threads.nthreads()).  See `addFactor!(.;threadmodel=MultiThreaded)`."
 
 using Distributed
-using Requires
 using Reexport
 
 @reexport using Distributions
@@ -57,10 +56,11 @@ using MetaGraphs
 using Logging
 using PrecompileTools
 
-# bringing in BSD 3-clause ccolamd
-include("services/ccolamd.jl")
-using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
-using .Ccolamd
+# JL 1.10 transition to IncrInfrApproxMinDegreeExt instead
+# # bringing in BSD 3-clause ccolamd
+# include("services/ccolamd.jl")
+# using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
+# using .Ccolamd
 
 # likely overloads or not exported by the upstream packages
 import Base: convert, ==, getproperty
@@ -130,7 +130,8 @@ include("entities/FactorOperationalMemory.jl")
 include("Factors/GenericMarginal.jl")
 # Special belief types for sampling as a distribution
 include("entities/AliasScalarSampling.jl")
-include("entities/OptionalDensities.jl")
+include("entities/ExtDensities.jl") # used in BeliefTypes.jl::SamplableBeliefs
+include("entities/ExtFactors.jl")
 include("entities/BeliefTypes.jl")
 
 include("services/HypoRecipe.jl")
@@ -234,32 +235,16 @@ include("services/SolverAPI.jl")
 # Symbolic tree analysis files.
 include("services/AnalysisTools.jl")
 
+# extension densities on weakdeps
+include("Serialization/entities/SerializingOptionalDensities.jl")
+include("Serialization/services/SerializingOptionalDensities.jl")
+
 include("../ext/WeakDepsPrototypes.jl")
 
 # deprecation legacy support
 include("Deprecated.jl")
 
-function __init__()
-  # @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" include(
-  #   "services/RequireInteractiveUtils.jl",
-  # )
-  # @require Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004" include(
-  #   "services/EmbeddedPlottingUtils.jl",
-  # )
-  # @require DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa" include(
-  #   "ODE/DERelative.jl",
-  # )
-  # @require Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59" include(
-  #   "services/HeatmapSampler.jl",
-  # )
 
-  # combining neural networks natively into the non-Gaussian  factor graph object
-  @require Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c" begin
-    include("Flux/FluxModelsDistribution.jl")
-    include("Serialization/entities/FluxModelsSerialization.jl")
-    include("Serialization/services/FluxModelsSerialization.jl") # uses BSON
-  end
-end
 
 @compile_workload begin
   # In here put "toy workloads" that exercise the code you want to precompile

@@ -1,5 +1,26 @@
 
-export PackedFluxModelsDistribution
+
+
+Base.@kwdef mutable struct PackedHeatmapGridDensity <: PackedSamplableBelief
+  _type::String = "IncrementalInference.PackedHeatmapGridDensity"
+  data::Vector{Vector{Float64}}
+  domain::Tuple{Vector{Float64}, Vector{Float64}}
+  hint_callback::String
+  bw_factor::Float64
+  N::Int
+  # _densityFnc::String = "" # only use if storing parched belief data entry label/id
+end
+
+
+Base.@kwdef mutable struct PackedLevelSetGridNormal <: PackedSamplableBelief
+  _type::String = "IncrementalInference.PackedLevelSetGridNormal"
+  level::Float64
+  sigma::Float64
+  sigma_scale::Float64
+  # make sure the JSON nested packing works with the serialization overlords
+  heatmap::PackedHeatmapGridDensity
+end
+
 
 Base.@kwdef mutable struct PackedFluxModelsDistribution <: PackedSamplableBelief
   # standardized _type field

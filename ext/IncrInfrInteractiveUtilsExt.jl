@@ -1,4 +1,4 @@
-module InteractiveUtilsExt
+module IncrInfrInteractiveUtilsExt
 
 @info "IncrementalInference.jl is loading extension related to InteractiveUtils.jl."
 

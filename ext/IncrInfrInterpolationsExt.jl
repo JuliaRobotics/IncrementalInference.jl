@@ -1,4 +1,4 @@
-module InterpolationsExt
+module IncrInfrInterpolationsExt
 
 @info "IncrementalInference.jl is loading extensions related to Interpolations.jl."
 
@@ -11,7 +11,8 @@ using ApproxManifoldProducts
 import ApproxManifoldProducts: sample
 const AMP = ApproxManifoldProducts
 
-import IncrementalInference: getManifold
+import Base: show
+import IncrementalInference: getManifold, sampleTangent
 import IncrementalInference: HeatmapGridDensity, PackedHeatmapGridDensity
 import IncrementalInference: LevelSetGridNormal, PackedLevelSetGridNormal
 

@@ -66,7 +66,7 @@ function factorCanInitFromOtherVars(
 )
   #
   # all variables attached to this factor
-  varsyms = DFG.getNeighbors(dfg, fct)
+  varsyms = listNeighbors(dfg, fct)
 
   # which element is being solved for
   sfidx = (1:length(varsyms))[varsyms .== loovar][1]
@@ -145,7 +145,7 @@ function doautoinit!(
     end
     # get factors attached to this variable xi
     vsym = xi.label
-    neinodes = DFG.getNeighbors(dfg, vsym)
+    neinodes = listNeighbors(dfg, vsym)
     # proceed if has more than one neighbor OR even if single factor
     if (singles || length(neinodes) > 1)
       # Which of the factors can be used for initialization
