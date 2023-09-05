@@ -5,6 +5,7 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
 # temporarily moved to start (for debugging)
 #...
 if TEST_GROUP in ["all", "tmp_debug_group"]
+include("testSpecialOrthogonalMani.jl")
 include("testDERelative.jl")
 include("testMultiHypo3Door.jl")
 include("priorusetest.jl")
@@ -20,7 +21,6 @@ include("testEuclidDistance.jl")
 # regular testing
 include("testSphereMani.jl")
 include("testBasicManifolds.jl")
-include("testSpecialOrthogonalMani.jl")
 
 # start as basic as possible and build from there
 include("typeReturnMemRef.jl")
