@@ -6,13 +6,12 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
 #...
 if TEST_GROUP in ["all", "tmp_debug_group"]
 include("testDERelative.jl")
-include("testSpecialOrthogonalMani.jl")
 include("testMultiHypo3Door.jl")
 include("priorusetest.jl")
 end
 
 if TEST_GROUP in ["all", "basic_functional_group"]
-# more frequent stochasic failures from numerics
+  # more frequent stochasic failures from numerics
 include("manifolds/manifolddiff.jl")
 include("manifolds/factordiff.jl")
 include("testSpecialEuclidean2Mani.jl")
@@ -21,6 +20,7 @@ include("testEuclidDistance.jl")
 # regular testing
 include("testSphereMani.jl")
 include("testBasicManifolds.jl")
+include("testSpecialOrthogonalMani.jl")
 
 # start as basic as possible and build from there
 include("typeReturnMemRef.jl")
