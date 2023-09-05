@@ -18,6 +18,7 @@ The list below highlights breaking changes according to normal semver workflow -
 - Standardization improvements surrounding weakdeps code extensions. 
 - Code quality improvements along wiht refactoring and reorganizing of file names and locations.
 - Restoring `DERelative` factors, although further fixes necessary beyond anticipated patch release v0.34.1.
+- Switching to weakdep AMD.jl for `ccolmod` dependency, part of Julia 1.10 upgrade.  Dropping `SuiteSparse_long` dependency.  Further fixes necessary to restore full user constrained tree variable order functionality.
 
 # Changes in v0.33
 
