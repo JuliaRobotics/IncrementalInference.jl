@@ -1,4 +1,4 @@
-# Additional NEWS on IncrementalInference.jl Releases
+# NEWS on IncrementalInference.jl Releases
 
 Currently general maintenance and bug fix changes are mostly tracked via Github Integrations.  E.g. see Milestones along with Label filters to quickly find specific issues.
 - https://github.com/JuliaRobotics/IncrementalInference.jl/milestones?state=closed
@@ -13,8 +13,11 @@ The list below highlights breaking changes according to normal semver workflow -
 
 # Changes in v0.34
 
-- Start transition to Manopt.jl via Riemannian Levenberg Marquart.
+- Start transition to Manopt.jl via Riemannian Levenberg-Marquart.
 - Deprecate `AbstractRelativeRoots`.
+- Standardization improvements surrounding weakdeps code extensions. 
+- Code quality improvements along wiht refactoring and reorganizing of file names and locations.
+- Restoring `DERelative` factors, although further fixes necessary beyond anticipated patch release v0.34.1.
 
 # Changes in v0.33
 
