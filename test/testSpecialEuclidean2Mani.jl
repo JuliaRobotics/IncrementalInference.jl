@@ -331,7 +331,7 @@ end
 
 @testset "test propagateBelief w HeatmapSampler and init for PartialPriorPassThrough w Priors" begin
 ##
-@test_broken begin
+
 fg = initfg()
 
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
@@ -390,8 +390,8 @@ doautoinit!(fg, :x0)
 @test length(getPoints(getBelief(fg, :x0))) == getSolverParams(fg).N # 120
 # @info "PassThrough transfers the full point count to the graph, unless a product is calculated during the propagateBelief step."
 
-
-
+##
+# @test_broken begin
 ## check the partials magic
 
 dens, ipc = propagateBelief(fg,:x0,:)
@@ -438,13 +438,13 @@ solveGraph!(fg);
 ## check saveDFG (check consistency of packing converters above)
 
 
-saveDFG("/tmp/passthru", fg)
-fg_ = loadDFG("/tmp/passthru.tar.gz")
-Base.rm("/tmp/passthru.tar.gz")
+saveDFG(joinpath(tempdir(),"passthru"), fg)
+fg_ = loadDFG(joinpath(tempdir(),"passthru.tar.gz"))
+Base.rm(joinpath(tempdir(),"passthru.tar.gz"))
 
-@error "#FIXME test propagateBelief w HeatmapSampler ... broken on ci but not local"
-return true
-end
+# @error "#FIXME test propagateBelief w HeatmapSampler ... broken on ci but not local"
+# return true
+# end
 
 ##
 end
@@ -531,8 +531,8 @@ end
 
 
 @testset "Test SpecialEuclidean(2) to TranslationGroup(2) multihypo" begin
-    
 ##
+
 fg = initfg()
 # fg.solverParams.attemptGradients=false
 
@@ -603,6 +603,7 @@ end
 
 @testset "Test SpecialEuclidean(2) to SpecialEuclidean(2) multihypo" begin
 ##
+
 fg = initfg()
 # fg.solverParams.attemptGradients=false
 

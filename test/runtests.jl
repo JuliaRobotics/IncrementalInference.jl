@@ -5,12 +5,14 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
 # temporarily moved to start (for debugging)
 #...
 if TEST_GROUP in ["all", "tmp_debug_group"]
+include("testSpecialOrthogonalMani.jl")
+include("testDERelative.jl")
 include("testMultiHypo3Door.jl")
 include("priorusetest.jl")
 end
 
 if TEST_GROUP in ["all", "basic_functional_group"]
-# more frequent stochasic failures from numerics
+  # more frequent stochasic failures from numerics
 include("manifolds/manifolddiff.jl")
 include("manifolds/factordiff.jl")
 include("testSpecialEuclidean2Mani.jl")
@@ -18,7 +20,6 @@ include("testEuclidDistance.jl")
 
 # regular testing
 include("testSphereMani.jl")
-include("testSpecialOrthogonalMani.jl")
 include("testBasicManifolds.jl")
 
 # start as basic as possible and build from there
@@ -96,11 +97,6 @@ include("testCircular.jl")
 include("testMixtureLinearConditional.jl")
 include("testFluxModelsDistribution.jl")
 include("testAnalysisTools.jl")
-try
-  include("testDERelative.jl")
-catch
-  @error "[FAILED]  Fix testDERelative.jl, likely just requires implementing DiffEqFactorExt.getSample(::CalcFactor{<:DERelative})."
-end
 
 include("testBasicParametric.jl")
 include("testMixtureParametric.jl")
