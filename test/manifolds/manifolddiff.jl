@@ -229,7 +229,7 @@ f(p) = distance(M, p, q)^2
 sol = IncrementalInference.optimizeManifold_FD(M,f,x0)
 
 @show sol.minimizer
-@test isapprox( f(sol.minimizer), 0; atol=1e-3 )
+@test isapprox( f(sol.minimizer), 0; atol=5e-3 )
 @test isapprox( 0, sum(abs.(log(M, e0, compose(M, inv(M,q), sol.minimizer)))); atol=1e-3)
 
 

@@ -56,10 +56,11 @@ using MetaGraphs
 using Logging
 using PrecompileTools
 
-# bringing in BSD 3-clause ccolamd
-include("services/ccolamd.jl")
-using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
-using .Ccolamd
+# JL 1.10 transition to IncrInfrApproxMinDegreeExt instead
+# # bringing in BSD 3-clause ccolamd
+# include("services/ccolamd.jl")
+# using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
+# using .Ccolamd
 
 # likely overloads or not exported by the upstream packages
 import Base: convert, ==, getproperty
@@ -129,7 +130,8 @@ include("entities/FactorOperationalMemory.jl")
 include("Factors/GenericMarginal.jl")
 # Special belief types for sampling as a distribution
 include("entities/AliasScalarSampling.jl")
-include("entities/OptionalDensities.jl") # used in BeliefTypes.jl::SamplableBeliefs
+include("entities/ExtDensities.jl") # used in BeliefTypes.jl::SamplableBeliefs
+include("entities/ExtFactors.jl")
 include("entities/BeliefTypes.jl")
 
 include("services/HypoRecipe.jl")
@@ -233,7 +235,7 @@ include("services/SolverAPI.jl")
 # Symbolic tree analysis files.
 include("services/AnalysisTools.jl")
 
-# optional densities on weakdeps
+# extension densities on weakdeps
 include("Serialization/entities/SerializingOptionalDensities.jl")
 include("Serialization/services/SerializingOptionalDensities.jl")
 

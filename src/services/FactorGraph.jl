@@ -283,7 +283,7 @@ function setValKDE!(
 end
 
 function setBelief!(vari::DFGVariable, bel::ManifoldKernelDensity, setinit::Bool=true,ipc::AbstractVector{<:Real}=[0.0;])
-  setValKDE!(vari,getPoints(bel),setinit, ipc)
+  setValKDE!(vari,getPoints(bel, false),setinit, ipc)
 end
 
 """
