@@ -206,6 +206,7 @@ function setValKDE!(
 ) where {P}
   # recover variableType information
   setValKDE!(getSolverData(v, solveKey), val, setinit, ipc)
+  # TODO setPPE!
   return nothing
 end
 function setValKDE!(
@@ -246,7 +247,7 @@ end
 
 function setValKDE!(
   vnd::VariableNodeData,
-  mkd::ManifoldKernelDensity{M, B, Nothing},
+  mkd::ManifoldKernelDensity{M, B, Nothing}, # TBD dispatch without partial?
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;],
 ) where {M, B}

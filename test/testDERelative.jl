@@ -67,6 +67,41 @@ for i in 1:3
 end
 
 
+
+## raw test against DiffEq API directly
+
+oder_ = DERelative( fg, [:x0; :x3], 
+                    Position{1}, 
+                    firstOrder!,
+                    tstForce, 
+                    dt=0.05, 
+                    problemType=ODEProblem )
+
+oder_.forwardProblem.u0 .= [1.0]
+sl = DifferentialEquations.solve(oder_.forwardProblem)
+
+x0_val_ref = sl(getVariable(fg, :x0) |> getTimestamp |> DateTime |> datetime2unix)
+x1_val_ref = sl(getVariable(fg, :x1) |> getTimestamp |> DateTime |> datetime2unix)
+x2_val_ref = sl(getVariable(fg, :x2) |> getTimestamp |> DateTime |> datetime2unix)
+x3_val_ref = sl(getVariable(fg, :x3) |> getTimestamp |> DateTime |> datetime2unix)
+
+
+## one layer wrapped API test through IIFExt to DiffEq
+
+f = getFactor(fg, intersect(ls(fg,:x0),ls(fg,:x1))[1] )
+fc = getFactorType(f)
+
+fprob = fc.forwardProblem
+
+meas = zeros(getDimension(getVariable(fg, :x1)))
+u0pts = getPoints(getBelief(fg, :x0))[1]
+res = IncrementalInference._solveFactorODE!(meas, fprob, u0pts)
+
+@test isapprox( 5, res.t[end]-res.t[1]; atol=1e-6)
+@test isapprox( x0_val_ref, res.u[1]; atol=0.1)
+@test isapprox( x1_val_ref, res.u[end]; atol=0.1)
+
+
 ## basic sample test
 
 meas = sampleFactor(fg, :x0x1f1, 10)
@@ -93,24 +128,12 @@ pts_ = approxConv(fg, :x0x1f1, :x0)
 # check the reverse solve to be relatively accurate
 ref_ = (getBelief(fg, :x0) |> getPoints)
 @cast ref[i,j] := ref_[j][i]
-@test (pts - ref) |> norm < 1e-4
+@test norm(pts - ref) < 1e-4
 
 
 ##
 
-oder_ = DERelative( fg, [:x0; :x3], 
-                    Position{1}, 
-                    firstOrder!,
-                    tstForce, 
-                    dt=0.05, 
-                    problemType=ODEProblem )
-
-oder_.forwardProblem.u0 .= [1.0]
-sl = DifferentialEquations.solve(oder_.forwardProblem)
-
-##
-
-
+# use Makie instead
 # Plots.plot(sl,linewidth=2,xaxis="unixtime [s]",layout=(1,1))
 
 # for lb in [:x0; :x1;:x2;:x3]
@@ -133,10 +156,16 @@ pts_ = approxConv(fg, :x0f1, :x3, setPPE=true, tfg=tfg)
 
 @cast pts[i,j] := pts_[j][i]
 
-@test getPPE(tfg, :x0).suggested - sl(getVariable(fg, :x0) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
-@test getPPE(tfg, :x1).suggested - sl(getVariable(fg, :x1) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
-@test getPPE(tfg, :x2).suggested - sl(getVariable(fg, :x2) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
-@test       Statistics.mean(pts) - sl(getVariable(fg, :x3) |> getTimestamp |> DateTime |> datetime2unix)[1] < 1.0
+@test getPPE(tfg, :x0).suggested - x0_val_ref |> norm < 0.1
+@test getPPE(tfg, :x1).suggested - x1_val_ref |> norm < 0.1
+@test getPPE(tfg, :x2).suggested - x2_val_ref |> norm < 0.1
+@test       Statistics.mean(pts) - x3_val_ref[1] < 1.0
+
+
+@test isapprox( x0_val_ref, mean(getBelief(fg[:x0])); atol=0.1)
+@test isapprox( x1_val_ref, mean(getBelief(fg[:x1])); atol=0.1)
+@test isapprox( x2_val_ref, mean(getBelief(fg[:x2])); atol=0.1)
+@test isapprox( x3_val_ref, mean(getBelief(fg[:x3])); atol=0.1)
 
 
 ##
@@ -146,16 +175,88 @@ pts_ = approxConv(fg, :x0f1, :x3, setPPE=true, tfg=tfg)
 
 ## Now test a full solve
 
-solveTree!(fg);
+smtasks = Task[]
+tree = solveTree!(fg; smtasks, recordcliqs=ls(fg));
+hists = fetchCliqHistoryAll!(smtasks)
+
+printCSMHistoryLogical(hists)
+
+
+##
+
+# intended steps at writing are 5, 6 (upsolve) 
+_, csmc = repeatCSMStep!(hists[1], 5; duplicate=true)
+@test isapprox( 1, getPPESuggested(csmc.cliqSubFg, :x0)[1]; atol=0.1 )
+nval_x0 = mean(getBelief(csmc.cliqSubFg, :x0))
+@test isapprox( x0_val_ref, nval_x0; atol=0.1 )
+
+nval_x1 = mean(getBelief(csmc.cliqSubFg, :x1))
+@test isapprox( x1_val_ref, nval_x1; atol=0.1 )
+
+
+sfg = deepcopy( hists[1][6][4].cliqSubFg )
+dens, ipc = propagateBelief( sfg,  :x0,  :;)
+@test isapprox( x0_val_ref, mean(dens); atol=0.1)
+
+isapprox( x0_val_ref, mean(getBelief(sfg[:x0])); atol=0.1)
+isapprox( x2_val_ref, mean(getBelief(sfg[:x2])); atol=0.1)
+
+dens, ipc = propagateBelief( sfg,  :x1,  :;)
+@test isapprox( x1_val_ref, mean(dens); atol=0.1)
+# @enter propagateBelief(sfg,  :x1,  :)
+
+_, csmc = repeatCSMStep!(hists[1], 6; duplicate=true)
+# @enter repeatCSMStep!(hists[1], 6; duplicate=true)
+@test isapprox( x0_val_ref, getPPESuggested(csmc.cliqSubFg, :x0)[1]; atol=0.1 )
+nval_x0 = mean(getBelief(csmc.cliqSubFg, :x0))
+@test isapprox( x0_val_ref, nval_x0[1]; atol=0.1 )
+
+nval_x0 = mean(getBelief(csmc.cliqSubFg, :x0))
+@test isapprox( x0_val_ref, nval_x0[1]; atol=0.1 )
+
+
+# TODO CHECK vnd.val points istype SArray???
+
+# intended steps at writing are 11,12 (post-root clique downsolve)
+val0 = getPPESuggested( hists[1][11][4].cliqSubFg[:x0] )
+@test isapprox( x0_val_ref, val0[1]; atol=0.1)
+val0 = getPPESuggested( hists[1][12][4].cliqSubFg[:x0] )
+@test isapprox( x0_val_ref, val0[1]; atol=0.1)
+
+
 
 
 ##
 
 
-@test getPPE(fg, :x0).suggested - sl(getVariable(fg, :x0) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
-@test_broken getPPE(fg, :x1).suggested - sl(getVariable(fg, :x1) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
-@test_broken getPPE(fg, :x2).suggested - sl(getVariable(fg, :x2) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
-@test getPPE(fg, :x3).suggested - sl(getVariable(fg, :x3) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
+sfg = deepcopy( hists[1][6][4].cliqSubFg )
+
+dens, ipc = propagateBelief(
+  sfg,
+  :x0,
+  :
+)
+
+
+vert = getVariable(sfg, :x0)
+setBelief!(vert, dens, true, ipc)
+
+
+
+
+##
+
+msg1 = IIF.getMessageBuffer(tree[1])
+msg1.upRx[2].belief[:x2].val
+
+##
+
+calcPPE(fg, :x0).suggested
+
+@test getPPE(fg, :x0).suggested - x0_val_ref |> norm < 0.1
+@test_broken getPPE(fg, :x1).suggested - x1_val_ref |> norm < 0.1
+@test_broken getPPE(fg, :x2).suggested - x2_val_ref |> norm < 0.1
+@test getPPE(fg, :x3).suggested - x3_val_ref |> norm < 0.1
 
 
 ##

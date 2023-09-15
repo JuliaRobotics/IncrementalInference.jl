@@ -29,7 +29,7 @@ function propagateBelief(
 
   # get proposal beliefs
   destlbl = getLabel(destvar)
-  ipc = proposalbeliefs!(dfg, destlbl, factors, dens; solveKey = solveKey, N = N, dbg = dbg)
+  ipc = proposalbeliefs!(dfg, destlbl, factors, dens; solveKey, N, dbg)
 
   # @show dens[1].manifold
 
@@ -52,7 +52,7 @@ function propagateBelief(
     M;
     Niter = 1,
     oldPoints = oldpts,
-    N = N,
+    N,
     u0 = getPointDefault(varType),
   )
 
