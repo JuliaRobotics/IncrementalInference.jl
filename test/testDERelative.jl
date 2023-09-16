@@ -144,15 +144,11 @@ ref_ = (getBelief(fg, :x0) |> getPoints)
 # end
 
 
-##
-
+## temp graph solve check
 
 tfg = initfg()
-pts_ = approxConv(fg, :x0f1, :x3, setPPE=true, tfg=tfg)
+pts_ = approxConv(fg, :x0f1, :x3; setPPE=true, tfg)
 # initVariable!(tfg, :x3, pts)
-
-
-##
 
 @cast pts[i,j] := pts_[j][i]
 
@@ -161,19 +157,26 @@ pts_ = approxConv(fg, :x0f1, :x3, setPPE=true, tfg=tfg)
 @test getPPE(tfg, :x2).suggested - x2_val_ref |> norm < 0.1
 @test       Statistics.mean(pts) - x3_val_ref[1] < 1.0
 
-
-@test isapprox( x0_val_ref, mean(getBelief(fg[:x0])); atol=0.1)
-@test isapprox( x1_val_ref, mean(getBelief(fg[:x1])); atol=0.1)
-@test isapprox( x2_val_ref, mean(getBelief(fg[:x2])); atol=0.1)
-@test isapprox( x3_val_ref, mean(getBelief(fg[:x3])); atol=0.1)
-
-
-##
-
+# using KernelDensityEstimatePlotting
 # plotKDE(tfg, [:x0;:x1;:x2;:x3])
 
 
-## Now test a full solve
+## check if variables are initialized (only works for graphinit)
+
+@test isInitialized(fg, :x0)
+@test isapprox( x0_val_ref, mean(getBelief(fg[:x0])); atol=0.1)
+
+@test isInitialized(fg, :x1)
+@test isapprox( x1_val_ref, mean(getBelief(fg[:x1])); atol=0.1)
+
+@test isInitialized(fg, :x2)
+@test isapprox( x2_val_ref, mean(getBelief(fg[:x2])); atol=0.1)
+
+@test isInitialized(fg, :x3)
+@test isapprox( x3_val_ref, mean(getBelief(fg[:x3])); atol=0.1)
+
+
+## Now test a full graph solve
 
 smtasks = Task[]
 tree = solveTree!(fg; smtasks, recordcliqs=ls(fg));
@@ -198,8 +201,8 @@ sfg = deepcopy( hists[1][6][4].cliqSubFg )
 dens, ipc = propagateBelief( sfg,  :x0,  :;)
 @test isapprox( x0_val_ref, mean(dens); atol=0.1)
 
-isapprox( x0_val_ref, mean(getBelief(sfg[:x0])); atol=0.1)
-isapprox( x2_val_ref, mean(getBelief(sfg[:x2])); atol=0.1)
+@test isapprox( x0_val_ref, mean(getBelief(sfg[:x0])); atol=0.1)
+@test isapprox( x2_val_ref, mean(getBelief(sfg[:x2])); atol=0.1)
 
 dens, ipc = propagateBelief( sfg,  :x1,  :;)
 @test isapprox( x1_val_ref, mean(dens); atol=0.1)

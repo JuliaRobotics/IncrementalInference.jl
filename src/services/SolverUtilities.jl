@@ -40,13 +40,18 @@ function mmd(
   nodeType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
   threads::Bool = true;
   bw::AbstractVector{<:Real} = SA[0.001;],
+  asPartial::Bool = true
 )
   #
-  return mmd(getPoints(p1), getPoints(p2), nodeType, threads; bw)
+  return mmd(getPoints(p1, asPartial), getPoints(p2, asPartial), nodeType, threads; bw)
 end
 
 # part of consolidation, see #927
-function sampleFactor!(ccwl::CommonConvWrapper, N::Int; _allowThreads::Bool=true)
+function sampleFactor!(
+  ccwl::CommonConvWrapper, 
+  N::Int; 
+  _allowThreads::Bool=true
+)
   #
   
   # FIXME get allocations here down to 0
@@ -60,15 +65,32 @@ function sampleFactor!(ccwl::CommonConvWrapper, N::Int; _allowThreads::Bool=true
   return ccwl.measurement
 end
 
-function sampleFactor(ccwl::CommonConvWrapper, N::Int; _allowThreads::Bool=true)
+function sampleFactor(
+  ccwl::CommonConvWrapper, 
+  N::Int; 
+  _allowThreads::Bool=true
+)
   #
   cf = CalcFactor(ccwl; _allowThreads) 
   return sampleFactor(cf, N)
 end
 
-sampleFactor(fct::DFGFactor, N::Int = 1; _allowThreads::Bool=true) = sampleFactor(_getCCW(fct), N; _allowThreads)
+sampleFactor(
+  fct::DFGFactor, 
+  N::Int = 1; 
+  _allowThreads::Bool=true
+) = sampleFactor(
+  _getCCW(fct), 
+  N; 
+  _allowThreads
+)
 
-function sampleFactor(dfg::AbstractDFG, sym::Symbol, N::Int = 1; _allowThreads::Bool=true)
+function sampleFactor(
+  dfg::AbstractDFG, 
+  sym::Symbol, 
+  N::Int = 1; 
+  _allowThreads::Bool=true
+)
   #
   return sampleFactor(getFactor(dfg, sym), N; _allowThreads)
 end
@@ -76,7 +98,9 @@ end
 """
     $(SIGNATURES)
 
-Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
+Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt`.
+Intended use is to update main clique after a upward belief propagation computation 
+has been completed per clique.
 """
 function updateFGBT!(
   fg::AbstractDFG,

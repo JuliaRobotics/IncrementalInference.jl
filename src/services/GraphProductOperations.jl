@@ -33,12 +33,14 @@ function propagateBelief(
 
   # @show dens[1].manifold
 
-  # make sure oldpts has right number of points
+  # make sure oldPoints vector has right length
   oldBel = getBelief(dfg, destlbl, solveKey)
-  oldpts = if Npts(oldBel) == N
-    getPoints(oldBel)
+  _pts = getPoints(oldBel, false)
+  oldPoints = if Npts(oldBel) <= N
+    _pts[1:N]
   else
-    sample(oldBel, N)[1]
+    nn = N - length(_pts) # should be larger than 0
+    vcat(_pts, sample(oldBel, nn))
   end
 
   # few more data requirements
@@ -51,7 +53,7 @@ function propagateBelief(
     dens,
     M;
     Niter = 1,
-    oldPoints = oldpts,
+    oldPoints,
     N,
     u0 = getPointDefault(varType),
   )
