@@ -13,7 +13,7 @@ function approxConvBelief(
 )
   #
   v_trg = getVariable(dfg, target)
-  N = N == 0 ? getNumPts(v_trg; solveKey = solveKey) : N
+  N = N == 0 ? getNumPts(v_trg; solveKey) : N
   # approxConv should push its result into duplicate memory destination, NOT the variable.VND.val itself.  ccw.varValsAll always points directly to variable.VND.val
   # points and infoPerCoord
 
