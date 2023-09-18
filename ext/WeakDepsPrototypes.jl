@@ -3,6 +3,9 @@
 function _ccolamd! end
 function _ccolamd end
 
+# DiffEq
+function _solveFactorODE! end
+
 # Flux.jl
 function MixtureFluxModels end
 

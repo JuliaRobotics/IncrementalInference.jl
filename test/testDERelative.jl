@@ -61,10 +61,45 @@ for i in 1:3
                         problemType=ODEProblem )
   #
   addFactor!( fg, [prev;nextSym], ode_fac, graphinit=false )
-  initVariable!(fg, nextSym, [zeros(1) for _ in 1:100])
+  initVariable!(fg, nextSym, [0.1*randn(1) for _ in 1:100])
 
   prev = nextSym
 end
+
+
+
+## raw test against DiffEq API directly
+
+oder_ = DERelative( fg, [:x0; :x3], 
+                    Position{1}, 
+                    firstOrder!,
+                    tstForce, 
+                    dt=0.05, 
+                    problemType=ODEProblem )
+
+oder_.forwardProblem.u0 .= [1.0]
+sl = DifferentialEquations.solve(oder_.forwardProblem)
+
+x0_val_ref = sl(getVariable(fg, :x0) |> getTimestamp |> DateTime |> datetime2unix)
+x1_val_ref = sl(getVariable(fg, :x1) |> getTimestamp |> DateTime |> datetime2unix)
+x2_val_ref = sl(getVariable(fg, :x2) |> getTimestamp |> DateTime |> datetime2unix)
+x3_val_ref = sl(getVariable(fg, :x3) |> getTimestamp |> DateTime |> datetime2unix)
+
+
+## one layer wrapped API test through IIFExt to DiffEq
+
+f = getFactor(fg, intersect(ls(fg,:x0),ls(fg,:x1))[1] )
+fc = getFactorType(f)
+
+fprob = fc.forwardProblem
+
+meas = zeros(getDimension(getVariable(fg, :x1)))
+u0pts = getPoints(getBelief(fg, :x0))[1]
+res = IncrementalInference._solveFactorODE!(meas, fprob, u0pts)
+
+@test isapprox( 5, res.t[end]-res.t[1]; atol=1e-6)
+@test isapprox( x0_val_ref, res.u[1]; atol=0.1)
+@test isapprox( x1_val_ref, res.u[end]; atol=0.1)
 
 
 ## basic sample test
@@ -93,24 +128,12 @@ pts_ = approxConv(fg, :x0x1f1, :x0)
 # check the reverse solve to be relatively accurate
 ref_ = (getBelief(fg, :x0) |> getPoints)
 @cast ref[i,j] := ref_[j][i]
-@test (pts - ref) |> norm < 1e-4
+@test norm(pts - ref) < 1e-4
 
 
 ##
 
-oder_ = DERelative( fg, [:x0; :x3], 
-                    Position{1}, 
-                    firstOrder!,
-                    tstForce, 
-                    dt=0.05, 
-                    problemType=ODEProblem )
-
-oder_.forwardProblem.u0 .= [1.0]
-sl = DifferentialEquations.solve(oder_.forwardProblem)
-
-##
-
-
+# use Makie instead
 # Plots.plot(sl,linewidth=2,xaxis="unixtime [s]",layout=(1,1))
 
 # for lb in [:x0; :x1;:x2;:x3]
@@ -121,42 +144,118 @@ sl = DifferentialEquations.solve(oder_.forwardProblem)
 # end
 
 
-##
+## temp graph solve check
 
-
-tfg = initfg()
-pts_ = approxConv(fg, :x0f1, :x3, setPPE=true, tfg=tfg)
+tfg  = initfg()
+tx3_ = approxConvBelief(fg, :x0f1, :x3; setPPE=true, tfg)
+pts_ = getPoints(tx3_)
 # initVariable!(tfg, :x3, pts)
-
-
-##
 
 @cast pts[i,j] := pts_[j][i]
 
-@test getPPE(tfg, :x0).suggested - sl(getVariable(fg, :x0) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
-@test getPPE(tfg, :x1).suggested - sl(getVariable(fg, :x1) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
-@test getPPE(tfg, :x2).suggested - sl(getVariable(fg, :x2) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
-@test       Statistics.mean(pts) - sl(getVariable(fg, :x3) |> getTimestamp |> DateTime |> datetime2unix)[1] < 1.0
+@test isapprox( x0_val_ref, getPPE(tfg, :x0).suggested ; atol = 0.1)
+@test isapprox( x1_val_ref, getPPE(tfg, :x1).suggested ; atol = 0.1)
+@test isapprox( x2_val_ref, getPPE(tfg, :x2).suggested ; atol = 0.1)
+@test isapprox( x3_val_ref, mean(tx3_); atol=0.1)
 
-
-##
-
+# using KernelDensityEstimatePlotting
 # plotKDE(tfg, [:x0;:x1;:x2;:x3])
 
 
-## Now test a full solve
+## check if variables are initialized (only works for graphinit)
 
-solveTree!(fg);
+@test isInitialized(fg, :x0)
+@test isapprox( x0_val_ref, mean(getBelief(fg[:x0])); atol=0.1)
+
+@test isInitialized(fg, :x1)
+# @test isapprox( x1_val_ref, mean(getBelief(fg[:x1])); atol=0.1)
+
+X2_ = approxConvBelief(fg, :x1x2f1, :x2)
+@test isapprox( x2_val_ref, mean(X2_); atol=0.1)
+
+# FIXME, X2 and X3 are wrongly initialized to zero above
+# X2_ = approxConvBelief(fg, :x2x3f1, :x2)
+# @test isapprox( x2_val_ref, mean(X2_); atol=0.1)
+# @enter approxConvBelief(fg, :x2x3f1, :x2)
+
+factors = getFactor.(fg, IIF.listNeighbors(fg, :x2))
+dens = ManifoldKernelDensity[]
+ipc = IIF.proposalbeliefs!(fg, :x2, factors, dens)
+
+# 
+mkd = *(dens...)
+
+@test isapprox( x2_val_ref, mean(mkd); atol=0.1)
+
+X2_,_ = propagateBelief(fg, :x2, :)
+@test isapprox( x2_val_ref, mean(X2_); atol=0.1)
+# @enter propagateBelief(fg, :x2, :)
+
+@test isInitialized(fg, :x2)
+@test isInitialized(fg, :x3)
+
+# FIXME, wrongly initialized X2 and X3 to near zero above
+# @test isapprox( x2_val_ref, mean(getBelief(fg[:x2])); atol=0.1)
+# @test isapprox( x3_val_ref, mean(getBelief(fg[:x3])); atol=0.1) # happens to be near zero
+
+
+## Now test a full graph solve
+
+smtasks = Task[]
+tree = solveTree!(fg; smtasks, recordcliqs=ls(fg));
+hists = fetchCliqHistoryAll!(smtasks)
+
+printCSMHistoryLogical(hists)
 
 
 ##
 
+# intended steps at writing are 5, 6 (upsolve) 
+_, csmc = repeatCSMStep!(hists[1], 5; duplicate=true)
+@test isapprox( 1, getPPESuggested(csmc.cliqSubFg, :x0)[1]; atol=0.1 )
+nval_x0 = mean(getBelief(csmc.cliqSubFg, :x0))
+@test isapprox( x0_val_ref, nval_x0; atol=0.1 )
 
-@test getPPE(fg, :x0).suggested - sl(getVariable(fg, :x0) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
-@test_broken getPPE(fg, :x1).suggested - sl(getVariable(fg, :x1) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
-@test_broken getPPE(fg, :x2).suggested - sl(getVariable(fg, :x2) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
-@test getPPE(fg, :x3).suggested - sl(getVariable(fg, :x3) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
+nval_x1 = mean(getBelief(csmc.cliqSubFg, :x1))
+@test isapprox( x1_val_ref, nval_x1; atol=0.1 )
 
+
+sfg = deepcopy( hists[1][6][4].cliqSubFg )
+dens, ipc = propagateBelief( sfg,  :x0,  :;)
+@test isapprox( x0_val_ref, mean(dens); atol=0.1)
+
+@test isapprox( x0_val_ref, mean(getBelief(sfg[:x0])); atol=0.1)
+# @test isapprox( x2_val_ref, mean(getBelief(sfg[:x2])); atol=0.1) # TODO DELETE THIS LINE
+
+dens, ipc = propagateBelief( sfg,  :x1,  :;)
+@test isapprox( x1_val_ref, mean(dens); atol=0.1)
+# @enter propagateBelief(sfg,  :x1,  :)
+
+_, csmc = repeatCSMStep!(hists[1], 6; duplicate=true)
+# @enter repeatCSMStep!(hists[1], 6; duplicate=true)
+@test isapprox( x0_val_ref, getPPESuggested(csmc.cliqSubFg, :x0); atol=0.1 )
+nval_x0 = mean(getBelief(csmc.cliqSubFg, :x0))
+@test isapprox( x0_val_ref, nval_x0; atol=0.1 )
+
+nval_x0 = mean(getBelief(csmc.cliqSubFg, :x0))
+@test isapprox( x0_val_ref, nval_x0; atol=0.1 )
+
+
+# TODO CHECK vnd.val points istype SArray???
+
+# intended steps at writing are 11,12 (post-root clique downsolve)
+val0 = getPPESuggested( hists[1][11][4].cliqSubFg[:x0] )
+@test isapprox( x0_val_ref, val0; atol=0.1)
+val0 = getPPESuggested( hists[1][12][4].cliqSubFg[:x0] )
+@test isapprox( x0_val_ref, val0; atol=0.1)
+
+
+##
+
+@test getPPE(fg, :x0).suggested - x0_val_ref |> norm < 0.1
+@test getPPE(fg, :x1).suggested - x1_val_ref |> norm < 0.1
+@test getPPE(fg, :x2).suggested - x2_val_ref |> norm < 0.1
+@test getPPE(fg, :x3).suggested - x3_val_ref |> norm < 0.1
 
 ##
 
@@ -195,7 +294,6 @@ addVariable!(fg, :x0, Position{2}, timestamp=DateTime(2000,1,1,0,0,0))
 addFactor!(fg, [:x0], Prior(MvNormal([1;0],0.01*diagm(ones(2)))))
 
 
-
 ##
 
 prev = :x0
@@ -216,10 +314,51 @@ for i in 1:7
                       dt=0.05, 
                       problemType=ODEProblem )
   #
-  addFactor!( fg, [prev;nextSym], oder )
+  addFactor!( fg, [prev;nextSym], oder; graphinit=false )
 
   prev = nextSym
 end
+
+
+##
+
+oder_ = DERelative( fg, [:x0; :x7], 
+                    Position{2}, 
+                    dampedOscillator!,
+                    tstForce, 
+                    # (state, var)->(state[1] = var[1]),
+                    # (var, state)->(var[1] = state[1]),
+                    dt=0.05, 
+                    problemType=ODEProblem )
+
+oder_.forwardProblem.u0 .= [1.0;0.0]
+sl = DifferentialEquations.solve(oder_.forwardProblem)
+
+## Initialize the rest of the variables
+
+initAll!(fg)
+
+## check the solve values are correct
+
+x0_val_ref = sl(getVariable(fg, :x0) |> getTimestamp |> DateTime |> datetime2unix)
+x1_val_ref = sl(getVariable(fg, :x1) |> getTimestamp |> DateTime |> datetime2unix)
+x2_val_ref = sl(getVariable(fg, :x2) |> getTimestamp |> DateTime |> datetime2unix)
+x3_val_ref = sl(getVariable(fg, :x3) |> getTimestamp |> DateTime |> datetime2unix)
+x4_val_ref = sl(getVariable(fg, :x4) |> getTimestamp |> DateTime |> datetime2unix)
+x5_val_ref = sl(getVariable(fg, :x5) |> getTimestamp |> DateTime |> datetime2unix)
+x6_val_ref = sl(getVariable(fg, :x6) |> getTimestamp |> DateTime |> datetime2unix)
+x7_val_ref = sl(getVariable(fg, :x7) |> getTimestamp |> DateTime |> datetime2unix)
+
+##
+
+@test isapprox( getPPESuggested(fg, :x0), x0_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x1), x1_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x2), x2_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x3), x3_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x4), x4_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x5), x5_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x6), x6_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x7), x7_val_ref; atol=0.2)
 
 
 ## check forward and backward solving
@@ -240,22 +379,8 @@ initVariable!(fg, :x1, pts_)
 pts_ = approxConv(fg, :x0x1f1, :x0)
 @cast pts[i,j] := pts_[j][i]
 
-try
-  @test norm(X0_ - pts) < 1e-2
-catch
-  @error "FIXME: Skipping numerical test failure"
-end
-
-##
-
-tfg = initfg()
-for s in ls(fg)
-  initVariable!(fg, s, [zeros(2) for _ in 1:100])
-end
-
-pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg)
-# initVariable!(tfg, :x7, pts)
-
+# check forward then backward convolves are reversible
+@test isapprox(0, norm(X0_ - pts); atol=1e-2)
 
 
 ##
@@ -264,35 +389,47 @@ pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg)
 
 ##
 
+tfg = initfg()
+for s in ls(fg)
+  initVariable!(fg, s, [0.1.*zeros(2) for _ in 1:100])
+end
 
-oder_ = DERelative( fg, [:x0; :x7], 
-                    Position{2}, 
-                    dampedOscillator!,
-                    tstForce, 
-                    # (state, var)->(state[1] = var[1]),
-                    # (var, state)->(var[1] = state[1]),
-                    dt=0.05, 
-                    problemType=ODEProblem )
-
-oder_.forwardProblem.u0 .= [1.0;0.0]
-sl = DifferentialEquations.solve(oder_.forwardProblem)
-
-
-## check the solve values are correct
-
-@error "FIXME: Disabling numerical test on DERelative 1"
-# try
-#   for sym = ls(tfg)
-#     @test getPPE(tfg, sym).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
-#   end
-# catch
-#   @error "FIXME: Numerical solution failures on DERelative test"
-# end
-
+pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg)
+initVariable!(tfg, :x7, pts)
 
 ##
 
+@test isapprox( getPPESuggested(tfg, :x0), x0_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(tfg, :x1), x1_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(tfg, :x2), x2_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(tfg, :x3), x3_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(tfg, :x4), x4_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(tfg, :x5), x5_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(tfg, :x6), x6_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(tfg, :x7), x7_val_ref; atol=0.2)
 
+##
+
+@error "Disabling useMsgLikelihood for DERelative test, follow fix on #1010 as rough guide"
+getSolverParams(fg).useMsgLikelihoods = false
+
+solveTree!(fg);
+
+## 
+
+# solveTree has weird problem in breaking correct init and inserting zeros???
+@test_broken isapprox( getPPESuggested(fg, :x0), x0_val_ref; atol=0.2)
+@test_broken isapprox( getPPESuggested(fg, :x1), x1_val_ref; atol=0.2)
+@test_broken isapprox( getPPESuggested(fg, :x2), x2_val_ref; atol=0.2)
+@test_broken isapprox( getPPESuggested(fg, :x3), x3_val_ref; atol=0.2)
+@test_broken isapprox( getPPESuggested(fg, :x4), x4_val_ref; atol=0.2)
+
+@test isapprox( getPPESuggested(fg, :x5), x5_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x6), x6_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x7), x7_val_ref; atol=0.2)
+
+
+##
 
 # Plots.plot(sl,linewidth=2,xaxis="unixtime [s]",label=["ω [rad/s]" "θ [rad]"],layout=(2,1))
 
@@ -302,27 +439,6 @@ sl = DifferentialEquations.solve(oder_.forwardProblem)
 #   yy = [-1;1]
 #   Plots.plot!(xx, yy, show=true)
 # end
-
-
-##
-
-@error "Disabling useMsgLikelihood for DERelative test, follow fix on #1010 as rough guide"
-getSolverParams(fg).useMsgLikelihoods = false
-
-solveTree!(fg);
-
-
-## 
-
-@error "FIXME: Disabling numerical test on DERelative 2"
-# try
-#   for sym = ls(fg)
-#     @test getPPE(fg, sym).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
-#   end
-# catch
-#   @error "FIXME: Numerical failure during DERelative tests"
-# end
-
 
 ##
 
@@ -431,9 +547,9 @@ pts_ = approxConv(fg, :x0x1ωβf1, :x0)
 ##
 
 tfg = initfg()
-for s in ls(fg)
-  initVariable!(fg, s, [zeros(2) for _ in 1:100])
-end
+# for s in ls(fg)
+#   initVariable!(fg, s, [zeros(2) for _ in 1:100])
+# end
 
 # must initialize the parameters
 pts = approxConv(fg, :ωβf1, :ωβ)
@@ -490,14 +606,9 @@ sl = DifferentialEquations.solve(oder_.forwardProblem)
 
 ## check the approxConv is working right
 
-@error "FIXME: Disabling numerical test on DERelative 3"
-# try
-#   for sym in setdiff(ls(tfg), [:ωβ])
-#     @test getPPE(tfg, sym).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
-#   end
-# catch
-#   @error "FIXME: Numerical failures on DERelative test"
-# end
+for sym in setdiff(ls(tfg), [:ωβ])
+  @test getPPE(tfg, sym).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
+end
 
 
 ## 
@@ -522,16 +633,16 @@ initVariable!(fg, :ωβ, pts)
 # make sure the other variables are in the right place
 pts_ = getBelief(fg, :x0) |> getPoints
 @cast pts[i,j] := pts_[j][i]
-@test_broken Statistics.mean(pts, dims=2) - [1;0] |> norm < 0.1
+@test Statistics.mean(pts, dims=2) - [1;0] |> norm < 0.1
 
 pts_ = getBelief(fg, :x1) |> getPoints
 @cast pts[i,j] := pts_[j][i]
-@test_broken Statistics.mean(pts, dims=2) - [0;-0.6] |> norm < 0.2
+@test Statistics.mean(pts, dims=2) - [0;-0.6] |> norm < 0.2
 
 
 pts_ = approxConv(fg, :x0x1ωβf1, :ωβ)
 @cast pts[i,j] := pts_[j][i]
-@test_broken Statistics.mean(pts, dims=2) - [0.7;-0.3] |> norm < 0.1
+@test Statistics.mean(pts, dims=2) - [0.7;-0.3] |> norm < 0.1
 
 ##
 
@@ -541,7 +652,7 @@ initVariable!(fg, :ωβ, [zeros(2) for _ in 1:100])
 
 pts_ = approxConv(fg, :x0x1ωβf1, :ωβ)
 @cast pts[i,j] := pts_[j][i]
-@test_broken norm(Statistics.mean(pts, dims=2) - [0.7;-0.3]) < 0.1
+@test norm(Statistics.mean(pts, dims=2) - [0.7;-0.3]) < 0.1
 
 
 @warn "n-ary DERelative test on :ωβ requires issue #1010 to be resolved first before being reintroduced."

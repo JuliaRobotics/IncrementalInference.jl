@@ -25,7 +25,7 @@ end
 function CalcFactor(
   ccwl::CommonConvWrapper;
   factor = ccwl.usrfnc!,
-  _sampleIdx = 0,
+  _sampleIdx = ccwl.particleidx[],
   _legacyParams = ccwl.varValsAll[],
   _allowThreads = true,
   cache = ccwl.dummyCache,
@@ -399,7 +399,7 @@ function _createCCW(
   # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
   _cf = CalcFactor(
     usrfnc,
-    0,
+    1,
     _varValsAll,
     false,
     userCache,
