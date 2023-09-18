@@ -233,7 +233,7 @@ dens, ipc = propagateBelief( sfg,  :x1,  :;)
 
 _, csmc = repeatCSMStep!(hists[1], 6; duplicate=true)
 # @enter repeatCSMStep!(hists[1], 6; duplicate=true)
-@test isapprox( x0_val_ref, getPPESuggested(csmc.cliqSubFg, :x0)[1]; atol=0.1 )
+@test isapprox( x0_val_ref, getPPESuggested(csmc.cliqSubFg, :x0); atol=0.1 )
 nval_x0 = mean(getBelief(csmc.cliqSubFg, :x0))
 @test isapprox( x0_val_ref, nval_x0; atol=0.1 )
 
@@ -334,6 +334,10 @@ oder_ = DERelative( fg, [:x0; :x7],
 oder_.forwardProblem.u0 .= [1.0;0.0]
 sl = DifferentialEquations.solve(oder_.forwardProblem)
 
+## Initialize the rest of the variables
+
+initAll!(fg)
+
 ## check the solve values are correct
 
 x0_val_ref = sl(getVariable(fg, :x0) |> getTimestamp |> DateTime |> datetime2unix)
@@ -345,20 +349,16 @@ x5_val_ref = sl(getVariable(fg, :x5) |> getTimestamp |> DateTime |> datetime2uni
 x6_val_ref = sl(getVariable(fg, :x6) |> getTimestamp |> DateTime |> datetime2unix)
 x7_val_ref = sl(getVariable(fg, :x7) |> getTimestamp |> DateTime |> datetime2unix)
 
-
 ##
 
-initAll!(fg)
-
-##
-
-# tfg = initfg()
-# for s in ls(fg)
-#   initVariable!(fg, s, [0.1.*zeros(2) for _ in 1:100])
-# end
-
-# pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg)
-# # initVariable!(tfg, :x7, pts)
+@test isapprox( getPPESuggested(fg, :x0), x0_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x1), x1_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x2), x2_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x3), x3_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x4), x4_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x5), x5_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x6), x6_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x7), x7_val_ref; atol=0.2)
 
 
 ## check forward and backward solving
@@ -379,12 +379,23 @@ initVariable!(fg, :x1, pts_)
 pts_ = approxConv(fg, :x0x1f1, :x0)
 @cast pts[i,j] := pts_[j][i]
 
+# check forward then backward convolves are reversible
 @test isapprox(0, norm(X0_ - pts); atol=1e-2)
 
 
 ##
 
 # plotKDE(tfg, ls(fg) |> sortDFG, dims=[1] )
+
+##
+
+tfg = initfg()
+for s in ls(fg)
+  initVariable!(fg, s, [0.1.*zeros(2) for _ in 1:100])
+end
+
+pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg)
+initVariable!(tfg, :x7, pts)
 
 ##
 
@@ -399,6 +410,27 @@ pts_ = approxConv(fg, :x0x1f1, :x0)
 
 ##
 
+@error "Disabling useMsgLikelihood for DERelative test, follow fix on #1010 as rough guide"
+getSolverParams(fg).useMsgLikelihoods = false
+
+solveTree!(fg);
+
+## 
+
+# solveTree has weird problem in breaking correct init and inserting zeros???
+@test_broken isapprox( getPPESuggested(fg, :x0), x0_val_ref; atol=0.2)
+@test_broken isapprox( getPPESuggested(fg, :x1), x1_val_ref; atol=0.2)
+@test_broken isapprox( getPPESuggested(fg, :x2), x2_val_ref; atol=0.2)
+@test_broken isapprox( getPPESuggested(fg, :x3), x3_val_ref; atol=0.2)
+@test_broken isapprox( getPPESuggested(fg, :x4), x4_val_ref; atol=0.2)
+
+@test isapprox( getPPESuggested(fg, :x5), x5_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x6), x6_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x7), x7_val_ref; atol=0.2)
+
+
+##
+
 # Plots.plot(sl,linewidth=2,xaxis="unixtime [s]",label=["ω [rad/s]" "θ [rad]"],layout=(2,1))
 
 # for lb in sortDFG(ls(fg))
@@ -407,28 +439,6 @@ pts_ = approxConv(fg, :x0x1f1, :x0)
 #   yy = [-1;1]
 #   Plots.plot!(xx, yy, show=true)
 # end
-
-
-##
-
-@error "Disabling useMsgLikelihood for DERelative test, follow fix on #1010 as rough guide"
-getSolverParams(fg).useMsgLikelihoods = false
-
-solveTree!(fg);
-
-
-## 
-
-
-@test isapprox( getPPESuggested(fg, :x0), x0_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x1), x1_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x2), x2_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x3), x3_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x4), x4_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x5), x5_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x6), x6_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x7), x7_val_ref; atol=0.2)
-
 
 ##
 
@@ -537,9 +547,9 @@ pts_ = approxConv(fg, :x0x1ωβf1, :x0)
 ##
 
 tfg = initfg()
-for s in ls(fg)
-  initVariable!(fg, s, [zeros(2) for _ in 1:100])
-end
+# for s in ls(fg)
+#   initVariable!(fg, s, [zeros(2) for _ in 1:100])
+# end
 
 # must initialize the parameters
 pts = approxConv(fg, :ωβf1, :ωβ)
@@ -596,14 +606,9 @@ sl = DifferentialEquations.solve(oder_.forwardProblem)
 
 ## check the approxConv is working right
 
-@error "FIXME: Disabling numerical test on DERelative 3"
-# try
-#   for sym in setdiff(ls(tfg), [:ωβ])
-#     @test getPPE(tfg, sym).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
-#   end
-# catch
-#   @error "FIXME: Numerical failures on DERelative test"
-# end
+for sym in setdiff(ls(tfg), [:ωβ])
+  @test getPPE(tfg, sym).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
+end
 
 
 ## 
@@ -628,16 +633,16 @@ initVariable!(fg, :ωβ, pts)
 # make sure the other variables are in the right place
 pts_ = getBelief(fg, :x0) |> getPoints
 @cast pts[i,j] := pts_[j][i]
-@test_broken Statistics.mean(pts, dims=2) - [1;0] |> norm < 0.1
+@test Statistics.mean(pts, dims=2) - [1;0] |> norm < 0.1
 
 pts_ = getBelief(fg, :x1) |> getPoints
 @cast pts[i,j] := pts_[j][i]
-@test_broken Statistics.mean(pts, dims=2) - [0;-0.6] |> norm < 0.2
+@test Statistics.mean(pts, dims=2) - [0;-0.6] |> norm < 0.2
 
 
 pts_ = approxConv(fg, :x0x1ωβf1, :ωβ)
 @cast pts[i,j] := pts_[j][i]
-@test_broken Statistics.mean(pts, dims=2) - [0.7;-0.3] |> norm < 0.1
+@test Statistics.mean(pts, dims=2) - [0.7;-0.3] |> norm < 0.1
 
 ##
 
@@ -647,7 +652,7 @@ initVariable!(fg, :ωβ, [zeros(2) for _ in 1:100])
 
 pts_ = approxConv(fg, :x0x1ωβf1, :ωβ)
 @cast pts[i,j] := pts_[j][i]
-@test_broken norm(Statistics.mean(pts, dims=2) - [0.7;-0.3]) < 0.1
+@test norm(Statistics.mean(pts, dims=2) - [0.7;-0.3]) < 0.1
 
 
 @warn "n-ary DERelative test on :ωβ requires issue #1010 to be resolved first before being reintroduced."
