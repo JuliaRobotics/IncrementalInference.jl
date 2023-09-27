@@ -124,7 +124,7 @@ end
 
 ##
 
-foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val[1] .= x.second.val, pairs(d))
+foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val[1] = x.second.val, pairs(d))
 
 
 # getSolverParams(fg).dbg=true
@@ -186,7 +186,7 @@ foreach(println, d)
 
 ##
 
-foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val[1] .= x.second.val, pairs(d))
+foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val[1] = x.second.val, pairs(d))
 
 # fg.solverParams.showtree = true
 # fg.solverParams.drawtree = true
@@ -228,7 +228,7 @@ for i in 0:10
   @test isapprox(d[sym].val[1], i, atol=1e-6)
 end
 
-foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val[1] .= x.second.val, pairs(d))
+foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val[1] = x.second.val, pairs(d))
 
 # fg.solverParams.showtree = true
 # fg.solverParams.drawtree = true
