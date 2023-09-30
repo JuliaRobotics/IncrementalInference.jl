@@ -2,6 +2,8 @@
 abstract type AbstractMaxMixtureSolver end
 
 
+abstract type AbstractCalcFactor{T<:AbstractFactor} end
+
 """
 $TYPEDEF
 
@@ -32,7 +34,7 @@ struct CalcFactor{
   C, 
   VT <: Tuple, 
   M <: AbstractManifold
-}
+} <: AbstractCalcFactor{FT}
   """ the interface compliant user object functor containing the data and logic """
   factor::FT
   """ what is the sample (particle) id for which the residual is being calculated """
@@ -65,32 +67,57 @@ Related
 
 [`CalcFactor`](@ref)
 """
-struct CalcFactorMahalanobis{N, D, L, S <: Union{Nothing, AbstractMaxMixtureSolver}}
+struct CalcFactorMahalanobis{
+  FT,
+  N,
+  C,
+  MEAS<:AbstractArray,
+  D,
+  L,
+  S <: Union{Nothing, AbstractMaxMixtureSolver}
+} <: AbstractCalcFactor{FT}
   faclbl::Symbol
-  calcfactor!::CalcFactor
+  factor::FT
+  cache::C
   varOrder::Vector{Symbol}
-  meas::NTuple{N, <:AbstractArray}
+  meas::NTuple{N, MEAS}
   iΣ::NTuple{N, SMatrix{D, D, Float64, L}}
   specialAlg::S
 end
 
 
+# struct CalcFactorMahalanobis{N, D, L, S <: Union{Nothing, AbstractMaxMixtureSolver}} <: AbstractCalcFactor{FT}
+#   faclbl::Symbol
+#   calcfactor!::CalcFactor
+#   varOrder::Vector{Symbol}
+#   meas::NTuple{N, <:AbstractArray}
+#   iΣ::NTuple{N, SMatrix{D, D, Float64, L}}
+#   specialAlg::S
+# end
 
-
+#rename to CalcFactorResidual
 struct CalcFactorManopt{
+  FT <: AbstractFactor,
+  C,
   D,
   L,
-  FT <: AbstractFactor,
-  M <: AbstractManifold,
+  P,
   MEAS <: AbstractArray,
-}
+  N
+} <: AbstractCalcFactor{FT}
   faclbl::Symbol
-  calcfactor!::CalcFactor{FT, Nothing, Nothing, Tuple{}, M}
-  varOrder::Vector{Symbol}
-  varOrderIdxs::Vector{Int}
+  factor::FT
+  cache::C
+  varOrder::NTuple{N, Symbol}
+  varOrderIdxs::NTuple{N, Int}
+  points::P
   meas::MEAS
   iΣ::SMatrix{D, D, Float64, L}
   sqrt_iΣ::SMatrix{D, D, Float64, L}
 end
+
+_nvars(::CalcFactorManopt{FT, C, D, L, P, MEAS, N}) where {FT, C, D, L, P, MEAS, N} = N
+# _typeof_meas(::CalcFactorManopt{FT, C, D, L, MEAS, N}) where {FT, C, D, L, MEAS, N} = MEAS
+DFG.getDimension(::CalcFactorManopt{FT, C, D, L, P, MEAS, N}) where {FT, C, D, L, P, MEAS, N} = D
 
 

@@ -236,6 +236,7 @@ export CSMHistory,
 
   # Factor operational memory
   CommonConvWrapper,
+  AbstractCalcFactor,
   CalcFactor,
   getCliqVarInitOrderUp,
   getCliqNumAssocFactorsPerVar,

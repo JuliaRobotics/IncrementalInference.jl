@@ -11,7 +11,7 @@ using SparseArrays
 
 
 
-function CalcFactorManopt(fct::DFGFactor, varIntLabel)
+function CalcFactorManopt(fg, fct::DFGFactor, varIntLabel)
   fac_func = getFactorType(fct)
   varOrder = getVariableOrder(fct)
 
@@ -20,42 +20,28 @@ function CalcFactorManopt(fct::DFGFactor, varIntLabel)
   M = getManifold(getFactorType(fct))
 
   dims = manifold_dimension(M)
-  ϵ = getPointIdentity(M)
 
-  _meas, _iΣ = getMeasurementParametric(fct)
-  if fac_func isa ManifoldPrior
-    meas = _meas # already a point on M
-  elseif fac_func isa AbstractPrior
-    X = get_vector(M, ϵ, _meas, DefaultOrthonormalBasis())
-    meas = exp(M, ϵ, X) # convert to point on M
-  else
-    # its a relative factor so should be a tangent vector 
-    meas = convert(typeof(ϵ), get_vector(M, ϵ, _meas, DefaultOrthonormalBasis()))
-  end
-
-  # make sure its an SMatrix
-  iΣ = convert(SMatrix{dims, dims}, _iΣ)
+  meas, iΣ = getFactorMeasurementParametric(fct)
 
   sqrt_iΣ = convert(SMatrix{dims, dims}, sqrt(iΣ))
-  # cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
+  cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
 
-  calcf = CalcFactor(
+  return CalcFactorManopt(
+    fct.label,
     getFactorMechanics(fac_func),
-    0,
-    nothing,
-    true,
-    nothing,#cache,
-    (), #DFGVariable[],
-    0,
-    getManifold(fac_func),
+    cache,
+    varOrder,
+    varOrderIdxs,
+    meas,
+    iΣ,
+    sqrt_iΣ,
   )
-  return CalcFactorManopt(fct.label, calcf, varOrder, varOrderIdxs, meas, iΣ, sqrt_iΣ)
 end
 
 function (cfm::CalcFactorManopt)(p)
   meas = cfm.meas
   idx = cfm.varOrderIdxs
-  return cfm.sqrt_iΣ * cfm.calcfactor!(meas, p[idx]...)
+  return cfm.sqrt_iΣ * cfm(meas, p[idx]...)
 end
 
 # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
@@ -83,7 +69,8 @@ struct JacF_RLM!{CF, T}
   res::Vector{Float64}
 end
 
-function JacF_RLM!(M, costF!; basis_domain::AbstractBasis = DefaultOrthonormalBasis())
+# function JacF_RLM!(M, costF!; basis_domain::AbstractBasis = DefaultOrthonormalBasis())
+function JacF_RLM!(M, costF!; basis_domain::AbstractBasis = DefaultOrthogonalBasis())
   
   p = costF!.points
   
@@ -108,7 +95,8 @@ function (jacF!::JacF_RLM!)(
   M::AbstractManifold,
   J,
   p;
-  basis_domain::AbstractBasis = DefaultOrthonormalBasis(),
+  # basis_domain::AbstractBasis = DefaultOrthonormalBasis(),
+  basis_domain::AbstractBasis = DefaultOrthogonalBasis(),
 )
   
   X0 = jacF!.X0
@@ -196,7 +184,7 @@ function solve_RLM(
   # varIntLabel_frontals = filter(p->first(p) in frontals, varIntLabel)
   # varIntLabel_separators = filter(p->first(p) in separators, varIntLabel)
 
-  calcfacs = map(f->CalcFactorManopt(f, varIntLabel), facs)
+  calcfacs = map(f->CalcFactorManopt(fg, f, varIntLabel), facs)
   
   # get the manifold and variable types
   frontal_vars = getVariable.(fg, frontals)
@@ -262,7 +250,7 @@ function solve_RLM_sparse(fg; kwargs...)
 
   varIntLabel = OrderedDict(zip(varlabels, collect(1:length(varlabels))))
 
-  calcfacs = CalcFactorManopt.(facs, Ref(varIntLabel))
+  calcfacs = CalcFactorManopt.(fg, facs, Ref(varIntLabel))
 
   # get the manifold and variable types
   vars = getVariable.(fg, varlabels)
