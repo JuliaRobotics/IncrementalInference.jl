@@ -80,6 +80,7 @@ end
 struct CostF_RLM!{T}
   points::Vector{T}
   costfuns::Vector{<:CalcFactorManopt}
+  # varLabels::Vector{Symbol} @TODO add
 end
 
 function CostF_RLM!(costfuns::Vector{<:CalcFactorManopt}, frontals_p::Vector{T}, separators_p::Vector{T}) where T
@@ -154,8 +155,6 @@ end
 # function JacF_RLM!(M, costF!; basis_domain::AbstractBasis = DefaultOrthonormalBasis())
 function JacF_RLM!(M, costF!, p, fg=nothing; basis_domain::AbstractBasis = DefaultOrthogonalBasis(), sparse=!isnothing(fg))
   
-  # p = costF!.points
-  
   #Why does this error?
   # res = Vector(mapreduce(f -> f(p), vcat, costF!.costfuns)) 
   res = reduce(vcat, map(f -> f(p), Vector(costF!.costfuns)))
@@ -168,7 +167,7 @@ function JacF_RLM!(M, costF!, p, fg=nothing; basis_domain::AbstractBasis = Defau
 
   if sparse
     factLabels = collect(getproperty.(costF!.costfuns, :faclbl))
-    sparsity = eltype(res).(getSparsityPattern(fg, ls(fg), factLabels))
+    sparsity = eltype(res).(getSparsityPattern(fg, costF!.varLabels, factLabels))
     colorvec = matrix_colors(sparsity)
   else 
     sparsity = nothing
@@ -247,25 +246,31 @@ end
 
 # TODO this function is not the sparsity pattern yet, it just fills in all entries from the biadjacency matrix
 # TODO allow getting sparcity pattern for a subfg
+# OLD 0.424040 seconds (940.11 k allocations: 45.512 MiB)
+# NEW 0.001552 seconds (2.04 k allocations: 1.816 MiB)
 function getSparsityPattern(fg, varLabels, factLabels)
   biadj = getBiadjacencyMatrix(fg; varLabels, factLabels)
 
   vdims = getDimension.(getVariable.(fg, biadj.varLabels))
   fdims = getDimension.(getFactor.(fg, biadj.facLabels))
+ 
+  c_end = cumsum(vdims)
+  r_end = cumsum(fdims)
 
-  sm = map(eachindex(biadj.B)) do i
-    vdim = vdims[i[2]]
-    fdim = fdims[i[1]]
-    if biadj.B[i] > 0
-      trues(fdim,vdim)
-    else
-      falses(fdim,vdim)
-    end
-  end
+  C_range = range.(c_end - vdims .+1, c_end)
+  R_range = range.(r_end - fdims .+1, r_end)
 
-  return SparseMatrixCSC(mortar(sm))
+  ROWS, COLS, _ = findnz(biadj.B)
 
+  iter = reduce(vcat, map(zip(ROWS, COLS)) do (R,C)
+    vec(CartesianIndices((R_range[R], C_range[C])))
+  end)
+
+  vec(CartesianIndices((R_range[2], C_range[1])))
+
+  return sparse(getindex.(iter,1), getindex.(iter,2), ones(Bool, length(iter)))
 end
+
 
 function solve_RLM(
   fg,
@@ -446,7 +451,8 @@ end
 
   #HEX solve
   # sparse J 0.025235 seconds (133.65 k allocations: 9.964 MiB
-  # new      0.013486 seconds (36.16 k allocations: 2.593 MiB)
+  # new1     0.013486 seconds (36.16 k allocations: 2.593 MiB)
+  # new2    0.010764 seconds (34.61 k allocations: 3.111 MiB)
   # dense  J 0.022079 seconds (283.54 k allocations: 18.146 MiB)
   
 function solve_RLM_sparse(fg; kwargs...)
