@@ -86,17 +86,7 @@ struct CalcFactorMahalanobis{
 end
 
 
-# struct CalcFactorMahalanobis{N, D, L, S <: Union{Nothing, AbstractMaxMixtureSolver}} <: AbstractCalcFactor{FT}
-#   faclbl::Symbol
-#   calcfactor!::CalcFactor
-#   varOrder::Vector{Symbol}
-#   meas::NTuple{N, <:AbstractArray}
-#   iΣ::NTuple{N, SMatrix{D, D, Float64, L}}
-#   specialAlg::S
-# end
-
-#rename to CalcFactorResidual
-struct CalcFactorManopt{
+struct CalcFactorResidual{
   FT <: AbstractFactor,
   C,
   D,
@@ -116,8 +106,8 @@ struct CalcFactorManopt{
   sqrt_iΣ::SMatrix{D, D, Float64, L}
 end
 
-_nvars(::CalcFactorManopt{FT, C, D, L, P, MEAS, N}) where {FT, C, D, L, P, MEAS, N} = N
+_nvars(::CalcFactorResidual{FT, C, D, L, P, MEAS, N}) where {FT, C, D, L, P, MEAS, N} = N
 # _typeof_meas(::CalcFactorManopt{FT, C, D, L, MEAS, N}) where {FT, C, D, L, MEAS, N} = MEAS
-DFG.getDimension(::CalcFactorManopt{FT, C, D, L, P, MEAS, N}) where {FT, C, D, L, P, MEAS, N} = D
+DFG.getDimension(::CalcFactorResidual{FT, C, D, L, P, MEAS, N}) where {FT, C, D, L, P, MEAS, N} = D
 
 

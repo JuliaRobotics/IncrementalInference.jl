@@ -1,7 +1,6 @@
 using Manopt
 using FiniteDiff
 using SparseDiffTools
-using BlockArrays
 using SparseArrays
 
 # using ForwardDiff
@@ -15,7 +14,7 @@ function getVarIntLabelMap(vartypeslist::OrderedDict{DataType, Vector{Symbol}})
   return varIntLabel, varlabelsAP
 end
 
-function CalcFactorManopt(fg, fct::DFGFactor, varIntLabel, points::Union{Nothing,ArrayPartition}=nothing)
+function CalcFactorResidual(fg, fct::DFGFactor, varIntLabel, points::Union{Nothing,ArrayPartition}=nothing)
   fac_func = getFactorType(fct)
   varOrder = getVariableOrder(fct)
 
@@ -36,7 +35,7 @@ function CalcFactorManopt(fg, fct::DFGFactor, varIntLabel, points::Union{Nothing
     points_view = @view points[varOrderIdxs]
   end
 
-  return CalcFactorManopt(
+  return CalcFactorResidual(
     fct.label,
     getFactorMechanics(fac_func),
     cache,
@@ -49,7 +48,12 @@ function CalcFactorManopt(fg, fct::DFGFactor, varIntLabel, points::Union{Nothing
   )
 end
 
-function calcFactorManoptVec(fg, factorLabels::Vector{Symbol}, varIntLabel::OrderedDict{Symbol, Int64}, points)
+
+"""
+  CalcFactorResidualAP
+Create an `ArrayPartition` of `CalcFactorResidual`s.
+"""
+function CalcFactorResidualAP(fg::GraphsDFG, factorLabels::Vector{Symbol}, varIntLabel::OrderedDict{Symbol, Int64}, points)
   factypes, typedict, alltypes = getFactorTypesCount(getFactor.(fg, factorLabels))
   
   # skip non-numeric prior (MetaPrior)
@@ -59,50 +63,45 @@ function calcFactorManoptVec(fg, factorLabels::Vector{Symbol}, varIntLabel::Orde
 
   parts = map(values(alltypes)) do labels
     map(getFactor.(fg, labels)) do fct
-      CalcFactorManopt(fg, fct, varIntLabel, points)
+      CalcFactorResidual(fg, fct, varIntLabel, points)
     end
   end
   parts_tuple = (parts...,)
-  return ArrayPartition{CalcFactorManopt, typeof(parts_tuple)}(parts_tuple)
+  return ArrayPartition{CalcFactorResidual, typeof(parts_tuple)}(parts_tuple)
 end
 
-function (cfm::CalcFactorManopt{T})(p) where T
+function (cfm::CalcFactorResidual{T})(p) where T
   meas = cfm.meas
   points = map(idx->p[idx], cfm.varOrderIdxs)
   return cfm.sqrt_iΣ * cfm(meas, points...) # 0.654783 seconds (6.75 M allocations: 531.688 MiB, 14.41% gc time)
 end
 
-function (cfm::CalcFactorManopt{T})() where T
+function (cfm::CalcFactorResidual{T})() where T
   return cfm.sqrt_iΣ * cfm(cfm.meas, cfm.points...) # 0.654783 seconds (6.75 M allocations: 531.688 MiB, 14.41% gc time)
 end
 
 # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
-struct CostF_RLM!{T}
-  points::Vector{T}
-  costfuns::Vector{<:CalcFactorManopt}
-  # varLabels::Vector{Symbol} @TODO add
+struct CostFres_cond!{PT, CFT}
+  points::PT
+  costfuns::ArrayPartition{CalcFactorResidual, CFT}
+  varLabels::Vector{Symbol}
 end
 
-function CostF_RLM!(costfuns::Vector{<:CalcFactorManopt}, frontals_p::Vector{T}, separators_p::Vector{T}) where T
-  points::Vector{T} = vcat(frontals_p, separators_p)
-  return CostF_RLM!(points, costfuns)
-end
+function (costf::CostFres_cond!)(M::AbstractManifold, x::Vector, p::AbstractVector) 
+  
+  costf.points[1:length(p)] .= p
 
-function (cfm::CostF_RLM!)(M::AbstractManifold, x::Vector, p::Vector) 
-  cfm.points[1:length(p)] .= p
-  # return x .= mapreduce(f -> f(cfm.points), vcat, cfm.costfuns)
-  # return x .= reduce(vcat, map(f -> f(cfm.points), cfm.costfuns))
   st = 1
-  for f in cfm.costfuns
-    l = size(f.iΣ, 1)
-    x[st:st + l - 1] = f(cfm.points)
-    st += l
+  for cfm_part in costf.costfuns.x
+    st = calcFactorResVec!(x, cfm_part, costf.points, st)
   end
+  return x
+
 end
 
-struct CostF_RLM_AP!{CFT}
+struct CostFres!{CFT}
   # points::PT #TODO RENAME - don't update this in functor, seperator static points only!
-  costfuns::ArrayPartition{CalcFactorManopt, CFT}
+  costfuns::ArrayPartition{CalcFactorResidual, CFT}
   varLabels::Vector{Symbol} # vector for performance above ArrayPartition{Symbol}?
   # varPoints::VPT
   # sepLabels::Vector{Symbol}
@@ -111,7 +110,7 @@ struct CostF_RLM_AP!{CFT}
   # add return_ranges to allow MultiThreaded
 end
 
-function calcFactorResVec!(x::Vector{T}, cfm_part::Vector{<:CalcFactorManopt}, p::AbstractArray{T}, st::Int) where T
+function calcFactorResVec!(x::Vector{T}, cfm_part::Vector{<:CalcFactorResidual}, p::AbstractArray{T}, st::Int) where T
   l = getDimension(cfm_part[1]) # all should be the same 
   for cfm in cfm_part
     x[st:st + l - 1] = cfm(p) #NOTE looks like do not broadcast here
@@ -120,22 +119,28 @@ function calcFactorResVec!(x::Vector{T}, cfm_part::Vector{<:CalcFactorManopt}, p
   return st
 end
 
-function calcFactorResVec_threaded!(x::Vector{T}, cfm_part::Vector{<:CalcFactorManopt}, p::AbstractArray{T}, st::Int) where T
-  l = getDimension(cfm_part[1]) # all should be the same 
-  Threads.@threads for i in eachindex(cfm_part)
-    r = range(st+l*(i-1), length=l)
-    cfm = cfm_part[i]
-    x[r] = cfm(p) #NOTE looks like do not broadcast here
+function calcFactorResVec_threaded!(x::Vector{T}, cfm_part::Vector{<:CalcFactorResidual}, p::AbstractArray{T}, st::Int) where T
+  l = getDimension(cfm_part[1]) # all should be the same
+  N = length(cfm_part)
+  chunkies = Iterators.partition(1:N, N ÷ Threads.nthreads())
+  Threads.@threads for chunki in collect(chunkies)
+    for i in chunki
+      r = range(st + l*(i - 1); length = l)
+      cfm = cfm_part[i]
+      x[r] = cfm(p) #NOTE looks like do not broadcast here
+    end
   end
-  return st + l*length(cfm_part)
+  return st + l*N
 end
 
-# function (cfm::CostF_RLM!)(M::AbstractManifold, x::Vector, p::Vector{T}) where T
-function (costf::CostF_RLM_AP!{CFT})(M::AbstractManifold, x::Vector{T}, p::AbstractVector{T}) where {CFT,T}
-  # costf.points[1:length(p)] .= p #FIXME remove just testing sparse kwarg
+function (costf::CostFres!{CFT})(M::AbstractManifold, x::Vector{T}, p::AbstractVector{T}) where {CFT,T}
   st = 1
   for cfm_part in costf.costfuns.x
-      st = calcFactorResVec!(x, cfm_part, p, st)
+      # if length(cfm_part) > Threads.nthreads() * 10
+        # st = calcFactorResVec_threaded!(x, cfm_part, p, st)
+      # else
+        st = calcFactorResVec!(x, cfm_part, p, st)
+      # end
   end
   return x
 end
@@ -153,11 +158,13 @@ struct JacF_RLM!{CF, T, JC}
 end
 
 # function JacF_RLM!(M, costF!; basis_domain::AbstractBasis = DefaultOrthonormalBasis())
-function JacF_RLM!(M, costF!, p, fg=nothing; basis_domain::AbstractBasis = DefaultOrthogonalBasis(), sparse=!isnothing(fg))
-  
-  #Why does this error?
-  # res = Vector(mapreduce(f -> f(p), vcat, costF!.costfuns)) 
-  res = reduce(vcat, map(f -> f(p), Vector(costF!.costfuns)))
+function JacF_RLM!(M, costF!, p, fg=nothing;
+  all_points=p,
+  basis_domain::AbstractBasis = DefaultOrthogonalBasis(),
+  is_sparse=!isnothing(fg)
+)
+
+  res = reduce(vcat, map(f -> f(all_points), Vector(costF!.costfuns)))
 
   X0 = zeros(manifold_dimension(M))
   
@@ -165,7 +172,7 @@ function JacF_RLM!(M, costF!, p, fg=nothing; basis_domain::AbstractBasis = Defau
 
   q = exp(M, p, X)
 
-  if sparse
+  if is_sparse
     factLabels = collect(getproperty.(costF!.costfuns, :faclbl))
     sparsity = eltype(res).(getSparsityPattern(fg, costF!.varLabels, factLabels))
     colorvec = matrix_colors(sparsity)
@@ -204,13 +211,6 @@ function (jacF!::JacF_RLM!)(
   
   fill!(X0, 0)
   
-    # ϵ = getPointIdentity(M)
-    # function jaccost(res, Xc)
-    #   exp!(M, q, ϵ, get_vector!(M, X, p, Xc, basis_domain))
-    #   compose!(M, q, p, q)
-    #   jacF!.costF!(M, res, q)
-    # end
-
   # TODO make sure closure performs (let, ::, or (jacF!::JacF_RLM!)(res, Xc))
   function costf!(res, Xc)
     get_vector!(M, X, p, Xc, basis_domain)
@@ -218,15 +218,22 @@ function (jacF!::JacF_RLM!)(
     jacF!.costF!(M, res, q)
   end
 
-  # colorvec = matrix_colors(J) #FIXME, this should work from cache, but id doesn't 
-
   FiniteDiff.finite_difference_jacobian!(
     J,
     costf!,
     X0,
     cache;
-    # colorvec #FIXME also should work from cache
   )
+
+  return J
+end
+
+  # ϵ = getPointIdentity(M)
+  # function jaccost(res, Xc)
+  #   exp!(M, q, ϵ, get_vector!(M, X, p, Xc, basis_domain))
+  #   compose!(M, q, p, q)
+  #   jacF!.costF!(M, res, q)
+  # end
 
   # ManifoldDiff._jacobian!(
   #   J, 
@@ -234,9 +241,6 @@ function (jacF!::JacF_RLM!)(
   #   X0,
   #   ManifoldDiff.default_differential_backend()
   # )
-
-  return J
-end
 
 struct FactorGradient{A <: AbstractMatrix}
   manifold::AbstractManifold
@@ -272,75 +276,42 @@ function getSparsityPattern(fg, varLabels, factLabels)
 end
 
 
+#TODO maybe split conditional solve as extra dispatch 
 function solve_RLM(
   fg,
-  frontals::Vector{Symbol} = ls(fg);
-  sparse=false,
-  # separators::Vector{Symbol} = setdiff(ls(fg), frontals);
+  varlabels = ls(fg),
+  faclabels = lsf(fg);
+  is_sparse=true,
   kwargs...
 )
-  #FIXME
-  separators = Symbol[]
-  # get the subgraph formed by all frontals, separators and fully connected factors
-  varlabels = union(frontals, separators)
-  faclabels = sortDFG(setdiff(getNeighborhood(fg, varlabels, 1), varlabels))
 
-  filter!(faclabels) do fl
-    return issubset(getVariableOrder(fg, fl), varlabels)
-  end
-
-  # so the subgraph consists of varlabels(frontals + separators) and faclabels
-
-  # varIntLabel = OrderedDict(zip(varlabels, collect(1:length(varlabels))))
-
-  # varIntLabel_frontals = filter(p->first(p) in frontals, varIntLabel)
-  # varIntLabel_separators = filter(p->first(p) in separators, varIntLabel)
- 
   # get the manifold and variable types
-  frontal_vars = getVariable.(fg, frontals)
+  vars = getVariable.(fg, varlabels)
    
-  M, varTypes, vartypeslist = buildGraphSolveManifold(frontal_vars)
+  M, varTypes, vartypeslist = buildGraphSolveManifold(vars)
 
   varIntLabel, varlabelsAP = getVarIntLabelMap(vartypeslist)
 
   #Can use varIntLabel (because its an OrderedDict), but varLabelsAP makes the ArrayPartition.
-  # TODO just make sure this map makes a copy
   p0 = map(varlabelsAP) do label
     getVal(fg, label, solveKey = :parametric)[1]
   end
 
-  if isempty(separators)
-
-    all_points = p0
-    
-  else
-    error("#FIXME this does not work yet with separators")
-    _, _, all_vartypeslist = getVariableTypesCount(getVariable.(fg,varlabels))
-    all_varIntLabel, varlabelsAP = getVarIntLabelMap(all_vartypeslist)
-
-    all_points = map(varlabelsAP) do label
-      getVal(fg, label, solveKey = :parametric)[1]
-    end
-
-  end
-
-  #FIXME split frontals and separators
-  # create an ArrayPartition{CalcFactorManopt} for faclabels
-  calcfacs = calcFactorManoptVec(fg, faclabels, varIntLabel, all_points)
+  # create an ArrayPartition{CalcFactorResidual} for faclabels
+  calcfacs = CalcFactorResidualAP(fg, faclabels, varIntLabel, p0)
 
   #cost and jacobian functions
   # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
-  costF! = CostF_RLM_AP!(calcfacs, collect(varlabelsAP))
+  costF! = CostFres!(calcfacs, collect(varlabelsAP))
 
-  @debug "building jacF!"
   # jacobian of function for Riemannian Levenberg-Marquardt
-  jacF! = JacF_RLM!(M, costF!, p0, fg; sparse)
+  jacF! = JacF_RLM!(M, costF!, p0, fg; is_sparse)
 
   num_components = length(jacF!.res)
   initial_residual_values = zeros(num_components)
 
   # initial_jacobian_f not type stable, but function barrier so should be ok.
-  initial_jacobian_f = sparse ? 
+  initial_jacobian_f = is_sparse ? 
     jacF!.Jcache.sparsity : 
     zeros(num_components, manifold_dimension(M))
 
@@ -357,7 +328,7 @@ function solve_RLM(
     kwargs...
   )
 
-  return varIntLabel, lm_r
+  return varlabelsAP, lm_r
 end
 
   # nlso = NonlinearLeastSquaresObjective(
@@ -378,14 +349,14 @@ end
   #   kwargs...
   # )
 
-
-#TODO implement frontals and seperators in new for init
 function solve_RLM_conditional(
   fg,
   frontals::Vector{Symbol} = ls(fg),
   separators::Vector{Symbol} = setdiff(ls(fg), frontals);
+  is_sparse=false,
   kwargs...
 )
+  is_sparse && error("Sparse solve_RLM_conditional not supported yet")
 
   # get the subgraph formed by all frontals, separators and fully connected factors
   varlabels = union(frontals, separators)
@@ -395,115 +366,61 @@ function solve_RLM_conditional(
     return issubset(getVariableOrder(fg, fl), varlabels)
   end
 
-  facs = getFactor.(fg, faclabels)
+  frontal_vars = getVariable.(fg, frontals)
+  separator_vars = getVariable.(fg, separators)
 
   # so the subgraph consists of varlabels(frontals + separators) and faclabels
 
-  varIntLabel = OrderedDict(zip(varlabels, collect(1:length(varlabels))))
+  _, _, frontal_vartypeslist = getVariableTypesCount(getVariable.(fg,frontals))
+  frontal_varIntLabel, frontal_varlabelsAP = getVarIntLabelMap(frontal_vartypeslist)
 
+  if isempty(separators)
+    separator_vartypeslist = OrderedDict{DataType, Vector{Symbol}}()
+    separator_varlabelsAP = ArrayPartition{Symbol,Tuple}(())
+  else
+    _, _, separator_vartypeslist = getVariableTypesCount(getVariable.(fg,separators))
+    seperator_varIntLabel, separator_varlabelsAP = getVarIntLabelMap(separator_vartypeslist)
+  end
+
+  all_varlabelsAP = ArrayPartition((frontal_varlabelsAP.x..., separator_varlabelsAP.x...))
+
+  all_points = map(all_varlabelsAP) do label
+    getVal(fg, label, solveKey = :parametric)[1]
+  end
+  
+  p0 = ArrayPartition(all_points.x[1:length(frontal_varlabelsAP.x)])
+
+  all_varIntLabel = OrderedDict{Symbol,Int}(
+    map(enumerate(all_varlabelsAP)) do (i,l)
+      l=>i
+    end
+  )
   # varIntLabel_frontals = filter(p->first(p) in frontals, varIntLabel)
   # varIntLabel_separators = filter(p->first(p) in separators, varIntLabel)
 
-  calcfacs = map(f->CalcFactorManopt(fg, f, varIntLabel), facs)
+  calcfacs = CalcFactorResidualAP(fg, faclabels, all_varIntLabel, all_points)
 
   # get the manifold and variable types
-  frontal_vars = getVariable.(fg, frontals)
    
   M, varTypes, vartypeslist = buildGraphSolveManifold(frontal_vars)
-  #
-  #FIXME 
-  @assert length(M.manifolds) == 1 "#FIXME, this only works with 1 manifold type component"
-  MM = M.manifolds[1]
-
-  # inital values and separators from fg
-  fro_p = first.(getVal.(frontal_vars, solveKey = :parametric))
-  sep_p::Vector{eltype(fro_p)} = first.(getVal.(fg, separators, solveKey = :parametric))
-
+  
   #cost and jacobian functions
   # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
-  costF! = CostF_RLM!(calcfacs, fro_p, sep_p)
+  costF! = CostFres_cond!(all_points, calcfacs, Vector{Symbol}(collect(all_varlabelsAP)))
+
   # jacobian of function for Riemannian Levenberg-Marquardt
-  jacF! = JacF_RLM!(MM, costF!, vcat(fro_p, sep_p))
-  
+  jacF! = JacF_RLM!(M, costF!, p0, fg; all_points, is_sparse)
+
   num_components = length(jacF!.res)
 
   initial_residual_values = zeros(num_components)
-  initial_jacobian_f = zeros(num_components, manifold_dimension(MM))
-# 
-  #HEX solve
-  # sparse J 0.025235 seconds (133.65 k allocations: 9.964 MiB
-  # dense  J 0.022079 seconds (283.54 k allocations: 18.146 MiB)
+
+  initial_jacobian_f = is_sparse ? 
+    jacF!.Jcache.sparsity : 
+    zeros(num_components, manifold_dimension(M))
 
   lm_r = LevenbergMarquardt(
-    MM,
-    costF!,
-    jacF!,
-    fro_p,
-    num_components;
-    evaluation=InplaceEvaluation(),
-    initial_residual_values,
-    initial_jacobian_f,
-    kwargs...
-  )
-
-  return vartypeslist, lm_r
-end
-
-  #HEX solve
-  # sparse J 0.025235 seconds (133.65 k allocations: 9.964 MiB
-  # new1     0.013486 seconds (36.16 k allocations: 2.593 MiB)
-  # new2    0.010764 seconds (34.61 k allocations: 3.111 MiB)
-  # dense  J 0.022079 seconds (283.54 k allocations: 18.146 MiB)
-  
-function solve_RLM_sparse(fg; kwargs...)
-
-  # get the subgraph formed by all frontals, separators and fully connected factors
-  varlabels = ls(fg)
-  faclabels = lsf(fg)
-
-  facs = getFactor.(fg, faclabels)
-
-  # so the subgraph consists of varlabels(frontals + separators) and faclabels
-
-  varIntLabel = OrderedDict(zip(varlabels, collect(1:length(varlabels))))
-
-  calcfacs = CalcFactorManopt.(fg, facs, Ref(varIntLabel))
-
-  # get the manifold and variable types
-  vars = getVariable.(fg, varlabels)
-  vartypes, vartypecount, vartypeslist = getVariableTypesCount(vars)
-  
-  PMs = map(vartypes) do vartype
-    N = vartypecount[vartype]
-    G = getManifold(vartype)
-    return IIF.NPowerManifold(G, N)
-  end
-  M = ProductManifold(PMs...)
-  
-  #
-  #FIXME 
-  @assert length(M.manifolds) == 1 "#FIXME, this only works with 1 manifold type component"
-  MM = M.manifolds[1]
-
-  # inital values and separators from fg
-  fro_p = first.(getVal.(vars, solveKey = :parametric))
-  sep_p = eltype(fro_p)[]
-
-  #cost and jacobian functions
-  # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
-  costF! = CostF_RLM!(calcfacs, fro_p, sep_p)
-  # jacobian of function for Riemannian Levenberg-Marquardt
-  jacF! = JacF_RLM!(MM, costF!, fro_p, fg; sparse=true)
-  
-  num_components = length(jacF!.res)
-
-  p0 = deepcopy(fro_p)
-
-  initial_residual_values = zeros(num_components)
-  initial_jacobian_f = jacF!.Jcache.sparsity 
-
-  lm_r = LevenbergMarquardt(
-    MM,
+    M,
     costF!,
     jacF!,
     p0,
@@ -514,9 +431,15 @@ function solve_RLM_sparse(fg; kwargs...)
     kwargs...
   )
 
-  return vartypeslist, lm_r
+  return all_varlabelsAP, lm_r
 end
 
+  #HEX solve
+  # sparse J 0.025235 seconds (133.65 k allocations: 9.964 MiB
+  # new1     0.013486 seconds (36.16 k allocations: 2.593 MiB)
+  # new2    0.010764 seconds (34.61 k allocations: 3.111 MiB)
+  # dense  J 0.022079 seconds (283.54 k allocations: 18.146 MiB)
+  
 function autoinitParametricManopt!(
   fg,
   varorderIds = getInitOrderParametric(fg);
@@ -582,15 +505,45 @@ function autoinitParametricManopt!(
 end
 
 
+##
+
+function DFG.solveGraphParametric!(
+  ::Val{:RLM},
+  fg::AbstractDFG; 
+  init::Bool = false, 
+  solveKey::Symbol = :parametric, # FIXME, moot since only :parametric used for parametric solves
+  initSolveKey::Symbol = :default, 
+  verbose = false,
+  is_sparse=true,
+  # debug, stopping_criterion, damping_term_min=1e-2, 
+  # expect_zero_residual=true,
+  kwargs...
+)
+  # make sure variables has solverData, see #1637
+  makeSolverData!(fg; solveKey)
+  if !(:parametric in fg.solverParams.algorithms)
+    addParametricSolver!(fg; init = init)
+  elseif init
+    error("TODO: not implemented")
+  end
+
+  v,r = solve_RLM(fg; is_sparse)
+
+  updateParametricSolution!(fg, v, r)
+
+  return v,r
+end
+
+
 ## Check when time and delete if it can't be improved, curretnly ArrayPartition works best
 #=
 using FunctionWrappers: FunctionWrapper
 
 # call with 
-calcfacs = calcFactorManoptWrapper(fg, faclabels, varIntLabel, all_points)
+calcfacs = CalcFactorResidualWrapper(fg, faclabels, varIntLabel, all_points)
 costF! = CostF_RLM_WRAP2!(all_points, calcfacs, map(cfm->size(cfm.obj.x.iΣ,1), calcfacs))
 
-function calcFactorManoptWrapper(fg, factorLabels::Vector{Symbol}, varIntLabel::OrderedDict{Symbol, Int64}, points::ArrayPartition)
+function CalcFactorResidualWrapper(fg, factorLabels::Vector{Symbol}, varIntLabel::OrderedDict{Symbol, Int64}, points::ArrayPartition)
   factypes, typedict, alltypes = getFactorTypesCount(getFactor.(fg, factorLabels))
   
   # skip non-numeric prior (MetaPrior)
@@ -601,7 +554,7 @@ function calcFactorManoptWrapper(fg, factorLabels::Vector{Symbol}, varIntLabel::
   calcfacs = map(factorLabels) do labels
     fct = getFactor(fg, labels)
     # moet ek 'n view in p0 in maak wat jy net p0 update en CFM view automaties, toets dit...
-    cfm = IIF.CalcFactorManopt(fg, fct, varIntLabel, points)
+    cfm = IIF.CalcFactorResidual(fg, fct, varIntLabel, points)
     # return FunctionWrapper{Vector{Float64}, Tuple{typeof(points)}}(cfm)
     return FunctionWrapper{Vector{Float64}, Tuple{}}(cfm)
   end
@@ -614,7 +567,6 @@ struct CostF_RLM_WRAP2!{PT, CFW}
   retdims::Vector{Int}
 end
 
-# function (cfm::CostF_RLM!)(M::AbstractManifold, x::Vector, p::Vector{T}) where T
 function (cost::CostF_RLM_WRAP2!)(M::AbstractManifold, x::Vector{T}, p::AbstractVector{T}) where T
   # x .= reduce(vcat, map(f -> f(p), cost.costfuns))
   # x .= reduce(vcat, map(f -> f(), cost.costfuns))
