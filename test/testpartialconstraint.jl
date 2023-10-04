@@ -59,10 +59,9 @@ f2  = addFactor!(fg,[:x1],dp, graphinit=false)
 
 doautoinit!(fg, :x1)
 
-##
 
 @testset "test evaluation of full constraint prior" begin
-
+##
 
 pts_, _ = evalFactor(fg, f1, v1.label, N=N)
 @cast pts[i,j] := pts_[j][i]
@@ -70,10 +69,9 @@ pts_, _ = evalFactor(fg, f1, v1.label, N=N)
 @test size(pts,2) == N
 @test norm(Statistics.mean(pts,dims=2)[1] .- [0.0]) < 0.3
 
-
+##
 end
 
-##
 
 @testset "test evaluation of partial constraint prior" begin
 ##
