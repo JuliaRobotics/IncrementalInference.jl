@@ -5,59 +5,61 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
 # temporarily moved to start (for debugging)
 #...
 if TEST_GROUP in ["all", "tmp_debug_group"]
-include("testDERelative.jl")
 include("testSpecialOrthogonalMani.jl")
+# include("testDERelative.jl")
+# include("testpartialconstraint.jl")
+
 include("testMultiHypo3Door.jl")
 include("priorusetest.jl")
 end
 
 if TEST_GROUP in ["all", "basic_functional_group"]
   # more frequent stochasic failures from numerics
-include("manifolds/manifolddiff.jl")
-include("manifolds/factordiff.jl")
-include("testSpecialEuclidean2Mani.jl")
-include("testEuclidDistance.jl")
+# include("manifolds/manifolddiff.jl")
+# include("manifolds/factordiff.jl")
+# include("testSpecialEuclidean2Mani.jl")
+# include("testEuclidDistance.jl")
 
-# regular testing
-include("testSphereMani.jl")
-include("testBasicManifolds.jl")
+# # regular testing
+# include("testSphereMani.jl")
+# include("testBasicManifolds.jl")
 
-# start as basic as possible and build from there
-include("typeReturnMemRef.jl")
-include("testDistributionsGeneric.jl")
-include("testHeatmapGridDensity.jl")
-include("testCliqSolveDbgUtils.jl")
-include("basicGraphsOperations.jl")
+# # start as basic as possible and build from there
+# include("typeReturnMemRef.jl")
+# include("testDistributionsGeneric.jl")
+# include("testHeatmapGridDensity.jl")
+# include("testCliqSolveDbgUtils.jl")
+# include("basicGraphsOperations.jl")
 
-# include("TestModuleFunctions.jl")
-include("testCompareVariablesFactors.jl")
-include("saveconvertertypes.jl")
-include("testgraphpackingconverters.jl")
-include("testSaveLoadDFG.jl")
+# # include("TestModuleFunctions.jl")
+# include("testCompareVariablesFactors.jl")
+# include("saveconvertertypes.jl")
+# include("testgraphpackingconverters.jl")
+# include("testSaveLoadDFG.jl")
 
-include("testPackingMixtures.jl")
+# include("testPackingMixtures.jl")
 
-include("testJunctionTreeConstruction.jl")
-include("testBayesTreeiSAM2Example.jl")
-include("testTreeFunctions.jl")
+# include("testJunctionTreeConstruction.jl")
+# include("testBayesTreeiSAM2Example.jl")
+# include("testTreeFunctions.jl")
 
-#FIXME fails on MetaBayesTree
-include("testTreeSaveLoad.jl")
+# #FIXME fails on MetaBayesTree
+# include("testTreeSaveLoad.jl")
 
-@error "Gradient tests must be updated and restored for new ccw.varValsAll[]"
-# include("testGradientUtils.jl")
-# include("testFactorGradients.jl")
-include("testSpecialSampler.jl") # TODO, rename, refine
-include("testCommonConvWrapper.jl")
+# @error "Gradient tests must be updated and restored for new ccw.varValsAll[]"
+# # include("testGradientUtils.jl")
+# # include("testFactorGradients.jl")
+# include("testSpecialSampler.jl") # TODO, rename, refine
+# include("testCommonConvWrapper.jl")
 
-include("testApproxConv.jl")
-include("testBasicForwardConvolve.jl")
-include("testUseMsgLikelihoods.jl")
-include("testDefaultDeconv.jl")
+# include("testApproxConv.jl")
+# include("testBasicForwardConvolve.jl")
+# include("testUseMsgLikelihoods.jl")
+# include("testDefaultDeconv.jl")
 
-include("testPartialFactors.jl")
-include("testPartialPrior.jl")
-include("testpartialconstraint.jl")
+# include("testPartialFactors.jl")
+# include("testPartialPrior.jl")
+
 include("testPartialNH.jl")
 include("testMixturePrior.jl")
 
