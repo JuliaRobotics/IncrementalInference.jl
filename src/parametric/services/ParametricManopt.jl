@@ -275,13 +275,34 @@ function getSparsityPattern(fg, varLabels, factLabels)
   return sparse(getindex.(iter,1), getindex.(iter,2), ones(Bool, length(iter)))
 end
 
+# TODO only calculate marginal covariances
 
-#TODO maybe split conditional solve as extra dispatch 
+function covarianceFiniteDiff(M, jacF!::JacF_RLM!, p0)
+    # Jcache
+    X0 = fill!(deepcopy(jacF!.X0), 0)
+    
+    function costf(Xc)
+      let res = jacF!.res, X = jacF!.X, q = jacF!.q, p0=p0
+        get_vector!(M, X, p0, Xc, DefaultOrthogonalBasis())
+        exp!(M, q, p0, X)
+        1/2*norm(jacF!.costF!(M, res, q))^2
+      end
+    end
+    
+    @time H = FiniteDiff.finite_difference_hessian(costf, X0)
+
+    # inv(H)
+    Σ = Matrix(H) \ Matrix{eltype(H)}(I, size(H)...)
+    # sqrt.(diag(Σ))
+    return Σ
+end
+
 function solve_RLM(
   fg,
   varlabels = ls(fg),
   faclabels = lsf(fg);
-  is_sparse=true,
+  is_sparse = true,
+  finiteDiffCovariance = false,
   kwargs...
 )
 
@@ -328,7 +349,23 @@ function solve_RLM(
     kwargs...
   )
 
-  return varlabelsAP, lm_r
+  if length(initial_residual_values) < 1000 
+    if finiteDiffCovariance
+      # TODO this seems to be correct, but way to slow
+      Σ = covarianceFiniteDiff(M, jacF!, lm_r)
+    else
+      # TODO make sure J initial_jacobian_f is updated, otherwise recalc jacF!(M, J, lm_r) # lm_r === p0
+      J = initial_jacobian_f
+      H = J'J
+      Σ = H \ Matrix{eltype(H)}(I, size(H)...)
+      # Σ = pinv(H)
+    end
+  else
+    @warn "Not estimating a Dense Covariance $(size(initial_jacobian_f))"
+    Σ = nothing  
+  end
+
+  return M, varlabelsAP, lm_r, Σ
 end
 
   # nlso = NonlinearLeastSquaresObjective(
@@ -354,6 +391,7 @@ function solve_RLM_conditional(
   frontals::Vector{Symbol} = ls(fg),
   separators::Vector{Symbol} = setdiff(ls(fg), frontals);
   is_sparse=false,
+  finiteDiffCovariance=true,
   kwargs...
 )
   is_sparse && error("Sparse solve_RLM_conditional not supported yet")
@@ -431,7 +469,14 @@ function solve_RLM_conditional(
     kwargs...
   )
 
-  return all_varlabelsAP, lm_r
+  if finiteDiffCovariance
+    Σ = covarianceFiniteDiff(M, jacF!, lm_r)
+  else
+    J = initial_jacobian_f
+    Σ = pinv(J'J)
+  end
+
+  return M, all_varlabelsAP, lm_r, Σ
 end
 
   #HEX solve
@@ -478,16 +523,15 @@ function autoinitParametricManopt!(
       return isInitialized(dfg, vl, solveKey)
     end
 
-    vartypeslist, lm_r = solve_RLM_conditional(dfg, [initme], initfrom; kwargs...)
+    M, vartypeslist, lm_r, Σ = solve_RLM_conditional(dfg, [initme], initfrom; kwargs...)
 
     val = lm_r[1]
     vnd::VariableNodeData = getSolverData(xi, solveKey)
     vnd.val[1] = val
-  
     
-    # val = lm_r[1]
-    # cov =  ...
-    # updateSolverDataParametric!(vnd, val, cov)
+    !isnothing(Σ) && vnd.bw .= Σ
+  
+    # updateSolverDataParametric!(vnd, val, Σ)
 
     vnd.initialized = true
     #fill in ppe as mean
@@ -509,7 +553,8 @@ end
 
 function DFG.solveGraphParametric!(
   ::Val{:RLM},
-  fg::AbstractDFG; 
+  fg::AbstractDFG,
+  args...; 
   init::Bool = false, 
   solveKey::Symbol = :parametric, # FIXME, moot since only :parametric used for parametric solves
   initSolveKey::Symbol = :default, 
@@ -527,11 +572,11 @@ function DFG.solveGraphParametric!(
     error("TODO: not implemented")
   end
 
-  v,r = solve_RLM(fg; is_sparse)
-
+  M, v, r, Σ = solve_RLM(fg, args...; is_sparse, kwargs...)
+  #TODO update Σ in solver data
   updateParametricSolution!(fg, v, r)
 
-  return v,r
+  return v,r, Σ 
 end
 
 

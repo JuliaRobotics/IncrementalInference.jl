@@ -100,9 +100,9 @@ struct CalcFactorResidual{
   cache::C
   varOrder::NTuple{N, Symbol}
   varOrderIdxs::NTuple{N, Int}
-  points::P
+  points::P #TODO remove or not?
   meas::MEAS
-  iΣ::SMatrix{D, D, Float64, L}
+  iΣ::SMatrix{D, D, Float64, L} #TODO remove or not?
   sqrt_iΣ::SMatrix{D, D, Float64, L}
 end
 
