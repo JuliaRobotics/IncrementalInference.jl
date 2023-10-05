@@ -7,7 +7,7 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
 if TEST_GROUP in ["all", "tmp_debug_group"]
 # include("testSpecialOrthogonalMani.jl")
 # include("testDERelative.jl")
-# include("testpartialconstraint.jl")
+include("testpartialconstraint.jl")
 
 include("testMultiHypo3Door.jl")
 include("priorusetest.jl")

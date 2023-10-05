@@ -433,8 +433,10 @@ function _solveCCWNumeric!(
   if ccwl.partial
     # NOTE use workaround of TranslationGroup for coordinates on partial assignment
     # FIXME consolidate to Manopt and upgrade to Riemannian (i.e. incl non-groups)
-    M = TranslationGroup(length(ccwl.varValsAll[][sfidx][smpid]))
-    setPointPartial!(M, ccwl.varValsAll[][sfidx][smpid], M, retval,ccwl.partialDims,true )
+    M = getManifold(ccwl) # TranslationGroup(length(ccwl.varValsAll[][sfidx][smpid]))
+    src = Vector{typeof(retval)}()
+    push!(src, retval)
+    setPointPartial!(M, ccwl.varValsAll[][sfidx], M, src, ccwl.partialDims, smpid, 1, true )
     # ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims] .= retval
   else
     # copyto!(ccwl.varValsAll[sfidx][smpid], retval)
