@@ -158,7 +158,8 @@ function _solveCCWNumeric_test_SA(
     X = hat(M, ϵ, Xc)
     p = exp(M, ϵ, X)  
     residual = objResX(p)
-    return sum(residual .^ 2)
+    # return sum(residual .^ 2)
+    return sum(abs2, residual) #TODO maybe move this to CalcFactorNormSq
   end
 
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
@@ -221,6 +222,7 @@ function _solveLambdaNumeric_test_optim_manifold(
 end
 
 #TODO Consolidate with _solveLambdaNumeric, see #1374
+#TODO _solveLambdaNumericMeas assumes a measurement is always a tangent vector, confirm.
 function _solveLambdaNumericMeas(
   fcttype::Union{F, <:Mixture{N_, F, S, T}},
   objResX::Function,
@@ -236,15 +238,15 @@ function _solveLambdaNumericMeas(
   ϵ = getPointIdentity(variableType)
   X0c = vee(M, ϵ, u0)
 
-  function cost(X, Xc)
-    hat!(M, X, ϵ, Xc)
+  function cost(Xc)
+    X = hat(M, ϵ, Xc)
     residual = objResX(X)
     return sum(residual .^ 2)
   end
 
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
-  X0 = hat(M, ϵ, X0c)
-  r = Optim.optimize(Xc -> cost(X0, Xc), X0c, alg)
+
+  r = Optim.optimize(cost, X0c, alg)
   if !Optim.converged(r)
     @debug "Optim did not converge:" r
   end

@@ -14,6 +14,7 @@ import Manifolds: identity_element
 #FIXME REMOVE! this is type piracy and not a good idea, for testing only!!!
 Manifolds.identity_element(::Sphere{2, ℝ}) = SVector(1.0, 0.0, 0.0)
 Manifolds.identity_element(::Sphere{2, ℝ}, p::AbstractVector) = SVector(1.0, 0.0, 0.0) # Float64[1,0,0]
+DFG.getPointIdentity(::Sphere{2, ℝ}) = SVector(1.0, 0.0, 0.0)
 
 Base.convert(::Type{<:Tuple}, M::Sphere{2, ℝ}) = (:Euclid, :Euclid)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{Sphere{2, ℝ}})  = (:Euclid, :Euclid)

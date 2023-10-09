@@ -557,14 +557,11 @@ end
 ##
 
 function DFG.solveGraphParametric!(
-  ::Val{:RLM},
   fg::AbstractDFG,
   args...; 
   init::Bool = false, 
-  solveKey::Symbol = :parametric, # FIXME, moot since only :parametric used for parametric solves
-  initSolveKey::Symbol = :default, 
-  verbose = false,
-  is_sparse=true,
+  solveKey::Symbol = :parametric,
+  is_sparse = true,
   # debug, stopping_criterion, damping_term_min=1e-2, 
   # expect_zero_residual=true,
   kwargs...
@@ -578,8 +575,8 @@ function DFG.solveGraphParametric!(
   end
 
   M, v, r, Σ = solve_RLM(fg, args...; is_sparse, kwargs...)
-  #TODO update Σ in solver data
-  updateParametricSolution!(fg, v, r)
+
+  updateParametricSolution!(fg, M, v, r, Σ)
 
   return v,r, Σ 
 end

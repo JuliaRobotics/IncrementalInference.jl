@@ -18,6 +18,7 @@ function Statistics.cov(
   return cov(getManifold(vartype), ptsArr; basis, kwargs...)
 end
 
+#TODO check performance and FIXME on makemutalbe might not be needed any more
 function calcStdBasicSpread(vartype::InferenceVariable, ptsArr::AbstractVector) # {P}) where {P}
   _makemutable(s) = s
   _makemutable(s::StaticArray{Tuple{S},T,N}) where {S,T,N} = MArray{Tuple{S},T,N,S}(s)

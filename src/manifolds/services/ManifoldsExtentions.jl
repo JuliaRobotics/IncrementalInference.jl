@@ -98,24 +98,24 @@ end
 
 import DistributedFactorGraphs: getPointIdentity
 
-function getPointIdentity(G::ProductGroup, ::Type{T} = Float64) where {T <: Real}
+function DFG.getPointIdentity(G::ProductGroup, ::Type{T} = Float64) where {T <: Real}
   M = G.manifold
   return ArrayPartition(map(x -> getPointIdentity(x, T), M.manifolds))
 end
 
 # fallback 
-function getPointIdentity(G::GroupManifold, ::Type{T} = Float64) where {T <: Real}
+function DFG.getPointIdentity(G::GroupManifold, ::Type{T} = Float64) where {T <: Real}
   return error("getPointIdentity not implemented on $G")
 end
 
-function getPointIdentity(
+function DFG.getPointIdentity(
   @nospecialize(G::ProductManifold),
   ::Type{T} = Float64,
 ) where {T <: Real}
   return ArrayPartition(map(x -> getPointIdentity(x, T), G.manifolds))
 end
 
-function getPointIdentity(
+function DFG.getPointIdentity(
   @nospecialize(M::PowerManifold),
   ::Type{T} = Float64,
 ) where {T <: Real}
@@ -123,11 +123,11 @@ function getPointIdentity(
   return fill(getPointIdentity(M.manifold, T), N)
 end
 
-function getPointIdentity(M::NPowerManifold, ::Type{T} = Float64) where {T <: Real}
+function DFG.getPointIdentity(M::NPowerManifold, ::Type{T} = Float64) where {T <: Real}
   return fill(getPointIdentity(M.manifold, T), M.N)
 end
 
-function getPointIdentity(G::SemidirectProductGroup, ::Type{T} = Float64) where {T <: Real}
+function DFG.getPointIdentity(G::SemidirectProductGroup, ::Type{T} = Float64) where {T <: Real}
   M = base_manifold(G)
   N, H = M.manifolds
   np = getPointIdentity(N, T)
@@ -135,17 +135,17 @@ function getPointIdentity(G::SemidirectProductGroup, ::Type{T} = Float64) where 
   return ArrayPartition(np, hp)
 end
 
-function getPointIdentity(G::SpecialOrthogonal{N}, ::Type{T} = Float64) where {N, T <: Real}
+function DFG.getPointIdentity(G::SpecialOrthogonal{N}, ::Type{T} = Float64) where {N, T <: Real}
   return SMatrix{N, N, T}(I)
 end
 
-function getPointIdentity(
+function DFG.getPointIdentity(
   G::TranslationGroup{Tuple{N}},
   ::Type{T} = Float64,
 ) where {N, T <: Real}
   return zeros(SVector{N,T})
 end
 
-function getPointIdentity(G::RealCircleGroup, ::Type{T} = Float64) where {T <: Real}
+function DFG.getPointIdentity(G::RealCircleGroup, ::Type{T} = Float64) where {T <: Real}
   return [zero(T)] #FIXME we cannot support scalars yet
 end

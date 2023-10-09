@@ -519,6 +519,17 @@ function _getComponentsCovar(@nospecialize(PM::PowerManifold), Σ::AbstractMatri
   return subsigmas
 end
 
+function _getComponentsCovar(@nospecialize(PM::NPowerManifold), Σ::AbstractMatrix)
+  M = PM.manifold
+  dim = manifold_dimension(M)
+  subsigmas = map(Manifolds.get_iterator(PM)) do i
+    r = ((i - 1) * dim + 1):(i * dim)
+    return Σ[r, r]
+  end
+
+  return subsigmas
+end
+
 function solveGraphParametric(
   fg::AbstractDFG;
   verbose::Bool = false,
@@ -818,6 +829,7 @@ end
 Add parametric solver to fg, batch solve using [`solveGraphParametric`](@ref) and update fg.
 """
 function DFG.solveGraphParametric!(
+  ::Val{:Optim},
   fg::AbstractDFG; 
   init::Bool = true, 
   solveKey::Symbol = :parametric, # FIXME, moot since only :parametric used for parametric solves
@@ -908,16 +920,23 @@ function updateParametricSolution!(sfg, vardict::AbstractDict; solveKey::Symbol 
   end
 end
 
-function updateParametricSolution!(sfg, labels::AbstractArray{Symbol}, vals; solveKey::Symbol = :parametric)
-  for (v, val) in zip(labels, vals)
-    vnd = getSolverData(getVariable(sfg, v), solveKey)
-    # Update the variable node data value and covariance
-    updateSolverDataParametric!(vnd, val, vnd.bw)#FIXME add cov
-    #fill in ppe as mean
-    Xc = collect(getCoordinates(getVariableType(sfg, v), val))
-    ppe = MeanMaxPPE(solveKey, Xc, Xc, Xc)
-    getPPEDict(getVariable(sfg, v))[solveKey] = ppe
+function updateParametricSolution!(fg, M, labels::AbstractArray{Symbol}, vals, Σ; solveKey::Symbol = :parametric)
+  
+  if !isnothing(Σ)
+    covars = getComponentsCovar(M, Σ)
   end
+
+  for (i, (v, val)) in enumerate(zip(labels, vals))
+    vnd = getSolverData(getVariable(fg, v), solveKey)
+    covar = isnothing(Σ) ? vnd.bw : covars[i]
+    # Update the variable node data value and covariance
+    updateSolverDataParametric!(vnd, val, covar)#FIXME add cov
+    #fill in ppe as mean
+    Xc = collect(getCoordinates(getVariableType(fg, v), val))
+    ppe = MeanMaxPPE(solveKey, Xc, Xc, Xc)
+    getPPEDict(getVariable(fg, v))[solveKey] = ppe
+  end
+
 end
 
 function createMvNormal(val, cov)
