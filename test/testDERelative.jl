@@ -252,10 +252,10 @@ val0 = getPPESuggested( hists[1][12][4].cliqSubFg[:x0] )
 
 ##
 
-@test getPPE(fg, :x0).suggested - x0_val_ref |> norm < 0.1
-@test getPPE(fg, :x1).suggested - x1_val_ref |> norm < 0.1
-@test getPPE(fg, :x2).suggested - x2_val_ref |> norm < 0.1
-@test getPPE(fg, :x3).suggested - x3_val_ref |> norm < 0.1
+@test isapprox( getPPE(fg, :x0).suggested, x0_val_ref; atol = 0.1)
+@test isapprox( getPPE(fg, :x1).suggested, x1_val_ref; atol = 0.1)
+@test isapprox( getPPE(fg, :x2).suggested, x2_val_ref; atol = 0.1)
+@test isapprox( getPPE(fg, :x3).suggested, x3_val_ref; atol = 0.1)
 
 ##
 
@@ -390,9 +390,9 @@ pts_ = approxConv(fg, :x0x1f1, :x0)
 ##
 
 tfg = initfg()
-for s in ls(fg)
-  initVariable!(fg, s, [0.1.*zeros(2) for _ in 1:100])
-end
+# for s in ls(fg)
+#   initVariable!(fg, s, [0.1.*zeros(2) for _ in 1:100])
+# end
 
 pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg)
 initVariable!(tfg, :x7, pts)
@@ -413,16 +413,23 @@ initVariable!(tfg, :x7, pts)
 @error "Disabling useMsgLikelihood for DERelative test, follow fix on #1010 as rough guide"
 getSolverParams(fg).useMsgLikelihoods = false
 
-solveTree!(fg);
+smtasks = Task[]
+tree = solveTree!(fg; recordcliqs=ls(fg), smtasks);
+
+hists = fetchCliqHistoryAll!(smtasks)
+printCSMHistoryLogical(hists)
+
+_, csmc = repeatCSMStep!(hists[2], 6; duplicate=true);
+
 
 ## 
 
 # solveTree has weird problem in breaking correct init and inserting zeros???
-@test_broken isapprox( getPPESuggested(fg, :x0), x0_val_ref; atol=0.2)
-@test_broken isapprox( getPPESuggested(fg, :x1), x1_val_ref; atol=0.2)
-@test_broken isapprox( getPPESuggested(fg, :x2), x2_val_ref; atol=0.2)
-@test_broken isapprox( getPPESuggested(fg, :x3), x3_val_ref; atol=0.2)
-@test_broken isapprox( getPPESuggested(fg, :x4), x4_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x0), x0_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x1), x1_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x2), x2_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x3), x3_val_ref; atol=0.2)
+@test isapprox( getPPESuggested(fg, :x4), x4_val_ref; atol=0.2)
 
 @test isapprox( getPPESuggested(fg, :x5), x5_val_ref; atol=0.2)
 @test isapprox( getPPESuggested(fg, :x6), x6_val_ref; atol=0.2)

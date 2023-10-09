@@ -362,10 +362,9 @@ function _solveCCWNumeric!(
   perturb::Real = 1e-10,
 ) where {N_, F <: AbstractRelative, S, T}
   #
-
+  
   #
   # thrid = Threads.threadid()
-
   smpid = ccwl.particleidx[]
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
   islen1 = length(ccwl.partialDims) == 1 || ccwl.partial
@@ -377,10 +376,11 @@ function _solveCCWNumeric!(
   #  a separate deepcopy of the destination (aka target) memory is necessary.
   #  Choosen solution is to splice together ccwl.varValsAll each time, with destination as 
   #  deepcopy but other input variables are just point to the source variable values directly. 
-  if ccwl.partial
-    target = view(ccwl.varValsAll[][ccwl.varidx[]][smpid], ccwl.partialDims)
+  target = if ccwl.partial  # FIXME likely type-instability on `typeof(target)`
+    # view(ccwl.varValsAll[][ccwl.varidx[]][smpid], ccwl.partialDims)
+    ccwl.varValsAll[][ccwl.varidx[]][smpid][ccwl.partialDims]
   else
-    target = ccwl.varValsAll[][ccwl.varidx[]][smpid];
+    ccwl.varValsAll[][ccwl.varidx[]][smpid]
   end
   # build the pre-objective function for this sample's hypothesis selection
   unrollHypo!, _ = _buildCalcFactorLambdaSample(
@@ -407,12 +407,13 @@ function _solveCCWNumeric!(
   # target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
   sfidx = ccwl.varidx[]
   # do the parameter search over defined decision variables using Minimization
-  if ccwl.partial
-    X = collect(view(ccwl.varValsAll[][sfidx][smpid], ccwl.partialDims))
-  else
-    X = ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims]
-  end
-  # X = destVarVals[smpid]#[ccwl.partialDims]
+  X = ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims]
+  # X = if ccwl.partial # TODO check for type-instability on `X`
+  #   collect(view(ccwl.varValsAll[][sfidx][smpid], ccwl.partialDims))
+  # else
+  #   ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims]
+  # end
+  # # X = destVarVals[smpid]#[ccwl.partialDims]
       
   retval = _solveLambdaNumeric(
     getFactorType(ccwl), 
@@ -430,7 +431,13 @@ function _solveCCWNumeric!(
 
   # insert result back at the correct variable element location
   if ccwl.partial
-    ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims] .= retval
+    # NOTE use workaround of TranslationGroup for coordinates on partial assignment
+    # FIXME consolidate to Manopt and upgrade to Riemannian (i.e. incl non-groups)
+    M = getManifold(ccwl) # TranslationGroup(length(ccwl.varValsAll[][sfidx][smpid]))
+    src = Vector{typeof(retval)}()
+    push!(src, retval)
+    setPointPartial!(M, ccwl.varValsAll[][sfidx], M, src, ccwl.partialDims, smpid, 1, true )
+    # ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims] .= retval
   else
     # copyto!(ccwl.varValsAll[sfidx][smpid], retval)
     copyto!(ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims], retval)
