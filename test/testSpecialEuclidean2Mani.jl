@@ -158,7 +158,7 @@ function (cf::CalcFactor{<:ManifoldFactorSE2})(X, p, q)
     vee!(M, Xc, q, log(M, q, q̂))
     return Xc
 end
-  
+
 ##
 
 @testset "Test Pose2 like hex as SpecialEuclidean2" begin
@@ -314,7 +314,7 @@ doautoinit!(fg, :x1)
 vnd = getVariableSolverData(fg, :x1)
 @test all(isapprox.(mean(vnd.val), [1.0,2.0], atol=0.1))
 
-# ##
+##
 smtasks = Task[]
 solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
 # # hists = fetchCliqHistoryAll!(smtasks);
