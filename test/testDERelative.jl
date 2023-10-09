@@ -252,10 +252,10 @@ val0 = getPPESuggested( hists[1][12][4].cliqSubFg[:x0] )
 
 ##
 
-@test getPPE(fg, :x0).suggested - x0_val_ref |> norm < 0.1
-@test getPPE(fg, :x1).suggested - x1_val_ref |> norm < 0.1
-@test getPPE(fg, :x2).suggested - x2_val_ref |> norm < 0.1
-@test getPPE(fg, :x3).suggested - x3_val_ref |> norm < 0.1
+@test isapprox( getPPE(fg, :x0).suggested, x0_val_ref; atol = 0.1)
+@test isapprox( getPPE(fg, :x1).suggested, x1_val_ref; atol = 0.1)
+@test isapprox( getPPE(fg, :x2).suggested, x2_val_ref; atol = 0.1)
+@test isapprox( getPPE(fg, :x3).suggested, x3_val_ref; atol = 0.1)
 
 ##
 

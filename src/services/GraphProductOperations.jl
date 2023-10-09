@@ -36,11 +36,12 @@ function propagateBelief(
   # make sure oldPoints vector has right length
   oldBel = getBelief(dfg, destlbl, solveKey)
   _pts = getPoints(oldBel, false)
-  oldPoints = if Npts(oldBel) <= N
-    _pts[1:N]
-  else
+  oldPoints = if Npts(oldBel) < N
     nn = N - length(_pts) # should be larger than 0
-    vcat(_pts, sample(oldBel, nn))
+    _pts_, = sample(oldBel, nn)
+    vcat(_pts, _pts_)
+  else
+    _pts[1:N]
   end
 
   # few more data requirements

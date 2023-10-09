@@ -15,7 +15,7 @@ DFG.getManifold(::InstanceType{Position{N}}) where {N} = TranslationGroup(N)
 function DFG.getDimension(val::InstanceType{Position{N}}) where {N}
   return manifold_dimension(getManifold(val))
 end
-DFG.getPointType(::Type{Position{N}}) where {N} = Vector{Float64}
+DFG.getPointType(::Type{Position{N}}) where {N} = SVector{N, Float64}
 DFG.getPointIdentity(M_::Type{Position{N}}) where {N} = @SVector(zeros(N)) # identity_element(getManifold(M_), zeros(N)) 
 
 function Base.convert(

@@ -105,7 +105,7 @@ end
 
 # fallback 
 function getPointIdentity(G::GroupManifold, ::Type{T} = Float64) where {T <: Real}
-  return error("getPointIdentity not implemented on G")
+  return error("getPointIdentity not implemented on $G")
 end
 
 function getPointIdentity(
