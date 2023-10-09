@@ -21,7 +21,7 @@ CircularCircular(::UniformScaling) = CircularCircular(Normal())
 
 DFG.getManifold(::CircularCircular) = RealCircleGroup()
 
-function (cf::AbstractCalcFactor{<:CircularCircular})(X, p, q)
+function (cf::CalcFactor{<:CircularCircular})(X, p, q)
   #
   M = cf.manifold # getManifold(cf.factor)
   return distanceTangent2Point(M, X, p, q)

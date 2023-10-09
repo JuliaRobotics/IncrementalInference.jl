@@ -14,7 +14,7 @@ getManifold(pr::Prior) = TranslationGroup(getDimension(pr.Z))
 # getSample(cf::CalcFactor{<:Prior}) = rand(cf.factor.Z)
 
 # basic default
-(s::AbstractCalcFactor{<:Prior})(z, x1) = z .- x1
+(s::CalcFactor{<:Prior})(z, x1) = z .- x1
 
 ## packed types are still developed by hand.  Future versions would likely use a @packable macro to write Protobuf safe versions of factors
 

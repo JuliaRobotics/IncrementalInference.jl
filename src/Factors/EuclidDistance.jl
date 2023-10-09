@@ -17,7 +17,7 @@ getManifold(::InstanceType{EuclidDistance}) = TranslationGroup(1)
 getDimension(::InstanceType{<:EuclidDistance}) = 1
 
 # new and simplified interface for both nonparametric and parametric
-(s::AbstractCalcFactor{<:EuclidDistance})(z, x1, x2) = z .- norm(x2 .- x1)
+(s::CalcFactor{<:EuclidDistance})(z, x1, x2) = z .- norm(x2 .- x1)
 
 function Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{EuclidDistance})
   return Manifolds.TranslationGroup(1)

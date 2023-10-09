@@ -2,7 +2,8 @@
 abstract type AbstractMaxMixtureSolver end
 
 
-abstract type AbstractCalcFactor{T<:AbstractFactor} end
+abstract type CalcFactor{T<:AbstractFactor} end
+
 
 """
 $TYPEDEF
@@ -23,18 +24,19 @@ end
 
 DevNotes
 - Follow the Github project in IIF to better consolidate CCW FMD CPT CF CFM
-
+- TODO CalcFactorNormSq is a step towards having a dedicated structure for non-parametric solve.
+  CalcFactorNormSq will calculate the Norm Squared of the factor.
 Related 
 
 [`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref)
 """
-struct CalcFactor{
+struct CalcFactorNormSq{
   FT <: AbstractFactor, 
   X, 
   C, 
   VT <: Tuple, 
   M <: AbstractManifold
-} <: AbstractCalcFactor{FT}
+} <: CalcFactor{FT}
   """ the interface compliant user object functor containing the data and logic """
   factor::FT
   """ what is the sample (particle) id for which the residual is being calculated """
@@ -56,7 +58,15 @@ struct CalcFactor{
   manifold::M
 end
 
-
+#TODO deprecate after CalcFactor is updated to CalcFactorNormSq
+function CalcFactor(args...; kwargs...)
+  Base.depwarn(
+    "`CalcFactor` changed to an abstract type, use CalcFactorNormSq, CalcFactorMahalanobis, or CalcFactorResidual",
+    :CalcFactor
+  )
+  
+  CalcFactorNormSq(args...; kwargs...)
+end
 
 """
 $TYPEDEF
@@ -75,7 +85,7 @@ struct CalcFactorMahalanobis{
   D,
   L,
   S <: Union{Nothing, AbstractMaxMixtureSolver}
-} <: AbstractCalcFactor{FT}
+} <: CalcFactor{FT}
   faclbl::Symbol
   factor::FT
   cache::C
@@ -94,7 +104,7 @@ struct CalcFactorResidual{
   P,
   MEAS <: AbstractArray,
   N
-} <: AbstractCalcFactor{FT}
+} <: CalcFactor{FT}
   faclbl::Symbol
   factor::FT
   cache::C
