@@ -141,12 +141,20 @@ function getSample(cf::CalcFactor{<:ManifoldPrior})
   return point
 end
 
+function getFactorMeasurementParametric(fac::ManifoldPrior)
+  M = getManifold(fac)
+  dims = manifold_dimension(M)
+  meas = fac.p
+  iΣ = convert(SMatrix{dims, dims}, invcov(fac.Z))
+  meas, iΣ
+end
+
 #TODO investigate SVector if small dims, this is slower
 # dim = manifold_dimension(M)
 # Xc = [SVector{dim}(rand(Z)) for _ in 1:N]
 
 function (cf::CalcFactor{<:ManifoldPrior})(m, p)
-  M = cf.manifold # .factor.M
+  M = cf.factor.M
   # return log(M, p, m)
   return vee(M, p, log(M, p, m))
   # return distancePrior(M, m, p)

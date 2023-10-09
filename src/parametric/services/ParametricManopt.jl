@@ -70,14 +70,14 @@ function CalcFactorResidualAP(fg::GraphsDFG, factorLabels::Vector{Symbol}, varIn
   return ArrayPartition{CalcFactorResidual, typeof(parts_tuple)}(parts_tuple)
 end
 
-function (cfm::CalcFactorResidual{T})(p) where T
+function (cfm::CalcFactorResidual)(p)
   meas = cfm.meas
   points = map(idx->p[idx], cfm.varOrderIdxs)
-  return cfm.sqrt_iΣ * cfm(meas, points...) # 0.654783 seconds (6.75 M allocations: 531.688 MiB, 14.41% gc time)
+  return cfm.sqrt_iΣ * cfm(meas, points...)
 end
 
 function (cfm::CalcFactorResidual{T})() where T
-  return cfm.sqrt_iΣ * cfm(cfm.meas, cfm.points...) # 0.654783 seconds (6.75 M allocations: 531.688 MiB, 14.41% gc time)
+  return cfm.sqrt_iΣ * cfm(cfm.meas, cfm.points...)
 end
 
 # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
@@ -110,7 +110,12 @@ struct CostFres!{CFT}
   # add return_ranges to allow MultiThreaded
 end
 
-function calcFactorResVec!(x::Vector{T}, cfm_part::Vector{<:CalcFactorResidual}, p::AbstractArray{T}, st::Int) where T
+function calcFactorResVec!(
+  x::Vector{T},
+  cfm_part::Vector{<:CalcFactorResidual{FT}},
+  p::AbstractArray{T},
+  st::Int
+) where {T,FT}
   l = getDimension(cfm_part[1]) # all should be the same 
   for cfm in cfm_part
     x[st:st + l - 1] = cfm(p) #NOTE looks like do not broadcast here
@@ -289,7 +294,7 @@ function covarianceFiniteDiff(M, jacF!::JacF_RLM!, p0)
       end
     end
     
-    @time H = FiniteDiff.finite_difference_hessian(costf, X0)
+    H = FiniteDiff.finite_difference_hessian(costf, X0)
 
     # inv(H)
     Σ = Matrix(H) \ Matrix{eltype(H)}(I, size(H)...)
@@ -356,7 +361,7 @@ function solve_RLM(
     else
       # TODO make sure J initial_jacobian_f is updated, otherwise recalc jacF!(M, J, lm_r) # lm_r === p0
       J = initial_jacobian_f
-      H = J'J
+      H = J'J # approx
       Σ = H \ Matrix{eltype(H)}(I, size(H)...)
       # Σ = pinv(H)
     end

@@ -36,7 +36,7 @@ end
 function sampleTangent(
   M::AbstractDecoratorManifold,
   z::Distribution,
-  p = identity_element(M), #getPointIdentity(M),
+  p = getPointIdentity(M),
 )
   return hat(M, p, rand(z, 1)[:]) #TODO find something better than (z,1)[:]
 end
