@@ -275,7 +275,7 @@ function _buildCalcFactor(
 
   solveforidx = findfirst(==(ccwl.varidx[]), activehypo)
 
-  return CalcFactor(
+  return CalcFactorNormSq(
     _getusrfnc(ccwl),
     smpid,
     varParams,

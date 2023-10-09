@@ -118,7 +118,7 @@ function sampleFactor(cf::CalcFactor{<:Mixture}, N::Int = 1)
   ## example case is old FluxModelsPose2Pose2 requiring velocity
   # FIXME better consolidation of when to pass down .mechanics, also see #1099 and #1094 and #1069
 
-  cf_ = CalcFactor(
+  cf_ = CalcFactorNormSq(
     cf.factor.mechanics,
     0,
     cf._legacyParams,
