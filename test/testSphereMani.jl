@@ -11,10 +11,12 @@ import Manifolds: identity_element
 @testset "Test Sphere(2) prior and relative" begin
 ##
 
+# NOTE Sphere{2} is not a lie group so the identity element does not exits.
+# this is for testing only and will be removed once upgraded to support any Riemannian Manifold.
+DFG.getPointIdentity(::Sphere{2, ℝ}) = SVector(1.0, 0.0, 0.0)
 #FIXME REMOVE! this is type piracy and not a good idea, for testing only!!!
 Manifolds.identity_element(::Sphere{2, ℝ}) = SVector(1.0, 0.0, 0.0)
 Manifolds.identity_element(::Sphere{2, ℝ}, p::AbstractVector) = SVector(1.0, 0.0, 0.0) # Float64[1,0,0]
-DFG.getPointIdentity(::Sphere{2, ℝ}) = SVector(1.0, 0.0, 0.0)
 
 Base.convert(::Type{<:Tuple}, M::Sphere{2, ℝ}) = (:Euclid, :Euclid)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{Sphere{2, ℝ}})  = (:Euclid, :Euclid)
