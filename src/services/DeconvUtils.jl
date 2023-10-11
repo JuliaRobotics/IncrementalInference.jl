@@ -87,7 +87,8 @@ function approxDeconv(
 
     # lambda with which to find best measurement values
     function hypoObj(tgt)
-      copyto!(target_smpl, tgt)
+      # copyto!(target_smpl, tgt)
+      measurement[idx] = tgt
       return onehypo!()
     end
     # hypoObj = (tgt) -> (target_smpl .= tgt; onehypo!())
@@ -103,10 +104,11 @@ function approxDeconv(
         getVariableType(ccw.fullvariables[sfidx]), # ccw.vartypes[sfidx](),
         islen1,
       )
-      copyto!(target_smpl, ts) 
+      # copyto!(target_smpl, ts)
+      measurement[idx] = ts
     else
       ts = _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx], islen1)
-      copyto!(target_smpl, ts)
+      measurement[idx] = ts
     end
   end
 

@@ -22,7 +22,7 @@ function _getDimensionsPartial(fg::AbstractDFG, lbl::Symbol)
 end
 
 # Helper function to construct CF from a CCW
-function CalcFactor(
+function CalcFactorNormSq(
   ccwl::CommonConvWrapper;
   factor = ccwl.usrfnc!,
   _sampleIdx = ccwl.particleidx[],
@@ -35,7 +35,7 @@ function CalcFactor(
 )
   #
   # FIXME using ccwl.dummyCache is not thread-safe
-  return CalcFactor(
+  return CalcFactorNormSq(
     factor,
     _sampleIdx,
     _legacyParams,
@@ -90,7 +90,7 @@ function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
   return length(smpls)
 end
 
-calcZDim(ccw::CommonConvWrapper) = calcZDim(CalcFactor(ccw))
+calcZDim(ccw::CommonConvWrapper) = calcZDim(CalcFactorNormSq(ccw))
 
 calcZDim(cf::CalcFactor{<:GenericMarginal}) = 0
 
@@ -122,7 +122,7 @@ function calcFactorResidual(
   args...;
   ccw::CommonConvWrapper = IIF._getCCW(dfgfct),
 )
-  return CalcFactor(ccw)(args...)
+  return CalcFactorNormSq(ccw)(args...)
 end
 function calcFactorResidual(dfg::AbstractDFG, fctsym::Symbol, args...)
   return calcFactorResidual(getFactor(dfg, fctsym), args...)
@@ -171,7 +171,7 @@ function calcFactorResidualTemporary(
     measurement
   else
     # now use the CommonConvWrapper object in `_dfgfct`
-    cfo = CalcFactor(_getCCW(_dfgfct))
+    cfo = CalcFactorNormSq(_getCCW(_dfgfct))
     sampleFactor(cfo, 1)[1]
   end
 
@@ -397,7 +397,7 @@ function _createCCW(
   # create a temporary CalcFactor object for extracting the first sample
   # TODO, deprecate this:  guess measurement points type
   # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
-  _cf = CalcFactor(
+  _cf = CalcFactorNormSq(
     usrfnc,
     1,
     _varValsAll,

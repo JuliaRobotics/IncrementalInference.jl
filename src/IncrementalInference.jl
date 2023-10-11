@@ -221,7 +221,7 @@ include("parametric/services/ConsolidateParametricRelatives.jl")
 include("parametric/services/ParametricCSMFunctions.jl")
 include("parametric/services/ParametricUtils.jl")
 include("parametric/services/ParametricOptim.jl")
-include("parametric/services/ParametricManoptDev.jl")
+include("parametric/services/ParametricManopt.jl")
 include("services/MaxMixture.jl")
 
 #X-stroke

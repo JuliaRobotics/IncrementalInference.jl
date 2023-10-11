@@ -36,9 +36,11 @@ end
 function sampleTangent(
   M::AbstractDecoratorManifold,
   z::Distribution,
-  p = identity_element(M), #getPointIdentity(M),
+  p = getPointIdentity(M),
 )
-  return hat(M, p, rand(z, 1)[:]) #TODO find something better than (z,1)[:]
+  return hat(M, p, SVector{length(z)}(rand(z))) #TODO make sure all Distribution has length, 
+                                                # if this errors maybe fall back no next line
+  # return convert(typeof(p), hat(M, p, rand(z, 1)[:])) #TODO find something better than (z,1)[:]
 end
 
 """

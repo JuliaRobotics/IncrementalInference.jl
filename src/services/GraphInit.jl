@@ -354,6 +354,7 @@ function initVariable!(
     vnd = getSolverData(variable, solveKey)
     vnd.val[1] = getPoint(getVariableType(variable), μ)
     vnd.bw .= inv(iΣ)
+    vnd.initialized = true
   else
     points = [samplePoint(M, samplable_belief) for _ = 1:N]
     initVariable!(variable, points, solveKey)

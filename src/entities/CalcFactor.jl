@@ -2,6 +2,9 @@
 abstract type AbstractMaxMixtureSolver end
 
 
+abstract type CalcFactor{T<:AbstractFactor} end
+
+
 """
 $TYPEDEF
 
@@ -21,18 +24,19 @@ end
 
 DevNotes
 - Follow the Github project in IIF to better consolidate CCW FMD CPT CF CFM
-
+- TODO CalcFactorNormSq is a step towards having a dedicated structure for non-parametric solve.
+  CalcFactorNormSq will calculate the Norm Squared of the factor.
 Related 
 
 [`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref)
 """
-struct CalcFactor{
+struct CalcFactorNormSq{
   FT <: AbstractFactor, 
   X, 
   C, 
   VT <: Tuple, 
   M <: AbstractManifold
-}
+} <: CalcFactor{FT}
   """ the interface compliant user object functor containing the data and logic """
   factor::FT
   """ what is the sample (particle) id for which the residual is being calculated """
@@ -54,7 +58,15 @@ struct CalcFactor{
   manifold::M
 end
 
-
+#TODO deprecate after CalcFactor is updated to CalcFactorNormSq
+function CalcFactor(args...; kwargs...)
+  Base.depwarn(
+    "`CalcFactor` changed to an abstract type, use CalcFactorNormSq, CalcFactorMahalanobis, or CalcFactorResidual",
+    :CalcFactor
+  )
+  
+  CalcFactorNormSq(args...; kwargs...)
+end
 
 """
 $TYPEDEF
@@ -65,32 +77,47 @@ Related
 
 [`CalcFactor`](@ref)
 """
-struct CalcFactorMahalanobis{N, D, L, S <: Union{Nothing, AbstractMaxMixtureSolver}}
+struct CalcFactorMahalanobis{
+  FT,
+  N,
+  C,
+  MEAS<:AbstractArray,
+  D,
+  L,
+  S <: Union{Nothing, AbstractMaxMixtureSolver}
+} <: CalcFactor{FT}
   faclbl::Symbol
-  calcfactor!::CalcFactor
+  factor::FT
+  cache::C
   varOrder::Vector{Symbol}
-  meas::NTuple{N, <:AbstractArray}
+  meas::NTuple{N, MEAS}
   iΣ::NTuple{N, SMatrix{D, D, Float64, L}}
   specialAlg::S
 end
 
 
-
-
-struct CalcFactorManopt{
+struct CalcFactorResidual{
+  FT <: AbstractFactor,
+  C,
   D,
   L,
-  FT <: AbstractFactor,
-  M <: AbstractManifold,
+  P,
   MEAS <: AbstractArray,
-}
+  N
+} <: CalcFactor{FT}
   faclbl::Symbol
-  calcfactor!::CalcFactor{FT, Nothing, Nothing, Tuple{}, M}
-  varOrder::Vector{Symbol}
-  varOrderIdxs::Vector{Int}
+  factor::FT
+  cache::C
+  varOrder::NTuple{N, Symbol}
+  varOrderIdxs::NTuple{N, Int}
+  points::P #TODO remove or not?
   meas::MEAS
-  iΣ::SMatrix{D, D, Float64, L}
+  iΣ::SMatrix{D, D, Float64, L} #TODO remove or not?
   sqrt_iΣ::SMatrix{D, D, Float64, L}
 end
+
+_nvars(::CalcFactorResidual{FT, C, D, L, P, MEAS, N}) where {FT, C, D, L, P, MEAS, N} = N
+# _typeof_meas(::CalcFactorManopt{FT, C, D, L, MEAS, N}) where {FT, C, D, L, MEAS, N} = MEAS
+DFG.getDimension(::CalcFactorResidual{FT, C, D, L, P, MEAS, N}) where {FT, C, D, L, P, MEAS, N} = D
 
 

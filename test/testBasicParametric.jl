@@ -53,7 +53,7 @@ v2 = vardict[:x2]
 @test isapprox(v2.cov, [0.125;;], atol=1e-3)
 initVariable!(fg, :x2, Normal(v2.val[1], sqrt(v2.cov[1])), :parametric)
 
-IIF.solveGraphParametric!(fg)
+IIF.solveGraphParametric!(fg; is_sparse=false)
 
 end
 

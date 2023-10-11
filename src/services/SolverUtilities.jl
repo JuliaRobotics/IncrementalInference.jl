@@ -71,7 +71,7 @@ function sampleFactor(
   _allowThreads::Bool=true
 )
   #
-  cf = CalcFactor(ccwl; _allowThreads) 
+  cf = CalcFactorNormSq(ccwl; _allowThreads) 
   return sampleFactor(cf, N)
 end
 
