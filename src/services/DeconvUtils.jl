@@ -108,7 +108,7 @@ function approxDeconv(
       measurement[idx] = ts
     else
       ts = _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx], islen1)
-      copyto!(target_smpl, ts)
+      measurement[idx] = ts
     end
   end
 

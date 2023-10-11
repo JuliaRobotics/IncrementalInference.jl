@@ -46,6 +46,14 @@ struct AliasingScalarSampler
   end
 end
 
+function sampleTangent(
+  M::AbstractDecoratorManifold,
+  z::AliasingScalarSampler,
+  p = getPointIdentity(M),
+)
+  return hat(M, p, SVector{manifold_dimension(M)}(rand(z))) 
+end
+
 function rand!(ass::AliasingScalarSampler, smpls::Array{Float64})
   StatsBase.alias_sample!(ass.domain, ass.weights, smpls)
   return nothing
