@@ -47,7 +47,7 @@ struct AliasingScalarSampler
 end
 
 function sampleTangent(
-  M::AbstractDecoratorManifold,
+  M::AbstractDecoratorManifold, # stand-in type to restrict to just group manifolds
   z::AliasingScalarSampler,
   p = getPointIdentity(M),
 )
