@@ -133,10 +133,19 @@ function sampleFactor(cf::CalcFactor{<:Mixture}, N::Int = 1)
   #out memory should be right size first
   length(cf.factor.labels) != N ? resize!(cf.factor.labels, N) : nothing
   cf.factor.labels .= rand(cf.factor.diversity, N)
+  M = cf.manifold
+  
+  # mixture needs to be refactored so let's make it worse :-)
+  if cf.factor.mechanics isa AbstractPrior
+    samplef = samplePoint
+  elseif cf.factor.mechanics isa AbstractRelative
+    samplef = sampleTangent
+  end
+
   for i = 1:N
     mixComponent = cf.factor.components[cf.factor.labels[i]]
     # measurements relate to the factor's manifold (either tangent vector or manifold point)
-    setPointsMani!(smpls[i], rand(mixComponent, 1))
+    setPointsMani!(smpls,  samplef(M, mixComponent), i)
   end
 
   # TODO only does first element of meas::Tuple at this stage, see #1099

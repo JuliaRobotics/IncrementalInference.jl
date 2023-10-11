@@ -24,10 +24,10 @@ fT = getFactorType(fct)
 
 M = getManifold(fT)
 X = sampleTangent(M, fT.Z)
-@test X isa Vector{<:Real}
+@test X isa AbstractVector{<:Real}
 
 z = sampleFactor(fct)[1]
-@test z isa Vector{<:Real}
+@test z isa AbstractVector{<:Real}
 
 ##
 

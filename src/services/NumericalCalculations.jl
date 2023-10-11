@@ -236,7 +236,7 @@ function _solveLambdaNumericMeas(
   M = getManifold(variableType)#fcttype.M
   # the variable is a manifold point, we are working on the tangent plane in optim for now.
   ϵ = getPointIdentity(variableType)
-  X0c = vee(M, ϵ, u0)
+  X0c = zeros(manifold_dimension(M))
 
   function cost(Xc)
     X = hat(M, ϵ, Xc)
