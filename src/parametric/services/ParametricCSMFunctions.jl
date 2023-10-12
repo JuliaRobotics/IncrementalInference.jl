@@ -26,7 +26,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   # store the cliqSubFg for later debugging
   _dbgCSMSaveSubFG(csmc, "fg_beforeupsolve")
 
-  vardict, result, varIds, Σ = solveGraphParametric(csmc.cliqSubFg)
+  vardict, result, varIds, Σ = solveGraphParametricOptim(csmc.cliqSubFg)
 
   logCSM(csmc, "$(csmc.cliq.id) vars $(keys(varIds))")
   # @info "$(csmc.cliq.id) Σ $(Σ)"

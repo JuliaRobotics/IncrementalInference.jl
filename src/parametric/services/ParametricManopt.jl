@@ -297,7 +297,12 @@ function covarianceFiniteDiff(M, jacF!::JacF_RLM!, p0)
     H = FiniteDiff.finite_difference_hessian(costf, X0)
 
     # inv(H)
-    Σ = Matrix(H) \ Matrix{eltype(H)}(I, size(H)...)
+    if isapprox(det(H), 0, atol=eps())
+      @warn "Hessian is not invertable, using pseudoinverse"
+      Σ = pinv(H)
+    else
+      Σ = Matrix(H) \ Matrix{eltype(H)}(I, size(H)...)
+    end
     # sqrt.(diag(Σ))
     return Σ
 end
@@ -490,27 +495,28 @@ end
   # new2    0.010764 seconds (34.61 k allocations: 3.111 MiB)
   # dense  J 0.022079 seconds (283.54 k allocations: 18.146 MiB)
   
-function autoinitParametricManopt!(
+function autoinitParametric!(
   fg,
   varorderIds = getInitOrderParametric(fg);
   reinit = false,
   kwargs...
 )
   @showprogress for vIdx in varorderIds
-    autoinitParametricManopt!(fg, vIdx; reinit, kwargs...)
+    autoinitParametric!(fg, vIdx; reinit, kwargs...)
   end
   return nothing
 end
 
-function autoinitParametricManopt!(dfg::AbstractDFG, initme::Symbol; kwargs...)
-  return autoinitParametricManopt!(dfg, getVariable(dfg, initme); kwargs...)
+function autoinitParametric!(dfg::AbstractDFG, initme::Symbol; kwargs...)
+  return autoinitParametric!(dfg, getVariable(dfg, initme); kwargs...)
 end
 
-function autoinitParametricManopt!(
+function autoinitParametric!(
   dfg::AbstractDFG,
   xi::DFGVariable;
   solveKey = :parametric,
   reinit::Bool = false,
+  perturb_point::Bool=false,
   kwargs...,
 )
   #
@@ -528,12 +534,27 @@ function autoinitParametricManopt!(
       return isInitialized(dfg, vl, solveKey)
     end
 
-    M, vartypeslist, lm_r, Σ = solve_RLM_conditional(dfg, [initme], initfrom; kwargs...)
-
-    val = lm_r[1]
     vnd::VariableNodeData = getSolverData(xi, solveKey)
-    vnd.val[1] = val
     
+    if perturb_point
+      _M = getManifold(xi)
+      p = vnd.val[1]
+      vnd.val[1] = exp(
+        _M,
+        p, 
+        get_vector(
+          _M,
+          p,
+          randn(manifold_dimension(_M))*10^-6,
+          DefaultOrthogonalBasis()
+        )
+      )
+    end
+    M, vartypeslist, lm_r, Σ = solve_RLM_conditional(dfg, [initme], initfrom; kwargs...)
+    
+    val = lm_r[1]
+    vnd.val[1] = val
+
     !isnothing(Σ) && vnd.bw .= Σ
   
     # updateSolverDataParametric!(vnd, val, Σ)
@@ -555,6 +576,7 @@ end
 
 
 ##
+solveGraphParametric(args...; kwargs...) = solve_RLM(args...; kwargs...)
 
 function DFG.solveGraphParametric!(
   fg::AbstractDFG,
@@ -578,7 +600,7 @@ function DFG.solveGraphParametric!(
 
   updateParametricSolution!(fg, M, v, r, Σ)
 
-  return v,r, Σ 
+  return M, v, r, Σ 
 end
 
 

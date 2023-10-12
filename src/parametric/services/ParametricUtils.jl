@@ -530,7 +530,7 @@ function _getComponentsCovar(@nospecialize(PM::NPowerManifold), Σ::AbstractMatr
   return subsigmas
 end
 
-function solveGraphParametric(
+function solveGraphParametricOptim(
   fg::AbstractDFG;
   verbose::Bool = false,
   computeCovariance::Bool = true,
@@ -828,8 +828,7 @@ end
     $SIGNATURES
 Add parametric solver to fg, batch solve using [`solveGraphParametric`](@ref) and update fg.
 """
-function DFG.solveGraphParametric!(
-  ::Val{:Optim},
+function solveGraphParametricOptim!(
   fg::AbstractDFG; 
   init::Bool = true, 
   solveKey::Symbol = :parametric, # FIXME, moot since only :parametric used for parametric solves
@@ -845,7 +844,7 @@ function DFG.solveGraphParametric!(
     initParametricFrom!(fg, initSolveKey; parkey=solveKey)
   end
 
-  vardict, result, varIds, Σ = solveGraphParametric(fg; verbose, kwargs...)
+  vardict, result, varIds, Σ = solveGraphParametricOptim(fg; verbose, kwargs...)
 
   updateParametricSolution!(fg, vardict)
 
@@ -970,7 +969,7 @@ function getInitOrderParametric(fg; startIdx::Symbol = lsfPriors(fg)[1])
   return order
 end
 
-function autoinitParametric!(
+function autoinitParametricOptim!(
   fg,
   varorderIds = getInitOrderParametric(fg);
   reinit = false,
@@ -979,16 +978,16 @@ function autoinitParametric!(
   kwargs...
 )
   @showprogress for vIdx in varorderIds
-    autoinitParametric!(fg, vIdx; reinit, algorithm, algorithmkwargs, kwargs...)
+    autoinitParametricOptim!(fg, vIdx; reinit, algorithm, algorithmkwargs, kwargs...)
   end
   return nothing
 end
 
-function autoinitParametric!(dfg::AbstractDFG, initme::Symbol; kwargs...)
-  return autoinitParametric!(dfg, getVariable(dfg, initme); kwargs...)
+function autoinitParametricOptim!(dfg::AbstractDFG, initme::Symbol; kwargs...)
+  return autoinitParametricOptim!(dfg, getVariable(dfg, initme); kwargs...)
 end
 
-function autoinitParametric!(
+function autoinitParametricOptim!(
   dfg::AbstractDFG,
   xi::DFGVariable;
   solveKey = :parametric,
