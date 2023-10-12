@@ -120,4 +120,13 @@ _nvars(::CalcFactorResidual{FT, C, D, L, P, MEAS, N}) where {FT, C, D, L, P, MEA
 # _typeof_meas(::CalcFactorManopt{FT, C, D, L, MEAS, N}) where {FT, C, D, L, MEAS, N} = MEAS
 DFG.getDimension(::CalcFactorResidual{FT, C, D, L, P, MEAS, N}) where {FT, C, D, L, P, MEAS, N} = D
 
-
+# workaround for issue #1781
+import Base: getproperty
+function Base.getproperty(cf::CalcFactorResidual, f::Symbol)
+  if f === :manifold
+    # assumes constant propagation to avoid allocations in residual functions getManifold(factor)
+    getManifold(cf.factor)
+  else
+    getfield(cf, f)
+  end
+end
