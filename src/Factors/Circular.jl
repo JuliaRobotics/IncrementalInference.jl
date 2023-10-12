@@ -68,7 +68,7 @@ function getSample(cf::CalcFactor{<:PriorCircular})
 end
 
 function (cf::CalcFactor{<:PriorCircular})(m, p)
-  M = cf.manifold # getManifold(cf.factor)
+  M = getManifold(cf)
   Xc = vee(M, p, log(M, p, m))
   return Xc
 end

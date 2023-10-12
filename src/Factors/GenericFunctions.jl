@@ -243,7 +243,7 @@ DFG.getManifold(f::ManifoldPriorPartial) = f.M
 
 function getSample(cf::CalcFactor{<:ManifoldPriorPartial})
   Z = cf.factor.Z
-  M = cf.manifold # getManifold(cf.factor)
+  M = getManifold(cf)
   partial = collect(cf.factor.partial)
 
   return (samplePointPartial(M, Z, partial),)

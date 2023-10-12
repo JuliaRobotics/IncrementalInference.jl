@@ -192,7 +192,7 @@ end
 
 # the same as legacy, getManifold(ccwl.usrfnc!)
 getManifold(ccwl::CommonConvWrapper) = ccwl.manifold
-getManifold(cf::CalcFactor) = cf.manifold
+getManifold(cf::CalcFactor) = getManifold(cf.factor)
 
 function _resizePointsVector!(
   vecP::AbstractVector{P},
