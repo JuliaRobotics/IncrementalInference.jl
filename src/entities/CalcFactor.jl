@@ -122,7 +122,7 @@ DFG.getDimension(::CalcFactorResidual{FT, C, D, L, P, MEAS, N}) where {FT, C, D,
 
 # workaround for issue #1781
 import Base: getproperty
-function Base.getproperty(cf::CalcFactorResidual, f::Symbol)
+function Base.getproperty(cf::CalcFactor, f::Symbol)
   if f === :manifold
     # assumes constant propagation to avoid allocations in residual functions getManifold(factor)
     getManifold(cf.factor)
