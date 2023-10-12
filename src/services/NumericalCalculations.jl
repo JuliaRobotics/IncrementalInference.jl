@@ -133,6 +133,14 @@ function _solveLambdaNumeric_original(
   return exp(M, ϵ, hat(M, ϵ, r.minimizer))
 end
 
+function cost_optim(M, objResX, Xc)
+  ϵ = getPointIdentity(M)
+  X = get_vector(M, ϵ, Xc, DefaultOrthogonalBasis())
+  p = exp(M, ϵ, X)  
+  residual = objResX(p)
+  return sum(x->x^2, residual) #TODO maybe move this to CalcFactorNormSq
+end
+
 # 1.355700 seconds (11.78 M allocations: 557.677 MiB, 6.96% gc time)
 function _solveCCWNumeric_test_SA(
   fcttype::Union{F, <:Mixture{N_, F, S, T}},
@@ -153,18 +161,9 @@ function _solveCCWNumeric_test_SA(
   X0c = zero(MVector{getDimension(M),Float64})
   X0c .= vee(M, u0, log(M, ϵ, u0))
 
-  #TODO check performance
-  function cost(Xc)
-    X = hat(M, ϵ, Xc)
-    p = exp(M, ϵ, X)  
-    residual = objResX(p)
-    # return sum(residual .^ 2)
-    return sum(abs2, residual) #TODO maybe move this to CalcFactorNormSq
-  end
-
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
 
-  r = Optim.optimize(cost, X0c, alg)
+  r = Optim.optimize(x->cost_optim(M, objResX, x), X0c, alg)
   if !Optim.converged(r)
     # TODO find good way for a solve to store diagnostics about number of failed converges etc.
     @warn "Optim did not converge (maxlog=10):" r maxlog=10
