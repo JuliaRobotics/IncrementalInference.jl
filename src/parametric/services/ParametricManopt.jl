@@ -297,13 +297,13 @@ function covarianceFiniteDiff(M, jacF!::JacF_RLM!, p0)
     H = FiniteDiff.finite_difference_hessian(costf, X0)
 
     # inv(H)
-    if isapprox(det(H), 0, atol=eps())
-      @warn "Hessian is not invertable, using pseudoinverse"
-      Σ = pinv(H)
-    else
+    try 
       Σ = Matrix(H) \ Matrix{eltype(H)}(I, size(H)...)
+    catch ex #TODO only catch correct exception and try with pinv as fallback in certain cases.
+      @warn "Hessian inverse failed" ex
+      # Σ = pinv(H)
+      Σ = nothing
     end
-    # sqrt.(diag(Σ))
     return Σ
 end
 
