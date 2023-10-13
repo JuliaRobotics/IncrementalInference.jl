@@ -35,7 +35,7 @@ fg.solverParams.graphinit=false;
 addVariable!(fg, :x0, Pose2);
 addFactor!(fg, [:x0], PriorPose2(MvNormal([0.0,0,0], diagm([0.1,0.1,0.01].^2))));
 
-r = @timed IIF.solveGraphParametric!(fg; init=false);
+r = @timed IIF.solveGraphParametric!(fg; init=false, is_sparse=false);
 
 timed = [r];
 
@@ -44,7 +44,7 @@ for i = 1:14
     to = Symbol("x",i)
     addVariable!(fg, to, Pose2)
     addFactor!(fg, [fr,to], Pose2Pose2(MvNormal([10.0,0,pi/3], diagm([0.5,0.5,0.05].^2))))
-    r = @timed IIF.solveGraphParametric!(fg; init=false);
+    r = @timed IIF.solveGraphParametric!(fg; init=false, is_sparse=false);
     push!(timed, r)
 end
 
@@ -53,7 +53,7 @@ addVariable!(fg, :l1, RoME.Point2, tags=[:LANDMARK;]);
 addFactor!(fg, [:x0; :l1], Pose2Point2BearingRange(Normal(0.0,0.1), Normal(20.0, 1.0)));
 addFactor!(fg, [:x6; :l1], Pose2Point2BearingRange(Normal(0.0,0.1), Normal(20.0, 1.0)));
 
-r = @timed IIF.solveGraphParametric!(fg; init=false);
+r = @timed IIF.solveGraphParametric!(fg; init=false, is_sparse=false);
 push!(timed, r);
 
 getproperty.(timed, :time)

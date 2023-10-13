@@ -119,7 +119,7 @@ See also: [`getMeasurementParametric`](@ref)
 function getSample end
 
 function getSample(cf::CalcFactor{<:AbstractPrior})
-  M = cf.manifold # getManifold(cf.factor)
+  M = getManifold(cf)
   if hasfield(typeof(cf.factor), :Z)
     X = samplePoint(M, cf.factor.Z)
   else
@@ -132,7 +132,7 @@ function getSample(cf::CalcFactor{<:AbstractPrior})
 end
 
 function getSample(cf::CalcFactor{<:AbstractRelative})
-  M = cf.manifold # getManifold(cf.factor)
+  M =getManifold(cf)
   if hasfield(typeof(cf.factor), :Z)
     X = sampleTangent(M, cf.factor.Z)
   else
