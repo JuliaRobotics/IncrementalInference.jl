@@ -43,7 +43,8 @@ function CalcFactorNormSq(
     cache,
     tuple(fullvariables...),
     solvefor,
-    manifold
+    manifold,
+    ccwl.measurement,
   )
 end
 
@@ -395,8 +396,7 @@ function _createCCW(
   solvefor = length(Xi)
   fullvariables = tuple(Xi...) # convert(Vector{DFGVariable}, Xi)
   # create a temporary CalcFactor object for extracting the first sample
-  # TODO, deprecate this:  guess measurement points type
-  # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
+
   _cf = CalcFactorNormSq(
     usrfnc,
     1,
@@ -405,16 +405,29 @@ function _createCCW(
     userCache,
     fullvariables,
     solvefor,
-    manifold
+    manifold,
+    nothing,
   )
 
   # get a measurement sample
   meas_single = sampleFactor(_cf, 1)[1]
-
   elT = typeof(meas_single)
-
   #TODO preallocate measurement?
   measurement = Vector{elT}()
+
+  #FIXME chicken and egg problem for getting measurement type, so creating twice.
+  _cf = CalcFactorNormSq(
+    usrfnc,
+    1,
+    _varValsAll,
+    false,
+    userCache,
+    fullvariables,
+    solvefor,
+    manifold,
+    measurement,
+  )
+
 
   # partialDims are sensitive to both which solvefor variable index and whether the factor is partial
   partial = hasfield(T, :partial) # FIXME, use isPartial function instead
