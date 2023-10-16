@@ -74,7 +74,7 @@ end
 # struct OptimCalcConv end
 # CalcFactorNormSq cost function for an input in coordinates as used by Optim.jl
 function (hypoCalcFactor::CalcFactorNormSq)(M::AbstractManifold, Xc::AbstractVector)
-  # M = hypoCalcFactor.manifold # calc factor has factor manifold in not variable that is needed here
+  # hypoCalcFactor.manifold is the factor's manifold, not the variable's manifold that is needed here
   ϵ = getPointIdentity(M)
   X = get_vector(M, ϵ, Xc, DefaultOrthogonalBasis())
   p = exp(M, ϵ, X)
