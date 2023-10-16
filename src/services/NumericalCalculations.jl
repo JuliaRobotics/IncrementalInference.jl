@@ -76,7 +76,7 @@ end
 function (hypoCalcFactor::CalcFactorNormSq)(M::AbstractManifold, Xc::AbstractVector)
   # hypoCalcFactor.manifold is the factor's manifold, not the variable's manifold that is needed here
   ϵ = getPointIdentity(M)
-  X = get_vector(M, ϵ, Xc, DefaultOrthogonalBasis())
+  X = get_vector(M, ϵ, SVector(Xc), DefaultOrthogonalBasis())
   p = exp(M, ϵ, X)
   return hypoCalcFactor(CalcConv, p)
 end
