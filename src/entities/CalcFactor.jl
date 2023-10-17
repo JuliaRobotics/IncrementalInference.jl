@@ -100,27 +100,24 @@ end
 
 struct CalcFactorResidual{
   FT <: AbstractFactor,
-  C,
+  N,
   D,
-  L,
-  P,
   MEAS <: AbstractArray,
-  N
+  L,
+  C,
 } <: CalcFactor{FT}
   faclbl::Symbol
   factor::FT
-  cache::C
   varOrder::NTuple{N, Symbol}
   varOrderIdxs::NTuple{N, Int}
-  points::P #TODO remove or not?
   meas::MEAS
-  iΣ::SMatrix{D, D, Float64, L} #TODO remove or not?
   sqrt_iΣ::SMatrix{D, D, Float64, L}
+  cache::C
 end
 
-_nvars(::CalcFactorResidual{FT, C, D, L, P, MEAS, N}) where {FT, C, D, L, P, MEAS, N} = N
+_nvars(::CalcFactorResidual{FT, N, D, MEAS, L, C}) where {FT, N, D, MEAS, L, C} = N
 # _typeof_meas(::CalcFactorManopt{FT, C, D, L, MEAS, N}) where {FT, C, D, L, MEAS, N} = MEAS
-DFG.getDimension(::CalcFactorResidual{FT, C, D, L, P, MEAS, N}) where {FT, C, D, L, P, MEAS, N} = D
+DFG.getDimension(::CalcFactorResidual{FT, N, D, MEAS, L, C}) where {FT, N, D, MEAS, L, C} = D
 
 # workaround for issue #1781
 import Base: getproperty
