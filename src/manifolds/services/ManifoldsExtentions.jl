@@ -47,7 +47,8 @@ function Manifolds.get_vector!(M::NPowerManifold, Y, p, c, B::AbstractBasis)
     Y[i] = get_vector(
       M.manifold,
       Manifolds._read(M, rep_size, p, i),
-      view(c, v_iter:(v_iter + dim - 1)),
+      # view(c, v_iter:(v_iter + dim - 1)),
+      SVector{dim}(view(c, v_iter:(v_iter + dim - 1))),
       B,
     )
     v_iter += dim

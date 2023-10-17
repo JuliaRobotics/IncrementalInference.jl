@@ -14,7 +14,7 @@ function getVarIntLabelMap(vartypeslist::OrderedDict{DataType, Vector{Symbol}})
   return varIntLabel, varlabelsAP
 end
 
-function CalcFactorResidual(fg, fct::DFGFactor, varIntLabel, points::Union{Nothing,ArrayPartition}=nothing)
+function CalcFactorResidual(fg, fct::DFGFactor, varIntLabel)
   fac_func = getFactorType(fct)
   varOrder = getVariableOrder(fct)
 
@@ -29,22 +29,14 @@ function CalcFactorResidual(fg, fct::DFGFactor, varIntLabel, points::Union{Nothi
   sqrt_iΣ = convert(SMatrix{dims, dims}, sqrt(iΣ))
   cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
 
-  if isnothing(points)
-    points_view = nothing
-  else
-    points_view = @view points[varOrderIdxs]
-  end
-
   return CalcFactorResidual(
     fct.label,
     getFactorMechanics(fac_func),
-    cache,
     tuple(varOrder...),
     tuple(varOrderIdxs...),
-    points_view,
     meas,
-    iΣ,
     sqrt_iΣ,
+    cache,
   )
 end
 
@@ -53,7 +45,7 @@ end
   CalcFactorResidualAP
 Create an `ArrayPartition` of `CalcFactorResidual`s.
 """
-function CalcFactorResidualAP(fg::GraphsDFG, factorLabels::Vector{Symbol}, varIntLabel::OrderedDict{Symbol, Int64}, points)
+function CalcFactorResidualAP(fg::GraphsDFG, factorLabels::Vector{Symbol}, varIntLabel::OrderedDict{Symbol, Int64})
   factypes, typedict, alltypes = getFactorTypesCount(getFactor.(fg, factorLabels))
   
   # skip non-numeric prior (MetaPrior)
@@ -63,7 +55,7 @@ function CalcFactorResidualAP(fg::GraphsDFG, factorLabels::Vector{Symbol}, varIn
 
   parts = map(values(alltypes)) do labels
     map(getFactor.(fg, labels)) do fct
-      CalcFactorResidual(fg, fct, varIntLabel, points)
+      CalcFactorResidual(fg, fct, varIntLabel)
     end
   end
   parts_tuple = (parts...,)
@@ -74,10 +66,6 @@ function (cfm::CalcFactorResidual)(p)
   meas = cfm.meas
   points = map(idx->p[idx], cfm.varOrderIdxs)
   return cfm.sqrt_iΣ * cfm(meas, points...)
-end
-
-function (cfm::CalcFactorResidual{T})() where T
-  return cfm.sqrt_iΣ * cfm(cfm.meas, cfm.points...)
 end
 
 # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
@@ -112,14 +100,13 @@ end
 
 function calcFactorResVec!(
   x::Vector{T},
-  cfm_part::Vector{<:CalcFactorResidual{FT}},
+  cfm_part::Vector{<:CalcFactorResidual{FT, N, D}},
   p::AbstractArray{T},
   st::Int
-) where {T,FT}
-  l = getDimension(cfm_part[1]) # all should be the same 
+) where {T, FT, N, D}
   for cfm in cfm_part
-    x[st:st + l - 1] = cfm(p) #NOTE looks like do not broadcast here
-    st += l
+    x[st:st + D - 1] = cfm(p) #NOTE looks like do not broadcast here
+    st += D
   end
   return st
 end
@@ -329,7 +316,7 @@ function solve_RLM(
   end
 
   # create an ArrayPartition{CalcFactorResidual} for faclabels
-  calcfacs = CalcFactorResidualAP(fg, faclabels, varIntLabel, p0)
+  calcfacs = CalcFactorResidualAP(fg, faclabels, varIntLabel)
 
   #cost and jacobian functions
   # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
@@ -446,7 +433,7 @@ function solve_RLM_conditional(
   # varIntLabel_frontals = filter(p->first(p) in frontals, varIntLabel)
   # varIntLabel_separators = filter(p->first(p) in separators, varIntLabel)
 
-  calcfacs = CalcFactorResidualAP(fg, faclabels, all_varIntLabel, all_points)
+  calcfacs = CalcFactorResidualAP(fg, faclabels, all_varIntLabel)
 
   # get the manifold and variable types
    
