@@ -149,16 +149,17 @@ function _solveLambdaNumericMeas(
   fcttype::Union{F, <:Mixture{N_, F, S, T}},
   objResX::Function,
   residual::AbstractVector{<:Real},
-  u0,#::AbstractVector{<:Real},
+  X0,#::AbstractVector{<:Real},
   variableType::InferenceVariable,
   islen1::Bool = false,
 ) where {N_, F <: AbstractManifoldMinimize, S, T}
   #
   # Assume measurement is on the tangent
-  M = getManifold(variableType)#fcttype.M
+  M = getManifold(fcttype)
   # the variable is a manifold point, we are working on the tangent plane in optim for now.
-  ϵ = getPointIdentity(variableType)
+  ϵ = getPointIdentity(M)
   X0c = zeros(manifold_dimension(M))
+  X0c .= vee(M, ϵ, X0)
 
   function cost(Xc)
     X = hat(M, ϵ, Xc)
