@@ -35,7 +35,8 @@ struct CalcFactorNormSq{
   X, 
   C, 
   VT <: Tuple, 
-  M <: AbstractManifold
+  M <: AbstractManifold,
+  MEAS
 } <: CalcFactor{FT}
   """ the interface compliant user object functor containing the data and logic """
   factor::FT
@@ -43,7 +44,7 @@ struct CalcFactorNormSq{
   _sampleIdx::Int
   """ legacy support for variable values old functor residual functions.
       TBD, this is still being used by DERelative factors. """
-  _legacyParams::X
+  _legacyParams::X #TODO rename to varValsHypo for consistent naming? and not not legacy any more
   """ allow threading for either sampling or residual calculations (workaround for thread yield issue) """
   _allowThreads::Bool
   """ user cache of arbitrary type, overload the [`preambleCache`](@ref) function. NOT YET THREADSAFE """
@@ -56,6 +57,7 @@ struct CalcFactorNormSq{
   # which index is being solved for?
   solvefor::Int
   manifold::M
+  measurement::MEAS
 end
 
 #TODO deprecate after CalcFactor is updated to CalcFactorNormSq

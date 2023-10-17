@@ -242,8 +242,7 @@ pred, meas = approxDeconv(fg, :x0x1f1)
 
 p_t = map(x->x.x[1], pred)
 m_t = map(x->x.x[1], meas)
-#TODO why is angle wrapping around? (after SA update?)
-p_θ = map(x->Manifolds.sym_rem(x.x[2][2]), pred)
+p_θ = map(x->x.x[2][2], pred)
 m_θ = map(x->x.x[2][2], meas)
 
 @test isapprox(mean(p_θ), 0.1, atol=0.02)

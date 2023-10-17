@@ -82,7 +82,7 @@ function calcVariableDistanceExpectedFractional(
   # also check distance to certainidx for general scale reference (workaround heuristic)
   for cidx in certainidx
     count += 1
-    cerMeanPnt = mean(getManifold(varTypes[cidx]), ccwl.varValsAll[][cidx])
+    cerMeanPnt = mean(getManifold(varTypes[cidx]), ccwl.varValsAll[][cidx], GeodesicInterpolation())
     cerMean = getCoordinates(varTypes[cidx], cerMeanPnt)
     dists[count] = norm(refMean[1:dims] - cerMean[1:dims])
   end
