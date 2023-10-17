@@ -87,15 +87,6 @@ function (hypoCalcFactor::CalcFactorNormSq)(::Type{ManoptCalcConv}, M::AbstractM
   return hypoCalcFactor(CalcConv, p)
 end
 
-#TODO untested and unused 
-# for deconv with the measurement a tangent vector
-# function (hypoCalcFactor::CalcFactorNormSq)(M::AbstractManifold, Xc::AbstractVector)
-#   # M = hypoCalcFactor.manifold # calc factor has factor manifold in not variable that is needed here
-#   ϵ = getPointIdentity(M)
-#   X = get_vector(M, ϵ, Xc, DefaultOrthogonalBasis())
-#   return hypoCalcFactor(CalcDeconv, X)
-# end
-
 function _solveLambdaNumeric(
   fcttype::Union{F, <:Mixture{N_, F, S, T}},
   hypoCalcFactor,
@@ -109,7 +100,6 @@ function _solveLambdaNumeric(
   # the variable is a manifold point, we are working on the tangent plane in optim for now.
   # 
   #TODO this is not general to all manifolds, should work for lie groups.
-  # ϵ = identity_element(M, u0)
   ϵ = getPointIdentity(variableType)
 
   X0c = zero(MVector{getDimension(M),Float64})
@@ -175,6 +165,105 @@ function _solveLambdaNumericMeas(
   end
 
   return hat(M, ϵ, r.minimizer)
+end
+
+## deconvolution with calcfactor wip
+struct CalcDeconv end
+
+function (cf::CalcFactorNormSq)(::Type{CalcDeconv}, meas) 
+  res = cf(meas, map(vvh -> _getindex_anyn(vvh, cf._sampleIdx), cf._legacyParams)...)
+  return sum(x->x^2, res)
+end
+
+# for deconv with the measurement a tangent vector, can dispatch for other measurement types.
+function (hypoCalcFactor::CalcFactorNormSq)(::Type{CalcDeconv}, M::AbstractManifold, Xc::AbstractVector)
+  ϵ = getPointIdentity(M)
+  X = get_vector(M, ϵ, Xc, DefaultOrthogonalBasis())
+  return hypoCalcFactor(CalcDeconv, X)
+end
+
+#NOTE Optim.jl version that assumes measurement is on the tangent
+function _solveLambdaNumericMeas_v2(
+  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  hypoCalcFactor,
+  X0,#::AbstractVector{<:Real},
+  islen1::Bool = false,
+) where {N_, F <: AbstractManifoldMinimize, S, T}
+  #
+  M = getManifold(fcttype)
+  ϵ = getPointIdentity(M)
+  X0c = zeros(manifold_dimension(M))
+  X0c .= vee(M, ϵ, X0)
+
+  alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
+
+  r = Optim.optimize(
+    x->hypoCalcFactor(CalcDeconv, M, x),
+    X0c,
+    alg
+  )
+  if !Optim.converged(r)
+    @debug "Optim did not converge:" r
+  end
+
+  return hat(M, ϵ, r.minimizer)
+end
+
+function approxDeconv_v2(
+  fcto::DFGFactor,
+  ccw::CommonConvWrapper = _getCCW(fcto);
+  N::Int = 100,
+  measurement::AbstractVector = sampleFactor(ccw, N),
+)
+  # NOTE comments kept from original...
+  # FIXME needs xDim for all variables at once? xDim = 0 likely to break?
+
+  # but what if this is a partial factor -- is that important for general cases in deconv?
+  _setCCWDecisionDimsConv!(ccw, 0) # ccwl.xDim used to hold the last forward solve getDimension(getVariableType(Xi[sfidx]))
+
+  # FIXME This does not incorporate multihypo??
+  varsyms = getVariableOrder(fcto)
+  # vars = getPoints.(getBelief.(dfg, varsyms, solveKey) )
+
+  # TODO, consolidate fmd with getSample/sampleFactor and _buildLambda
+  # TODO assuming vector on only first container in measurement::Tuple
+
+  # NOTE 
+  # build a lambda that incorporates the multihypo selections
+  # set these first
+  # ccw.cpt[].activehypo / .p / .params  # params should already be set from construction
+  hyporecipe = _prepareHypoRecipe!(nothing, N, 0, length(varsyms))
+  # only doing the current active hypo
+  @assert hyporecipe.activehypo[2][1] == 1 "deconv was expecting hypothesis nr == (1, 1:d)"
+
+  # get measurement dimension
+  zDim = _getZDim(fcto)
+  islen1 = zDim == 1
+
+  #make a copy of the original measurement before mutating it
+  sampled_meas = deepcopy(measurement)
+
+  fcttype = getFactorType(fcto)
+  if !(fcttype isa AbstractManifoldMinimize)
+    error("Only AbstractManifoldMinimize is currently supported in approxDeconv_v2")
+  end
+
+  for idx = 1:N
+
+    # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
+    resize!(ccw.hyporecipe.activehypo, length(hyporecipe.activehypo[2][2]))
+    ccw.hyporecipe.activehypo[:] = hyporecipe.activehypo[2][2]
+    #TODO why is this resize in the loop?
+
+    # Create a CalcFactor functor of the correct hypo,. TODO don't know what setup above is still needed
+    _hypoCalcFactor = _buildHypoCalcFactor(ccw, idx)
+
+    ts = _solveLambdaNumericMeas_v2(fcttype, _hypoCalcFactor, measurement[idx], islen1)
+    measurement[idx] = ts
+
+  end
+
+  return measurement, sampled_meas
 end
 
 ## ================================================================================================
@@ -374,7 +463,6 @@ end
 #
 
 struct CalcConv end
-struct CalcDeconv end
 
 _getindex_anyn(vec, n) = begin
   len = length(vec)
