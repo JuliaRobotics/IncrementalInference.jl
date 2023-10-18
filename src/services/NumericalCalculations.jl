@@ -192,6 +192,7 @@ function _buildCalcFactor(
   smpid,
   varParams,
   activehypo,
+  _slack = nothing,
 )
   #
   # FIXME, make thread safe (cache)
@@ -210,6 +211,7 @@ function _buildCalcFactor(
     solveforidx,                #solvefor
     getManifold(ccwl),           #manifold
     ccwl.measurement,
+    _slack,
   )
 end
 
@@ -391,10 +393,11 @@ function (cf::CalcFactorNormSq)(::Type{CalcConv}, x)
   varValsHypo[cf.solvefor][sampleIdx] = x
 
   res = cf(cf.measurement[sampleIdx], map(vvh -> _getindex_anyn(vvh, sampleIdx), varValsHypo)...)
+  res = isnothing(cf.slack) ? res : res .- cf.slack
   return sum(x->x^2, res)
 end
 
-function _buildHypoCalcFactor(ccwl::CommonConvWrapper, smpid::Integer)
+function _buildHypoCalcFactor(ccwl::CommonConvWrapper, smpid::Integer, _slack)
   # build a view to the decision variable memory
   varValsHypo = ccwl.varValsAll[][ccwl.hyporecipe.activehypo]
   # create calc factor selected hypo and samples
@@ -403,7 +406,8 @@ function _buildHypoCalcFactor(ccwl::CommonConvWrapper, smpid::Integer)
     ccwl,                        #
     smpid,                       # ends in _sampleIdx
     varValsHypo,                 # ends in _legacyParams
-    ccwl.hyporecipe.activehypo   # ends in solvefor::Int
+    ccwl.hyporecipe.activehypo,   # ends in solvefor::Int
+    _slack,
   )
   return cf
 end
@@ -427,7 +431,7 @@ function _solveCCWNumeric!(
   # target = view(ccwl.varValsAll[][ccwl.varidx[]], smpid) 
 
   # SUPER IMPORTANT ON PARTIALS, RESIDUAL FUNCTION MUST DEAL WITH PARTIAL AND WILL GET FULL VARIABLE POINTS REGARDLESS
-  _hypoCalcFactor = _buildHypoCalcFactor(ccwl, smpid)
+  _hypoCalcFactor = _buildHypoCalcFactor(ccwl, smpid, _slack)
 
   # do the parameter search over defined decision variables using Minimization
   sfidx = ccwl.varidx[]

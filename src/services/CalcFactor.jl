@@ -31,7 +31,8 @@ function CalcFactorNormSq(
   cache = ccwl.dummyCache,
   fullvariables = ccwl.fullvariables,
   solvefor = ccwl.varidx[],
-  manifold = getManifold(ccwl)
+  manifold = getManifold(ccwl),
+  slack=nothing,
 )
   #
   # FIXME using ccwl.dummyCache is not thread-safe
@@ -45,6 +46,7 @@ function CalcFactorNormSq(
     solvefor,
     manifold,
     ccwl.measurement,
+    slack
   )
 end
 
@@ -407,6 +409,7 @@ function _createCCW(
     solvefor,
     manifold,
     nothing,
+    nothing,
   )
 
   # get a measurement sample
@@ -426,6 +429,7 @@ function _createCCW(
     solvefor,
     manifold,
     measurement,
+    nothing,
   )
 
 
