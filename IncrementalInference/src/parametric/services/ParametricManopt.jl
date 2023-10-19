@@ -72,10 +72,15 @@ function CalcFactorResidualAP(
   return ArrayPartition{CalcFactorResidual, typeof(parts_tuple)}(parts_tuple)
 end
 
-function (cfm::CalcFactorResidual)(p)
+function (cfm::CalcFactorResidual)(p::Vector)
   meas = cfm.meas
   points = map(idx->p[idx], cfm.varOrderIdxs)
   return cfm.sqrt_iΣ * cfm(meas, points...)
+end
+
+function  (cfm::CalcFactorResidual)(p::ArrayPartition)
+  points = map(idx->p.x[idx], cfm.varOrderIdxs)
+  return cfm.sqrt_iΣ * cfm(cfm.meas, points...)
 end
 
 # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 

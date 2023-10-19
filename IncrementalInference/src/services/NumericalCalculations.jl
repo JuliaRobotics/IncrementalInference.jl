@@ -71,15 +71,16 @@ function _solveLambdaNumeric(
   return r.minimizer
 end
 
-# struct OptimCalcConv end
+struct OptimCalcConv end
 # CalcFactorNormSq cost function for an input in coordinates as used by Optim.jl
-function (hypoCalcFactor::CalcFactorNormSq)(M::AbstractManifold, Xc::AbstractVector)
+function (hypoCalcFactor::CalcFactorNormSq)(::Type{OptimCalcConv}, M::AbstractManifold, Xc::AbstractVector)
   # hypoCalcFactor.manifold is the factor's manifold, not the variable's manifold that is needed here
   ϵ = getPointIdentity(M)
   X = get_vector(M, ϵ, SVector(Xc), DefaultOrthogonalBasis())
   p = exp(M, ϵ, X)
   return hypoCalcFactor(CalcConv, p)
 end
+(hypoCalcFactor::CalcFactorNormSq)(M::AbstractManifold, p) = hypoCalcFactor(OptimCalcConv, M, p)
 
 struct ManoptCalcConv end
 
@@ -117,10 +118,19 @@ function _solveLambdaNumeric(
       retraction_method = ExponentialRetraction()
     )
     return r
+  elseif false
+    r = gradient_descent(
+      M,
+      (M,x)->hypoCalcFactor(x),
+      (M, x)-> factorGradient(hypoCalcFactor, M, x),
+      u0;
+      stepsize=ConstantStepsize(0.1), 
+    )
+    return r
   end
 
   r = Optim.optimize(
-    x->hypoCalcFactor(M, x),
+    x->hypoCalcFactor(OptimCalcConv, M, x),
     X0c,
     alg
   )
@@ -394,6 +404,8 @@ function (cf::CalcFactorNormSq)(::Type{CalcConv}, x)
   res = isnothing(cf.slack) ? res : res .- cf.slack
   return sum(x->x^2, res)
 end
+#default to conv
+(cf::CalcFactorNormSq)(x) = cf(CalcConv, x)
 
 function _buildHypoCalcFactor(ccwl::CommonConvWrapper, smpid::Integer, _slack=nothing)
   # build a view to the decision variable memory
