@@ -36,7 +36,8 @@ struct CalcFactorNormSq{
   C, 
   VT <: Tuple, 
   M <: AbstractManifold,
-  MEAS
+  MEAS,
+  S
 } <: CalcFactor{FT}
   """ the interface compliant user object functor containing the data and logic """
   factor::FT
@@ -58,6 +59,7 @@ struct CalcFactorNormSq{
   solvefor::Int
   manifold::M
   measurement::MEAS
+  slack::S
 end
 
 #TODO deprecate after CalcFactor is updated to CalcFactorNormSq

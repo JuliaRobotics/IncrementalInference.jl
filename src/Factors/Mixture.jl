@@ -127,7 +127,8 @@ function sampleFactor(cf::CalcFactor{<:Mixture}, N::Int = 1)
     cf.fullvariables,
     cf.solvefor,
     cf.manifold,
-    cf.measurement
+    cf.measurement,
+    nothing,
   )
   smpls = [getSample(cf_) for _ = 1:N]
   # smpls = Array{Float64,2}(undef,s.dims,N)
