@@ -71,9 +71,6 @@ function approxDeconv(
 
   islen1 = zDim == 1
 
-  # FIXME, is this still in use
-  destVarVals = Vector{Int}()
-
   for idx = 1:N
     # towards each particle in their own thread (not 100% ready yet, factors should be separate memory)
     target_smpl = makeTarget(idx)
@@ -82,12 +79,13 @@ function approxDeconv(
     resize!(ccw.hyporecipe.activehypo, length(hyporecipe.activehypo[2][2]))
     ccw.hyporecipe.activehypo[:] = hyporecipe.activehypo[2][2]
 
-    onehypo!, _ = _buildCalcFactorLambdaSample(ccw, idx, target_smpl, measurement)
+    onehypo! = _buildCalcFactorLambdaSample(ccw, idx, measurement)
     #
 
     # lambda with which to find best measurement values
     function hypoObj(tgt)
-      copyto!(target_smpl, tgt)
+      # copyto!(target_smpl, tgt)
+      measurement[idx] = tgt
       return onehypo!()
     end
     # hypoObj = (tgt) -> (target_smpl .= tgt; onehypo!())
@@ -103,10 +101,11 @@ function approxDeconv(
         getVariableType(ccw.fullvariables[sfidx]), # ccw.vartypes[sfidx](),
         islen1,
       )
-      copyto!(target_smpl, ts) 
+      # copyto!(target_smpl, ts)
+      measurement[idx] = ts
     else
       ts = _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx], islen1)
-      copyto!(target_smpl, ts)
+      measurement[idx] = ts
     end
   end
 

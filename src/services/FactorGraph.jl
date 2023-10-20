@@ -203,9 +203,12 @@ function setValKDE!(
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;];
   solveKey::Symbol = :default,
-) where {P}
+  ppeType::Type{T} = MeanMaxPPE,
+) where {P, T}
+  vnd = getSolverData(v, solveKey)
   # recover variableType information
-  setValKDE!(getSolverData(v, solveKey), val, setinit, ipc)
+  setValKDE!(vnd, val, setinit, ipc)
+  setPPE!(v; solveKey, ppeType)
   return nothing
 end
 function setValKDE!(
@@ -246,7 +249,7 @@ end
 
 function setValKDE!(
   vnd::VariableNodeData,
-  mkd::ManifoldKernelDensity{M, B, Nothing},
+  mkd::ManifoldKernelDensity{M, B, Nothing}, # TBD dispatch without partial?
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;],
 ) where {M, B}
@@ -282,8 +285,15 @@ function setValKDE!(
   return nothing
 end
 
-function setBelief!(vari::DFGVariable, bel::ManifoldKernelDensity, setinit::Bool=true,ipc::AbstractVector{<:Real}=[0.0;])
-  setValKDE!(vari,getPoints(bel),setinit, ipc)
+function setBelief!(
+  vari::DFGVariable, 
+  bel::ManifoldKernelDensity, 
+  setinit::Bool=true, 
+  ipc::AbstractVector{<:Real}=[0.0;];
+  solveKey::Symbol = :default
+)
+  setValKDE!(vari, bel, setinit, ipc; solveKey)
+  # setValKDE!(vari,getPoints(bel, false), setinit, ipc)
 end
 
 """

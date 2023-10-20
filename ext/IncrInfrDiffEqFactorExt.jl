@@ -8,8 +8,8 @@ import DifferentialEquations: solve
 using Dates
 
 using IncrementalInference
-import IncrementalInference: getSample, getManifold, DERelative
-import IncrementalInference: sampleFactor
+import IncrementalInference: DERelative, _solveFactorODE!
+import IncrementalInference: getSample, sampleFactor, getManifold
 
 using DocStringExtensions
 
@@ -174,12 +174,12 @@ function (cf::CalcFactor{<:DERelative})(measurement, X...)
     # need to recalculate new ODE (forward) for change in parameters (solving for 3rd or higher variable)
     solveforIdx = 2
     # use forward solve for all solvefor not in [1;2]
-    u0pts = getBelief(cf.fullvariables[1]) |> getPoints
+    # u0pts = getBelief(cf.fullvariables[1]) |> getPoints
     # update parameters for additional variables
     _solveFactorODE!(
       meas1,
       oderel.forwardProblem,
-      u0pts[cf._sampleIdx],
+      X[1], # u0pts[cf._sampleIdx],
       _maketuplebeyond2args(X...)...,
     )
   end
@@ -192,11 +192,50 @@ function (cf::CalcFactor{<:DERelative})(measurement, X...)
   #FIXME 
   res = zeros(size(X[2], 1))
   for i = 1:size(X[2], 1)
-    # diffop( test, reference )   <===>   ΔX = test \ reference
+    # diffop( reference?, test? )   <===>   ΔX = test \ reference
     res[i] = diffOp[i](X[solveforIdx][i], meas1[i])
   end
   return res
 end
+
+
+# # FIXME see #1025, `multihypo=` will not work properly yet
+# function getSample(cf::CalcFactor{<:DERelative})
+
+#   oder = cf.factor
+
+#   # how many trajectories to propagate?
+#   # @show getLabel(cf.fullvariables[2]), getDimension(cf.fullvariables[2])
+#   meas = zeros(getDimension(cf.fullvariables[2]))
+
+#   # pick forward or backward direction
+#   # set boundary condition
+#   u0pts = if cf.solvefor == 1
+#     # backward direction
+#     prob = oder.backwardProblem
+#     addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
+#       convert(Tuple, getManifold(getVariableType(cf.fullvariables[1]))),
+#     )
+#     cf._legacyParams[2]
+#   else
+#     # forward backward
+#     prob = oder.forwardProblem
+#     # buffer manifold operations for use during factor evaluation
+#     addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
+#       convert(Tuple, getManifold(getVariableType(cf.fullvariables[2]))),
+#     )
+#     cf._legacyParams[1]
+#   end
+
+#   i = cf._sampleIdx
+#   # solve likely elements
+#   # TODO, does this respect hyporecipe ???
+#   idxArr = (k -> cf._legacyParams[k][i]).(1:length(cf._legacyParams))
+#   _solveFactorODE!(meas, prob, u0pts[i], _maketuplebeyond2args(idxArr...)...)
+#   # _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(cf._legacyParams...)...)
+
+#   return meas, diffOp
+# end
 
 
 
@@ -221,7 +260,8 @@ function IncrementalInference.sampleFactor(cf::CalcFactor{<:DERelative}, N::Int 
     addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
       convert(Tuple, getManifold(getVariableType(cf.fullvariables[1]))),
     )
-    getBelief(cf.fullvariables[2]) |> getPoints
+    # getBelief(cf.fullvariables[2]) |> getPoints
+    cf._legacyParams[2]
   else
     # forward backward
     prob = oder.forwardProblem
@@ -229,7 +269,8 @@ function IncrementalInference.sampleFactor(cf::CalcFactor{<:DERelative}, N::Int 
     addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
       convert(Tuple, getManifold(getVariableType(cf.fullvariables[2]))),
     )
-    getBelief(cf.fullvariables[1]) |> getPoints
+    # getBelief(cf.fullvariables[1]) |> getPoints
+    cf._legacyParams[1]
   end
 
   # solve likely elements

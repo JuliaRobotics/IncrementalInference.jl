@@ -37,7 +37,7 @@ end
 
 #::MeasurementOnTangent
 function distanceTangent2Point(M::SemidirectProductGroup, X, p, q)
-  q̂ = Manifolds.compose(M, p, exp(M, identity_element(M, p), X)) #for groups
+  q̂ = Manifolds.compose(M, p, exp(M, getPointIdentity(M), X)) #for groups
   # return log(M, q, q̂)
   return vee(M, q, log(M, q, q̂))
   # return distance(M, q, q̂)
@@ -96,7 +96,7 @@ end
 
 # function (cf::CalcFactor{<:ManifoldFactor{<:AbstractDecoratorManifold}})(Xc, p, q)
 function (cf::CalcFactor{<:ManifoldFactor})(X, p, q)
-  return distanceTangent2Point(cf.manifold, X, p, q)
+  return distanceTangent2Point(cf.factor.M, X, p, q)
 end
 
 ## ======================================================================================
@@ -141,12 +141,20 @@ function getSample(cf::CalcFactor{<:ManifoldPrior})
   return point
 end
 
+function getFactorMeasurementParametric(fac::ManifoldPrior)
+  M = getManifold(fac)
+  dims = manifold_dimension(M)
+  meas = fac.p
+  iΣ = convert(SMatrix{dims, dims}, invcov(fac.Z))
+  meas, iΣ
+end
+
 #TODO investigate SVector if small dims, this is slower
 # dim = manifold_dimension(M)
 # Xc = [SVector{dim}(rand(Z)) for _ in 1:N]
 
 function (cf::CalcFactor{<:ManifoldPrior})(m, p)
-  M = cf.manifold # .factor.M
+  M = cf.factor.M
   # return log(M, p, m)
   return vee(M, p, log(M, p, m))
   # return distancePrior(M, m, p)
@@ -235,7 +243,7 @@ DFG.getManifold(f::ManifoldPriorPartial) = f.M
 
 function getSample(cf::CalcFactor{<:ManifoldPriorPartial})
   Z = cf.factor.Z
-  M = cf.manifold # getManifold(cf.factor)
+  M = getManifold(cf)
   partial = collect(cf.factor.partial)
 
   return (samplePointPartial(M, Z, partial),)

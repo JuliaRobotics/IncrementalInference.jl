@@ -24,16 +24,23 @@ end
 
 # Sampling Distributions
 # assumes M is a group and will break for Riemannian, but leaving that enhancement as TODO
-function sampleTangent(M::AbstractManifold, z::Distribution, p = getPointIdentity(M), basis::AbstractBasis = DefaultOrthogonalBasis())
+function sampleTangent(
+  M::AbstractManifold,
+  z::Distribution,
+  p = getPointIdentity(M),
+  basis::AbstractBasis = DefaultOrthogonalBasis()
+)
   return get_vector(M, p, rand(z), basis)
 end
 
 function sampleTangent(
   M::AbstractDecoratorManifold,
   z::Distribution,
-  p = identity_element(M), #getPointIdentity(M),
+  p = getPointIdentity(M),
 )
-  return hat(M, p, rand(z, 1)[:]) #TODO find something better than (z,1)[:]
+  return hat(M, p, SVector{length(z)}(rand(z))) #TODO make sure all Distribution has length, 
+                                                # if this errors maybe fall back no next line
+  # return convert(typeof(p), hat(M, p, rand(z, 1)[:])) #TODO find something better than (z,1)[:]
 end
 
 """
@@ -112,7 +119,7 @@ See also: [`getMeasurementParametric`](@ref)
 function getSample end
 
 function getSample(cf::CalcFactor{<:AbstractPrior})
-  M = cf.manifold # getManifold(cf.factor)
+  M = getManifold(cf)
   if hasfield(typeof(cf.factor), :Z)
     X = samplePoint(M, cf.factor.Z)
   else
@@ -125,7 +132,7 @@ function getSample(cf::CalcFactor{<:AbstractPrior})
 end
 
 function getSample(cf::CalcFactor{<:AbstractRelative})
-  M = cf.manifold # getManifold(cf.factor)
+  M =getManifold(cf)
   if hasfield(typeof(cf.factor), :Z)
     X = sampleTangent(M, cf.factor.Z)
   else

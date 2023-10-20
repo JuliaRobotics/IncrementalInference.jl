@@ -32,6 +32,7 @@ end
 getManifold(mp::MsgPrior{<:ManifoldKernelDensity}) = mp.Z.manifold
 getManifold(mp::MsgPrior) = mp.M
 
+#FIXME this will not work on manifolds
 (cfo::CalcFactor{<:MsgPrior})(z, x1) = z .- x1
 
 Base.@kwdef struct PackedMsgPrior <: AbstractPackedFactor
