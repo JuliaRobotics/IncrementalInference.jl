@@ -12,10 +12,14 @@ end
 
 if TEST_GROUP in ["all", "basic_functional_group"]
 # more frequent stochasic failures from numerics
-include("manifolds/manifolddiff.jl")
-include("manifolds/factordiff.jl")
 include("testSpecialEuclidean2Mani.jl")
 include("testEuclidDistance.jl")
+# gradient / jacobian tests
+include("manifolds/manifolddiff.jl")
+include("manifolds/factordiff.jl")
+@error "Gradient tests must be updated and restored for new ccw.varValsAll[]"
+include("testGradientUtils.jl")
+include("testFactorGradients.jl")
 
 # start as basic as possible and build from there
 include("typeReturnMemRef.jl")
@@ -44,9 +48,6 @@ include("testTreeFunctions.jl")
 #FIXME fails on MetaBayesTree
 include("testTreeSaveLoad.jl")
 
-@error "Gradient tests must be updated and restored for new ccw.varValsAll[]"
-include("testGradientUtils.jl")
-include("testFactorGradients.jl")
 include("testSpecialSampler.jl") # TODO, rename, refine
 include("testCommonConvWrapper.jl")
 
