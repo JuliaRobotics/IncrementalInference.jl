@@ -40,7 +40,9 @@ function _ccolamd!(
   for i in eachindex(p)
     p[i] -= 1
   end
-  err = AMD.ccolamd_l( # ccolamd_l
+  # BSD-3 clause, (c) Davis, Rajamanickam, Larimore
+  # https://github.com/DrTimothyAldenDavis/SuiteSparse/blob/f98e0f5a69acb6a3fb19703ff266100d43491935/LICENSE.txt#L153
+  err = AMD.ccolamd_l(
     n_row,
     n_col,
     Alen,
