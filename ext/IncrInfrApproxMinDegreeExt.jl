@@ -71,7 +71,7 @@ function _ccolamd!(
   A::AbstractVector{T1}, #SuiteSparse_long},
   p::AbstractVector{<:Real}, # {SuiteSparse_long},
   cmember::Union{Ptr{Nothing}, <:AbstractVector{T}}, # SuiteSparse_long
-) where {T1<:Real, T}
+) where {T1<:Real, T<:Integer}
   n_col = length(p) - 1
 
   if length(cmember) != n_col
