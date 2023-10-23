@@ -92,17 +92,7 @@ function approxDeconv(
 
     # find solution via SubArray view pointing to original memory location
     if fcttype isa AbstractManifoldMinimize
-      sfidx = ccw.varidx[]
-      ts = _solveLambdaNumericMeas(
-        fcttype,
-        hypoObj,
-        res_,
-        measurement[idx],
-        getVariableType(ccw.fullvariables[sfidx]), # ccw.vartypes[sfidx](),
-        islen1,
-      )
-      # copyto!(target_smpl, ts)
-      measurement[idx] = ts
+      error("Fix dispatch on AbstractManifoldMinimize")
     else
       ts = _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx], islen1)
       measurement[idx] = ts

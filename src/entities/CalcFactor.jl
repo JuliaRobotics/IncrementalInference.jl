@@ -58,7 +58,7 @@ struct CalcFactorNormSq{
   # which index is being solved for?
   solvefor::Int
   manifold::M
-  measurement::MEAS
+  measurement::MEAS #TBD make measurement only one sample per calc factor
   slack::S
 end
 
