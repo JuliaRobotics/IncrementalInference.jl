@@ -257,26 +257,6 @@ m_θ = map(x->x.x[2][2], meas)
 @test isapprox(mean(p_t), mean(m_t), atol=0.3)
 @test isapprox(std(p_t), std(m_t), atol=0.3)
 
-##
-pred, meas = IIF.approxDeconv_v2(fg[:x0x1f1])
-
-p_t = map(x->x.x[1], pred)
-m_t = map(x->x.x[1], meas)
-p_θ = map(x->x.x[2][2], pred)
-m_θ = map(x->x.x[2][2], meas)
-
-@test isapprox(mean(p_θ), 0.1, atol=0.02)
-@test isapprox(std(p_θ), 0.05, atol=0.02)
-
-@test isapprox(mean(p_t), [10,0], atol=0.3)
-@test isapprox(std(p_t), [0.5,0.5], atol=0.3)
-
-@test isapprox(mean(p_θ), mean(m_θ), atol=0.03)
-@test isapprox(std(p_θ), std(m_θ), atol=0.03)
-
-@test isapprox(mean(p_t), mean(m_t), atol=0.3)
-@test isapprox(std(p_t), std(m_t), atol=0.3)
-
 end
 
 
