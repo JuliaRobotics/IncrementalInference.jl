@@ -105,6 +105,62 @@ function approxDeconv(
   return measurement, fctSmpls
 end
 
+# TBD deprecate use of xDim
+function approxDeconv(
+  fcto::DFGFactor{<:CommonConvWrapper{<:AbstractManifoldMinimize}},
+  ccw::CommonConvWrapper = _getCCW(fcto);
+  N::Int = 100,
+  measurement::AbstractVector = sampleFactor(ccw, N),
+  retries=nothing,
+)
+  if !isnothing(retries)
+    Base.depwarn(
+      "approxDeconv kwarg retries is not used",
+      :approxDeconv,
+    )
+  end
+  # but what if this is a partial factor -- is that important for general cases in deconv?
+  _setCCWDecisionDimsConv!(ccw, 0)
+
+  varsyms = getVariableOrder(fcto)
+  
+  # TODO assuming vector on only first container in measurement::Tuple  # TBD How should user dispatch fancy tuple measurements on deconv.
+  
+  # NOTE 
+  # build a lambda that incorporates the multihypo selections
+  # deconv has to solve for the best matching for particles
+  # FIXME This does not incorporate multihypo, Apply hyporecipe to full variable order list. But remember hyporecipe assignment must be found (NPhard)
+  hyporecipe = _prepareHypoRecipe!(nothing, N, 0, length(varsyms))
+  # only doing the current active hypo
+  @assert hyporecipe.activehypo[2][1] == 1 "deconv was expecting hypothesis nr == (1, 1:d)"
+
+  # get measurement dimension
+  zDim = _getZDim(fcto)
+  islen1 = zDim == 1
+
+  #make a copy of the original measurement before mutating it
+  sampled_meas = deepcopy(measurement)
+
+  fcttype = getFactorType(fcto)
+  
+  for idx = 1:N
+
+    # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
+    resize!(ccw.hyporecipe.activehypo, length(hyporecipe.activehypo[2][2]))
+    ccw.hyporecipe.activehypo[:] = hyporecipe.activehypo[2][2]
+    #TODO why is this resize in the loop?
+
+    # Create a CalcFactor functor of the correct hypo.
+    _hypoCalcFactor = _buildHypoCalcFactor(ccw, idx)
+
+    ts = _solveLambdaNumericMeas(fcttype, _hypoCalcFactor, measurement[idx], islen1)
+    measurement[idx] = ts
+
+  end
+
+  return measurement, sampled_meas
+end
+
 """
     $SIGNATURES
 
