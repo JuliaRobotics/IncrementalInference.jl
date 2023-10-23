@@ -183,6 +183,7 @@ function (hypoCalcFactor::CalcFactorNormSq)(::Type{CalcDeconv}, M::AbstractManif
 end
 
 #NOTE Optim.jl version that assumes measurement is on the tangent
+# TODO test / dev for n-ary factor deconv
 function _solveLambdaNumericMeas_v2(
   fcttype::Union{F, <:Mixture{N_, F, S, T}},
   hypoCalcFactor,
@@ -221,7 +222,7 @@ function approxDeconv_v2(
   # but what if this is a partial factor -- is that important for general cases in deconv?
   _setCCWDecisionDimsConv!(ccw, 0) # ccwl.xDim used to hold the last forward solve getDimension(getVariableType(Xi[sfidx]))
 
-  # FIXME This does not incorporate multihypo??
+  # FIXME This does not incorporate multihypo, Apply hyprecipe to full variable order list. But remember hyporecipe assignment must be found (NPhard)
   varsyms = getVariableOrder(fcto)
   # vars = getPoints.(getBelief.(dfg, varsyms, solveKey) )
 
