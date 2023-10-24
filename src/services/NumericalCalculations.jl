@@ -395,7 +395,7 @@ function (cf::CalcFactorNormSq)(::Type{CalcConv}, x)
   return sum(x->x^2, res)
 end
 
-function _buildHypoCalcFactor(ccwl::CommonConvWrapper, smpid::Integer, slack=nothing)
+function _buildHypoCalcFactor(ccwl::CommonConvWrapper, smpid::Integer, _slack=nothing)
   # build a view to the decision variable memory
   varValsHypo = ccwl.varValsAll[][ccwl.hyporecipe.activehypo]
   # create calc factor selected hypo and samples
