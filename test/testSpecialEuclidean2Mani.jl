@@ -257,7 +257,6 @@ m_θ = map(x->x.x[2][2], meas)
 @test isapprox(mean(p_t), mean(m_t), atol=0.3)
 @test isapprox(std(p_t), std(m_t), atol=0.3)
 
-##
 end
 
 

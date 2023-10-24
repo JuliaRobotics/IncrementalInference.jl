@@ -87,15 +87,6 @@ function (hypoCalcFactor::CalcFactorNormSq)(::Type{ManoptCalcConv}, M::AbstractM
   return hypoCalcFactor(CalcConv, p)
 end
 
-#TODO untested and unused 
-# for deconv with the measurement a tangent vector
-# function (hypoCalcFactor::CalcFactorNormSq)(M::AbstractManifold, Xc::AbstractVector)
-#   # M = hypoCalcFactor.manifold # calc factor has factor manifold in not variable that is needed here
-#   ϵ = getPointIdentity(M)
-#   X = get_vector(M, ϵ, Xc, DefaultOrthogonalBasis())
-#   return hypoCalcFactor(CalcDeconv, X)
-# end
-
 function _solveLambdaNumeric(
   fcttype::Union{F, <:Mixture{N_, F, S, T}},
   hypoCalcFactor,
@@ -109,7 +100,6 @@ function _solveLambdaNumeric(
   # the variable is a manifold point, we are working on the tangent plane in optim for now.
   # 
   #TODO this is not general to all manifolds, should work for lie groups.
-  # ϵ = identity_element(M, u0)
   ϵ = getPointIdentity(variableType)
 
   X0c = zero(MVector{getDimension(M),Float64})
@@ -142,34 +132,43 @@ function _solveLambdaNumeric(
   return exp(M, ϵ, hat(M, ϵ, r.minimizer))
 end
 
+## deconvolution with calcfactor wip
+struct CalcDeconv end
 
-#TODO Consolidate with _solveLambdaNumeric, see #1374
-#TODO _solveLambdaNumericMeas assumes a measurement is always a tangent vector, confirm.
+function (cf::CalcFactorNormSq)(::Type{CalcDeconv}, meas) 
+  res = cf(meas, map(vvh -> _getindex_anyn(vvh, cf._sampleIdx), cf._legacyParams)...)
+  return sum(x->x^2, res)
+end
+
+# for deconv with the measurement a tangent vector, can dispatch for other measurement types.
+function (hypoCalcFactor::CalcFactorNormSq)(::Type{CalcDeconv}, M::AbstractManifold, Xc::AbstractVector)
+  ϵ = getPointIdentity(M)
+  X = get_vector(M, ϵ, Xc, DefaultOrthogonalBasis())
+  return hypoCalcFactor(CalcDeconv, X)
+end
+
+# NOTE Optim.jl version that assumes measurement is on the tangent
+# TODO test / dev for n-ary factor deconv
+# TODO Consolidate with _solveLambdaNumeric, see #1374
 function _solveLambdaNumericMeas(
   fcttype::Union{F, <:Mixture{N_, F, S, T}},
-  objResX::Function,
-  residual::AbstractVector{<:Real},
+  hypoCalcFactor,
   X0,#::AbstractVector{<:Real},
-  variableType::InferenceVariable,
   islen1::Bool = false,
 ) where {N_, F <: AbstractManifoldMinimize, S, T}
   #
-  # Assume measurement is on the tangent
   M = getManifold(fcttype)
-  # the variable is a manifold point, we are working on the tangent plane in optim for now.
   ϵ = getPointIdentity(M)
   X0c = zeros(manifold_dimension(M))
   X0c .= vee(M, ϵ, X0)
 
-  function cost(Xc)
-    X = hat(M, ϵ, Xc)
-    residual = objResX(X)
-    return sum(residual .^ 2)
-  end
-
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
 
-  r = Optim.optimize(cost, X0c, alg)
+  r = Optim.optimize(
+    x->hypoCalcFactor(CalcDeconv, M, x),
+    X0c,
+    alg
+  )
   if !Optim.converged(r)
     @debug "Optim did not converge:" r
   end
@@ -374,7 +373,6 @@ end
 #
 
 struct CalcConv end
-struct CalcDeconv end
 
 _getindex_anyn(vec, n) = begin
   len = length(vec)
@@ -397,7 +395,7 @@ function (cf::CalcFactorNormSq)(::Type{CalcConv}, x)
   return sum(x->x^2, res)
 end
 
-function _buildHypoCalcFactor(ccwl::CommonConvWrapper, smpid::Integer, _slack)
+function _buildHypoCalcFactor(ccwl::CommonConvWrapper, smpid::Integer, _slack=nothing)
   # build a view to the decision variable memory
   varValsHypo = ccwl.varValsAll[][ccwl.hyporecipe.activehypo]
   # create calc factor selected hypo and samples
