@@ -22,20 +22,21 @@ function _getDimensionsPartial(fg::AbstractDFG, lbl::Symbol)
 end
 
 # Helper function to construct CF from a CCW
-function CalcFactor(
+function CalcFactorNormSq(
   ccwl::CommonConvWrapper;
   factor = ccwl.usrfnc!,
-  _sampleIdx = 0,
+  _sampleIdx = ccwl.particleidx[],
   _legacyParams = ccwl.varValsAll[],
   _allowThreads = true,
   cache = ccwl.dummyCache,
   fullvariables = ccwl.fullvariables,
   solvefor = ccwl.varidx[],
-  manifold = getManifold(ccwl)
+  manifold = getManifold(ccwl),
+  slack=nothing,
 )
   #
   # FIXME using ccwl.dummyCache is not thread-safe
-  return CalcFactor(
+  return CalcFactorNormSq(
     factor,
     _sampleIdx,
     _legacyParams,
@@ -43,7 +44,9 @@ function CalcFactor(
     cache,
     tuple(fullvariables...),
     solvefor,
-    manifold
+    manifold,
+    ccwl.measurement,
+    slack
   )
 end
 
@@ -90,7 +93,7 @@ function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
   return length(smpls)
 end
 
-calcZDim(ccw::CommonConvWrapper) = calcZDim(CalcFactor(ccw))
+calcZDim(ccw::CommonConvWrapper) = calcZDim(CalcFactorNormSq(ccw))
 
 calcZDim(cf::CalcFactor{<:GenericMarginal}) = 0
 
@@ -122,7 +125,7 @@ function calcFactorResidual(
   args...;
   ccw::CommonConvWrapper = IIF._getCCW(dfgfct),
 )
-  return CalcFactor(ccw)(args...)
+  return CalcFactorNormSq(ccw)(args...)
 end
 function calcFactorResidual(dfg::AbstractDFG, fctsym::Symbol, args...)
   return calcFactorResidual(getFactor(dfg, fctsym), args...)
@@ -171,7 +174,7 @@ function calcFactorResidualTemporary(
     measurement
   else
     # now use the CommonConvWrapper object in `_dfgfct`
-    cfo = CalcFactor(_getCCW(_dfgfct))
+    cfo = CalcFactorNormSq(_getCCW(_dfgfct))
     sampleFactor(cfo, 1)[1]
   end
 
@@ -192,7 +195,7 @@ end
 
 # the same as legacy, getManifold(ccwl.usrfnc!)
 getManifold(ccwl::CommonConvWrapper) = ccwl.manifold
-getManifold(cf::CalcFactor) = cf.manifold
+getManifold(cf::CalcFactor) = getManifold(cf.factor)
 
 function _resizePointsVector!(
   vecP::AbstractVector{P},
@@ -395,26 +398,40 @@ function _createCCW(
   solvefor = length(Xi)
   fullvariables = tuple(Xi...) # convert(Vector{DFGVariable}, Xi)
   # create a temporary CalcFactor object for extracting the first sample
-  # TODO, deprecate this:  guess measurement points type
-  # MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
-  _cf = CalcFactor(
+
+  _cf = CalcFactorNormSq(
     usrfnc,
-    0,
+    1,
     _varValsAll,
     false,
     userCache,
     fullvariables,
     solvefor,
-    manifold
+    manifold,
+    nothing,
+    nothing,
   )
 
   # get a measurement sample
   meas_single = sampleFactor(_cf, 1)[1]
-
   elT = typeof(meas_single)
-
   #TODO preallocate measurement?
   measurement = Vector{elT}()
+
+  #FIXME chicken and egg problem for getting measurement type, so creating twice.
+  _cf = CalcFactorNormSq(
+    usrfnc,
+    1,
+    _varValsAll,
+    false,
+    userCache,
+    fullvariables,
+    solvefor,
+    manifold,
+    measurement,
+    nothing,
+  )
+
 
   # partialDims are sensitive to both which solvefor variable index and whether the factor is partial
   partial = hasfield(T, :partial) # FIXME, use isPartial function instead

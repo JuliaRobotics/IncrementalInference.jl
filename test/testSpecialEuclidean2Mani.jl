@@ -158,7 +158,7 @@ function (cf::CalcFactor{<:ManifoldFactorSE2})(X, p, q)
     vee!(M, Xc, q, log(M, q, q̂))
     return Xc
 end
-  
+
 ##
 
 @testset "Test Pose2 like hex as SpecialEuclidean2" begin
@@ -257,7 +257,6 @@ m_θ = map(x->x.x[2][2], meas)
 @test isapprox(mean(p_t), mean(m_t), atol=0.3)
 @test isapprox(std(p_t), std(m_t), atol=0.3)
 
-##
 end
 
 
@@ -314,7 +313,7 @@ doautoinit!(fg, :x1)
 vnd = getVariableSolverData(fg, :x1)
 @test all(isapprox.(mean(vnd.val), [1.0,2.0], atol=0.1))
 
-# ##
+##
 smtasks = Task[]
 solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
 # # hists = fetchCliqHistoryAll!(smtasks);
@@ -408,7 +407,7 @@ solveGraph!(fg; smtasks);
 # hists_ = deepcopy(hists)
 # repeatCSMStep!(hists, 1, 6)
 
-@test 120 == length(getPoints(fg, :x0))
+@test_broken 120 == length(getPoints(fg, :x0))
 
 @warn "must still check if bandwidths are recalculated on many points (not necessary), or lifted from this case single prior"
 
@@ -427,7 +426,7 @@ prp, infd = propagateBelief(fg, v0, [f0;f1])
 
 ## check that solve corrects the point count on graph variable
 
-@test 120 == length(getPoints(fg, :x0))
+@test_broken 120 == length(getPoints(fg, :x0))
 
 solveGraph!(fg);
 

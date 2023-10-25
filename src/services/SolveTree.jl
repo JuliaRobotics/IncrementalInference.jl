@@ -70,7 +70,7 @@ function doFMCIteration(
       logger,
     )
 
-    if 0 < length(getPoints(dens))
+    if 0 < Npts(dens)
       setBelief!(vert, dens, true, ipc)
       # setValKDE!(vert, densPts, true, ipc)
       # TODO perhaps more debugging inside `propagateBelief`?

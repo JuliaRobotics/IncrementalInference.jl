@@ -11,8 +11,10 @@ using Test
 
 ##
 
-Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{2}) = (:Circular,)
-Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{2}})  = (:Circular,)
+# see AMP v0.7.1+
+# Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{2}) = (:Circular,)
+# Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{2}})  = (:Circular,)
+# Base.convert(::Type{<:Tuple}, ::Type{SpecialOrthogonal{2}})  = (:Circular,)
 
 # @defVariable SpecialOrthogonal2 SpecialOrthogonal(2) @MMatrix([1.0 0.0; 0.0 1.0])
 @defVariable SpecialOrthogonal2 SpecialOrthogonal(2) SMatrix{2,2}(1.0, 0.0, 0.0, 1.0)
@@ -67,8 +69,8 @@ end
 
 ##
 
-Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{3}) = (:Euclid, :Euclid, :Euclid)
-Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{3}})  =  (:Euclid, :Euclid, :Euclid)
+# Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{3}) = (:Euclid, :Euclid, :Euclid)
+# Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{3}})  =  (:Euclid, :Euclid, :Euclid)
 
 # @defVariable SO3 SpecialOrthogonal(3) @MMatrix([1.0 0.0; 0.0 1.0])
 @defVariable SO3 SpecialOrthogonal(3) SMatrix{3,3}(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0)

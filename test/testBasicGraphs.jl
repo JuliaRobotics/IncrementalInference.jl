@@ -306,15 +306,57 @@ pts_ = getPoints(getBelief(fg, :x4))
 TensorCast.@cast pts[i,j] := pts_[j][i]
 @test 0.2 < Statistics.cov( pts[1,:] ) < 3.2
 
+
+
 @testset "Test localProduct on solveKey" begin
 
 localProduct(fg,:x2)
-
 localProduct(fg,:x2, solveKey=:graphinit)
 
 end
 
+end
 
+
+##
+@testset "consistency check on more factors (origin is a DERelative fail case)" begin
+##
+
+fg = initfg()
+
+addVariable!(fg, :x0, Position{1})
+addFactor!(fg, [:x0], Prior(Normal(1.0, 0.01)))
+
+# force a basic setup
+initAll!(fg)
+@test isapprox( 1, getPPE(fg, :x0).suggested[1]; atol=0.1)
+
+##
+
+addVariable!(fg, :x1, Position{1})
+addFactor!(fg, [:x0;:x1], LinearRelative(Normal(1.0, 0.01)))
+
+addVariable!(fg, :x2, Position{1})
+addFactor!(fg, [:x1;:x2], LinearRelative(Normal(1.0, 0.01)))
+
+addVariable!(fg, :x3, Position{1})
+addFactor!(fg, [:x2;:x3], LinearRelative(Normal(1.0, 0.01)))
+
+##
+
+tree = solveGraph!(fg)
+
+##
+
+@test isapprox( 1, getPPE(fg, :x0).suggested[1]; atol=0.1)
+@test isapprox( 4, getPPE(fg, :x3).suggested[1]; atol=0.3)
+
+## check contents of tree messages
+
+tree[1]
+msg1 = IIF.getMessageBuffer(tree[1])
+
+##
 end
 
 

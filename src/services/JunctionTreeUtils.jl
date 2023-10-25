@@ -1681,12 +1681,12 @@ getEliminationOrder(treel::AbstractBayesTree) = treel.eliminationOrder
 EXPERIMENTAL, Save a Bayes (Junction) tree object to file.
 
 Notes
-- Converts and saves to JLD2 format a set of `PackedBayesTreeNodeData` objects.
+- Converts and saves to BSON format a set of `PackedBayesTreeNodeData` objects.
 - IIF issue #481
 
 Related
 
-IIF.loadTree, DFG.saveDFG, DFG.loadDFG, BSON.@save, BSON.@load
+[`loadTree`](@ref), [`saveDFG`](@ref), [`loadDFG`](@ref), `BSON.@save`, `BSON.@load`
 """
 function saveTree(
   treel::AbstractBayesTree,

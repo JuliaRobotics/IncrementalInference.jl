@@ -26,7 +26,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   # store the cliqSubFg for later debugging
   _dbgCSMSaveSubFG(csmc, "fg_beforeupsolve")
 
-  vardict, result, varIds, Σ = solveGraphParametric(csmc.cliqSubFg)
+  vardict, result, varIds, Σ = solveGraphParametricOptim(csmc.cliqSubFg)
 
   logCSM(csmc, "$(csmc.cliq.id) vars $(keys(varIds))")
   # @info "$(csmc.cliq.id) Σ $(Σ)"
@@ -38,7 +38,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
       vnd = getSolverData(getVariable(csmc.cliqSubFg, v), :parametric)
       # fill in the variable node data value
       logCSM(csmc, "$(csmc.cliq.id) up: updating $v : $val")
-      vnd.val[1] .= val.val
+      vnd.val[1] = val.val
       #calculate and fill in covariance
       #TODO rather broadcast than make new memory
       vnd.bw = val.cov
@@ -146,7 +146,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
         logCSM(csmc, "$(csmc.cliq.id) down: updating $v : $val"; loglevel = Logging.Info)
         vnd = getSolverData(getVariable(csmc.cliqSubFg, v), :parametric)
         #Update subfg variables
-        vnd.val[1] .= val.val
+        vnd.val[1] = val.val
         vnd.bw .= val.cov
       end
     else

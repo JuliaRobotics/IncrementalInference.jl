@@ -11,13 +11,26 @@ Alternatively, either use the Github Blame, or the Github `/compare/v0.18.0...v0
 
 The list below highlights breaking changes according to normal semver workflow -- i.e. breaking changes go through at least one deprecatation (via warnings) on the dominant number in the version number.  E.g. v0.18 -> v0.19 (warnings) -> v0.20 (breaking).  Note that ongoing efforts are made to properly deprecate old code/APIs
 
+# Changes in v0.35
+
+- Standardize toward Manopt.jl (currently Riemannian Levenberg-Marquart), still have Optim.jl legacy support (#1784, #1778).
+- Much faster solves, both parametric and nonparametric (#1783, #1782, #1793).
+- Better standardize relative factors to use of tangent vectors (#1790).
+- Now abstract type `CalcFactor` with dedicated dispatches in various cases, e.g. `CalcFactorNormSq`, etc. (#1786).
+- Bug fixes and inference improvements (#1781, #1785, #1789)
+- Support for Julia 1.10.
+- Extension usage of AMD.jl for `ccolamd` variable ordering features, dropped internal SuiteSparse calls.  JL 1.10 removal of `SuiteSparse_long` (#1763).
+- Further bug fixes for transition to `StaticArrays` value stores and computes, including `Position{N}` (#1779, #1776).
+- Restore `DifferentialEquation.jl` factor `DERelative` functionality and tests that were suppressed in a previous upgrade (#1774, #1777).
+- Restore previously suppressed tests (#1781, #1721, #1780)
+
 # Changes in v0.34
 
 - Start transition to Manopt.jl via Riemannian Levenberg-Marquart.
 - Deprecate `AbstractRelativeRoots`.
 - Standardization improvements surrounding weakdeps code extensions. 
 - Code quality improvements along wiht refactoring and reorganizing of file names and locations.
-- Restoring `DERelative` factors, although further fixes necessary beyond anticipated patch release v0.34.1.
+- Restoring `DERelative` factors, through v0.34.1 and v0.34.2.
 - Switching to weakdep AMD.jl for `ccolmod` dependency, part of Julia 1.10 upgrade.  Dropping `SuiteSparse_long` dependency.  Further fixes necessary to restore full user constrained tree variable order functionality.
 
 # Changes in v0.33

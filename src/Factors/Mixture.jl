@@ -118,7 +118,7 @@ function sampleFactor(cf::CalcFactor{<:Mixture}, N::Int = 1)
   ## example case is old FluxModelsPose2Pose2 requiring velocity
   # FIXME better consolidation of when to pass down .mechanics, also see #1099 and #1094 and #1069
 
-  cf_ = CalcFactor(
+  cf_ = CalcFactorNormSq(
     cf.factor.mechanics,
     0,
     cf._legacyParams,
@@ -126,17 +126,28 @@ function sampleFactor(cf::CalcFactor{<:Mixture}, N::Int = 1)
     cf.cache,
     cf.fullvariables,
     cf.solvefor,
-    cf.manifold
+    cf.manifold,
+    cf.measurement,
+    nothing,
   )
   smpls = [getSample(cf_) for _ = 1:N]
   # smpls = Array{Float64,2}(undef,s.dims,N)
   #out memory should be right size first
   length(cf.factor.labels) != N ? resize!(cf.factor.labels, N) : nothing
   cf.factor.labels .= rand(cf.factor.diversity, N)
+  M = cf.manifold
+  
+  # mixture needs to be refactored so let's make it worse :-)
+  if cf.factor.mechanics isa AbstractPrior
+    samplef = samplePoint
+  elseif cf.factor.mechanics isa AbstractRelative
+    samplef = sampleTangent
+  end
+
   for i = 1:N
     mixComponent = cf.factor.components[cf.factor.labels[i]]
     # measurements relate to the factor's manifold (either tangent vector or manifold point)
-    setPointsMani!(smpls[i], rand(mixComponent, 1))
+    setPointsMani!(smpls,  samplef(M, mixComponent), i)
   end
 
   # TODO only does first element of meas::Tuple at this stage, see #1099

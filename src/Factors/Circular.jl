@@ -23,7 +23,7 @@ DFG.getManifold(::CircularCircular) = RealCircleGroup()
 
 function (cf::CalcFactor{<:CircularCircular})(X, p, q)
   #
-  M = cf.manifold # getManifold(cf.factor)
+  M = getManifold(cf)
   return distanceTangent2Point(M, X, p, q)
 end
 
@@ -68,7 +68,7 @@ function getSample(cf::CalcFactor{<:PriorCircular})
 end
 
 function (cf::CalcFactor{<:PriorCircular})(m, p)
-  M = cf.manifold # getManifold(cf.factor)
+  M = getManifold(cf)
   Xc = vee(M, p, log(M, p, m))
   return Xc
 end

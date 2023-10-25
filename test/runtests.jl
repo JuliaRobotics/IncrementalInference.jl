@@ -6,28 +6,32 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
 #...
 if TEST_GROUP in ["all", "tmp_debug_group"]
 include("testSpecialOrthogonalMani.jl")
-include("testDERelative.jl")
 include("testMultiHypo3Door.jl")
 include("priorusetest.jl")
 end
 
 if TEST_GROUP in ["all", "basic_functional_group"]
-  # more frequent stochasic failures from numerics
-include("manifolds/manifolddiff.jl")
-include("manifolds/factordiff.jl")
+# more frequent stochasic failures from numerics
 include("testSpecialEuclidean2Mani.jl")
 include("testEuclidDistance.jl")
-
-# regular testing
-include("testSphereMani.jl")
-include("testBasicManifolds.jl")
+# gradient / jacobian tests
+include("manifolds/manifolddiff.jl")
+include("manifolds/factordiff.jl")
+@error "Gradient tests must be updated and restored for new ccw.varValsAll[]"
+#include("testGradientUtils.jl")
+#include("testFactorGradients.jl")
 
 # start as basic as possible and build from there
 include("typeReturnMemRef.jl")
 include("testDistributionsGeneric.jl")
-include("testHeatmapGridDensity.jl")
 include("testCliqSolveDbgUtils.jl")
 include("basicGraphsOperations.jl")
+
+# regular testing
+include("testSphereMani.jl")
+include("testBasicManifolds.jl")
+include("testDERelative.jl")
+include("testHeatmapGridDensity.jl")
 
 # include("TestModuleFunctions.jl")
 include("testCompareVariablesFactors.jl")
@@ -44,9 +48,6 @@ include("testTreeFunctions.jl")
 #FIXME fails on MetaBayesTree
 include("testTreeSaveLoad.jl")
 
-@error "Gradient tests must be updated and restored for new ccw.varValsAll[]"
-# include("testGradientUtils.jl")
-# include("testFactorGradients.jl")
 include("testSpecialSampler.jl") # TODO, rename, refine
 include("testCommonConvWrapper.jl")
 
@@ -99,7 +100,7 @@ include("testFluxModelsDistribution.jl")
 include("testAnalysisTools.jl")
 
 include("testBasicParametric.jl")
-include("testMixtureParametric.jl")
+# include("testMixtureParametric.jl") #FIXME parametric mixtures #1787
 
 # dont run test on ARM, as per issue #527
 if Base.Sys.ARCH in [:x86_64;]

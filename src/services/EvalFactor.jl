@@ -82,7 +82,7 @@ function calcVariableDistanceExpectedFractional(
   # also check distance to certainidx for general scale reference (workaround heuristic)
   for cidx in certainidx
     count += 1
-    cerMeanPnt = mean(getManifold(varTypes[cidx]), ccwl.varValsAll[][cidx])
+    cerMeanPnt = mean(getManifold(varTypes[cidx]), ccwl.varValsAll[][cidx], GeodesicInterpolation())
     cerMean = getCoordinates(varTypes[cidx], cerMeanPnt)
     dists[count] = norm(refMean[1:dims] - cerMean[1:dims])
   end
@@ -572,10 +572,10 @@ function evalFactor(
   dfg::AbstractDFG,
   fct::DFGFactor,
   solvefor::Symbol,
-  measurement::AbstractVector = Tuple[];
+  measurement::AbstractVector = Tuple[]; # FIXME ensure type stable in all cases
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
-  variables = getVariable.(dfg, getVariableOrder(fct)), # because we trying to use StaticArrays, go figure
+  variables = getVariable.(dfg, getVariableOrder(fct)), # FIXME use tuple instead for type stability
   N::Int = length(measurement),
   inflateCycles::Int = getSolverParams(dfg).inflateCycles,
   nullSurplus::Real = 0,

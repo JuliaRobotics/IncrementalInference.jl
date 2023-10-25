@@ -71,9 +71,6 @@ function approxDeconv(
 
   islen1 = zDim == 1
 
-  # FIXME, is this still in use
-  destVarVals = Vector{Int}()
-
   for idx = 1:N
     # towards each particle in their own thread (not 100% ready yet, factors should be separate memory)
     target_smpl = makeTarget(idx)
@@ -82,31 +79,23 @@ function approxDeconv(
     resize!(ccw.hyporecipe.activehypo, length(hyporecipe.activehypo[2][2]))
     ccw.hyporecipe.activehypo[:] = hyporecipe.activehypo[2][2]
 
-    onehypo!, _ = _buildCalcFactorLambdaSample(ccw, idx, target_smpl, measurement)
+    onehypo! = _buildCalcFactorLambdaSample(ccw, idx, measurement)
     #
 
     # lambda with which to find best measurement values
     function hypoObj(tgt)
-      copyto!(target_smpl, tgt)
+      # copyto!(target_smpl, tgt)
+      measurement[idx] = tgt
       return onehypo!()
     end
     # hypoObj = (tgt) -> (target_smpl .= tgt; onehypo!())
 
     # find solution via SubArray view pointing to original memory location
     if fcttype isa AbstractManifoldMinimize
-      sfidx = ccw.varidx[]
-      ts = _solveLambdaNumericMeas(
-        fcttype,
-        hypoObj,
-        res_,
-        measurement[idx],
-        getVariableType(ccw.fullvariables[sfidx]), # ccw.vartypes[sfidx](),
-        islen1,
-      )
-      copyto!(target_smpl, ts) 
+      error("Fix dispatch on AbstractManifoldMinimize")
     else
       ts = _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[idx], islen1)
-      copyto!(target_smpl, ts)
+      measurement[idx] = ts
     end
   end
 
@@ -114,6 +103,62 @@ function approxDeconv(
   # r_meas = map(m->m[1], measurement)
   # r_fctSmpls = map(m->m[1], fctSmpls)
   return measurement, fctSmpls
+end
+
+# TBD deprecate use of xDim
+function approxDeconv(
+  fcto::DFGFactor{<:CommonConvWrapper{<:AbstractManifoldMinimize}},
+  ccw::CommonConvWrapper = _getCCW(fcto);
+  N::Int = 100,
+  measurement::AbstractVector = sampleFactor(ccw, N),
+  retries=nothing,
+)
+  if !isnothing(retries)
+    Base.depwarn(
+      "approxDeconv kwarg retries is not used",
+      :approxDeconv,
+    )
+  end
+  # but what if this is a partial factor -- is that important for general cases in deconv?
+  _setCCWDecisionDimsConv!(ccw, 0)
+
+  varsyms = getVariableOrder(fcto)
+  
+  # TODO assuming vector on only first container in measurement::Tuple  # TBD How should user dispatch fancy tuple measurements on deconv.
+  
+  # NOTE 
+  # build a lambda that incorporates the multihypo selections
+  # deconv has to solve for the best matching for particles
+  # FIXME This does not incorporate multihypo, Apply hyporecipe to full variable order list. But remember hyporecipe assignment must be found (NPhard)
+  hyporecipe = _prepareHypoRecipe!(nothing, N, 0, length(varsyms))
+  # only doing the current active hypo
+  @assert hyporecipe.activehypo[2][1] == 1 "deconv was expecting hypothesis nr == (1, 1:d)"
+
+  # get measurement dimension
+  zDim = _getZDim(fcto)
+  islen1 = zDim == 1
+
+  #make a copy of the original measurement before mutating it
+  sampled_meas = deepcopy(measurement)
+
+  fcttype = getFactorType(fcto)
+  
+  for idx = 1:N
+
+    # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
+    resize!(ccw.hyporecipe.activehypo, length(hyporecipe.activehypo[2][2]))
+    ccw.hyporecipe.activehypo[:] = hyporecipe.activehypo[2][2]
+    #TODO why is this resize in the loop?
+
+    # Create a CalcFactor functor of the correct hypo.
+    _hypoCalcFactor = _buildHypoCalcFactor(ccw, idx)
+
+    ts = _solveLambdaNumericMeas(fcttype, _hypoCalcFactor, measurement[idx], islen1)
+    measurement[idx] = ts
+
+  end
+
+  return measurement, sampled_meas
 end
 
 """
