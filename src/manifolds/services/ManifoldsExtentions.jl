@@ -136,12 +136,15 @@ function DFG.getPointIdentity(G::SemidirectProductGroup, ::Type{T} = Float64) wh
   return ArrayPartition(np, hp)
 end
 
-function DFG.getPointIdentity(G::SpecialOrthogonal{N}, ::Type{T} = Float64) where {N, T <: Real}
+function DFG.getPointIdentity(
+  G::SpecialOrthogonal{TypeParameter{Tuple{N}}},
+  ::Type{T} = Float64
+) where {N, T <: Real}
   return SMatrix{N, N, T}(I)
 end
 
 function DFG.getPointIdentity(
-  G::TranslationGroup{Tuple{N}},
+  G::TranslationGroup{TypeParameter{Tuple{N}}},
   ::Type{T} = Float64,
 ) where {N, T <: Real}
   return zeros(SVector{N,T})

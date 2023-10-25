@@ -50,7 +50,7 @@ using StructTypes
 using StaticArrays
 
 using ManifoldsBase
-
+using ManifoldsBase: TypeParameter
 # for BayesTree
 using MetaGraphs
 using Logging

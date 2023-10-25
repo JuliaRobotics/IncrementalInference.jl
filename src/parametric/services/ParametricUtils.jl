@@ -494,10 +494,15 @@ function initPoints!(p, gsc, fg::AbstractDFG, solveKey = :parametric)
   end
 end
 
+function _get_dim_ranges(dims::NTuple{N,Any}) where {N}
+  dims_acc = accumulate(+, vcat(1, SVector(dims)))
+  return ntuple(i -> (dims_acc[i]:(dims_acc[i] + dims[i] - 1)), Val(N))
+end
+
 #NOTE this only works with a product of power manifolds
 function getComponentsCovar(@nospecialize(PM::ProductManifold), Σ::AbstractMatrix)
   dims = manifold_dimension.(PM.manifolds)
-  dim_ranges = Manifolds._get_dim_ranges(dims)
+  dim_ranges = _get_dim_ranges(dims)
 
   subsigmas = map(zip(dim_ranges, PM.manifolds)) do v
     r = v[1]
