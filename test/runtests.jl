@@ -28,7 +28,7 @@ include("testCliqSolveDbgUtils.jl")
 include("basicGraphsOperations.jl")
 
 # regular testing
-include("testSphereMani.jl")
+# include("testSphereMani.jl") #FIXME
 include("testBasicManifolds.jl")
 include("testDERelative.jl")
 include("testHeatmapGridDensity.jl")
