@@ -17,13 +17,7 @@ function Base.isapprox(
   return mmd(p1, p2) < atol
 end
 
-function Base.isapprox(a::ProductRepr, b::ProductRepr; atol::Real = 1e-6)
-  #
-  for (i, a_) in enumerate(a.parts)
-    isapprox(a_, b.parts[i]; atol = atol) || (return false)
-  end
-  return true
-end
+
 
 ## FIXME, FIGURE OUT HOW TO DEPRECATE BELOW ==============================================
 

@@ -128,6 +128,14 @@ end
 ## Deprecate code below before v0.36
 ##==============================================================================
 
+# function Base.isapprox(a::ProductRepr, b::ProductRepr; atol::Real = 1e-6)
+#   #
+#   for (i, a_) in enumerate(a.parts)
+#     isapprox(a_, b.parts[i]; atol = atol) || (return false)
+#   end
+#   return true
+# end
+
 # exportimg(pl) = error("Please do `using Gadfly` to allow image export.")
 
 # function _perturbIfNecessary(
