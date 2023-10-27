@@ -4,8 +4,8 @@
 # this step actually occurs separate from the actual variables or factors (with their own manifolds) 
 # relies on later use of getManifold to give back the same <:AbstractManifold
 # NOTE added to DFG.@defVariable
-getVariableType(M::Euclidean{Tuple{N}}) where {N} = ContinuousEuclid(N)
-getVariableType(M::TranslationGroup{Tuple{N}}) where {N} = ContinuousEuclid(N)
+getVariableType(M::Euclidean{TypeParameter{Tuple{N}}}) where {N} = ContinuousEuclid(N)
+getVariableType(M::TranslationGroup{TypeParameter{Tuple{N}}}) where {N} = ContinuousEuclid(N)
 
 # getVariableType(M::RealCircleGroup) = Circular()
 # getVariableType(M::Circle) = error("Circle manifold is deprecated use RealCircleGroup, will come back when we generalize to non-group Riemannian")
