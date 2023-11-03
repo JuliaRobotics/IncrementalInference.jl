@@ -43,7 +43,7 @@ function taskSolveTree!(
 
   approx_iters = getNumCliqs(treel) * 24
   solve_progressbar =
-    verbose ? nothing : ProgressUnknown("Solve Progress: approx max $approx_iters, at iter")
+    verbose ? nothing : ProgressUnknown(;desc="Solve Progress: approx max $approx_iters, at iter")
 
   # queue all the tasks/threads
   if !isTreeSolved(treel; skipinitialized = true)
