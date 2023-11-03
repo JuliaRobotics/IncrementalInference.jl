@@ -297,9 +297,9 @@ function covarianceFiniteDiff(M, jacF!::JacF_RLM!, p0)
     Σ = try 
         Matrix(H) \ Matrix{eltype(H)}(I, size(H)...)
       catch ex #TODO only catch correct exception and try with pinv as fallback in certain cases.
-        @warn "Hessian inverse failed" ex
-        # Σ = pinv(H)
-        nothing
+        @warn "Hessian inverse failed" ex H
+        pinv(H)
+        # nothing
       end
     return Σ
 end
@@ -394,6 +394,38 @@ end
   #   kwargs...
   # )
 
+function build_costF_jacF(
+    fg,
+    varlabels = ls(fg),
+    faclabels = lsf(fg);
+    is_sparse = false,
+)
+  
+  # get the manifold and variable types
+  vars = getVariable.(fg, varlabels)
+    
+  M, varTypes, vartypeslist = buildGraphSolveManifold(vars)
+
+  varIntLabel, varlabelsAP = getVarIntLabelMap(vartypeslist)
+
+  #Can use varIntLabel (because its an OrderedDict), but varLabelsAP makes the ArrayPartition.
+  p0 = map(varlabelsAP) do label
+    getVal(fg, label, solveKey = :parametric)[1]
+  end
+
+  # create an ArrayPartition{CalcFactorResidual} for faclabels
+  calcfacs = CalcFactorResidualAP(fg, faclabels, varIntLabel)
+
+  #cost and jacobian functions
+  # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
+  costF! = CostFres!(calcfacs, collect(varlabelsAP))
+
+  # jacobian of function for Riemannian Levenberg-Marquardt
+  jacF! = JacF_RLM!(M, costF!, p0, fg; is_sparse)
+  
+  return M, costF!, jacF!, p0
+end
+
 function solve_RLM_conditional(
   fg,
   frontals::Vector{Symbol} = ls(fg),
@@ -412,6 +444,8 @@ function solve_RLM_conditional(
   filter!(faclabels) do fl
     return issubset(getVariableOrder(fg, fl), varlabels)
   end
+
+  @assert !isempty(faclabels) "Empty factor set for graph with variables $(ls(fg))"
 
   frontal_vars = getVariable.(fg, frontals)
   separator_vars = getVariable.(fg, separators)
@@ -485,7 +519,20 @@ function solve_RLM_conditional(
     Σ = pinv(J'J)
   end
 
-  return M, all_varlabelsAP, lm_r, Σ
+  return M, frontal_varlabelsAP, lm_r, Σ
+end
+
+function extractMarginalsAP(M, labelsAP::ArrayPartition{Symbol}, Σ::AbstractArray{<:Real})
+  st = 1
+  Σvec = map(eachindex(labelsAP.x)) do i
+      l = getDimension(M.manifolds[i].manifold)
+      map(eachindex(labelsAP.x[i])) do j
+          r = st:st + l - 1
+          st += l
+          SMatrix{l,l,Float64}(Σ[r,r])
+      end
+  end 
+  ArrayPartition(Σvec...)
 end
 
   #HEX solve

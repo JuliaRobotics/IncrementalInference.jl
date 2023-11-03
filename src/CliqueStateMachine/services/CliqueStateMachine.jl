@@ -960,7 +960,7 @@ function updateFromSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   logCSM(
     csmc,
     "CSM-5 Clique $(csmc.cliq.id) finished, solveKey=$(csmc.solveKey)";
-    loglevel = Logging.Info,
+    loglevel = Logging.Debug,
   )
   return IncrementalInference.exitStateMachine
 end
