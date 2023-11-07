@@ -27,3 +27,13 @@ struct DERelative{T <: InferenceVariable, P, D} <: AbstractManifoldMinimize # Ab
   data::D
   specialSampler::Function
 end
+
+
+struct SDERelative{T <: InferenceVariable, P, D} <: AbstractManifoldMinimize # AbstractRelativeMinimize
+  domain::Type{T}
+  forwardProblem::P
+  backwardProblem::P
+  """ second element of this data tuple is additional variables that will be passed down as a parameter """
+  data::D
+  specialSampler::Function
+end
