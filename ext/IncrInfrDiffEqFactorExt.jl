@@ -22,6 +22,25 @@ import Manifolds: allocate, compose, hat, Identity, vee, log
 
 getManifold(de::DERelative{T}) where {T} = getManifold(de.domain)
 
+
+function Base.show(
+  io::IO, 
+  ::Union{<:DERelative{T,O},Type{<:DERelative{T,O}}}
+) where {T,O}
+  println(io, "  DERelative{")
+  println(io, "    ", T)
+  println(io, "    ", O.name.name)
+  println(io, "  }")
+  nothing
+end
+
+Base.show(
+  io::IO, 
+  ::MIME"text/plain", 
+  der::DERelative
+) = show(io, der)
+
+
 """
 $SIGNATURES
 
@@ -31,7 +50,9 @@ DevNotes
 - TODO does not yet incorporate Xi.nanosecond field.
 - TODO does not handle timezone crossing properly yet.
 """
-function _calcTimespan(Xi::AbstractVector{<:DFGVariable})
+function _calcTimespan(
+  Xi::AbstractVector{<:DFGVariable}
+)
   #
   tsmps = getTimestamp.(Xi[1:2]) .|> DateTime .|> datetime2unix
   # toffs = (tsmps .- tsmps[1]) .|> x-> elemType(x.value*1e-3)
@@ -50,8 +71,8 @@ function DERelative(
   f::Function,
   data = () -> ();
   dt::Real = 1,
-  state0::AbstractVector{<:Real} = zeros(getDimension(domain)),
-  state1::AbstractVector{<:Real} = zeros(getDimension(domain)),
+  state0::AbstractVector{<:Real} = allocate(getPointIdentity(domain)), # zeros(getDimension(domain)),
+  state1::AbstractVector{<:Real} = allocate(getPointIdentity(domain)), # zeros(getDimension(domain)),
   tspan::Tuple{<:Real, <:Real} = _calcTimespan(Xi),
   problemType = DiscreteProblem,
 )
@@ -78,8 +99,8 @@ function DERelative(
   data = () -> ();
   Xi::AbstractArray{<:DFGVariable} = getVariable.(dfg, labels),
   dt::Real = 1,
-  state0::AbstractVector{<:Real} = zeros(getDimension(domain)),
-  state1::AbstractVector{<:Real} = zeros(getDimension(domain)),
+  state1::AbstractVector{<:Real} = allocate(getPointIdentity(domain)), #zeros(getDimension(domain)),
+  state0::AbstractVector{<:Real} = allocate(getPointIdentity(domain)), #zeros(getDimension(domain)),
   tspan::Tuple{<:Real, <:Real} = _calcTimespan(Xi),
   problemType = DiscreteProblem,
 )
@@ -99,7 +120,12 @@ end
 #
 
 # n-ary factor: Xtra splat are variable points (X3::Matrix, X4::Matrix,...)
-function _solveFactorODE!(measArr, prob, u0pts, Xtra...)
+function _solveFactorODE!(
+  measArr, 
+  prob, 
+  u0pts, 
+  Xtra...
+)
   # happens when more variables (n-ary) must be included in DE solve
   for (xid, xtra) in enumerate(Xtra)
     # update the data register before ODE solver calls the function
@@ -159,22 +185,21 @@ end
 
 
 # NOTE see #1025, CalcFactor should fix `multihypo=` in `cf.__` fields; OBSOLETE
-function (cf::CalcFactor{<:DERelative})(measurement, X...)
+function (cf::CalcFactor{<:DERelative})(
+  measurement, 
+  X...
+)
   #
+  # numerical measurement values
   meas1 = measurement[1]
+  # work on-manifold via sampleFactor piggy back of particular manifold definition
   M = measurement[2]
-  # diffOp = measurement[2]
-
+  # lazy factor pointer
   oderel = cf.factor
-
-  # work on-manifold
-  # diffOp = meas[2]
-  # if backwardSolve else forward
-
   # check direction
-
   solveforIdx = cf.solvefor
-
+  
+  # if backwardSolve else forward
   if solveforIdx > 2
     # need to recalculate new ODE (forward) for change in parameters (solving for 3rd or higher variable)
     solveforIdx = 2
@@ -190,19 +215,10 @@ function (cf::CalcFactor{<:DERelative})(measurement, X...)
   end
 
   # find the difference between measured and predicted.
-  ## assuming the ODE integrated from current X1 through to predicted X2 (ie `meas1[:,idx]`)
-  ## FIXME, obviously this is not going to work for more compilcated groups/manifolds -- must fix this soon!
-  # @show cf._sampleIdx, solveforIdx, meas1
-
+  # assuming the ODE integrated from current X1 through to predicted X2 (ie `meas1[:,idx]`)
   res_ = compose(M, inv(M, X[solveforIdx]), meas1)
   res = vee(M, Identity(M), log(M, Identity(M), res_))
 
-  # #FIXME 0
-  # res = zeros(size(X[2], 1))
-  # for i = 1:size(X[2], 1)
-  #   # diffop( reference?, test? )   <===>   ΔX = test \ reference
-  #   res[i] = diffOp[i](X[solveforIdx][i], meas1[i])
-  # end
   return res
 end
 
@@ -299,20 +315,5 @@ end
 # getDimension(oderel.domain)
 
 
-
-function Base.show(io::IO, ::Union{<:DERelative{T,O},Type{<:DERelative{T,O}}}) where {T,O}
-  println(io, "  DERelative{")
-  println(io, "    ", T)
-  println(io, "    ", O.name.name)
-  println(io, "  }")
-  nothing
-end
-
-Base.show(io::IO, ::MIME"text/plain", der::DERelative) = show(io, der)
-
-## the function
-# ode.problem.f.f
-
-#
 
 end # module
