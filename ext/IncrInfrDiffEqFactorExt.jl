@@ -2,6 +2,8 @@ module IncrInfrDiffEqFactorExt
 
 @info "IncrementalInference.jl is loading extensions related to DifferentialEquations.jl"
 
+import Base: show
+
 using DifferentialEquations
 import DifferentialEquations: solve
 
@@ -15,6 +17,7 @@ using DocStringExtensions
 
 export DERelative
 
+import Manifolds: allocate
 
 
 getManifold(de::DERelative{T}) where {T} = getManifold(de.domain)
@@ -100,11 +103,12 @@ function _solveFactorODE!(measArr, prob, u0pts, Xtra...)
   # happens when more variables (n-ary) must be included in DE solve
   for (xid, xtra) in enumerate(Xtra)
     # update the data register before ODE solver calls the function
-    prob.p[xid + 1][:] = xtra[:]
+    prob.p[xid + 1][:] = xtra[:] # FIXME, unlikely to work with ArrayPartition, maybe use MArray and `.=`
   end
 
   # set the initial condition
-  prob.u0[:] = u0pts[:]
+  prob.u0 .= u0pts
+
   sol = DifferentialEquations.solve(prob)
 
   # extract solution from solved ode
@@ -249,8 +253,10 @@ function IncrementalInference.sampleFactor(cf::CalcFactor{<:DERelative}, N::Int 
   oder = cf.factor
 
   # how many trajectories to propagate?
-  # @show getLabel(cf.fullvariables[2]), getDimension(cf.fullvariables[2])
-  meas = [zeros(getDimension(cf.fullvariables[2])) for _ = 1:N]
+  # 
+  v2T = getVariableType(cf.fullvariables[2])
+  meas = [allocate(getPointIdentity(v2T)) for _ = 1:N]
+  # meas = [zeros(getDimension(cf.fullvariables[2])) for _ = 1:N]
 
   # pick forward or backward direction
   # set boundary condition
@@ -287,7 +293,15 @@ end
 
 
 
+function Base.show(io::IO, ::Union{<:DERelative{T,O},Type{<:DERelative{T,O}}}) where {T,O}
+  println(io, "  DERelative{")
+  println(io, "    ", T)
+  println(io, "    ", O.name.name)
+  println(io, "  }")
+  nothing
+end
 
+Base.show(io::IO, ::MIME"text/plain", der::DERelative) = show(io, der)
 
 ## the function
 # ode.problem.f.f
