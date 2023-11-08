@@ -17,7 +17,7 @@ using DocStringExtensions
 
 export DERelative
 
-import Manifolds: allocate
+import Manifolds: allocate, compose, hat, Identity, vee, log
 
 
 getManifold(de::DERelative{T}) where {T} = getManifold(de.domain)
@@ -67,7 +67,7 @@ function DERelative(
   # backward time problem
   bproblem = problemType(f, state1, (tspan[2], tspan[1]), datatuple; dt = -dt)
   # build the IIF recognizable object
-  return DERelative(domain, fproblem, bproblem, datatuple, getSample)
+  return DERelative(domain, fproblem, bproblem, datatuple) #, getSample)
 end
 
 function DERelative(
@@ -88,11 +88,11 @@ function DERelative(
     domain,
     f,
     data;
-    dt = dt,
-    state0 = state0,
-    state1 = state1,
-    tspan = tspan,
-    problemType = problemType,
+    dt,
+    state0,
+    state1,
+    tspan,
+    problemType,
   )
 end
 #
@@ -162,7 +162,8 @@ end
 function (cf::CalcFactor{<:DERelative})(measurement, X...)
   #
   meas1 = measurement[1]
-  diffOp = measurement[2]
+  M = measurement[2]
+  # diffOp = measurement[2]
 
   oderel = cf.factor
 
@@ -193,12 +194,15 @@ function (cf::CalcFactor{<:DERelative})(measurement, X...)
   ## FIXME, obviously this is not going to work for more compilcated groups/manifolds -- must fix this soon!
   # @show cf._sampleIdx, solveforIdx, meas1
 
-  #FIXME 
-  res = zeros(size(X[2], 1))
-  for i = 1:size(X[2], 1)
-    # diffop( reference?, test? )   <===>   ΔX = test \ reference
-    res[i] = diffOp[i](X[solveforIdx][i], meas1[i])
-  end
+  res_ = compose(M, inv(M, X[solveforIdx]), meas1)
+  res = vee(M, Identity(M), log(M, Identity(M), res_))
+
+  # #FIXME 0
+  # res = zeros(size(X[2], 1))
+  # for i = 1:size(X[2], 1)
+  #   # diffop( reference?, test? )   <===>   ΔX = test \ reference
+  #   res[i] = diffOp[i](X[solveforIdx][i], meas1[i])
+  # end
   return res
 end
 
@@ -260,23 +264,25 @@ function IncrementalInference.sampleFactor(cf::CalcFactor{<:DERelative}, N::Int 
 
   # pick forward or backward direction
   # set boundary condition
-  u0pts = if cf.solvefor == 1
+  u0pts, M = if cf.solvefor == 1
     # backward direction
     prob = oder.backwardProblem
+    M_ = getManifold(getVariableType(cf.fullvariables[1]))
     addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
-      convert(Tuple, getManifold(getVariableType(cf.fullvariables[1]))),
+      convert(Tuple, M_),
     )
     # getBelief(cf.fullvariables[2]) |> getPoints
-    cf._legacyParams[2]
+    cf._legacyParams[2], M_
   else
     # forward backward
     prob = oder.forwardProblem
+    M_ = getManifold(getVariableType(cf.fullvariables[2]))
     # buffer manifold operations for use during factor evaluation
     addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
-      convert(Tuple, getManifold(getVariableType(cf.fullvariables[2]))),
+      convert(Tuple, M_),
     )
     # getBelief(cf.fullvariables[1]) |> getPoints
-    cf._legacyParams[1]
+    cf._legacyParams[1], M_
   end
 
   # solve likely elements
@@ -287,7 +293,8 @@ function IncrementalInference.sampleFactor(cf::CalcFactor{<:DERelative}, N::Int 
     # _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(cf._legacyParams...)...)
   end
 
-  return map(x -> (x, diffOp), meas)
+  # return meas, M
+  return map(x -> (x, M), meas)
 end
 # getDimension(oderel.domain)
 
