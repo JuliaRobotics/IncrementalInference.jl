@@ -104,7 +104,8 @@ function _solveFactorODE!(measArr, prob, u0pts, Xtra...)
   end
 
   # set the initial condition
-  prob.u0[:] = u0pts[:]
+  prob.u0 = u0pts
+
   sol = DifferentialEquations.solve(prob)
 
   # extract solution from solved ode
