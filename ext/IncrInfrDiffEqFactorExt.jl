@@ -74,7 +74,7 @@ function DERelative(
   state0::AbstractVector{<:Real} = allocate(getPointIdentity(domain)), # zeros(getDimension(domain)),
   state1::AbstractVector{<:Real} = allocate(getPointIdentity(domain)), # zeros(getDimension(domain)),
   tspan::Tuple{<:Real, <:Real} = _calcTimespan(Xi),
-  problemType = DiscreteProblem,
+  problemType = ODEProblem, # DiscreteProblem,
 )
   #
   datatuple = if 2 < length(Xi)
@@ -84,7 +84,7 @@ function DERelative(
     data
   end
   # forward time problem
-  fproblem = problemType(f, state0, tspan, datatuple; dt = dt)
+  fproblem = problemType(f, state0, tspan, datatuple; dt)
   # backward time problem
   bproblem = problemType(f, state1, (tspan[2], tspan[1]), datatuple; dt = -dt)
   # build the IIF recognizable object
