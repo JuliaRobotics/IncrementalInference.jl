@@ -25,5 +25,5 @@ struct DERelative{T <: InferenceVariable, P, D} <: AbstractManifoldMinimize # Ab
   backwardProblem::P
   """ second element of this data tuple is additional variables that will be passed down as a parameter """
   data::D
-  specialSampler::Function
+  # specialSampler::Function
 end
