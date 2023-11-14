@@ -19,13 +19,6 @@ using FiniteDifferences
 
 using OrderedCollections: OrderedDict
 
-export ℝ, AbstractManifold
-# export ProductRepr
-# common groups -- preferred defaults at this time.
-export TranslationGroup, RealCircleGroup
-# common non-groups -- TODO still teething problems to sort out in IIF v0.25-v0.26.
-export Euclidean, Circle
-
 import Optim
 
 using Dates,
