@@ -23,7 +23,7 @@ The list below highlights breaking changes according to normal semver workflow -
 - Further bug fixes for transition to `StaticArrays` value stores and computes, including `Position{N}` (#1779, #1776).
 - Restore `DifferentialEquation.jl` factor `DERelative` functionality and tests that were suppressed in a previous upgrade (#1774, #1777).
 - Restore previously suppressed tests (#1781, #1721, #1780)
-- Improve DERelative factor on-manifold operations (#1802, #1803).
+- Improve DERelative factor on-manifold operations (#1775, #1802, #1803).
 
 # Changes in v0.34
 
