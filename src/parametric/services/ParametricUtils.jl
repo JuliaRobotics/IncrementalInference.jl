@@ -148,7 +148,7 @@ function CalcFactorMahalanobis(
   cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
 
   multihypo = getSolverData(fct).multihypo
-  nullhypo::Float64 = getSolverData(fct).nullhypo
+  nullhypo = getSolverData(fct).nullhypo
 
   # FIXME, type instability
   special = if length(multihypo) > 0
