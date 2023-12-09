@@ -131,7 +131,10 @@ getFactorMeasurementParametric(dfg::AbstractDFG, flb::Symbol) = getFactorMeasure
 getFactorMechanics(f::AbstractFactor) = f
 getFactorMechanics(f::Mixture) = f.mechanics
 
-function CalcFactorMahalanobis(fg, fct::DFGFactor)
+function CalcFactorMahalanobis(
+  fg::AbstractDFG, 
+  fct::DFGFactor
+)
   fac_func = getFactorType(fct)
   varOrder = getVariableOrder(fct)
 
@@ -145,17 +148,17 @@ function CalcFactorMahalanobis(fg, fct::DFGFactor)
   cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
 
   multihypo = getSolverData(fct).multihypo
-  nullhypo = getSolverData(fct).nullhypo
+  nullhypo::Float64 = getSolverData(fct).nullhypo
 
   # FIXME, type instability
-  if length(multihypo) > 0
-    special = MaxMultihypo(multihypo)
+  special = if length(multihypo) > 0
+    MaxMultihypo(multihypo)
   elseif nullhypo > 0
-    special = MaxNullhypo(nullhypo)
+    MaxNullhypo(nullhypo)
   elseif fac_func isa Mixture
-    special = MaxMixture(fac_func.diversity.p, Ref(0))
+    MaxMixture(fac_func.diversity.p, Ref(0))
   else
-    special = nothing
+    nothing
   end
 
   return CalcFactorMahalanobis(fct.label, getFactorMechanics(fac_func), cache, varOrder, meas, iΣ, special)
@@ -176,7 +179,7 @@ end
 # end
 
 function calcFactorMahalanobisDict(fg)
-  calcFactors = OrderedDict{Symbol, CalcFactorMahalanobis}()
+  calcFactors = OrderedDict{Symbol, CalcFactorMahalanobis}() # Type instability on CalcFactorMahalanobis{?T,...}
   for fct in getFactors(fg)
     # skip non-numeric prior
     getFactorType(fct) isa MetaPrior ? continue : nothing
@@ -366,11 +369,24 @@ function cost_cfp(
   p::AbstractArray{T},
   vi::NTuple{N, Int},
 ) where {T,N}
+  # standard Mahalanobis distance definition
+  _mala(r, iΣ) = r' * iΣ * r
   # cfp(map(v->p[v],vi)...)
   res = cfp(cfp.meas..., map(v->p[v],vi)...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-  return res' * cfp.iΣ[1] * res
+  # return res' * cfp.iΣ[1] * res
+  return _mala(res, cfp.iΣ[1])
 
+  ## dev nullhypo, see #1807
+  ρ, τ = 4, 1e-5
+  # https://juliaarrays.github.io/StaticArrays.jl/dev/pages/api/#SVector
+  _s1 = @SVector ones(length(res)) 
+  _pseudoHuber(r, _δ) = (_δ'*_δ) * (sqrt(1 + (r'*_δ)*(_δ'*r)) - 1)
+  δ(r, iΣ, _nh=0) = ((1-_nh)^ρ)*im*(iΣ*r) + ( _nh/(_nh+τ) )*(iΣ*_s1)
+  _loss(r, iΣ, _nh=0) = norm(_pseudoHuber(r, δ(r,iΣ,_nh)))
+  _getnullhypo(s) = 0
+  _getnullhypo(s::MaxNullhypo) = s.nullhypo
+  return _loss(res, cfp.iΣ[1], _getnullhypo(cfp.specialAlg))
 end
 # function cost_cfp(
 #   @nospecialize(cfp::CalcFactorMahalanobis),
