@@ -737,6 +737,23 @@ function solveConditionalsParametric(
 end
 
 ## ================================================================================================
+## UNDER DEVELOPMENT Parametric MaxMixture Utils
+## ================================================================================================
+
+
+function getMeasurementParametric(s::Mixture{N, F, S, T}) where {N, F, S, T}
+  meas = map(c -> getMeasurementParametric(c)[1], values(s.components))
+  iΣ = map(c -> getMeasurementParametric(c)[2], values(s.components))
+  return meas, iΣ
+end
+
+function _calcFactorMahalanobis(cfp, meas, iΣ, variables...)
+  res = cfp.calcfactor!(meas, variables...)
+  r = res' * iΣ * res
+  return r
+end
+
+## ================================================================================================
 ## UNDER DEVELOPMENT Parametric solveTree utils
 ## ================================================================================================
 
