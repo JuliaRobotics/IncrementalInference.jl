@@ -210,12 +210,12 @@ include("CliqueStateMachine/services/CliqStateMachineUtils.jl")
 
 # FIXME CONSOLIDATE
 include("parametric/services/ConsolidateParametricRelatives.jl")
+include("parametric/entitties/MaxMixture.jl")
 #EXPERIMENTAL parametric
 include("parametric/services/ParametricCSMFunctions.jl")
 include("parametric/services/ParametricUtils.jl")
 include("parametric/services/ParametricOptim.jl")
 include("parametric/services/ParametricManopt.jl")
-include("services/MaxMixture.jl")
 
 #X-stroke
 include("CliqueStateMachine/services/CliqueStateMachine.jl")
