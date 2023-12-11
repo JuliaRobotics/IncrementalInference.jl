@@ -123,6 +123,12 @@ end
 getFactorMeasurementParametric(fct::DFGFactor) = getFactorMeasurementParametric(getFactorType(fct))
 getFactorMeasurementParametric(dfg::AbstractDFG, flb::Symbol) = getFactorMeasurementParametric(getFactor(dfg, flb))
 
+function getMeasurementParametric(s::Mixture{N, F, S, T}) where {N, F, S, T}
+  meas = map(c -> getMeasurementParametric(c)[1], values(s.components))
+  iΣ = map(c -> getMeasurementParametric(c)[2], values(s.components))
+  return meas, iΣ
+end
+
 ## ================================================================================================
 ## Parametric solve with Mahalanobis distance - CalcFactor
 ## ================================================================================================
@@ -130,6 +136,8 @@ getFactorMeasurementParametric(dfg::AbstractDFG, flb::Symbol) = getFactorMeasure
 #TODO maybe remove with Mixture rework see #1504
 getFactorMechanics(f::AbstractFactor) = f
 getFactorMechanics(f::Mixture) = f.mechanics
+
+malahanobisDistance(r, iΣ) = r' * iΣ * r
 
 function CalcFactorMahalanobis(
   fg::AbstractDFG, 
@@ -370,12 +378,11 @@ function cost_cfp(
   vi::NTuple{N, Int},
 ) where {T,N}
   # standard Mahalanobis distance definition
-  _mala(r, iΣ) = r' * iΣ * r
   # cfp(map(v->p[v],vi)...)
   res = cfp(cfp.meas..., map(v->p[v],vi)...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
   # return res' * cfp.iΣ[1] * res
-  return _mala(res, cfp.iΣ[1])
+  return malahanobisDistance(res, cfp.iΣ[1])
 
   ## dev nullhypo, see #1807
   ρ, τ = 4, 1e-5
@@ -650,7 +657,7 @@ function _totalCost(fg, cfdict::OrderedDict{Symbol, <:CalcFactorMahalanobis}, fl
     # retval = cfp(Xparams...)
     res = cfp(cfp.meas..., Xparams...)
     # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-    obj += 1 / 2 * res' * cfp.iΣ[1] * res
+    obj += 1 / 2 * malahanobisDistance(res, cfp.iΣ[1])
   end
 
   return obj
@@ -741,15 +748,9 @@ end
 ## ================================================================================================
 
 
-function getMeasurementParametric(s::Mixture{N, F, S, T}) where {N, F, S, T}
-  meas = map(c -> getMeasurementParametric(c)[1], values(s.components))
-  iΣ = map(c -> getMeasurementParametric(c)[2], values(s.components))
-  return meas, iΣ
-end
-
 function _calcFactorMahalanobis(cfp, meas, iΣ, variables...)
   res = cfp.calcfactor!(meas, variables...)
-  r = res' * iΣ * res
+  r = malahanobisDistance(res, iΣ)
   return r
 end
 
