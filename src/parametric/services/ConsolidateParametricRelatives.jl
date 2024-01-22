@@ -18,7 +18,7 @@ DevNotes
 
 Related:
 
-[`getMeasurementParametric`](@ref), [`approxConv`](@ref), [`MutablePose2Pose2Gaussian`](@ref)
+[`getMeasurementParametric`](@ref), [`approxConvBelief`](@ref), [`MutablePose2Pose2Gaussian`](@ref)
 """
 function solveFactorParameteric(
   dfg::AbstractDFG,
