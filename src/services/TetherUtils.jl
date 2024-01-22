@@ -114,7 +114,7 @@ DevNotes
 
 Related:
 
-[`approxConv`](@ref), [`solveFactorParameteric`](@ref), `RoME.MutablePose2Pose2Gaussian`
+[`approxConvBelief`](@ref), [`solveFactorParameteric`](@ref), `RoME.MutablePose2Pose2Gaussian`
 """
 function accumulateFactorMeans(
   dfg::AbstractDFG, 

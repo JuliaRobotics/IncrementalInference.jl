@@ -562,7 +562,11 @@ function autoinitParametric!(
 end
 
 
-##
+"""
+    $SIGNATURES
+
+Batch parametric graph solve using Riemannian Levenberg Marquardt.
+"""
 solveGraphParametric(args...; kwargs...) = solve_RLM(args...; kwargs...)
 
 function DFG.solveGraphParametric!(

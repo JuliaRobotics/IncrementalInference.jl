@@ -168,12 +168,12 @@ Generalized deconvolution to find the predicted measurement values of the factor
 Inverse solve of predicted noise value and returns tuple of (newly predicted, and known "measured" noise) values.
 
 Notes
-- Opposite operation contained in `approxConv`.
+- Opposite operation contained in `approxConvBelief`.
 - For more notes see [`solveFactorMeasurements`](@ref).
 
 Related
 
-[`approxConv`](@ref), `deconvSolveKey`
+[`approxConvBelief`](@ref), `deconvSolveKey`
 """
 function approxDeconv(
   dfg::AbstractDFG,
