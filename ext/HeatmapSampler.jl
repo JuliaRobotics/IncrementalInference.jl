@@ -124,12 +124,12 @@ function sampleHeatmap(
   roi::AbstractMatrix{<:Real},
   x_grid::AbstractVector{<:Real},
   y_grid::AbstractVector{<:Real},
-  thres::Real = 0,
+  thres::Real = 1e-14,
 )
   #
 
   # mask the region of interest above the sampling threshold value
-  mask = thres .<= roi
+  mask = thres .< roi
 
   idx2d = findall(mask)  # 2D indices
   pos = (v -> [x_grid[v[1]], y_grid[v[2]]]).(idx2d)
@@ -235,21 +235,7 @@ function LevelSetGridNormal(
   N::Int = 10000,
 )
   #
-
-  # select the support from raw data
-  roi = data .- level
-  # make Gaussian
-  roi .^= 2
-  roi .*= 0.5 / (sigma^2)
-  roi .-= sigma_scale^2
-  roi .*= -1
-  # truncate sigma_scale*sigma below zero
-  #   h = heatmap;  z = measurement
-  #   l = 1/2 (h-z/σ)^2
-  #   masked_roi = 0 .< κ^2 - l
-
   hgd = HeatmapGridDensity(data, domain, hint_callback, bw_factor; N = N)
-
   return LevelSetGridNormal(level, sigma, float(sigma_scale), hgd)
 end
 
