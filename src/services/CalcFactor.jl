@@ -118,7 +118,7 @@ residual = calcFactorResidual(fg, :x1x2f1, [1.0], [0.0], [0.0])
 
 Related
 
-[`calcFactorResidualTemporary`](@ref), [`_evalFactorTemporary!`](@ref), [`evalFactor`](@ref), [`approxConvBelief`](@ref)
+[`calcFactorResidualTemporary`](@ref), [`_evalFactorTemporary!`](@ref), [`approxConvBelief`](@ref)
 """
 function calcFactorResidual(
   dfgfct::DFGFactor,
