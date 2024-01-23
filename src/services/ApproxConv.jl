@@ -70,7 +70,7 @@ DevNotes
 
 Related
 
-[`approxDeconv`](@ref), `LocalDFG.findShortestPathDijkstra`, [`evalFactor`](@ref)
+[`approxDeconv`](@ref), `findShortestPathDijkstra`
 """
 function approxConvBelief(
   dfg::AbstractDFG,

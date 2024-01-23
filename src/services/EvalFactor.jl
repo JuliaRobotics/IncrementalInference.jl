@@ -620,9 +620,7 @@ B = _evalFactorTemporary!(EuclidDistance, (ContinuousScalar, ContinuousScalar), 
 # should return `B = 10`
 ```
 
-Related
-
-[`evalFactor`](@ref), [`calcFactorResidual`](@ref), [`testFactorResidualBinary`](@ref), [`solveFactorParameteric`](@ref), [`approxConvBelief`](@ref)
+See also:  [`calcFactorResidual`](@ref), [`testFactorResidualBinary`](@ref), [`solveFactorParameteric`](@ref), [`approxConvBelief`](@ref)
 """
 function _evalFactorTemporary!(
   fct::AbstractFactor,
