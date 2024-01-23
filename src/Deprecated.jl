@@ -123,6 +123,7 @@ end
 ## Deprecate code below before v0.37
 ##==============================================================================
 
+@deprecate solveFactorParameteric(w...;kw...) solveFactorParametric(w...;kw...)
 
 ##==============================================================================
 ## Deprecate code below before v0.36

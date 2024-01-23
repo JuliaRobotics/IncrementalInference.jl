@@ -52,7 +52,7 @@ Notes
     - Originally written just for Lie Groups to support legacy, but future needs may well alter the design.
 - Original design driven by parametric solve and dead reckon tethering.
 
-See also: [`accumulateFactorMeans`](@ref), [`solveFactorParameteric`](@ref)
+See also: [`accumulateFactorMeans`](@ref), [`solveFactorParametric`](@ref)
 """
 function getMeasurementParametric end
 
@@ -648,7 +648,7 @@ DevNotes
 - WIP
 - Relates to: https://github.com/JuliaRobotics/IncrementalInference.jl/issues/466#issuecomment-562556953
 - Consolidation
-  - Definitely with [`solveFactorParameteric`](@ref)
+  - Definitely with [`solveFactorParametric`](@ref)
   - Maybe with [`solveGraphParametric`](@ref)
     - https://github.com/JuliaRobotics/IncrementalInference.jl/pull/1588#issuecomment-1210406683
 """

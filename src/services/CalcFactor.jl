@@ -118,7 +118,7 @@ residual = calcFactorResidual(fg, :x1x2f1, [1.0], [0.0], [0.0])
 
 Related
 
-[`calcFactorResidualTemporary`](@ref), [`_evalFactorTemporary!`](@ref), [`evalFactor`](@ref), [`approxConv`](@ref)
+[`calcFactorResidualTemporary`](@ref), [`_evalFactorTemporary!`](@ref), [`approxConvBelief`](@ref)
 """
 function calcFactorResidual(
   dfgfct::DFGFactor,
@@ -147,7 +147,7 @@ residual = calcFactorResidualTemporary(Pose2Pose2(...), (RoME.Pose2,RoME.Pose2),
 
 Related
 
-[`calcFactorResidual`](@ref), [`CalcResidual`](@ref), [`_evalFactorTemporary!`](@ref), [`approxConv`](@ref), [`_buildGraphByFactorAndTypes!`](@ref)
+[`calcFactorResidual`](@ref), [`CalcResidual`](@ref), [`_evalFactorTemporary!`](@ref), [`approxConvBelief`](@ref), [`_buildGraphByFactorAndTypes!`](@ref)
 """
 function calcFactorResidualTemporary(
   fct::AbstractRelative,

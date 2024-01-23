@@ -24,6 +24,7 @@ The list below highlights breaking changes according to normal semver workflow -
 - Restore `DifferentialEquation.jl` factor `DERelative` functionality and tests that were suppressed in a previous upgrade (#1774, #1777).
 - Restore previously suppressed tests (#1781, #1721, #1780)
 - Improve DERelative factor on-manifold operations (#1775, #1802, #1803).
+- Fixed a typo via deprecation, `solveFactorParametric` replaces `solveFactorParameteric`.
 
 # Changes in v0.34
 
@@ -110,7 +111,7 @@ The list below highlights breaking changes according to normal semver workflow -
 - Upstream `calcHelix_T` canonical generator utility from RoME.jl.
 - Deserialization of factors with DFG needs new API and change of solverData and CCW type in factor.
 - Deprecate use of `getParametricMeasurement` and use `getMeasurementParametric` instead, and add `<:AbstractManifold` to API.
-- Deprecate use of `solveBinaryFactorParameteric`, instead use `solveFactorParameteric`.
+- Deprecate use of `solveBinaryFactorParameteric`, instead use `solveFactorParametric`.
 - Deprecating `approxConvBinary`, use `approxConvBelief` instead.
 - Removing obsolete `approxConvCircular`, use `approxConvBelief` instead.
 - `getSample` should return a single sample and no longer takes the N(number of samples) parameter.
