@@ -9,8 +9,8 @@
 
 [iif-deps-img]: https://juliahub.com/docs/IncrementalInference/deps.svg
 [iif-deps-jlh]: https://juliahub.com/ui/Packages/IncrementalInference/NrVw2??page=2
-[doi-img]: https://zenodo.org/badge/DOI/10.5281/zenodo.7498643.svg
-[doi-url]: https://doi.org/10.5281/zenodo.7498643
+[doi-img]: https://zenodo.org/badge/DOI/10.5281/zenodo.5146221.svg
+[doi-url]: https://doi.org/10.5281/zenodo.5146221
 
 <!-- replicated in Caesar.jl README -->
 [iif-ci-dev-img]: https://github.com/JuliaRobotics/IncrementalInference.jl/actions/workflows/ci.yml/badge.svg
