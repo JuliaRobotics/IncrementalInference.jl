@@ -88,7 +88,7 @@ function solveGraphParametricRansac!(
             best_inlierlabels = inlierlabels
         end
         if ratio_inliers > stop_ratio
-            @info "stop ratio met $best_ratio"
+            @info "stop ratio with $best_ratio"
             break
         end
         # res_vals = last.(residuals)
