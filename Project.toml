@@ -64,6 +64,7 @@ IncrInfrInteractiveUtilsExt = "InteractiveUtils"
 IncrInfrInterpolationsExt = "Interpolations"
 
 [compat]
+AMD = "0.5"
 ApproxManifoldProducts = "0.7, 0.8"
 BSON = "0.2, 0.3"
 Combinatorics = "1.0"
