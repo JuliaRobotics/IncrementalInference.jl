@@ -91,8 +91,8 @@ f1 = addFactor!(fg, [:x0;:x1], mr)
 
 ##
 
-pf0 = DFG.packFactor(fg, f0)
-pf1 = DFG.packFactor(fg, f1)
+pf0 = DFG.packFactor(f0)
+pf1 = DFG.packFactor(f1)
 
 # now test unpacking
 fg_ = initfg();

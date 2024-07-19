@@ -53,6 +53,7 @@ v2 = vardict[:x2]
 @test isapprox(v2.cov, [0.125;;], atol=1e-3)
 initVariable!(fg, :x2, Normal(v2.val[1], sqrt(v2.cov[1])), :parametric)
 
+addFactor!(fg, [:x0], Prior(Normal(0.1,1.1)))
 IIF.solveGraphParametric!(fg; is_sparse=false)
 
 end
@@ -75,15 +76,13 @@ end
 
 fg = generateGraph_LineStep(2, graphinit=true, vardims=1, poseEvery=1, landmarkEvery=0, posePriorsAt=Int[0], sightDistance=3, solverParams=SolverParams(algorithms=[:default, :parametric]))
 
-r = IIF.autoinitParametric!(fg, :x0)
-@test_broken IIF.Optim.converged(r)
+@test IIF.autoinitParametric!(fg, :x0)
 
 v0 = getVariable(fg,:x0)
 @test length(v0.solverDataDict[:parametric].val[1]) === 1
 @test isapprox(v0.solverDataDict[:parametric].val[1][1], 0.0, atol = 1e-4)
 
-r = IIF.autoinitParametric!(fg, :x1)
-@test_broken IIF.Optim.converged(r)
+@test IIF.autoinitParametric!(fg, :x1)
 
 v0 = getVariable(fg,:x1)
 @test length(v0.solverDataDict[:parametric].val[1]) === 1

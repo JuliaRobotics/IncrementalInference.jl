@@ -500,10 +500,11 @@ function autoinitParametric!(
   reinit = false,
   kwargs...
 )
-  @showprogress for vIdx in varorderIds
+  init_labels = @showprogress map(varorderIds) do vIdx
     autoinitParametric!(fg, vIdx; reinit, kwargs...)
   end
-  return nothing
+  filter!(!isnothing, init_labels)
+  return init_labels
 end
 
 function autoinitParametric!(dfg::AbstractDFG, initme::Symbol; kwargs...)
@@ -532,6 +533,11 @@ function autoinitParametric!(
     filter!(initfrom) do vl
       return isInitialized(dfg, vl, solveKey)
     end
+    
+    # nothing to initialize if no initialized neighbors or priors
+    if isempty(initfrom) && !any(isPrior.(dfg, listNeighbors(dfg, initme)))
+      return false
+    end
 
     vnd::VariableNodeData = getSolverData(xi, solveKey)
     
@@ -554,7 +560,7 @@ function autoinitParametric!(
     val = lm_r[1]
     vnd.val[1] = val
 
-    !isnothing(Σ) && vnd.bw .= Σ
+    !isnothing(Σ) && (vnd.bw .= Σ)
   
     # updateSolverDataParametric!(vnd, val, Σ)
 
@@ -564,10 +570,10 @@ function autoinitParametric!(
     ppe = MeanMaxPPE(solveKey, Xc, Xc, Xc)
     getPPEDict(xi)[solveKey] = ppe
 
-    result = vartypeslist, lm_r
+    result = true
 
   else
-    result = nothing
+    result = false
   end
 
   return result#isInitialized(xi, solveKey)
