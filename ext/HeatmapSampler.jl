@@ -160,14 +160,16 @@ end
 
 # Helper function to construct HGD
 function HeatmapGridDensity(
-  data::AbstractMatrix{<:Real},
+  # NAME SUGGESTION: SAMPLEABLE_FIELD, GenericField
+  field_on_grid::AbstractMatrix{<:Real},
   domain::Tuple{<:AbstractVector{<:Real}, <:AbstractVector{<:Real}},
+  # encapsulate above
   hint_callback::Union{<:Function, Nothing} = nothing,
   bw_factor::Real = 0.7;  # kde spread between domain points 
   N::Int = 10000,
 )
   #
-  pos, weights_ = sampleHeatmap(data, domain..., 0)
+  pos, weights_ = sampleHeatmap(field_on_grid, domain..., 0)
   # recast to the appropriate shape
   @cast support_[i, j] := pos[j][i]
 
@@ -178,9 +180,9 @@ function HeatmapGridDensity(
 
   @cast vec_preIS[j][i] := pts_preIS[i, j]
 
-  # weight the intermediate samples according to interpolation of raw data
+  # weight the intermediate samples according to interpolation of raw field_on_grid
   # interpolated heatmap
-  hm = Interpolations.linear_interpolation(domain, data) # depr .LinearInterpolation(..)
+  hm = Interpolations.linear_interpolation(domain, field_on_grid) # depr .LinearInterpolation(..)
   d_scalar = Vector{Float64}(undef, length(vec_preIS))
 
   # interpolate d_scalar for intermediate test points
@@ -225,7 +227,7 @@ end
 
 # legacy construct helper
 function LevelSetGridNormal(
-  data::AbstractMatrix{<:Real},
+  field_on_grid::AbstractMatrix{<:Real},
   domain::Tuple{<:AbstractVector{<:Real}, <:AbstractVector{<:Real}},
   level::Real,
   sigma::Real;
@@ -235,8 +237,18 @@ function LevelSetGridNormal(
   N::Int = 10000,
 )
   #
-  hgd = HeatmapGridDensity(data, domain, hint_callback, bw_factor; N = N)
-  return LevelSetGridNormal(level, sigma, float(sigma_scale), hgd)
+  field = HeatmapGridDensity(field_on_grid, domain, hint_callback, bw_factor; N = N)
+  return LevelSetGridNormal(level, sigma, float(sigma_scale), field)
 end
 
+# Field: domain (R^2/3), image (R^1/n scalar or tensor)   e.g.: x,y -> elevation ;; x, y, z, t -> EM-field (R^(4x4))
+# Field( grid_x, grid_y,.... field_grid )
+# Field^ = interpolator(field_at_grid, grid)
+#
+# FieldGrid(data_on_grid, grid_domain)  # internally does interpolation vodoo (same as Field^)
+# BeliefGrid <: FieldGrid
+# BeliefGrid(field_data: FieldGrid, measurement: Normal(mean: image_domain, cov: image_domain^2) ) -> domain, R_0+
+# 
+# calcApproxLoss(ref::BeliefGrid, appr::ManifoldKernelDensity)::Field{Real}
+#  ref = Normal(ScalarField - measurement, cov)
 #
