@@ -259,7 +259,7 @@ function getSparsityPattern(fg, varLabels, factLabels)
 
   vdims = getDimension.(getVariable.(fg, biadj.varLabels))
   fdims = getDimension.(getFactor.(fg, biadj.facLabels))
- 
+
   c_end = cumsum(vdims)
   r_end = cumsum(fdims)
 
@@ -272,7 +272,7 @@ function getSparsityPattern(fg, varLabels, factLabels)
     vec(CartesianIndices((R_range[R], C_range[C])))
   end)
 
-  vec(CartesianIndices((R_range[2], C_range[1])))
+  # vec(CartesianIndices((R_range[2], C_range[1])))
 
   return sparse(getindex.(iter,1), getindex.(iter,2), ones(Bool, length(iter)))
 end
