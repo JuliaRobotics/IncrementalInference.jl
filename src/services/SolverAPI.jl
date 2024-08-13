@@ -342,7 +342,7 @@ function solveTree!(
   runtaskmonitor::Bool = true,
   algorithm::Symbol = :default,
   solveKey::Symbol = algorithm,
-  multithread::Bool = false,
+  multithread::Bool = true,
 )
   #
   # workaround in case isolated variables occur
