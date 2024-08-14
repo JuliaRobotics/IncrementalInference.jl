@@ -23,7 +23,7 @@ addFactor!(fg, [:x0, :x1], mmo)
 
 ##
 
-pf = packFactor(fg, getFactor(fg, :x0x1f1))
+pf = packFactor(getFactor(fg, :x0x1f1))
 
 ##
 

@@ -203,7 +203,7 @@ Notes
 - This function does not add new variables or factors to `fg`, user must do that themselves after.
   - Useful to use in combination with `setPPE!` on new variable.
 - At time of writing `accumulateFactorMeans` could only incorporate priors or binary relative factors.
-  - internal info, see [`solveFactorParameteric`](@ref),
+  - internal info, see [`solveFactorParametric`](@ref),
   - This means at time of writing `factor` must be a binary factor.
 - Tip, if simulations are inducing odometry bias, think of using two factors from caller (e.g. simPerfect and simBias).
 

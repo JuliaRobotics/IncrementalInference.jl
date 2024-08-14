@@ -114,7 +114,7 @@ DevNotes
 
 Related:
 
-[`approxConv`](@ref), [`solveFactorParameteric`](@ref), `RoME.MutablePose2Pose2Gaussian`
+[`approxConvBelief`](@ref), [`solveFactorParametric`](@ref), `RoME.MutablePose2Pose2Gaussian`
 """
 function accumulateFactorMeans(
   dfg::AbstractDFG, 
@@ -150,7 +150,7 @@ function accumulateFactorMeans(
     # first find direction of solve
     vars = getVariableOrder(fct)
     trgsym = setdiff(vars, [srcsym])[1]
-    val = solveFactorParameteric(dfg, fct, [srcsym => val;], trgsym; solveKey)
+    val = solveFactorParametric(dfg, fct, [srcsym => val;], trgsym; solveKey)
     srcsym = trgsym
   end
 

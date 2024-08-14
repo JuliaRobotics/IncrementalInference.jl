@@ -232,7 +232,7 @@ DevNotes
 
 Related
 
-[`getVariablePPE`](@ref), [`setVariablePosteriorEstimates!`](@ref), [`getVariablePPE!`](@ref), [`setPPE!`](@ref)
+[`getPPE`](@ref), [`setPPE!`](@ref), [`getVariablePPE`](@ref)
 """
 function calcPPE(
   var::DFGVariable,

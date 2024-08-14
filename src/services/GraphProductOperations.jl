@@ -11,7 +11,7 @@ Notes
 
 Related
 
-[`approxConv`](@ref), [`proposalbeliefs!`](@ref), [`AMP.manifoldProduct`](@ref)
+[`approxConvBelief`](@ref), [`proposalbeliefs!`](@ref), [`AMP.manifoldProduct`](@ref)
 """
 function propagateBelief(
   dfg::AbstractDFG,

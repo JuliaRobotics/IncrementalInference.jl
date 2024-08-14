@@ -344,7 +344,7 @@ export approxDeconvBelief
 export cont2disc
 export rebaseFactorVariable!
 export accumulateFactorMeans
-export solveFactorParameteric
+export solveFactorParametric
 
 export repeatCSMStep!
 export attachCSM!
