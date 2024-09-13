@@ -119,7 +119,7 @@ function manikde!(
   variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}},
   pts::AbstractVector{P};
   kw...,
-) where {P <: Union{<:AbstractArray, <:Number, <:Manifolds.ArrayPartition}}
+) where {P <: Union{<:AbstractArray, <:Number, <: ArrayPartition}}
   #
   M = getManifold(variableType)
   # @info "pts" P typeof(pts[1]) pts[1]
