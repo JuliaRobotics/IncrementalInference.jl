@@ -30,7 +30,7 @@ varT = LinearRelative{1}
 manikde!(varT, pts)
 
 
-DFG.@defVariable _TestManiKde IIF.Manifolds.SpecialEuclidean(2) ArrayPartition([0;0.], [1 0; 0 1.])
+DFG.@defVariable _TestManiKde IIF.Manifolds.SpecialEuclidean(2; vectors=HybridTangentRepresentation()) ArrayPartition([0;0.], [1 0; 0 1.])
 
 # construct directly with ArrayPartition
 pts = [ArrayPartition(randn(2), [1 0; 0 1.]) for _ in 1:100]

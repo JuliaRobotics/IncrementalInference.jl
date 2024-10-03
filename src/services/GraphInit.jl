@@ -391,7 +391,7 @@ function initVariable!(
   # TODO ArrayPartition inputs
   _prodrepr(pt) = pt
   # _prodrepr(pt::Tuple) = Manifolds.ProductRepr(pt...)
-  _prodrepr(pt::Tuple) = Manifolds.ArrayPartition(pt...)
+  _prodrepr(pt::Tuple) = ArrayPartition(pt...)
 
   M = getManifold(vari)
   pp = manikde!(M, _prodrepr.(pts); bw)

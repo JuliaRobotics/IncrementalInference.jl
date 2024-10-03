@@ -11,7 +11,7 @@ using Test
 
 w = [-0.0;-0.78;-0.18]
 
-M = SpecialEuclidean(3)
+M = SpecialEuclidean(3; vectors=HybridTangentRepresentation())
 Mr = M.manifold[2]
 pPq = ArrayPartition(zeros(3), exp(Mr, Identity(Mr), hat(Mr, Identity(Mr), w)))
 rPc_ = exp(M, Identity(M), hat(M, Identity(M), [zeros(3);w]))
