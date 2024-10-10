@@ -132,7 +132,7 @@ function getSample(cf::CalcFactor{<:AbstractPrior})
 end
 
 function getSample(cf::CalcFactor{<:AbstractRelative})
-  M =getManifold(cf)
+  M = getManifold(cf)
   if hasfield(typeof(cf.factor), :Z)
     X = sampleTangent(M, cf.factor.Z)
   else
