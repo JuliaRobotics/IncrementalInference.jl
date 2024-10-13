@@ -577,6 +577,28 @@ function addMsgFactors!(
   return msgfcts
 end
 
+function addMsgFactors_Parametric!(
+  subfg::AbstractDFG,
+  msg::LikelihoodMessage,
+  ::Type{UpwardPass};
+  tags::Vector{Symbol} = Symbol[],
+  # attemptPriors::Bool = true,
+)
+  # add differential(relative) message factors
+
+  msgfcts = map(msg.jointmsg.relatives) do difflikl
+    addFactor!(
+      subfg,
+      difflikl.variables,
+      difflikl.likelihood;
+      graphinit = false,
+      tags = union(tags, [:__LIKELIHOODMESSAGE__; :__UPWARD_DIFFERENTIAL__]),
+    )
+  end
+
+  return msgfcts
+end
+
 function addMsgFactors!(
   subfg::AbstractDFG,
   allmsgs::Dict{Int, LikelihoodMessage},

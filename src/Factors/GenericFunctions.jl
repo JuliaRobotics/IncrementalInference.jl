@@ -99,6 +99,82 @@ function (cf::CalcFactor{<:ManifoldFactor})(X, p, q)
   return distanceTangent2Point(cf.factor.M, X, p, q)
 end
 
+
+## ======================================================================================
+## adjoint factor - adjoint action applied to the measurement
+## ======================================================================================
+function Ad(::Union{typeof(SpecialEuclidean(2)), typeof(SpecialEuclidean(3))}, p, X)
+  t = p.x[1]
+  R = p.x[2]
+  v = X.x[1]
+  Ω = X.x[2]
+  ArrayPartition(-R*Ω*R'*t + R*v, R*Ω*R')
+end
+
+function Ad(::typeof(SpecialEuclidean(3)), p)
+  t = p.x[1]
+  R = p.x[2]
+  vcat(
+      hcat(R, skew(t)*R),
+      hcat(zero(SMatrix{3,3,Float64}), R)
+  )
+end
+
+function Ad(::typeof(SpecialEuclidean(2)), p)
+  t = p.x[1]
+  R = p.x[2]
+  vcat(
+      hcat(R, -SA[0 -1; 1 0]*t),
+      SA[0 0 1]
+  )
+end
+
+struct AdFactor{F <: AbstractManifoldMinimize} <: AbstractManifoldMinimize
+  factor::F
+end
+
+function (cf::CalcFactor{<:AdFactor})(Xϵ, p, q)
+  # M = getManifold(cf.factor)
+  # p,q ∈ M
+  # Xϵ ∈ TϵM
+  # ϵ = identity_element(M)
+  # transform measurement from TϵM to TpM (global to local coordinates)
+  # Adₚ⁻¹ = AdjointMatrix(M, p)⁻¹ = AdjointMatrix(M, p⁻¹)
+  # Xp = Adₚ⁻¹ * Xϵᵛ
+  # ad = Ad(M, inv(M, p))
+  # Xp = Ad(M, inv(M, p), Xϵ)
+  # Xp = adjoint_action(M, inv(M, p), Xϵ)
+  #TODO is vector transport supposed to be the same?
+  # Xp = vector_transport_to(M, ϵ, Xϵ, p)
+
+  # Transform measurement covariance
+  # ᵉΣₚ = Adₚ ᵖΣₚ Adₚᵀ
+  #TODO test if transforming sqrt_iΣ is the same as Σ
+  # Σ = ad * inv(cf.sqrt_iΣ^2) * ad'
+  # sqrt_iΣ = convert(typeof(cf.sqrt_iΣ), sqrt(inv(Σ)))
+  # sqrt_iΣ = convert(typeof(cf.sqrt_iΣ), ad * cf.sqrt_iΣ * ad')
+  Xp = Xϵ
+
+  child_cf = CalcFactorResidual(
+    cf.faclbl,
+    cf.factor.factor,
+    cf.varOrder,
+    cf.varOrderIdxs,
+    cf.meas,
+    cf.sqrt_iΣ,
+    cf.cache,
+  )
+  return child_cf(Xp, p, q)
+end
+
+getMeasurementParametric(f::AdFactor) = getMeasurementParametric(f.factor)
+
+getManifold(f::AdFactor) = getManifold(f.factor)
+function getSample(cf::CalcFactor{<:AdFactor}) 
+  M = getManifold(cf)
+  return sampleTangent(M, cf.factor.factor.Z)
+end
+
 ## ======================================================================================
 ## ManifoldPrior
 ## ======================================================================================
