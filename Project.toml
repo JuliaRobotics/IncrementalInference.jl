@@ -65,7 +65,7 @@ IncrInfrInterpolationsExt = "Interpolations"
 
 [compat]
 AMD = "0.5"
-ApproxManifoldProducts = "0.7, 0.8, 0.9"
+ApproxManifoldProducts = "0.8, 0.9"
 BSON = "0.2, 0.3"
 Combinatorics = "1.0"
 DataStructures = "0.16, 0.17, 0.18"
