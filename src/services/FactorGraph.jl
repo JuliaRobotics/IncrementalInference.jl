@@ -104,7 +104,7 @@ end
 function setVal!(
   vd::VariableNodeData,
   val::AbstractVector{P},
-  bw::Array{Float64, 2},
+  bw::AbstractMatrix{Float64},
 ) where {P}
   setVal!(vd, val)
   setBW!(vd, bw)
@@ -113,7 +113,7 @@ end
 function setVal!(
   v::DFGVariable,
   val::AbstractVector{P},
-  bw::Array{Float64, 2};
+  bw::AbstractMatrix{Float64};
   solveKey::Symbol = :default,
 ) where {P}
   setVal!(v, val; solveKey = solveKey)
@@ -123,7 +123,7 @@ end
 function setVal!(
   vd::VariableNodeData,
   val::AbstractVector{P},
-  bw::Vector{Float64},
+  bw::AbstractVector{Float64},
 ) where {P}
   setVal!(vd, val, reshape(bw, length(bw), 1))
   return nothing
@@ -131,7 +131,7 @@ end
 function setVal!(
   v::DFGVariable,
   val::AbstractVector{P},
-  bw::Vector{Float64};
+  bw::AbstractVector{Float64};
   solveKey::Symbol = :default,
 ) where {P}
   setVal!(getSolverData(v, solveKey), val, bw)
