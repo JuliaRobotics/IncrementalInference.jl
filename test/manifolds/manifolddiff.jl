@@ -119,10 +119,10 @@ sol = Optim.optimize(f, g_FD!, x0, Optim.ConjugateGradient(; manifold=ManifoldWr
 end
 
 
-@testset "Modified Manifolds.jl ManifoldWrapper <: Optim.Manifold for SpecialEuclidean(2)" begin
+@testset "Modified Manifolds.jl ManifoldWrapper <: Optim.Manifold for SpecialEuclidean(2; vectors=HybridTangentRepresentation())" begin
 ##
 
-M = Manifolds.SpecialEuclidean(2)
+M = Manifolds.SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 e0 = ArrayPartition([0,0.], [1 0; 0 1.])
 
 x0 = deepcopy(e0)
@@ -171,7 +171,7 @@ end
 ##
 
 
-M = Manifolds.SpecialEuclidean(3)
+M = Manifolds.SpecialEuclidean(3; vectors=HybridTangentRepresentation())
 e0 = ArrayPartition([0,0,0.], Matrix(_Rot.RotXYZ(0,0,0.)))
 
 x0 = deepcopy(e0)
@@ -217,7 +217,7 @@ end
 @testset "Optim.Manifolds, SpecialEuclidean(3), using IIF.optimizeManifold_FD" begin
 ##
 
-M = Manifolds.SpecialEuclidean(3)
+M = Manifolds.SpecialEuclidean(3; vectors=HybridTangentRepresentation())
 e0 = ArrayPartition([0,0,0.], Matrix(_Rot.RotXYZ(0,0,0.)))
 
 x0 = deepcopy(e0)
