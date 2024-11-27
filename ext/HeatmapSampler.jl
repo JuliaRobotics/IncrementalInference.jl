@@ -206,7 +206,7 @@ function HeatmapGridDensity(
   density = ManifoldKernelDensity(TranslationGroup(Ndim(bel)), bel)
 
   # return `<:SamplableBelief` object
-  return HeatmapGridDensity(data, domain, hint_callback, bw_factor, density)
+  return HeatmapGridDensity(field_on_grid, domain, hint_callback, bw_factor, density)
 end
 
 function Base.isapprox(
