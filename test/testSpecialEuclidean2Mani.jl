@@ -11,7 +11,7 @@ import Rotations as _Rot
 
 @defVariable TranslationGroup2 TranslationGroup(2) @SVector[0.0, 0.0]
 
-@defVariable SpecialEuclidean2 SpecialEuclidean(2) ArrayPartition(@SVector([0.0,0.0]), @SMatrix([1.0 0.0; 0.0 1.0]))
+@defVariable SpecialEuclidean2 SpecialEuclidean(2; vectors=HybridTangentRepresentation()) ArrayPartition(@SVector([0.0,0.0]), @SMatrix([1.0 0.0; 0.0 1.0]))
 # @defVariable SpecialEuclidean2 SpecialEuclidean(2) ArrayPartition([0.0,0.0], [1.0 0.0; 0.0 1.0])
 
 ##
@@ -20,7 +20,7 @@ import Rotations as _Rot
 ##
 
 M = getManifold(SpecialEuclidean2)
-@test M == SpecialEuclidean(2)
+@test M == SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 pT = getPointType(SpecialEuclidean2)
 # @test pT == ArrayPartition{Float64,Tuple{Vector{Float64}, Matrix{Float64}}}
 # @test pT == ArrayPartition{Tuple{MVector{2, Float64}, MMatrix{2, 2, Float64, 4}}}
@@ -38,8 +38,8 @@ v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 
 # mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
 # mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal(Diagonal(abs2.([0.01, 0.01, 0.01]))))
-mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition([0.0,0.0], [1.0 0.0; 0.0 1.]), MvNormal(Diagonal(abs2.([0.01, 0.01, 0.01]))))
-mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(SA[0.0,0.0], SA[1.0 0.0; 0.0 1.]), MvNormal(Diagonal(abs2.(SA[0.01, 0.01, 0.01]))))
+mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition([0.0,0.0], [1.0 0.0; 0.0 1.]), MvNormal(Diagonal(abs2.([0.01, 0.01, 0.01]))))
+mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition(SA[0.0,0.0], SA[1.0 0.0; 0.0 1.]), MvNormal(Diagonal(abs2.(SA[0.01, 0.01, 0.01]))))
 p = addFactor!(fg, [:x0], mp)
 
 
@@ -54,7 +54,7 @@ vnd = getVariableSolverData(fg, :x0)
 
 ##
 v1 = addVariable!(fg, :x1, SpecialEuclidean2)
-mf = ManifoldFactor(SpecialEuclidean(2), MvNormal(SA[1,2,pi/4], SA[0.01,0.01,0.01]))
+mf = ManifoldFactor(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), MvNormal(SA[1,2,pi/4], SA[0.01,0.01,0.01]))
 f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
@@ -77,7 +77,7 @@ vnd = getVariableSolverData(fg, :x1)
 @test all(is_point.(Ref(M), vnd.val))
 
 v1 = addVariable!(fg, :x2, SpecialEuclidean2)
-mf = ManifoldFactor(SpecialEuclidean(2), MvNormal(SA[1,2,pi/4], SA[0.01,0.01,0.01]))
+mf = ManifoldFactor(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), MvNormal(SA[1,2,pi/4], SA[0.01,0.01,0.01]))
 f = addFactor!(fg, [:x1, :x2], mf)
 
 ##
@@ -140,7 +140,7 @@ struct ManifoldFactorSE2{T <: SamplableBelief} <: IIF.AbstractManifoldMinimize
 end
 
 ManifoldFactorSE2() = ManifoldFactorSE2(MvNormal(Diagonal([1,1,1])))
-DFG.getManifold(::ManifoldFactorSE2) = SpecialEuclidean(2)
+DFG.getManifold(::ManifoldFactorSE2) = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 
 IIF.selectFactorType(::Type{<:SpecialEuclidean2}, ::Type{<:SpecialEuclidean2}) = ManifoldFactorSE2
 
@@ -168,7 +168,7 @@ M = getManifold(SpecialEuclidean2)
 fg = initfg()
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 
-mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(Vector([10.0,10.0]), Matrix([-1.0 0.0; 0.0 -1.0])), MvNormal([0.1, 0.1, 0.01]))
+mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition(Vector([10.0,10.0]), Matrix([-1.0 0.0; 0.0 -1.0])), MvNormal([0.1, 0.1, 0.01]))
 p = addFactor!(fg, [:x0], mp)
 
 ##
@@ -177,16 +177,16 @@ for i in 0:5
     psym = Symbol("x$i")
     nsym = Symbol("x$(i+1)")
     addVariable!(fg, nsym, SpecialEuclidean2)
-    mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([10.0,0,pi/3], [0.5,0.5,0.05]))
+    mf = ManifoldFactor(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), MvNormal([10.0,0,pi/3], [0.5,0.5,0.05]))
     f = addFactor!(fg, [psym;nsym], mf)
 end
 
 
 addVariable!(fg, :l1, SpecialEuclidean2, tags=[:LANDMARK;])
-mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([10.0,0,0], [0.1,0.1,0.01]))
+mf = ManifoldFactor(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), MvNormal([10.0,0,0], [0.1,0.1,0.01]))
 addFactor!(fg, [:x0; :l1], mf)
 
-mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([10.0,0,0], [0.1,0.1,0.01]))
+mf = ManifoldFactor(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), MvNormal([10.0,0,0], [0.1,0.1,0.01]))
 addFactor!(fg, [:x6; :l1], mf)
 
 ##
@@ -225,7 +225,7 @@ getSolverParams(fg).useMsgLikelihoods = true
 addVariable!(fg, :x0, SpecialEuclidean2)
 addVariable!(fg, :x1, SpecialEuclidean2)
 
-mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(Vector([10.0,10.0]), Matrix([-1.0 0.0; 0.0 -1.0])), MvNormal(diagm([0.1, 0.1, 0.01].^2)))
+mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition(Vector([10.0,10.0]), Matrix([-1.0 0.0; 0.0 -1.0])), MvNormal(diagm([0.1, 0.1, 0.01].^2)))
 p = addFactor!(fg, [:x0], mp)
 
 doautoinit!(fg,:x0)
@@ -238,7 +238,7 @@ initAll!(fg)
 
 pred, meas = approxDeconv(fg, :x0x1f1)
 
-@test mmd(SpecialEuclidean(2), pred, meas) < 1e-1
+@test mmd(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), pred, meas) < 1e-1
 
 p_t = map(x->x.x[1], pred)
 m_t = map(x->x.x[1], meas)
@@ -278,7 +278,7 @@ DFG.getManifold(::ManiPose2Point2) = TranslationGroup(2)
 # define the conditional probability constraint
 function (cfo::CalcFactor{<:ManiPose2Point2})(measX, p, q)
     #
-    M = SpecialEuclidean(2)
+    M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
     q_SE = ArrayPartition(q, identity_element(SpecialOrthogonal(2), p.x[2]))
 
     X_se2 = log(M, identity_element(M, p), Manifolds.compose(M, inv(M, p), q_SE))
@@ -288,7 +288,7 @@ function (cfo::CalcFactor{<:ManiPose2Point2})(measX, p, q)
 end
 
 ##
-@testset "Test SpecialEuclidean(2)" begin
+@testset "Test SpecialEuclidean(2; vectors=HybridTangentRepresentation())" begin
 ##
 
 # Base.convert(::Type{<:Tuple}, M::TranslationGroup{Tuple{2},ℝ}) = (:Euclid, :Euclid)
@@ -299,7 +299,7 @@ fg = initfg()
 
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 
-mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(Vector([0.0,0.0]), Matrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition(Vector([0.0,0.0]), Matrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
 p = addFactor!(fg, [:x0], mp)
 
 ##
@@ -413,7 +413,7 @@ solveGraph!(fg; smtasks);
 
 ##
 
-mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(Vector([0.0,0.0]), Matrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01],[1 0 0;0 1 0;0 0 1.]))
+mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition(Vector([0.0,0.0]), Matrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01],[1 0 0;0 1 0;0 0 1.]))
 f1 = addFactor!(fg, [:x0], mp, graphinit=false)
 
 @test length(ls(fg, :x0)) == 2
@@ -471,15 +471,15 @@ f0 = addFactor!(fg, [:x0], pthru, graphinit=false)
 
 ## test the inference functions
 addVariable!(fg, :x1, SpecialEuclidean2)
-# mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
-mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(Vector([0.0,0.0]), Matrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+# mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition(Vector([0.0,0.0]), Matrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
 f1 = addFactor!(fg, [:x1], mp, graphinit=false)
 
 doautoinit!(fg, :x1)
 
 ## connect with relative and check calculation size on x0
 
-mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([1,2,pi/4], [0.01,0.01,0.01]))
+mf = ManifoldFactor(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), MvNormal([1,2,pi/4], [0.01,0.01,0.01]))
 f2 = addFactor!(fg, [:x0, :x1], mf, graphinit=false)
 
 ##
@@ -507,10 +507,10 @@ hmd = LevelSetGridNormal(img_, (x_,y_), 5.5, 0.1, N=120)
 pthru = PartialPriorPassThrough(hmd, (1,2))
 f0 = addFactor!(fg, [:x0], pthru, graphinit=false)
 addVariable!(fg, :x1, SpecialEuclidean2)
-# mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
-mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(Vector([0.0,0.0]), Matrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+# mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition(Vector([0.0,0.0]), Matrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
 f1 = addFactor!(fg, [:x1], mp, graphinit=false)
-mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([1,2,pi/4], [0.01,0.01,0.01]))
+mf = ManifoldFactor(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), MvNormal([1,2,pi/4], [0.01,0.01,0.01]))
 f2 = addFactor!(fg, [:x0, :x1], mf, graphinit=false)
 
 ##
@@ -531,7 +531,7 @@ initAll!(fg)
 end
 
 
-@testset "Test SpecialEuclidean(2) to TranslationGroup(2) multihypo" begin
+@testset "Test SpecialEuclidean(2; vectors=HybridTangentRepresentation()) to TranslationGroup(2) multihypo" begin
 ##
 
 fg = initfg()
@@ -539,8 +539,8 @@ fg = initfg()
 
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 
-# mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
-mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(Vector([0.0,0.0]), Matrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+# mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition(Vector([0.0,0.0]), Matrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
 p = addFactor!(fg, [:x0], mp)
 
 ##
@@ -552,7 +552,7 @@ f = addFactor!(fg, [:x0, :x1a, :x1b], mf; multihypo=[1,0.5,0.5])
 solveTree!(fg)
 
 vnd = getVariableSolverData(fg, :x0)
-@test isapprox(SpecialEuclidean(2), mean(SpecialEuclidean(2), vnd.val), ArrayPartition([0.0,0.0], [1.0 0; 0 1]), atol=0.1)
+@test isapprox(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), mean(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), vnd.val), ArrayPartition([0.0,0.0], [1.0 0; 0 1]), atol=0.1)
 
 #FIXME I would expect close to 50% of particles to land on the correct place
 # Currently software works so that 33% should land there so testing 20 for now
@@ -573,8 +573,8 @@ addVariable!(fg, :x0, SpecialEuclidean2)
 addVariable!(fg, :x1a, TranslationGroup2)
 addVariable!(fg, :x1b, TranslationGroup2)
 
-# mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([10, 10, 0.01]))
-mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(Vector([0.0,0.0]), Matrix([1.0 0.0; 0.0 1.0])), MvNormal(zeros(3),diagm([10, 10, 0.01])))
+# mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([10, 10, 0.01]))
+mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition(Vector([0.0,0.0]), Matrix([1.0 0.0; 0.0 1.0])), MvNormal(zeros(3),diagm([10, 10, 0.01])))
 p = addFactor!(fg, [:x0], mp)
 mp = ManifoldPrior(TranslationGroup(2), [1.,0], MvNormal([0.01, 0.01]))
 p = addFactor!(fg, [:x1a], mp)
@@ -595,14 +595,14 @@ pnts = getPoints(fg, :x0)
 @error "Invalid multihypo test"
 if false
     # FIXME ManiPose2Point2 factor mean [1.,0] cannot go "backwards" from [0,0] to [-1,0] with covariance 0.01 -- wholly inconsistent test design
-    @test 10 < sum(isapprox.(Ref(SpecialEuclidean(2)), pnts, Ref(ArrayPartition([-1.0,0.0], [1.0 0; 0 1])), atol=0.5))
-    @test 10 < sum(isapprox.(Ref(SpecialEuclidean(2)), pnts, Ref(ArrayPartition([1.0,0.0], [1.0 0; 0 1])), atol=0.5))
+    @test 10 < sum(isapprox.(Ref(SpecialEuclidean(2; vectors=HybridTangentRepresentation())), pnts, Ref(ArrayPartition([-1.0,0.0], [1.0 0; 0 1])), atol=0.5))
+    @test 10 < sum(isapprox.(Ref(SpecialEuclidean(2; vectors=HybridTangentRepresentation())), pnts, Ref(ArrayPartition([1.0,0.0], [1.0 0; 0 1])), atol=0.5))
 end
 
 ##
 end
 
-@testset "Test SpecialEuclidean(2) to SpecialEuclidean(2) multihypo" begin
+@testset "Test SpecialEuclidean(2; vectors=HybridTangentRepresentation()) to SpecialEuclidean(2; vectors=HybridTangentRepresentation()) multihypo" begin
 ##
 
 fg = initfg()
@@ -610,29 +610,29 @@ fg = initfg()
 
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 
-# mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
-mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(Vector([0.0,0.0]), Matrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+# mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+mp = ManifoldPrior(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), ArrayPartition(Vector([0.0,0.0]), Matrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
 p = addFactor!(fg, [:x0], mp)
 
 ##
 addVariable!(fg, :x1a, SpecialEuclidean2)
 addVariable!(fg, :x1b, SpecialEuclidean2)
-mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([1,2,pi/4], [0.01,0.01,0.01]))
+mf = ManifoldFactor(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), MvNormal([1,2,pi/4], [0.01,0.01,0.01]))
 f = addFactor!(fg, [:x0, :x1a, :x1b], mf; multihypo=[1,0.5,0.5])
 
 solveTree!(fg)
 
 vnd = getVariableSolverData(fg, :x0)
-@test isapprox(SpecialEuclidean(2), mean(SpecialEuclidean(2), vnd.val), ArrayPartition([0.0,0.0], [1.0 0; 0 1]), atol=0.1)
+@test isapprox(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), mean(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), vnd.val), ArrayPartition([0.0,0.0], [1.0 0; 0 1]), atol=0.1)
 
 #FIXME I would expect close to 50% of particles to land on the correct place
 # Currently software works so that 33% should land there so testing 20 for now
 pnt = getPoints(fg, :x1a)
-@test sum(isapprox.(Ref(SpecialEuclidean(2)), pnt, Ref(ArrayPartition([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071])), atol=0.1)) > 20
+@test sum(isapprox.(Ref(SpecialEuclidean(2; vectors=HybridTangentRepresentation())), pnt, Ref(ArrayPartition([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071])), atol=0.1)) > 20
 
 #FIXME I would expect close to 50% of particles to land on the correct place
 pnt = getPoints(fg, :x1b)
-@test sum(isapprox.(Ref(SpecialEuclidean(2)), pnt, Ref(ArrayPartition([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071])), atol=0.1)) > 20
+@test sum(isapprox.(Ref(SpecialEuclidean(2; vectors=HybridTangentRepresentation())), pnt, Ref(ArrayPartition([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071])), atol=0.1)) > 20
 
 ##
 end

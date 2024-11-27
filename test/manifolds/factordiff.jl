@@ -83,7 +83,7 @@ end
 ##
 
 
-M = SpecialEuclidean(2)
+M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 z = ArrayPartition(SA[10.0; 0.0], SMatrix{2,2}(0.0, -1.0, 1.0, 0.0))
 
 p1 = ArrayPartition(SA[0.0; 0.0], SMatrix{2,2}(1, 0, 0, 1.))
