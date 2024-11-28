@@ -109,7 +109,7 @@ sfg = buildSubgraph(fg, [:x0;:x1], 1) # distance=1 to include factors
 
 #FIXME JT - this doesn't make sense to pass, it is a subgraph so should it not rather be ⊂ [subset]?
 # compareDFG(fg1, fg2, by=⊂, skip=...)
-@test_broken compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath;:sessionLabel; :particleidx; :varidx])
+@test compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath;:graphLabel; :particleidx; :varidx])
 
 # drawGraph(sfg)
 
