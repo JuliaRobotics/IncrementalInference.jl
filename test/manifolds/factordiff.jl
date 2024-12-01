@@ -98,10 +98,14 @@ end
 
 
 # finitediff setup
+# finitediff setup
 r_backend = ManifoldDiff.TangentDiffBackend(
-  ManifoldDiff.FiniteDifferencesBackend()
+  if v"0.4" <=  pkgversion(ManifoldDiff)
+    ManifoldDiff.AutoFiniteDifferences(central_fdm(5, 1))
+  else
+    ManifoldDiff.FiniteDifferencesBackend()
+  end
 )
-
 Me = Euclidean(3)
 
 function _factorJac!(J, z, p1, p2)
@@ -123,9 +127,15 @@ J_ = _factorJac!(J, z, p1, p2)
 # @profview _factorJac!(J, z, p1, p2)
 
 if false
+  # finitediff setup
   z_backend = ManifoldDiff.TangentDiffBackend(
-    ManifoldDiff.ZygoteDiffBackend()
+    if v"0.4" <=  pkgversion(ManifoldDiff)
+      ManifoldDiff.AutoFiniteDifferences(central_fdm(5, 1))
+    else
+      ManifoldDiff.FiniteDifferencesBackend()
+    end
   )
+
   g = ManifoldDiff.jacobian(M, Euclidean(3), f_SE2_x0, p1, z_backend)
 else
   @info "ManifoldDiff.ZygoteDiffBackend usage still under development (23Q3)"
