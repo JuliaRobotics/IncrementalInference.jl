@@ -3,9 +3,10 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - develop
       - release**
   workflow_dispatch:
+  
 jobs:
   test-stable:
     name: JL${{ matrix.version }} - ${{ matrix.arch }} - ${{ matrix.group }} - ${{ matrix.os }}
