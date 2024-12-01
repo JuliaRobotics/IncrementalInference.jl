@@ -6,7 +6,13 @@ function factorJacobian(
   fg,
   faclabel::Symbol,
   p0 = ArrayPartition(first.(getVal.(fg, getVariableOrder(fg, faclabel), solveKey = :parametric))...),
-  backend = ManifoldDiff.TangentDiffBackend(ManifoldDiff.FiniteDiffBackend()),
+  backend = ManifoldDiff.TangentDiffBackend(
+    if v"0.4" <=  pkgversion(ManifoldDiff)
+      ManifoldDiff.AutoFiniteDifferences(central_fdm(5, 1))
+    else
+      ManifoldDiff.FiniteDifferencesBackend()
+    end
+  )
 )
 
   fac = getFactor(fg, faclabel)
