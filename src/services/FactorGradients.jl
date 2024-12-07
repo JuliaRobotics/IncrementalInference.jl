@@ -34,7 +34,36 @@ function factorJacobian(
   return ManifoldDiff.jacobian(M_dom, M_codom, costf, p0, backend)
 end
 
+function factorGradient(
+  cf::CalcFactorResidual,
+  M,
+  p,
+  backend = ManifoldDiff.TangentDiffBackend(ManifoldDiff.FiniteDiffBackend()),
+)
+  ManifoldDiff.gradient(M, (x) -> 1//2 * norm(cf(x))^2, p, backend)
+end
 
+function factorJacobian(
+  cf::CalcFactorResidual,
+  M_dom,
+  p,
+  backend = ManifoldDiff.TangentDiffBackend(ManifoldDiff.FiniteDiffBackend()),
+)
+  # M_dom = ProductManifold(getManifold.(fg, varlabels)...)
+  M_codom = Euclidean(manifold_dimension(getManifold(cf)))
+    
+  return ManifoldDiff.jacobian(M_dom, M_codom, cf, p, backend)
+end
+
+#
+function factorGradient(
+  cf::CalcFactorNormSq,
+  M,
+  p,
+  backend = ManifoldDiff.TangentDiffBackend(ManifoldDiff.FiniteDiffBackend()),
+)
+  ManifoldDiff.gradient(M, cf, p, backend)
+end
 
 export getCoordSizes
 export checkGradientsToleranceMask, calcPerturbationFromVariable
