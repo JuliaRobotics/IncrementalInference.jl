@@ -81,8 +81,8 @@ jobs:
         env:
           IIF_TEST_GROUP: ${{ matrix.group }}
         run: |
-          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="master"));'
-          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs",rev="master"));' 
+          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="develop"));'
+          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs",rev="develop"));' 
           julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.test("IncrementalInference"; coverage=false)'
         shell: bash
 
@@ -123,8 +123,8 @@ jobs:
         env:
           IIF_TEST_GROUP: ${{ matrix.group }}
         run: |
-          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="master"));'
-          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs",rev="master"));' 
+          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="develop"));'
+          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs",rev="develop"));' 
           julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.test("IncrementalInference"; coverage=false)'
         shell: bash
 
