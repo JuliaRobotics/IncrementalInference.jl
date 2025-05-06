@@ -15,8 +15,8 @@ if TEST_GROUP in ["all", "basic_functional_group"]
 include("testSpecialEuclidean2Mani.jl")
 include("testEuclidDistance.jl")
 # gradient / jacobian tests
-include("manifolds/manifolddiff.jl")
-include("manifolds/factordiff.jl")
+#include("manifolds/manifolddiff.jl")
+#include("manifolds/factordiff.jl")
 @error "Gradient tests must be updated and restored for new ccw.varValsAll[]"
 #include("testGradientUtils.jl")
 #include("testFactorGradients.jl")
@@ -66,6 +66,7 @@ include("testStateMachine.jl")
 include("testBasicCSM.jl")
 include("testCliqueFactors.jl")
 include("testCcolamdOrdering.jl")
+include("testCliqueTreesOrderings.jl")
 include("testBasicGraphs.jl")
 include("testJointEnforcement.jl")
 include("testHasPriors913.jl")

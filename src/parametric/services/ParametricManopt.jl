@@ -304,6 +304,11 @@ function covarianceFiniteDiff(M, jacF!::JacF_RLM!, p0)
     return Σ
 end
 
+function qr_linear_subsolver!(sk, JJ, grad_f_c)
+  sk .= qr(JJ) \ grad_f_c
+  return sk
+end
+
 function solve_RLM(
   fg,
   varlabels = ls(fg),
@@ -311,6 +316,7 @@ function solve_RLM(
   is_sparse = true,
   finiteDiffCovariance = false,
   solveKey::Symbol = :parametric,
+  linear_subsolver! = qr_linear_subsolver!,
   kwargs...
 )
 
@@ -354,6 +360,7 @@ function solve_RLM(
     jacobian_tangent_basis = DefaultOrthogonalBasis(),
     initial_residual_values,
     initial_jacobian_f,
+    linear_subsolver!,
     kwargs...
   )
 

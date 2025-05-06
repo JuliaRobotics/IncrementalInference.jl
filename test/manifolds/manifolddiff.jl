@@ -13,7 +13,11 @@ import Rotations as _Rot
 
 # finitediff setup
 r_backend = ManifoldDiff.TangentDiffBackend(
+  if v"0.4" <=  pkgversion(ManifoldDiff)
+    ManifoldDiff.AutoFiniteDifferences(central_fdm(5, 1))
+  else
     ManifoldDiff.FiniteDifferencesBackend()
+  end
 )
 
 ##

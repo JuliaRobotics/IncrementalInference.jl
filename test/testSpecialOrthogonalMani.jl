@@ -11,11 +11,6 @@ using Test
 
 ##
 
-# see AMP v0.7.1+
-# Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{2}) = (:Circular,)
-# Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{2}})  = (:Circular,)
-# Base.convert(::Type{<:Tuple}, ::Type{SpecialOrthogonal{2}})  = (:Circular,)
-
 # @defVariable SpecialOrthogonal2 SpecialOrthogonal(2) @MMatrix([1.0 0.0; 0.0 1.0])
 @defVariable SpecialOrthogonal2 SpecialOrthogonal(2) SMatrix{2,2}(1.0, 0.0, 0.0, 1.0)
 
@@ -99,7 +94,8 @@ vnd = getVariableSolverData(fg, :x0)
 @test all(is_point.(Ref(M), vnd.val))
 
 points = sampleFactor(fg, :x0f1, 100)
-std(SpecialOrthogonal(3), points)
+_M = SpecialOrthogonal(3)
+std(_M, points .|> Matrix)
 
 ##
 
