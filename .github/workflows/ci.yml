@@ -3,9 +3,10 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - develop
       - release**
   workflow_dispatch:
+  
 jobs:
   test-stable:
     name: JL${{ matrix.version }} - ${{ matrix.arch }} - ${{ matrix.group }} - ${{ matrix.os }}
@@ -26,7 +27,7 @@ jobs:
           - 'test_cases_group'
     steps:
       - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
@@ -54,16 +55,16 @@ jobs:
         arch: 
           - x64
         version:
-          - '1.11'
+          - '~1.12.0-0'
         group:
           - 'basic_functional_group'
     steps:
       - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@v1
+      - uses: actions/cache@v4
         env:
           cache-name: cache-artifacts
         with:
@@ -80,8 +81,8 @@ jobs:
         env:
           IIF_TEST_GROUP: ${{ matrix.group }}
         run: |
-          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="master"));'
-          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs",rev="master"));' 
+          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="develop"));'
+          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs",rev="develop"));' 
           julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.test("IncrementalInference"; coverage=false)'
         shell: bash
 
@@ -96,16 +97,16 @@ jobs:
         arch: 
           - x64
         version:
-          - '1.11'
+          - '~1.12.0-0'
         group:
           - 'test_cases_group'
     steps:
       - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@v1
+      - uses: actions/cache@v4
         env:
           cache-name: cache-artifacts
         with:
@@ -122,8 +123,8 @@ jobs:
         env:
           IIF_TEST_GROUP: ${{ matrix.group }}
         run: |
-          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="master"));'
-          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs",rev="master"));' 
+          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="develop"));'
+          julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs",rev="develop"));' 
           julia --project=@. --check-bounds=yes -e 'using Pkg; Pkg.test("IncrementalInference"; coverage=false)'
         shell: bash
 
@@ -139,7 +140,7 @@ jobs:
         os:
           - ubuntu-latest
         version:
-          - '1.11'
+          - '~1.12.0-0'
         arch:
           - x64
         group:
@@ -147,7 +148,7 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}

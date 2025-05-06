@@ -2,6 +2,8 @@ module IncrementalInference
 
 # @info "Multithreaded  convolutions possible, Threads.nthreads()=$(Threads.nthreads()).  See `addFactor!(.;threadmodel=MultiThreaded)`."
 
+import CliqueTrees
+
 using Distributed
 using Reexport
 
