@@ -43,6 +43,16 @@ function sampleTangent(
   # return convert(typeof(p), hat(M, p, rand(z, 1)[:])) #TODO find something better than (z,1)[:]
 end
 
+function sampleTangent(
+  M::LieGroup,
+  z::Distribution,
+  p = nothing,
+)
+  return hat(LieAlgebra(M), SVector{length(z)}(rand(z)), ArrayPartition{Float64}) #TODO make sure all Distribution has length, 
+                                                # if this errors maybe fall back no next line
+  # return convert(typeof(p), hat(M, p, rand(z, 1)[:])) #TODO find something better than (z,1)[:]
+end
+
 """
     $SIGNATURES
 
@@ -63,6 +73,16 @@ function samplePoint(
 end
 function samplePoint(
   M::AbstractDecoratorManifold,
+  sbelief,
+  p = getPointIdentity(M),
+  retraction_method::AbstractRetractionMethod = ExponentialRetraction(),
+)
+  X = sampleTangent(M, sbelief, p)
+  return retract(M, p, X, retraction_method)
+end
+
+function samplePoint(
+  M::LieGroup,
   sbelief,
   p = getPointIdentity(M),
   retraction_method::AbstractRetractionMethod = ExponentialRetraction(),

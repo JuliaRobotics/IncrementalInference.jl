@@ -137,6 +137,22 @@ function DFG.getPointIdentity(G::SemidirectProductGroup, ::Type{T} = Float64) wh
 end
 
 function DFG.getPointIdentity(
+  ::typeof(SpecialEuclideanGroup(2; variant=:right)),
+  ::Type{T} = Float64
+) where T
+  N = 2
+  return ArrayPartition(zeros(SVector{N,T}), SMatrix{N, N, T}(I))
+end
+
+function DFG.getPointIdentity(
+  ::typeof(SpecialEuclideanGroup(3; variant=:right)),
+  ::Type{T} = Float64
+) where T 
+  N = 3
+  return ArrayPartition(zeros(SVector{N,T}), SMatrix{N, N, T}(I))
+end
+
+function DFG.getPointIdentity(
   G::SpecialOrthogonal{TypeParameter{Tuple{N}}},
   ::Type{T} = Float64
 ) where {N, T <: Real}
@@ -144,7 +160,7 @@ function DFG.getPointIdentity(
 end
 
 function DFG.getPointIdentity(
-  G::TranslationGroup{TypeParameter{Tuple{N}}},
+  G::Manifolds.TranslationGroup{TypeParameter{Tuple{N}}},
   ::Type{T} = Float64,
 ) where {N, T <: Real}
   return zeros(SVector{N,T})

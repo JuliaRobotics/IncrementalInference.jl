@@ -14,6 +14,7 @@ using Reexport
 @reexport using LinearAlgebra
 
 using Manifolds
+using LieGroups
 using RecursiveArrayTools: ArrayPartition
 export ArrayPartition
 using ManifoldDiff
