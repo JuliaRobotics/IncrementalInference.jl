@@ -32,7 +32,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   # @info "$(csmc.cliq.id) Σ $(Σ)"
   # Pack all results in variables
   # FIXME test f_converged, ls_success, confirm convergence check
-  if result.f_converged || result.g_converged
+  if Optim.g_converged(result) || Optim.f_converged(result)
     logCSM(csmc, "$(csmc.cliq.id): subfg optim converged updating variables")
     for (v, val) in vardict
       vnd = getSolverData(getVariable(csmc.cliqSubFg, v), :parametric)
@@ -136,7 +136,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     #TEMP testing difference
     # vardict, result = solveGraphParametric(csmc.cliqSubFg)
     # Pack all results in variables
-    if result.g_converged || result.f_converged
+    if Optim.g_converged(result) || Optim.f_converged(result)
       logCSM(
         csmc,
         "$(csmc.cliq.id): subfg optim converged updating variables";
