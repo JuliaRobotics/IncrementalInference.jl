@@ -16,9 +16,7 @@ abstract type MessageType end
 struct NonparametricMessage <: MessageType end
 struct ParametricMessage <: MessageType end
 
-abstract type PackedSamplableBelief end
-
-StructTypes.StructType(::Type{<:PackedSamplableBelief}) = StructTypes.UnorderedStruct()
+using DistributedFactorGraphs: PackedSamplableBelief
 
 const SamplableBelief = Union{
   <:Distributions.Distribution,

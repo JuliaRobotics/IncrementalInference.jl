@@ -65,9 +65,11 @@ end
     $SIGNATURES
 Get the CommonConvWrapper for this factor.
 """
-_getCCW(gfnd::GenericFunctionNodeData) = gfnd.fnc
-_getCCW(fct::DFGFactor) = getSolverData(fct) |> _getCCW
-_getCCW(dfg::AbstractDFG, lbl::Symbol) = getFactor(dfg, lbl) |> _getCCW
+function _getCCW(gfnd::GenericFunctionNodeData)
+  error("_getCCW(gfnd::GenericFunctionNodeData) is deprecated, use DFG.getCache instead.")
+end
+_getCCW(fct::DFGFactor) = DFG.getCache(fct) #getSolverData(fct) |> _getCCW
+_getCCW(dfg::AbstractDFG, lbl::Symbol) = DFG.getCache(dfg, lbl) #getFactor(dfg, lbl) |> _getCCW
 
 DFG.getFactorType(ccw::CommonConvWrapper) = ccw.usrfnc!
 
@@ -494,7 +496,7 @@ function getFactorsAmongVariablesOnly(
     # now check if those factors have already been added
     for fct in prefcts
       vert = DFG.getFactor(dfg, fct)
-      if !getSolverData(vert).potentialused
+      if !DFG.getState(vert).potentialused
         push!(almostfcts, fct)
       end
     end

@@ -749,19 +749,19 @@ function getDefaultFactorData(
     _blockRecursion,
     userCache,
   )
-  
-  # and the factor data itself
-  return FunctionNodeData{typeof(ccwl)}(
+
+  state = DFG.FactorState(
     eliminated,
     potentialused,
-    edgeIDs,
-    ccwl,
     multihypo,
     ccwl.hyporecipe.certainhypo,
     nullhypo,
     solveInProgress,
     inflation,
   )
+
+  return state, ccwl
+
 end
 
 """
@@ -845,7 +845,7 @@ function DFG.addFactor!(
   _zonedtime(s::DateTime) = ZonedDateTime(s, localzone())
 
   varOrderLabels = Symbol[v.label for v in Xi]
-  solverData = getDefaultFactorData(
+  state, solvercache = getDefaultFactorData(
     dfg,
     Xi,
     deepcopy(usrfnc);
@@ -856,10 +856,12 @@ function DFG.addFactor!(
     _blockRecursion,
   )
   #
-  newFactor = DFGFactor(
+  newFactor = FactorCompute(
     Symbol(namestring),
     varOrderLabels,
-    solverData;
+    usrfnc,
+    state,
+    solvercache;
     tags = Set(union(tags, [:FACTOR])),
     solvable,
     timestamp = _zonedtime(timestamp),

@@ -76,7 +76,7 @@ function addBayesNetVerts!(dfg::AbstractDFG, elimOrder::Array{Symbol, 1})
   #
   for pId in elimOrder
     vert = DFG.getVariable(dfg, pId)
-    if  getSolverData(vert).BayesNetVertID == nothing ||
+    if  getSolverData(vert).BayesNetVertID === nothing ||
         getSolverData(vert).BayesNetVertID == :_null # Special serialization case of nothing
       @debug "[AddBayesNetVerts] Assigning $pId.data.BayesNetVertID = $pId"
       getSolverData(vert).BayesNetVertID = pId
@@ -166,7 +166,7 @@ function buildBayesNet!(dfg::AbstractDFG, elimorder::Vector{Symbol}; solvable::I
     vert = DFG.getVariable(dfg, v)
     for fctId in listNeighbors(dfg, vert; solvable = solvable)
       fct = DFG.getFactor(dfg, fctId)
-      if (getSolverData(fct).eliminated != true)
+      if (DFG.getState(fct).eliminated != true)
         push!(fi, fctId)
         for sepNode in listNeighbors(dfg, fct; solvable = solvable)
           # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
@@ -174,7 +174,7 @@ function buildBayesNet!(dfg::AbstractDFG, elimorder::Vector{Symbol}; solvable::I
             push!(Si, sepNode)
           end
         end
-        getSolverData(fct).eliminated = true
+        DFG.getState(fct).eliminated = true
       end
 
       if typeof(_getCCW(fct)) == CommonConvWrapper{GenericMarginal}

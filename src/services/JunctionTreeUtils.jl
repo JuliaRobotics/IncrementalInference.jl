@@ -871,8 +871,12 @@ function resetData!(vdata::VariableNodeData)
 end
 
 function resetData!(vdata::FunctionNodeData)
-  vdata.eliminated = false
-  vdata.potentialused = false
+  error("resetData!(vdata::FunctionNodeData) is deprecated, use resetData!(state::FactorState) instead")
+end
+
+function resetData!(state::DFG.FactorState)
+  state.eliminated = false
+  state.potentialused = false
   return nothing
 end
 
@@ -887,7 +891,7 @@ function resetFactorGraphNewTree!(dfg::AbstractDFG)
     resetData!(getSolverData(v))
   end
   for f in DFG.getFactors(dfg)
-    resetData!(getSolverData(f))
+    resetData!(DFG.getState(f))
   end
   return nothing
 end
@@ -999,13 +1003,13 @@ function getCliqFactorsFromFrontals(
     # usefcts = Int[]
     for fctid in ls(fgl, frsym)
       fct = getFactor(fgl, fctid)
-      if !unused || !getSolverData(fct).potentialused
+      if !unused || !DFG.getState(fct).potentialused
         loutn = ls(fgl, fctid; solvable = solvable)
         # deal with unary factors
         if length(loutn) == 1
           union!(usefcts, Symbol[Symbol(fct.label);])
           # appendUseFcts!(usefcts, loutn, fct) # , frsym)
-          getSolverData(fct).potentialused = true
+          DFG.getState(fct).potentialused = true
         end
         # deal with n-ary factors
         for sep in loutn
@@ -1015,7 +1019,7 @@ function getCliqFactorsFromFrontals(
           insep = sep in allids
           if !inseparator || insep
             union!(usefcts, Symbol[Symbol(fct.label);])
-            getSolverData(fct).potentialused = true
+            DFG.getState(fct).potentialused = true
             if !insep
               @debug "cliq=$(cliq.id) adding factor that is not in separator, $sep"
             end
@@ -1062,7 +1066,7 @@ function setCliqPotentials!(
   fcts = map(x -> getFactor(dfg, x), fctsyms)
   getCliqueData(cliq).partialpotential = map(x -> isPartial(x), fcts)
   for fct in fcts
-    getSolverData(fct).potentialused = true
+    DFG.getState(fct).potentialused = true
   end
 
   @debug "finding all frontals for down WIP"

@@ -107,7 +107,7 @@ end
 
 # TBD deprecate use of xDim
 function approxDeconv(
-  fcto::DFGFactor{<:CommonConvWrapper{<:AbstractManifoldMinimize}},
+  fcto::DFGFactor{<:AbstractManifoldMinimize},
   ccw::CommonConvWrapper = _getCCW(fcto);
   N::Int = 100,
   measurement::AbstractVector = sampleFactor(ccw, N),

@@ -68,10 +68,9 @@ import ApproxManifoldProducts: getBW
 import ApproxManifoldProducts: mmd
 import ApproxManifoldProducts: isPartial
 import ApproxManifoldProducts: _update!
-import DistributedFactorGraphs: reconstFactorData
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare, compareAllSpecial
-import DistributedFactorGraphs: rebuildFactorMetadata!
+import DistributedFactorGraphs: rebuildFactorCache!
 import DistributedFactorGraphs: getDimension, getManifold, getPointType, getPointIdentity
 import DistributedFactorGraphs: getPPE, getPPEDict
 import DistributedFactorGraphs: getFactorOperationalMemoryType
@@ -80,6 +79,7 @@ import DistributedFactorGraphs: getVariableType
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 import DistributedFactorGraphs: getFactorType
 import DistributedFactorGraphs: solveGraph!, solveGraphParametric!
+import DistributedFactorGraphs: packDistribution, unpackDistribution
 
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable

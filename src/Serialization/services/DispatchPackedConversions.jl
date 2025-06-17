@@ -5,7 +5,8 @@
 function convert(
   ::Type{PackedFunctionNodeData{P}},
   d::FunctionNodeData{T},
-) where {P <: AbstractPackedFactor, T <: FactorOperationalMemory}
+) where {P <: AbstractPackedFactor, T <: FactorSolverCache}
+  error("TODO remove. PackedFunctionNodeData is obsolete")
   return PackedFunctionNodeData(
     d.eliminated,
     d.potentialused,
@@ -22,12 +23,15 @@ end
 ## unpack converters------------------------------------------------------------
 
 # see #1424
-function reconstFactorData(
+#TODO Consolidate: this looks alot like `getDefaultFactorData`
+function DFG.reconstFactorData(
   dfg::AbstractDFG,
   varOrder::AbstractVector{Symbol},
   ::Type{<:GenericFunctionNodeData{<:CommonConvWrapper{F}}},
   packed::GenericFunctionNodeData{<:AbstractPackedFactor},
 ) where {F <: AbstractFactor}
+
+  error("TODO remove. Obsolete: use `DFG.rebuildFactorCache!` and getDefaultFactorData instead.")
   #
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
   usrfnc = convert(F, packed.fnc)
@@ -89,7 +93,7 @@ Dev Notes:
 - TODO: We should only really do this in-memory if we can by without it (review this).
 - TODO: needs testing
 """
-function rebuildFactorMetadata!(
+function DFG.rebuildFactorCache!(
   dfg::AbstractDFG{SolverParams},
   factor::DFGFactor,
   neighbors = map(vId -> getVariable(dfg, vId), listNeighbors(dfg, factor));
@@ -99,50 +103,54 @@ function rebuildFactorMetadata!(
   # Set up the neighbor data
 
   # Rebuilding the CCW
-  fsd = getSolverData(factor)
-  fnd_new = getDefaultFactorData(
+  state = DFG.getState(factor)
+  state, solvercache = getDefaultFactorData(
     dfg,
     neighbors,
-    getFactorType(factor);
-    multihypo = fsd.multihypo,
-    nullhypo = fsd.nullhypo,
-    # special inflation override 
-    inflation = fsd.inflation,
-    eliminated = fsd.eliminated,
-    potentialused = fsd.potentialused,
-    edgeIDs = fsd.edgeIDs,
-    solveInProgress = fsd.solveInProgress,
+    DFG.getObservation(factor);
+    multihypo = state.multihypo,
+    nullhypo = state.nullhypo,
+    # special inflation override
+    inflation = state.inflation,
+    eliminated = state.eliminated,
+    potentialused = state.potentialused,
+    solveInProgress = state.solveInProgress,
     _blockRecursion=_blockRecursionGradients
   )
   #
+  DFG.setCache!(factor, solvercache)
+  return factor
 
-  factor_ = if typeof(fnd_new) != typeof(getSolverData(factor))
-    # must change the type of factor solver data FND{CCW{...}}
-    # create a new factor
-    factor__ = DFGFactor(
-      getLabel(factor),
-      getTimestamp(factor),
-      factor.nstime,
-      getTags(factor),
-      fnd_new,
-      getSolvable(factor),
-      Tuple(getVariableOrder(factor)),
-    )
-    #
+  # factor_ = if typeof(solvercache) != typeof(DFG.getCache(factor)) 
+  #   # must change the type of factor solver data FND{CCW{...}}
+  #   # create a new factor
+  #   factor__ = FactorCompute(
+  #     getLabel(factor),
+  #     Tuple(getVariableOrder(factor)),
+  #     DFG.getObservation(factor),
+  #     state,
+  #     solvercache;
+  #     timestamp = getTimestamp(factor),
+  #     nstime = factor.nstime,
+  #     tags = getTags(factor),
+  #     solvable = getSolvable(factor),
+  #   )
+  #   #
 
-    # replace old factor in dfg with a new one
-    deleteFactor!(dfg, factor; suppressGetFactor = true)
-    addFactor!(dfg, factor__)
+  #   # replace old factor in dfg with a new one
+  #   deleteFactor!(dfg, factor; suppressGetFactor = true)
+  #   addFactor!(dfg, factor__)
 
-    factor__
-  else
-    setSolverData!(factor, fnd_new)
-    # We're not updating here because we don't want
-    # to solve cloud in loop, we want to make sure this flow works:
-    # Pull big cloud graph into local -> solve local -> push back into cloud.
-    # updateFactor!(dfg, factor)
-    factor
-  end
+  #   factor__
+  # else
+  #   setSolverData!(factor, new_solverData)
+  #   DFG.setCache!(factor, solvercache)
+  #   # We're not updating here because we don't want
+  #   # to solve cloud in loop, we want to make sure this flow works:
+  #   # Pull big cloud graph into local -> solve local -> push back into cloud.
+  #   # updateFactor!(dfg, factor)
+  #   factor
+  # end
 
   #... Copying neighbor data into the factor?
   # JT TODO it looks like this is already updated in getDefaultFactorData -> _createCCW
@@ -151,7 +159,7 @@ function rebuildFactorMetadata!(
   #   ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(neighborUserData)
   # end
 
-  return factor_
+  # return factor_
 end
 
 ## =================================================================

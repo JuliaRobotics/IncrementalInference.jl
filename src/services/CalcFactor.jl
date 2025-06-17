@@ -14,6 +14,10 @@ function _getDimensionsPartial(ccw::CommonConvWrapper)
   return ccw.partialDims
 end
 function _getDimensionsPartial(data::GenericFunctionNodeData)
+  Base.depwarn(
+    "_getDimensionsPartial(data::GenericFunctionNodeData) is deprecated, use solvercache <: FactorSolverCache instead",
+    :_getDimensionsPartial,
+  ) 
   return _getCCW(data) |> _getDimensionsPartial
 end
 _getDimensionsPartial(fct::DFGFactor) = _getDimensionsPartial(_getCCW(fct))
@@ -189,7 +193,7 @@ function calcFactorResidualTemporary(
 end
 
 ## =============================================================================================
-## FactorOperationalMemory helper constructors
+## FactorSolverCache helper constructors
 ## =============================================================================================
 
 

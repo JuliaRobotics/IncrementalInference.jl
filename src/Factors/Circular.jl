@@ -51,13 +51,15 @@ Related
 
 [`Circular`](@ref), [`Prior`](@ref), [`PartialPrior`](@ref)
 """
-mutable struct PriorCircular{T <: SamplableBelief} <: AbstractPrior
-  Z::T
-end
+DFG.@defFactorType PriorCircular AbstractPrior Manifolds.RealCircleGroup()
+
+# mutable struct PriorCircular{T <: SamplableBelief} <: AbstractPrior
+#   Z::T
+# end
 
 PriorCircular(::UniformScaling) = PriorCircular(Normal())
 
-DFG.getManifold(::PriorCircular) = RealCircleGroup()
+# DFG.getManifold(::PriorCircular) = RealCircleGroup()
 
 function getSample(cf::CalcFactor{<:PriorCircular})
   # FIXME workaround for issue #TBD with manifolds CircularGroup, 
@@ -77,21 +79,22 @@ function Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{PriorCircula
   return Manifolds.RealCircleGroup()
 end
 
-"""
-$(TYPEDEF)
+# """
+# $(TYPEDEF)
 
-Serialized object for storing PriorCircular.
-"""
-Base.@kwdef struct PackedPriorCircular <: AbstractPackedFactor
-  Z::PackedSamplableBelief
-end
-function convert(::Type{PackedPriorCircular}, d::PriorCircular)
-  return PackedPriorCircular(convert(PackedSamplableBelief, d.Z))
-end
-function convert(::Type{PriorCircular}, d::PackedPriorCircular)
-  distr = convert(SamplableBelief, d.Z)
-  return PriorCircular{typeof(distr)}(distr)
-end
+# Serialized object for storing PriorCircular.
+# """
+# Base.@kwdef struct PackedPriorCircular <: AbstractPackedFactor
+#   Z::PackedSamplableBelief
+# end
+
+# function convert(::Type{PackedPriorCircular}, d::PriorCircular)
+#   return PackedPriorCircular(convert(PackedSamplableBelief, d.Z))
+# end
+# function convert(::Type{PriorCircular}, d::PackedPriorCircular)
+#   distr = convert(SamplableBelief, d.Z)
+#   return PriorCircular{typeof(distr)}(distr)
+# end
 
 # --------------------------------------------
 
