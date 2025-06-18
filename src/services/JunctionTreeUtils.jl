@@ -891,7 +891,7 @@ function resetFactorGraphNewTree!(dfg::AbstractDFG)
     resetData!(getSolverData(v))
   end
   for f in DFG.getFactors(dfg)
-    resetData!(DFG.getState(f))
+    resetData!(DFG.getFactorState(f))
   end
   return nothing
 end
@@ -1003,13 +1003,13 @@ function getCliqFactorsFromFrontals(
     # usefcts = Int[]
     for fctid in ls(fgl, frsym)
       fct = getFactor(fgl, fctid)
-      if !unused || !DFG.getState(fct).potentialused
+      if !unused || !DFG.getFactorState(fct).potentialused
         loutn = ls(fgl, fctid; solvable = solvable)
         # deal with unary factors
         if length(loutn) == 1
           union!(usefcts, Symbol[Symbol(fct.label);])
           # appendUseFcts!(usefcts, loutn, fct) # , frsym)
-          DFG.getState(fct).potentialused = true
+          DFG.getFactorState(fct).potentialused = true
         end
         # deal with n-ary factors
         for sep in loutn
@@ -1019,7 +1019,7 @@ function getCliqFactorsFromFrontals(
           insep = sep in allids
           if !inseparator || insep
             union!(usefcts, Symbol[Symbol(fct.label);])
-            DFG.getState(fct).potentialused = true
+            DFG.getFactorState(fct).potentialused = true
             if !insep
               @debug "cliq=$(cliq.id) adding factor that is not in separator, $sep"
             end
@@ -1066,7 +1066,7 @@ function setCliqPotentials!(
   fcts = map(x -> getFactor(dfg, x), fctsyms)
   getCliqueData(cliq).partialpotential = map(x -> isPartial(x), fcts)
   for fct in fcts
-    DFG.getState(fct).potentialused = true
+    DFG.getFactorState(fct).potentialused = true
   end
 
   @debug "finding all frontals for down WIP"

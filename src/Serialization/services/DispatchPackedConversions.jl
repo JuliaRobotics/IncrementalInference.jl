@@ -103,7 +103,7 @@ function DFG.rebuildFactorCache!(
   # Set up the neighbor data
 
   # Rebuilding the CCW
-  state = DFG.getState(factor)
+  state = DFG.getFactorState(factor)
   state, solvercache = getDefaultFactorData(
     dfg,
     neighbors,

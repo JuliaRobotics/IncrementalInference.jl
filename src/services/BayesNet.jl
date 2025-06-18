@@ -166,7 +166,7 @@ function buildBayesNet!(dfg::AbstractDFG, elimorder::Vector{Symbol}; solvable::I
     vert = DFG.getVariable(dfg, v)
     for fctId in listNeighbors(dfg, vert; solvable = solvable)
       fct = DFG.getFactor(dfg, fctId)
-      if (DFG.getState(fct).eliminated != true)
+      if (DFG.getFactorState(fct).eliminated != true)
         push!(fi, fctId)
         for sepNode in listNeighbors(dfg, fct; solvable = solvable)
           # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
@@ -174,7 +174,7 @@ function buildBayesNet!(dfg::AbstractDFG, elimorder::Vector{Symbol}; solvable::I
             push!(Si, sepNode)
           end
         end
-        DFG.getState(fct).eliminated = true
+        DFG.getFactorState(fct).eliminated = true
       end
 
       if typeof(_getCCW(fct)) == CommonConvWrapper{GenericMarginal}
