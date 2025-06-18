@@ -119,7 +119,7 @@ function convert(::Type{DevelopPrior}, d::PackedDevelopPrior)
   DevelopPrior(convert(SamplableBelief, d.x))
 end
 
-mutable struct PackedDevelopLikelihood <: AbstractPackedFactor
+@kwdef mutable struct PackedDevelopLikelihood <: AbstractPackedFactor
   x::PackedSamplableBelief
 end
 function convert(::Type{PackedDevelopLikelihood}, d::DevelopLikelihood)
@@ -135,25 +135,28 @@ end
 @testset "test packing and unpacking the data structure" begin
 
 ##
+packedfac = packFactor(getFactor(fg,:x1f1))
+unpackedfac = unpackFactor(packedfac)
 
-topack = getSolverData(getFactor(fg,:x1f1))
-dd = convert(PackedFunctionNodeData{PackedDevelopPrior},topack)
-unpacked = reconstFactorData(fg, [:x1;], FunctionNodeData{CommonConvWrapper{DevelopPrior}},dd)
+rebuildFactorCache!(fg, unpackedfac)
 
-@test abs(IIF._getCCW(unpacked).usrfnc!.x.μ - 10.0) < 1e-10
-@test abs(IIF._getCCW(unpacked).usrfnc!.x.σ - 1.0) < 1e-10
+@test abs(IIF._getCCW(unpackedfac).usrfnc!.x.μ - 10.0) < 1e-10
+@test abs(IIF._getCCW(unpackedfac).usrfnc!.x.σ - 1.0) < 1e-10
 
+#
+packedfac = packFactor(getFactor(fg,:x2x3x4f1))
+unpackedfac = unpackFactor(packedfac)
+rebuildFactorCache!(fg, unpackedfac)
 
-fct = getFactor(fg, :x2x3x4f1)
-# @show typeof(fct)
-topack = getSolverData(fct) # f3
-dd = convert(PackedFunctionNodeData{PackedDevelopLikelihood},topack)
-unpacked = reconstFactorData(fg, [:x2;:x3;:x4], FunctionNodeData{CommonConvWrapper{DevelopLikelihood}},dd)
+@test sum(abs.(IIF._getCCW(unpackedfac).hyporecipe.hypotheses.p[1] .- 0.0)) < 0.1
+@test sum(abs.(IIF._getCCW(unpackedfac).hyporecipe.hypotheses.p[2:3] .- 0.5)) < 0.1
 
-# @test IIF._getCCW(unpacked).hypoverts == Symbol[:x3; :x4]
-@test sum(abs.(IIF._getCCW(unpacked).hyporecipe.hypotheses.p[1] .- 0.0)) < 0.1
-@test sum(abs.(IIF._getCCW(unpacked).hyporecipe.hypotheses.p[2:3] .- 0.5)) < 0.1
-
+# fct = getFactor(fg, :x2x3x4f1)
+# topack = getSolverData(fct) # f3
+# dd = convert(PackedFunctionNodeData{PackedDevelopLikelihood},topack)
+# unpacked = reconstFactorData(fg, [:x2;:x3;:x4], FunctionNodeData{CommonConvWrapper{DevelopLikelihood}},dd)
+# @test sum(abs.(IIF._getCCW(unpacked).hyporecipe.hypotheses.p[1] .- 0.0)) < 0.1
+# @test sum(abs.(IIF._getCCW(unpacked).hyporecipe.hypotheses.p[2:3] .- 0.5)) < 0.1
 
 ##
 

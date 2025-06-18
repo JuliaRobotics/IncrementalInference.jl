@@ -287,7 +287,6 @@ export CSMHistory,
 
   # some utils
   compare,
-  compareAllSpecial,
   getMeasurements,
   findFactorsBetweenFrom,
   addDownVariableFactors!,

@@ -59,7 +59,7 @@ Related
 [`calcFactorResidualTemporary`](@ref), [`_buildGraphByFactorAndTypes`](@ref)
 """
 mutable struct FactorGradientsCached!{F <: AbstractRelative, S, M, P, G, L}
-  dfgfct::DFGFactor{<:CommonConvWrapper{F}}
+  dfgfct::DFGFactor{F}
   # cached jacobian matrix of gradients
   cached_gradients::Matrix{Float64}
   # likely <:AbstractVector, while CalcFactor residuals are vectors in Rn but could change to Tangent vectors

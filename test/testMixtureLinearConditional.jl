@@ -101,9 +101,13 @@ addVariable!(fg_, :x1, ContinuousScalar)
 
 ##
 
-f0_ = DFG.unpackFactor(fg_, pf0)
-f1_ = DFG.unpackFactor(fg_, pf1)
+f0_ = DFG.unpackFactor(pf0)
+f1_ = DFG.unpackFactor(pf1)
 
+addFactor!(fg_, f0_)
+addFactor!(fg_, f1_)
+rebuildFactorCache!(fg_, f0_)
+rebuildFactorCache!(fg_, f1_)
 ##
 
 # ENV["JULIA_DEBUG"] = "DistributedFactorGraphs"
@@ -111,8 +115,8 @@ f1_ = DFG.unpackFactor(fg_, pf1)
 @show typeof(f1)
 @show typeof(f1_)
 
-@show  typeof(getSolverData(f1).fnc.varValsAll[]);
-@show typeof(getSolverData(f1_).fnc.varValsAll[]);
+@show typeof(DFG.getCache(f1).varValsAll[]);
+@show typeof(DFG.getCache(f1_).varValsAll[]);
 
 @test DFG.compareFactor(f1, f1_, skip=[:components;:labels;:timezone;:zone;:vartypes;:fullvariables;:particleidx;:varidx])
 

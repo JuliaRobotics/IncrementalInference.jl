@@ -69,7 +69,7 @@ import ApproxManifoldProducts: mmd
 import ApproxManifoldProducts: isPartial
 import ApproxManifoldProducts: _update!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
-import DistributedFactorGraphs: compare, compareAllSpecial
+import DistributedFactorGraphs: compare
 import DistributedFactorGraphs: rebuildFactorCache!
 import DistributedFactorGraphs: getDimension, getManifold, getPointType, getPointIdentity
 import DistributedFactorGraphs: getPPE, getPPEDict

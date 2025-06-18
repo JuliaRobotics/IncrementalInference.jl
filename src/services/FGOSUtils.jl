@@ -69,7 +69,7 @@ function _getCCW(gfnd::GenericFunctionNodeData)
   error("_getCCW(gfnd::GenericFunctionNodeData) is deprecated, use DFG.getCache instead.")
 end
 _getCCW(fct::DFGFactor) = DFG.getCache(fct) #getSolverData(fct) |> _getCCW
-_getCCW(dfg::AbstractDFG, lbl::Symbol) = DFG.getCache(dfg, lbl) #getFactor(dfg, lbl) |> _getCCW
+_getCCW(dfg::AbstractDFG, lbl::Symbol) = DFG.getCache(getFactor(dfg, lbl)) #getFactor(dfg, lbl) |> _getCCW
 
 DFG.getFactorType(ccw::CommonConvWrapper) = ccw.usrfnc!
 

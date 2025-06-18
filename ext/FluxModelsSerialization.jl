@@ -33,7 +33,7 @@ function _deserializeFluxDataBase64(sdata::AbstractString)
   return data
 end
 
-function packDistribution(obj::FluxModelsDistribution)
+function DFG.packDistribution(obj::FluxModelsDistribution)
   #
 
   # and the specialSampler function -- likely to be deprecated
@@ -75,7 +75,7 @@ function packDistribution(obj::FluxModelsDistribution)
   #
 end
 
-function unpackDistribution(obj::PackedFluxModelsDistribution)
+function DFG.unpackDistribution(obj::PackedFluxModelsDistribution)
   #
   obj.serializeHollow && @warn(
     "Deserialization of FluxModelsDistribution.serializationHollow=true is not yet well developed, please open issues at IncrementalInference.jl accordingly."
@@ -104,7 +104,7 @@ function Base.convert(
 )
   #
   # convert to packed type first
-  return packDistribution(obj)
+  return DFG.packDistribution(obj)
 end
 
 function convert(
@@ -112,7 +112,7 @@ function convert(
   obj::PackedFluxModelsDistribution,
 )
   #
-  return unpackDistribution(obj)
+  return DFG.unpackDistribution(obj)
 end
 
 #

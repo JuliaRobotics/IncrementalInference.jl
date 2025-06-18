@@ -2,7 +2,7 @@
 # function compareAll(Al::T1, Bl::T2; show::Bool=true, skip::Vector{Symbol}=Symbol[])::Bool where {T1 <: Union{SingleThreaded, MultiThreaded}, T2 <: Union{SingleThreaded, MultiThreaded}}
 #   return T1 == T2
 # end
-import DistributedFactorGraphs: compare, compareAllSpecial
+import DistributedFactorGraphs: compare
 
 # These are now moved to DistributedFactorGraphs, with the exceptions of
 # the functions with IIF-specific parameters.

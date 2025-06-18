@@ -68,5 +68,11 @@ end
 function convert(::Type{LinearRelative}, d::PackedLinearRelative)
   return LinearRelative(convert(SamplableBelief, d.Z))
 end
+function DFG.pack(d::LinearRelative)
+  return PackedLinearRelative(DFG.packDistribution(d.Z))
+end
+function DFG.unpack(d::PackedLinearRelative)
+  return LinearRelative(DFG.unpackDistribution(d.Z))
+end
 
 #

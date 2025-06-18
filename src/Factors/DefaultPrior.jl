@@ -33,4 +33,11 @@ function convert(::Type{Prior}, d::PackedPrior)
   return Prior(convert(SamplableBelief, d.Z))
 end
 
+function DFG.pack(d::Prior)
+  return PackedPrior(DFG.packDistribution(d.Z))
+end
+function DFG.unpack(d::PackedPrior)
+  return Prior(DFG.unpackDistribution(d.Z))
+end
+
 #

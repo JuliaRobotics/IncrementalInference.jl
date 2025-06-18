@@ -179,9 +179,13 @@ function convert(::Type{<:PackedMixture}, obj::Mixture{N, F, S, T}) where {N, F,
     # FIXME ON FIRE, likely to be difficult for non-standard "Samplable" types -- e.g. Flux models in RoME
     push!(allcomp, dtr_)
   end
-  pm = DFG.convertPackedType(obj.mechanics)
-  pm_ = convert(pm, obj.mechanics)
-  sT = string(typeof(pm_))
+  if hasmethod(pack, (typeof(obj.mechanics),))
+    pm = pack(obj.mechanics)
+  else
+    @warn("No pack method for mechanics type $(typeof(obj.mechanics)), using deprecated convert instead.")
+    pm = convert(DFG.convertPackedType(obj.mechanics), obj.mechanics)
+  end
+  sT = string(typeof(pm))
   dvst = convert(PackedSamplableBelief, obj.diversity)
   return PackedMixture(N, sT, string.(collect(S)), allcomp, dvst)
 end

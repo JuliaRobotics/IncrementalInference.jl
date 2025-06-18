@@ -21,12 +21,12 @@ Base.rm(saveFolder*".tar.gz")
 @test symdiff(ls(fg), ls(retDFG)) == []
 @test symdiff(lsf(fg), lsf(retDFG)) == []
 
-@show getFactor(fg, :x2x3x4f1).solverData.multihypo
-@show getFactor(retDFG, :x2x3x4f1).solverData.multihypo
+@show getFactorState(fg, :x2x3x4f1).multihypo
+@show getFactorState(retDFG, :x2x3x4f1).multihypo
 
 # check for match
-@test getFactor(fg, :x2x3x4f1).solverData.multihypo - getFactor(retDFG, :x2x3x4f1).solverData.multihypo |> norm < 1e-10
-@test getFactor(fg, :x2x3x4f1).solverData.certainhypo - getFactor(retDFG, :x2x3x4f1).solverData.certainhypo |> norm < 1e-10
+@test getFactorState(fg, :x2x3x4f1).multihypo - getFactorState(retDFG, :x2x3x4f1).multihypo |> norm < 1e-10
+@test getFactorState(fg, :x2x3x4f1).certainhypo - getFactorState(retDFG, :x2x3x4f1).certainhypo |> norm < 1e-10
 
 ##
 end
@@ -46,9 +46,9 @@ solveTree!(fg)
 
 #manually change a few fields to test if they are preserved
 fa = getFactor(fg, :x2x3x4f1)
-fa.solverData.eliminated = true
-fa.solverData.solveInProgress = 1
-fa.solverData.nullhypo = 0.5
+getFactorState(fa).eliminated = true
+getFactorState(fa).solveInProgress = 1
+getFactorState(fa).nullhypo = 0.5
 
 
 saveFolder = "/tmp/dfg_test"
@@ -62,12 +62,12 @@ Base.rm(saveFolder*".tar.gz")
 @test issetequal(ls(fg), ls(retDFG))
 @test issetequal(lsf(fg), lsf(retDFG))
 
-@show getFactor(fg, :x2x3x4f1).solverData.multihypo
-@show getFactor(retDFG, :x2x3x4f1).solverData.multihypo
+@show getFactorState(fg, :x2x3x4f1).multihypo
+@show getFactorState(retDFG, :x2x3x4f1).multihypo
 
 # check for match
-@test isapprox(getFactor(fg, :x2x3x4f1).solverData.multihypo, getFactor(retDFG, :x2x3x4f1).solverData.multihypo)
-@test isapprox(getFactor(fg, :x2x3x4f1).solverData.certainhypo, getFactor(retDFG, :x2x3x4f1).solverData.certainhypo)
+@test isapprox(getFactorState(fg, :x2x3x4f1).multihypo, getFactorState(retDFG, :x2x3x4f1).multihypo)
+@test isapprox(getFactorState(fg, :x2x3x4f1).certainhypo, getFactorState(retDFG, :x2x3x4f1).certainhypo)
 
 
 fb = getFactor(retDFG, :x2x3x4f1)
