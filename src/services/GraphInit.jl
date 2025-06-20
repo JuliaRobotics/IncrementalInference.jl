@@ -182,14 +182,11 @@ function doautoinit!(
         # TODO perhaps usecopy=false
         updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent = false)
         # deepcopy graphinit value, see IIF #612
-        updateVariableSolverData!(
+        DFG.copytoVariableState!(
           dfg,
           xi.label,
-          getSolverData(xi, solveKey),
           :graphinit,
-          true,
-          Symbol[];
-          warn_if_absent = false,
+          getSolverData(xi, solveKey),
         )
         didinit = true
       end
