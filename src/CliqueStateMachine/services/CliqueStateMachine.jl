@@ -362,7 +362,7 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
   if init_for_differential
     frontal_vars = getVariable.(csmc.cliqSubFg, getCliqFrontalVarIds(csmc.cliq))
     filter!(!isInitialized, frontal_vars)
-    foreach(fvar -> getSolverData(fvar, csmc.solveKey).initialized = true, frontal_vars)
+    foreach(fvar -> getVariableState(fvar, csmc.solveKey).initialized = true, frontal_vars)
     logCSM(
       csmc,
       "CSM-2b init_for_differential: ";
@@ -404,7 +404,7 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
   ## FIXME init to whatever is in frontals
   # set frontals init back to false
   if init_for_differential #experimental_sommer_init_to_whatever_is_in_frontals
-    foreach(fvar -> getSolverData(fvar, csmc.solveKey).initialized = false, frontal_vars)
+    foreach(fvar -> getVariableState(fvar, csmc.solveKey).initialized = false, frontal_vars)
     if someInit
       solveStatus = UPSOLVED
     end

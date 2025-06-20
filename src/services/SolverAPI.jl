@@ -394,7 +394,7 @@ function solveTree!(
     nextk = length(allk) == 0 ? 0 : maximum(allk) + 1
     newKey = Symbol(:default_, nextk)
     cloneSolveKey!(dfgl, newKey, :default; solvable = 1)
-    # foreach(x->updateVariableSolverData!(dfgl, x, getSolverData(getVariable(dfgl,x), :default), newKey, true, Symbol[]), ls(dfgl, solvable=1))
+    # foreach(x->updateVariableSolverData!(dfgl, x, getVariableState(getVariable(dfgl,x), :default), newKey, true, Symbol[]), ls(dfgl, solvable=1))
     @info "storeOld=true, previous :default deepcopied into $newKey for solvable==1 variables."
   end
 

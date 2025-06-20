@@ -824,7 +824,7 @@ function updateSolverDataParametric!(
   cov::AbstractMatrix;
   solveKey::Symbol = :parametric,
 )
-  vnd = getSolverData(v, solveKey)
+  vnd = getVariableState(v, solveKey)
   return updateSolverDataParametric!(vnd, val, cov)
 end
 
@@ -873,17 +873,17 @@ function initParametricFrom!(
   #
   if onepoint
     for v in getVariables(fg)
-      fromvnd = getSolverData(v, fromkey)
+      fromvnd = getVariableState(v, fromkey)
       dims = getDimension(v)
-      getSolverData(v, parkey).val[1] = fromvnd.val[1]
-      getSolverData(v, parkey).bw[1:dims, 1:dims] = LinearAlgebra.I(dims)
+      getVariableState(v, parkey).val[1] = fromvnd.val[1]
+      getVariableState(v, parkey).bw[1:dims, 1:dims] = LinearAlgebra.I(dims)
     end
   else
     for var in getVariables(fg)
       dims = getDimension(var)
       μ, Σ = calcMeanCovar(var, fromkey)
-      getSolverData(var, parkey).val[1] = μ
-      getSolverData(var, parkey).bw[1:dims, 1:dims] = Σ
+      getVariableState(var, parkey).val[1] = μ
+      getVariableState(var, parkey).bw[1:dims, 1:dims] = Σ
     end
   end
 end
@@ -914,7 +914,7 @@ Update the fg from solution in vardict and add MeanMaxPPE (all just mean). Usefu
 """
 function updateParametricSolution!(sfg, vardict::AbstractDict; solveKey::Symbol = :parametric)
   for (v, val) in vardict
-    vnd = getSolverData(getVariable(sfg, v), solveKey)
+    vnd = getVariableState(getVariable(sfg, v), solveKey)
     # Update the variable node data value and covariance
     updateSolverDataParametric!(vnd, val.val, val.cov)
     #fill in ppe as mean
@@ -931,7 +931,7 @@ function updateParametricSolution!(fg, M, labels::AbstractArray{Symbol}, vals, �
   end
 
   for (i, (v, val)) in enumerate(zip(labels, vals))
-    vnd = getSolverData(getVariable(fg, v), solveKey)
+    vnd = getVariableState(getVariable(fg, v), solveKey)
     covar = isnothing(Σ) ? vnd.bw : covars[i]
     # Update the variable node data value and covariance
     updateSolverDataParametric!(vnd, val, covar)#FIXME add cov
@@ -956,12 +956,12 @@ end
 
 function createMvNormal(v::DFGVariable, key = :parametric)
   if key == :parametric
-    vnd = getSolverData(v, :parametric)
+    vnd = getVariableState(v, :parametric)
     dims = vnd.dims
     return createMvNormal(vnd.val[1:dims, 1], vnd.bw[1:dims, 1:dims])
   else
     @warn "Trying MvNormal Fit, replace with PPE fits in future"
-    return fit(MvNormal, getSolverData(v, key).val)
+    return fit(MvNormal, getVariableState(v, key).val)
   end
 end
 
@@ -1002,7 +1002,7 @@ function autoinitParametricOptim!(
   #
 
   initme = getLabel(xi)
-  vnd = getSolverData(xi, solveKey)
+  vnd = getVariableState(xi, solveKey)
   # don't initialize a variable more than once
   if reinit || !isInitialized(xi, solveKey)
 
@@ -1028,7 +1028,7 @@ function autoinitParametricOptim!(
     getPPEDict(xi)[:parametric] = ppe
 
     # updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent=false)    
-    # updateVariableSolverData!(dfg, xi.label, getSolverData(xi, solveKey), :graphinit, true, Symbol[]; warn_if_absent=false)
+    # updateVariableSolverData!(dfg, xi.label, getVariableState(xi, solveKey), :graphinit, true, Symbol[]; warn_if_absent=false)
   else
     result = nothing
   end

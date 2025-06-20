@@ -35,7 +35,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   if Optim.g_converged(result) || Optim.f_converged(result)
     logCSM(csmc, "$(csmc.cliq.id): subfg optim converged updating variables")
     for (v, val) in vardict
-      vnd = getSolverData(getVariable(csmc.cliqSubFg, v), :parametric)
+      vnd = getVariableState(getVariable(csmc.cliqSubFg, v), :parametric)
       # fill in the variable node data value
       logCSM(csmc, "$(csmc.cliq.id) up: updating $v : $val")
       vnd.val[1] = val.val
@@ -82,7 +82,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #FIXME bit of a hack, only fill in variable beliefs if there are priors or for now more than one seperator
   if length(lsfPriors(csmc.cliqSubFg)) > 0 || length(cliqSeparatorVarIds) > 1
     for si in cliqSeparatorVarIds
-      vnd = getSolverData(getVariable(csmc.cliqSubFg, si), :parametric)
+      vnd = getVariableState(getVariable(csmc.cliqSubFg, si), :parametric)
       beliefMsg.belief[si] = TreeBelief(deepcopy(vnd))
     end
   end
@@ -116,7 +116,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     for (msym, belief) in downmsg.belief
       if msym in svars
         #TODO maybe combine variable and factor in new prior?
-        vnd = getSolverData(getVariable(csmc.cliqSubFg, msym), :parametric)
+        vnd = getVariableState(getVariable(csmc.cliqSubFg, msym), :parametric)
         logCSM(csmc, "$(csmc.cliq.id): Updating separator $msym from message $(belief.val)")
         vnd.val .= belief.val
         vnd.bw .= belief.bw
@@ -144,7 +144,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
       )
       for (v, val) in vardict
         logCSM(csmc, "$(csmc.cliq.id) down: updating $v : $val"; loglevel = Logging.Info)
-        vnd = getSolverData(getVariable(csmc.cliqSubFg, v), :parametric)
+        vnd = getVariableState(getVariable(csmc.cliqSubFg, v), :parametric)
         #Update subfg variables
         vnd.val[1] = val.val
         vnd.bw .= val.cov
@@ -167,7 +167,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     msgType = ParametricMessage(),
   )
   for fi in cliqFrontalVarIds
-    vnd = getSolverData(getVariable(csmc.cliqSubFg, fi), :parametric)
+    vnd = getVariableState(getVariable(csmc.cliqSubFg, fi), :parametric)
     beliefMsg.belief[fi] = TreeBelief(vnd)
     logCSM(csmc, "$(csmc.cliq.id): down message $fi : $beliefMsg"; loglevel = Logging.Info)
   end

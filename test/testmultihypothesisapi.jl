@@ -152,7 +152,7 @@ rebuildFactorCache!(fg, unpackedfac)
 @test sum(abs.(IIF._getCCW(unpackedfac).hyporecipe.hypotheses.p[2:3] .- 0.5)) < 0.1
 
 # fct = getFactor(fg, :x2x3x4f1)
-# topack = getSolverData(fct) # f3
+# topack = getVariableState(fct) # f3
 # dd = convert(PackedFunctionNodeData{PackedDevelopLikelihood},topack)
 # unpacked = reconstFactorData(fg, [:x2;:x3;:x4], FunctionNodeData{CommonConvWrapper{DevelopLikelihood}},dd)
 # @test sum(abs.(IIF._getCCW(unpacked).hyporecipe.hypotheses.p[1] .- 0.0)) < 0.1

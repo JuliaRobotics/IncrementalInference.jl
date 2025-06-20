@@ -125,7 +125,7 @@ end
 
 ##
 
-foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val[1] = x.second, pairs(d))
+foreach(x->getVariableState(getVariable(fg,x.first),:parametric).val[1] = x.second, pairs(d))
 
 
 # getSolverParams(fg).dbg=true
@@ -148,8 +148,8 @@ end
 
 # Print answers
 if false
-vsds = DFG.getSolverData.(getVariables(fg), :parametric)
-foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), sort!(getVariables(fg), by=getLabel, lt=natural_lt))
+vsds = DFG.getVariableState.(getVariables(fg), :parametric)
+foreach(v->println(v.label, ": ", DFG.getVariableState(v, :parametric).val), sort!(getVariables(fg), by=getLabel, lt=natural_lt))
 end
 
 
@@ -188,7 +188,7 @@ foreach(println, d)
 
 ##
 
-foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val[1] = x.second, pairs(d))
+foreach(x->getVariableState(getVariable(fg,x.first),:parametric).val[1] = x.second, pairs(d))
 
 # fg.solverParams.showtree = true
 # fg.solverParams.drawtree = true
@@ -202,7 +202,7 @@ foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val[1] = x.second,
 #force message passing with manual variable order
 tree2 = solveTree!(fg; algorithm=:parametric, eliminationOrder=[:x0, :x2, :x1])
 # end
-foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), getVariables(fg))
+foreach(v->println(v.label, ": ", DFG.getVariableState(v, :parametric).val), getVariables(fg))
 
 @test isapprox(getVariable(fg,:x0).solverDataDict[:parametric].val[1][1], -0.01, atol=1e-3)
 @test isapprox(getVariable(fg,:x1).solverDataDict[:parametric].val[1][1], 0.0, atol=1e-3)
@@ -230,7 +230,7 @@ for i in 0:10
   @test isapprox(d[sym][1], i, atol=1e-6)
 end
 
-foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val[1] = x.second, pairs(d))
+foreach(x->getVariableState(getVariable(fg,x.first),:parametric).val[1] = x.second, pairs(d))
 
 # fg.solverParams.showtree = true
 # fg.solverParams.drawtree = true
@@ -240,8 +240,8 @@ tree2 = IIF.solveTree!(fg; algorithm=:parametric)
 
 # print results
 if false
-vsds = DFG.getSolverData.(getVariables(fg), :parametric)
-foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), getVariables(fg))
+vsds = DFG.getVariableState.(getVariables(fg), :parametric)
+foreach(v->println(v.label, ": ", DFG.getVariableState(v, :parametric).val), getVariables(fg))
 end
 
 for i in 0:10

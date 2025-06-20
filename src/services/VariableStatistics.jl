@@ -37,7 +37,7 @@ end
 
 #TODO consolidate
 function calcMeanCovar(vari::DFGVariable, solvekey = :default)
-  pts = getSolverData(vari, solvekey).val
+  pts = getVariableState(vari, solvekey).val
   μ = mean(getManifold(vari), pts)
   Σ = cov(getVariableType(vari), pts)
   return μ, Σ

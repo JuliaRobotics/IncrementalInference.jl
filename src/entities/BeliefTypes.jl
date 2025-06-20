@@ -87,7 +87,7 @@ function TreeBelief(vnd::VariableNodeData{T}, solvDim::Real = 0) where {T}
 end
 
 function TreeBelief(vari::DFGVariable, solveKey::Symbol = :default; solvableDim::Real = 0)
-  return TreeBelief(getSolverData(vari, solveKey), solvableDim)
+  return TreeBelief(getVariableState(vari, solveKey), solvableDim)
 end
 #
 

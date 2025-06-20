@@ -186,7 +186,7 @@ function doautoinit!(
           dfg,
           xi.label,
           :graphinit,
-          getSolverData(xi, solveKey),
+          getVariableState(xi, solveKey),
         )
         didinit = true
       end
@@ -348,7 +348,7 @@ function initVariable!(
   M = getManifold(variable)
   if solveKey == :parametric
     μ, iΣ = getMeasurementParametric(samplable_belief)
-    vnd = getSolverData(variable, solveKey)
+    vnd = getVariableState(variable, solveKey)
     vnd.val[1] = getPoint(getVariableType(variable), μ)
     vnd.bw .= inv(iΣ)
     vnd.initialized = true
@@ -446,7 +446,7 @@ function resetInitialValues!(
 )
   #
   for vs in varList
-    vnd = getSolverData(getVariable(src, vs), initKey)
+    vnd = getVariableState(getVariable(src, vs), initKey)
     # guess we definitely want to use copy to preserve the initKey memory
     updateVariableSolverData!(dest, vs, vnd, solveKey, true; warn_if_absent = false)
   end
