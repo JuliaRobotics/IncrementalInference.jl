@@ -11,7 +11,7 @@ mutable struct GenericMarginal <: RelativeObservation # AbstractRelativeRoots
   GenericMarginal(a, b, c) = new(a, b, c)
 end
 
-getManifold(::GenericMarginal) = TranslationGroup(1)
+getManifold(::GenericMarginal) = LieGroups.TranslationGroup(1)
 
 getSample(::CalcFactor{<:GenericMarginal}) = [0]
 
