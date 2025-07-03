@@ -28,3 +28,20 @@ function DFG.unpack(dtr::PackedFullNormal)
 end
 DFG.unpack(dtr::PackedRayleigh) = Rayleigh(dtr.sigma)
 
+
+# function unpackDistribution(dtr::PackedFullNormal)
+  
+#   SM = SymmetricPositiveDefinite(length(dtr.mu))
+#   S = reshape(dtr.cov, length(dtr.mu), :)
+#   ch = check_point(SM, S; atol = 1e-9) 
+#   if !isnothing(ch)
+#       @warn "IMU Covar check" ch
+#       S = (S + S') / 2
+#       S = S + diagm((diag(S) .== 0)*1e-15)
+#       ch = check_point(SM, S)
+#       !isnothing(ch) && @error "IMU Covar check" ch
+#   end
+
+#   # return MvNormal(dtr.mu, reshape(dtr.cov, length(dtr.mu), :))
+#   return MvNormal(dtr.mu, S)
+# end
