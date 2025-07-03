@@ -123,6 +123,15 @@ function Ad(::typeof(SpecialEuclidean(2)), p)
   )
 end
 
+function Ad(::Motion(2), p)
+  t = p.x[1]
+  R = p.x[2]
+  vcat(
+      hcat(R, -SA[0 -1; 1 0]*t),
+      SA[0 0 1]
+  )
+end
+
 struct AdFactor{F <: AbstractManifoldMinimize} <: AbstractManifoldMinimize
   factor::F
 end

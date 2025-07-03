@@ -31,7 +31,7 @@ function factorJacobian(
   M_codom = Euclidean(manifold_dimension(getManifold(fac)))
   # Jx(M, p) = ManifoldDiff.jacobian(M, M_codom, calcfac, p, backend)
   
-  return ManifoldDiff.jacobian(M_dom, M_codom, costf, p0, backend)
+  return ManifoldDiff.jacobian(M_dom, M_codom, costf, p0, backend), costf(p0)
 end
 
 
