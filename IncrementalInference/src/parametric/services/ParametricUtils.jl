@@ -489,7 +489,7 @@ function initPoints!(p, gsc, fg::AbstractDFG, solveKey = :parametric)
   for (i, vartype) in enumerate(gsc.varTypes)
     varIds = gsc.varTypesIds[vartype]
     for (j, vId) in enumerate(varIds)
-      p[gsc.M, i][j] = getVariableSolverData(fg, vId, solveKey).val[1]
+      p[gsc.M, i][j] = getVariableState(fg, vId, solveKey).val[1]
     end
   end
 end
@@ -674,7 +674,7 @@ function solveConditionalsParametric(
   flatvar = FlatVariables(fg, varIds)
 
   for vId in varIds
-    p = getVariableSolverData(fg, vId, solvekey).val[1]
+    p = getVariableState(fg, vId, solvekey).val[1]
     flatvar[vId] = getCoordinates(getVariableType(fg, vId), p)
   end
   initValues = flatvar.X

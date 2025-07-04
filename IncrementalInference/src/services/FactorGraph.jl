@@ -302,12 +302,11 @@ end
 Set variable initialized status.
 """
 function setVariableInitialized!(varid::VariableNodeData, status::Bool)
-  #
   return varid.initialized = status
 end
-#TODO why no solveKey
-function setVariableInitialized!(vari::DFGVariable, status::Bool)
-  return setVariableInitialized!(getVariableState(vari), status)
+
+function setVariableInitialized!(vari::DFGVariable, solveKey::Symbol, status::Bool)
+  return setVariableInitialized!(getVariableState(vari, solveKey), status)
 end
 
 """
@@ -348,7 +347,7 @@ end
 
 Reset the solve state of a variable to uninitialized/unsolved state.
 """
-function resetVariable!(varid::VariableNodeData; solveKey::Symbol = :default)::Nothing
+function resetVariable!(varid::VariableNodeData)
   #
   val = getBelief(varid)
   pts = AMP.getPoints(val)
@@ -363,17 +362,12 @@ function resetVariable!(varid::VariableNodeData; solveKey::Symbol = :default)::N
   return nothing
 end
 
-function resetVariable!(vari::DFGVariable; solveKey::Symbol = :default)
-  return resetVariable!(getVariableState(vari); solveKey = solveKey)
+function resetVariable!(vari::DFGVariable, solveKey::Symbol = :default)
+  return resetVariable!(getVariableState(vari, solveKey))
 end
 
-function resetVariable!(
-  dfg::G,
-  sym::Symbol;
-  solveKey::Symbol = :default,
-)::Nothing where {G <: AbstractDFG}
-  #
-  return resetVariable!(getVariable(dfg, sym); solveKey = solveKey)
+function resetVariable!(dfg::AbstractDFG, sym::Symbol, solveKey::Symbol = :default)
+  return resetVariable!(getVariableState(dfg, sym, solveKey))
 end
 
 # return VariableNodeData
@@ -438,7 +432,7 @@ function setDefaultNodeDataParametric!(
   kwargs...,
 )
   vnd = DefaultNodeDataParametric(0, variableType |> getDimension, variableType; solveKey, kwargs...)
-  setSolverData!(v, vnd, solveKey)
+  mergeVariableState!(v, vnd)
   nothing
 end
 
@@ -485,7 +479,7 @@ function setDefaultNodeData!(
     (val, bw)
   end
   # make and set the new solverData
-  setSolverData!(
+  mergeVariableState!(
     v,
     VariableNodeData(varType;
       id=nothing,
@@ -504,8 +498,7 @@ function setDefaultNodeData!(
       # 0,
       # 0,
       solveKey,
-    ),
-    solveKey,
+    )
   )
   return nothing
 end
@@ -556,7 +549,7 @@ function setVariableRefence!(
   )
   #
   # set the value in the DFGVariable
-  return setSolverData!(var, vnd, refKey)
+  return mergeVariableState!(var, vnd)
 end
 
 # get instance from variableType

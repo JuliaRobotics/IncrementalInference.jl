@@ -143,7 +143,7 @@ function DFG.rebuildFactorCache!(
 
   #   factor__
   # else
-  #   setSolverData!(factor, new_solverData)
+  #   mergeVariableState!(factor, new_solverData)
   #   DFG.setCache!(factor, solvercache)
   #   # We're not updating here because we don't want
   #   # to solve cloud in loop, we want to make sure this flow works:

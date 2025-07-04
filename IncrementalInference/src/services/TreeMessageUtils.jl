@@ -36,7 +36,7 @@ function resetCliqSolve!(
   cda = getCliqueData(cliq)
   vars = getCliqVarIdsAll(cliq)
   for varis in vars
-    resetVariable!(dfg, varis; solveKey = solveKey)
+    resetVariable!(dfg, varis, solveKey)
   end
   # TODO remove once consolidation with upMsgs is done
   putCliqueMsgUp!(cda, LikelihoodMessage())

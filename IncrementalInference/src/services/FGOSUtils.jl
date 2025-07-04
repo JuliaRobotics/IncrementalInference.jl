@@ -168,19 +168,19 @@ joinLogPath(dfg::AbstractDFG, str...) = joinLogPath(getSolverParams(dfg), str...
 
 Set variable(s) `sym` of factor graph to be marginalized -- i.e. not be updated by inference computation.
 """
-function setfreeze!(dfg::AbstractDFG, sym::Symbol)
+function setfreeze!(dfg::AbstractDFG, sym::Symbol, solveKey::Symbol = :default)
   if !isInitialized(dfg, sym)
     @warn "Vertex $(sym) is not initialized, and won't be frozen at this time."
     return nothing
   end
   vert = DFG.getVariable(dfg, sym)
-  data = getVariableState(vert)
+  data = getVariableState(vert, solveKey)
   data.ismargin = true
   return nothing
 end
-function setfreeze!(dfg::AbstractDFG, syms::Vector{Symbol})
+function setfreeze!(dfg::AbstractDFG, syms::Vector{Symbol}, solveKey::Symbol = :default)
   for sym in syms
-    setfreeze!(dfg, sym)
+    setfreeze!(dfg, sym, solveKey)
   end
 end
 
@@ -357,10 +357,10 @@ Reset initialization flag on all variables in `::AbstractDFG`.
 Notes
 - Numerical values remain, but inference will overwrite since init flags are now `false`.
 """
-function resetVariableAllInitializations!(fgl::AbstractDFG)
+function resetVariableAllInitializations!(fgl::AbstractDFG, solveKey::Symbol = :default)
   vsyms = ls(fgl)
   for sym in vsyms
-    setVariableInitialized!(getVariable(fgl, sym), :false)
+    setVariableInitialized!(getVariable(fgl, sym), solveKey, false)
   end
   return nothing
 end

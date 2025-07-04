@@ -64,7 +64,7 @@ end
 @testset "Testing conversion to packed variable node data structure and back" begin
 ##
 
-dat = getVariableState(getVariable(fg,:x1))
+dat = getVariableState(getVariable(fg,:x1), :default)
 
 # dat.BayesNetVertID
 

@@ -403,7 +403,7 @@ function identifyFirstEliminatedSeparator(
   dfg::AbstractDFG,
   elimorder::Vector{Symbol},
   firvert::DFGVariable,
-  Sj = getVariableState(firvert).separator,
+  Sj = getVariableState(firvert, :default).separator,
 )::DFGVariable
   #
   firstelim = (2^(Sys.WORD_SIZE - 1) - 1)
@@ -440,7 +440,7 @@ function newPotential(
 ) where {G <: AbstractDFG}
   firvert = DFG.getVariable(dfg, var)
   # no parent
-  if (length(getVariableState(firvert).separator) == 0)
+  if (length(getVariableState(firvert, :default).separator) == 0)
     # if (length(getCliques(tree)) == 0)
     # create new root
     addClique!(tree, dfg, var)
@@ -451,7 +451,7 @@ function newPotential(
     # end
   else
     # find parent clique Cp that containts the first eliminated variable of Sj as frontal
-    Sj = getVariableState(firvert).separator
+    Sj = getVariableState(firvert, :default).separator
     felbl = identifyFirstEliminatedSeparator(dfg, elimorder, firvert, Sj).label
     # get clique id of first eliminated frontal
     CpID = tree.frontals[felbl]
@@ -888,7 +888,7 @@ can be constructed.
 """
 function resetFactorGraphNewTree!(dfg::AbstractDFG)
   for v in DFG.getVariables(dfg)
-    resetData!(getVariableState(v))
+    resetData!(getVariableState(v, :default))
   end
   for f in DFG.getFactors(dfg)
     resetData!(DFG.getFactorState(f))

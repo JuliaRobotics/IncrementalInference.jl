@@ -35,7 +35,7 @@ p = addFactor!(fg, [:x0], mp)
 
 doautoinit!(fg, :x0)
 
-vnd = getVariableSolverData(fg, :x0)
+vnd = getVariableState(fg, :x0, :default)
 @test all(isapprox.(mean(vnd.val), [1 0; 0 1], atol=0.1))
 @test all(is_point.(Ref(M), vnd.val))
 
@@ -89,7 +89,7 @@ p = addFactor!(fg, [:x0], mp)
 
 doautoinit!(fg, :x0)
 
-vnd = getVariableSolverData(fg, :x0)
+vnd = getVariableState(fg, :x0, :default)
 @test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
 @test all(is_point.(Ref(M), vnd.val))
 
@@ -105,7 +105,7 @@ f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
 
-vnd = getVariableSolverData(fg, :x1)
+vnd = getVariableState(fg, :x1, :default)
 @test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
 @test all(is_point.(Ref(M), vnd.val))
 
@@ -113,11 +113,11 @@ vnd = getVariableSolverData(fg, :x1)
 solveTree!(fg) # ; smtasks, verbose=true, recordcliqs=ls(fg))
 
 # test them again after solve
-vnd = getVariableSolverData(fg, :x0)
+vnd = getVariableState(fg, :x0, :default)
 @test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
 @test all(is_point.(Ref(M), vnd.val))
 
-vnd = getVariableSolverData(fg, :x1)
+vnd = getVariableState(fg, :x1, :default)
 @test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
 @test all(is_point.(Ref(M), vnd.val))
 

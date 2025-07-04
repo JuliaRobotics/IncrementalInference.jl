@@ -76,12 +76,12 @@ function addBayesNetVerts!(dfg::AbstractDFG, elimOrder::Array{Symbol, 1})
   #
   for pId in elimOrder
     vert = DFG.getVariable(dfg, pId)
-    if  getVariableState(vert).BayesNetVertID === nothing ||
-        getVariableState(vert).BayesNetVertID == :_null # Special serialization case of nothing
+    if  getVariableState(vert, :default).BayesNetVertID === nothing ||
+        getVariableState(vert, :default).BayesNetVertID == :_null # Special serialization case of nothing
       @debug "[AddBayesNetVerts] Assigning $pId.data.BayesNetVertID = $pId"
-      getVariableState(vert).BayesNetVertID = pId
+      getVariableState(vert, :default).BayesNetVertID = pId
     else
-      @warn "addBayesNetVerts -- Something is wrong, variable '$pId' should not have an existing Bayes net reference to '$(getVariableState(vert).BayesNetVertID)'"
+      @warn "addBayesNetVerts -- Something is wrong, variable '$pId' should not have an existing Bayes net reference to '$(getVariableState(vert, :default).BayesNetVertID)'"
     end
   end
 end
@@ -89,7 +89,7 @@ end
 function addConditional!(dfg::AbstractDFG, vertId::Symbol, Si::Vector{Symbol})
   #
   bnv = DFG.getVariable(dfg, vertId)
-  bnvd = getVariableState(bnv)
+  bnvd = getVariableState(bnv, :default)
   bnvd.separator = Si
   for s in Si
     push!(bnvd.BayesNetOutVertIDs, s)
@@ -188,7 +188,7 @@ function buildBayesNet!(dfg::AbstractDFG, elimorder::Vector{Symbol}; solvable::I
     end
 
     # mark variable
-    getVariableState(vert).eliminated = true
+    getVariableState(vert, :default).eliminated = true
 
     # TODO -- remove links from current vertex to any marginals
     rmVarFromMarg(dfg, vert, gm)

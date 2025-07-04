@@ -48,7 +48,7 @@ p = addFactor!(fg, [:x0], mp)
 doautoinit!(fg, :x0)
 
 ##
-vnd = getVariableSolverData(fg, :x0)
+vnd = getVariableState(fg, :x0, :default)
 @test all(isapprox.(mean(vnd.val), ArrayPartition(SA[0.0,0.0], SA[1.0 0.0; 0.0 1.0]), atol=0.1))
 @test all(is_point.(Ref(M), vnd.val))
 
@@ -59,7 +59,7 @@ f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
 
-vnd = getVariableSolverData(fg, :x1)
+vnd = getVariableState(fg, :x1, :default)
 @test all(isapprox(M, mean(M,vnd.val), ArrayPartition(SA[1.0,2.0], SA[0.7071 -0.7071; 0.7071 0.7071]), atol=0.1))
 @test all(is_point.(Ref(M), vnd.val))
 
@@ -68,11 +68,11 @@ smtasks = Task[]
 solveTree!(fg; smtasks, verbose=true) #, recordcliqs=ls(fg))
 # hists = fetchCliqHistoryAll!(smtasks);
 
-vnd = getVariableSolverData(fg, :x0)
+vnd = getVariableState(fg, :x0, :default)
 @test all(isapprox.(mean(vnd.val), ArrayPartition(SA[0.0,0.0], SA[1.0 0.0; 0.0 1.0]), atol=0.1))
 @test all(is_point.(Ref(M), vnd.val))
 
-vnd = getVariableSolverData(fg, :x1)
+vnd = getVariableState(fg, :x1, :default)
 @test all(isapprox.(mean(vnd.val), ArrayPartition(SA[1.0,2.0], SA[0.7071 -0.7071; 0.7071 0.7071]), atol=0.1))
 @test all(is_point.(Ref(M), vnd.val))
 
@@ -194,13 +194,13 @@ addFactor!(fg, [:x6; :l1], mf)
 smtasks = Task[]
 solveTree!(fg; smtasks);
 
-vnd = getVariableSolverData(fg, :x0)
+vnd = getVariableState(fg, :x0, :default)
 @test isapprox(M, mean(M, vnd.val), ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.2)
 
-vnd = getVariableSolverData(fg, :x1)
+vnd = getVariableState(fg, :x1, :default)
 @test isapprox(M, mean(M, vnd.val), ArrayPartition([0.0,10.0], [-0.5 0.866; -0.866 -0.5]), atol=0.4)
 
-vnd = getVariableSolverData(fg, :x6)
+vnd = getVariableState(fg, :x6, :default)
 @test isapprox(M, mean(M, vnd.val), ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.5)
 
 ## Special test for manifold based messages
@@ -310,7 +310,7 @@ f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
 
-vnd = getVariableSolverData(fg, :x1)
+vnd = getVariableState(fg, :x1, :default)
 @test all(isapprox.(mean(vnd.val), [1.0,2.0], atol=0.1))
 
 ##
@@ -318,10 +318,10 @@ smtasks = Task[]
 solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
 # # hists = fetchCliqHistoryAll!(smtasks);
 
-vnd = getVariableSolverData(fg, :x0)
+vnd = getVariableState(fg, :x0, :default)
 @test isapprox(mean(getManifold(fg,:x0),vnd.val), ArrayPartition([0.0,0.0], [1.0 0.0; 0.0 1.0]), atol=0.1)
 
-vnd = getVariableSolverData(fg, :x1)
+vnd = getVariableState(fg, :x1, :default)
 @test all(isapprox.(mean(vnd.val), [1.0,2.0], atol=0.1))
 
 ##
@@ -551,7 +551,7 @@ f = addFactor!(fg, [:x0, :x1a, :x1b], mf; multihypo=[1,0.5,0.5])
 
 solveTree!(fg)
 
-vnd = getVariableSolverData(fg, :x0)
+vnd = getVariableState(fg, :x0, :default)
 @test isapprox(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), mean(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), vnd.val), ArrayPartition([0.0,0.0], [1.0 0; 0 1]), atol=0.1)
 
 #FIXME I would expect close to 50% of particles to land on the correct place
@@ -622,7 +622,7 @@ f = addFactor!(fg, [:x0, :x1a, :x1b], mf; multihypo=[1,0.5,0.5])
 
 solveTree!(fg)
 
-vnd = getVariableSolverData(fg, :x0)
+vnd = getVariableState(fg, :x0, :default)
 @test isapprox(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), mean(SpecialEuclidean(2; vectors=HybridTangentRepresentation()), vnd.val), ArrayPartition([0.0,0.0], [1.0 0; 0 1]), atol=0.1)
 
 #FIXME I would expect close to 50% of particles to land on the correct place

@@ -179,8 +179,8 @@ function doautoinit!(
         # Update the estimates (longer DFG function used so cloud is also updated)
         setVariablePosteriorEstimates!(dfg, xi.label, solveKey)
         # Update the data in the event that it's not local
-        # TODO perhaps usecopy=false
-        updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent = false)
+        # TODO perhaps use merge, but keeping to deepcopy as update variant used was set to copy.
+        DFG.copytoVariableState!(dfg, xi.label, solveKey, getVariableState(xi, solveKey))
         # deepcopy graphinit value, see IIF #612
         DFG.copytoVariableState!(
           dfg,

@@ -40,7 +40,7 @@ p = addFactor!(fg, [:x0], mp)
 
 doautoinit!(fg, :x0)
 
-vnd = getVariableSolverData(fg, :x0)
+vnd = getVariableState(fg, :x0, :default)
 @test all(isapprox.(mean(M, vnd.val), [1,0,0], atol=0.1))
 @test all(is_point.(Ref(M), vnd.val))
 
@@ -58,7 +58,7 @@ p = SA[1.,0,0]
 X = get_vector(M, p, SA[0.1,0.2], DefaultOrthonormalBasis())
 q = exp(M, p, X)
 
-vnd = getVariableSolverData(fg, :x1)
+vnd = getVariableState(fg, :x1, :default)
 mn_ = mean(M, vnd.val)
 @info "isapprox" q mn_
 @test all(isapprox.(mn_, q, atol=0.05))
