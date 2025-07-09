@@ -105,10 +105,10 @@ function addEntropyOnManifold!(
   end
 
   # preallocate 
-  T = number_eltype(points[1])
+  T = ManifoldsBase.number_eltype(points[1])
   Xc = zeros(T, manifold_dimension(M))
   #allocate to change SMatrix to MMatrix
-  X = allocate(get_vector(M, points[1], Xc, DefaultOrthogonalBasis()))
+  X = ManifoldsBase.allocate(get_vector(M, points[1], Xc, DefaultOrthogonalBasis()))
 
   for idx in 1:length(points)
     # build tangent coordinate random

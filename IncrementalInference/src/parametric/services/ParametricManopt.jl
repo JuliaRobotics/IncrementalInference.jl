@@ -212,7 +212,7 @@ function (jacF!::JacF_RLM!)(
   cache = jacF!.Jcache
   
   fill!(X0, 0)
-  
+
   # TODO make sure closure performs (let, ::, or (jacF!::JacF_RLM!)(res, Xc))
   function costf!(res, Xc)
     get_vector!(M, X, p, Xc, basis_domain)
@@ -414,7 +414,7 @@ function solve_RLM_conditional(
 
   # get the subgraph formed by all frontals, separators and fully connected factors
   varlabels = union(frontals, separators)
-  faclabels = sortDFG(setdiff(getNeighborhood(fg, varlabels, 1), varlabels))
+  faclabels = sortDFG(setdiff(listNeighborhood(fg, varlabels, 1), varlabels))
 
   filter!(faclabels) do fl
     return issubset(getVariableOrder(fg, fl), varlabels)

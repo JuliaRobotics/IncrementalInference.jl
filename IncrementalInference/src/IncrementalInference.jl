@@ -13,8 +13,15 @@ using Reexport
 # @reexport using Graphs
 @reexport using LinearAlgebra
 
-using Manifolds
-using LieGroups
+import Manifolds
+using Manifolds: ProductGroup, AbstractDecoratorManifold, get_vector, get_coordinates, ProductManifold, PowerManifold, GeodesicInterpolation, DefaultOrthogonalBasis, get_vector!
+using ManifoldsBase
+using ManifoldsBase: ℝ, AbstractManifold, AbstractBasis, TypeParameter, AbstractRetractionMethod, AbstractPowerManifold, NestedReplacingPowerRepresentation, retract, ExponentialRetraction
+
+import LieGroups
+using LieGroups: LieGroup, LieAlgebra, ProductLieGroup, hat, vee, compose, AbstractProductGroupOperation, AdditionGroupOperation, SpecialEuclideanGroup, SpecialOrthogonalGroup
+# using LieGroups: ProductGroupOperation, SemiDirectProductGroupOperation
+
 using RecursiveArrayTools: ArrayPartition
 export ArrayPartition
 using ManifoldDiff
@@ -45,8 +52,6 @@ using StructTypes
 
 using StaticArrays
 
-using ManifoldsBase
-using ManifoldsBase: TypeParameter
 # for BayesTree
 using MetaGraphs
 using Logging

@@ -4,7 +4,7 @@
 
 function (cf::CalcFactor{<:CircularCircular})(X, p, q)
   M = getManifold(cf)
-  return distanceTangent2Point(M, X, p, q)
+  return measurement_residual(M, X, p, q)
 end
 
 function getSample(cf::CalcFactor{<:CircularCircular})

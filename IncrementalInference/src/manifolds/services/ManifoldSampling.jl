@@ -28,7 +28,7 @@ function sampleTangent(
   M::AbstractManifold,
   z::Distribution,
   p = getPointIdentity(M),
-  basis::AbstractBasis = DefaultOrthogonalBasis()
+  basis::AbstractBasis = DefaultOrthogonalBasis(),
 )
   return get_vector(M, p, rand(z), basis)
 end
@@ -39,18 +39,20 @@ function sampleTangent(
   p = getPointIdentity(M),
 )
   return hat(M, p, SVector{length(z)}(rand(z))) #TODO make sure all Distribution has length, 
-                                                # if this errors maybe fall back no next line
+  # if this errors maybe fall back no next line
   # return convert(typeof(p), hat(M, p, rand(z, 1)[:])) #TODO find something better than (z,1)[:]
 end
 
-function sampleTangent(
-  M::LieGroup,
-  z::Distribution,
-  p = nothing,
-)
-  return hat(LieAlgebra(M), SVector{length(z)}(rand(z)), ArrayPartition{Float64}) #TODO make sure all Distribution has length, 
-                                                # if this errors maybe fall back no next line
-  # return convert(typeof(p), hat(M, p, rand(z, 1)[:])) #TODO find something better than (z,1)[:]
+function sampleTangent(M::LieGroup, z::Distribution, p = getPointIdentity(M))
+  return hat(LieAlgebra(M), SVector{length(z)}(rand(z)), typeof(p))
+end
+
+function sampleTangent(M::LieGroup, x::ManifoldKernelDensity, p = mean(x))
+  # get legacy matrix of coordinates and selected labels
+  #TODO make sure that when `sample` is replaced in MKD, coordinates is a vector
+  coords, lbls = sample(x.belief, 1)
+  X = hat(LieAlgebra(x.manifold), coords[:], typeof(p))
+  return X
 end
 
 """
@@ -152,7 +154,7 @@ function getSample(cf::CalcFactor{<:AbstractPrior})
 end
 
 function getSample(cf::CalcFactor{<:AbstractRelative})
-  M =getManifold(cf)
+  M = getManifold(cf)
   if hasfield(typeof(cf.factor), :Z)
     X = sampleTangent(M, cf.factor.Z)
   else

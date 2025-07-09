@@ -288,6 +288,7 @@ function buildGraphSolveManifold(vars::Vector{<:VariableCompute})
     N = vartypecount[vartype]
     G = getManifold(vartype)
     return NPowerManifold(G, N)
+    # return LieGroups.PowerLieGroup(G, N)
     # PowerManifold(G, NestedReplacingPowerRepresentation(), N)
     # PowerManifold(G, NestedPowerRepresentation(), N) #TODO investigate as it does not converge
   end

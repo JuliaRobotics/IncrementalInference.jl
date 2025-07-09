@@ -87,12 +87,12 @@ M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 z = ArrayPartition(SA[10.0; 0.0], SMatrix{2,2}(0.0, -1.0, 1.0, 0.0))
 
 p1 = ArrayPartition(SA[0.0; 0.0], SMatrix{2,2}(1, 0, 0, 1.))
-e0 = identity_element(M, p1)
+e0 = identity_element(M, typeof(p1))
 p2 = exp(M, e0, hat(M, e0, [10,0,pi/2]))
 
 
 function resid_SE2(X, p, q)
-  q̂ = Manifolds.compose(M, p, exp(M, identity_element(M, p), X)) #for groups
+  q̂ = Manifolds.compose(M, p, exp(M, identity_element(M, typeof(p)), X)) #for groups
   return vee(M, q, log(M, q, q̂))
 end
 

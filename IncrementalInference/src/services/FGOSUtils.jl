@@ -246,7 +246,7 @@ function calcPPE(
   #
   P = getBelief(var, solveKey)
   maniDef = convert(MB.AbstractManifold, varType)
-  manis = convert(Tuple, maniDef) # LEGACY, TODO REMOVE
+  manis = AMP._manifoldtuple(maniDef) # LEGACY, TODO REMOVE
   ops = buildHybridManifoldCallbacks(manis)
   Pme = calcMean(P)  # getKDEMean(P) #, addop=ops[1], diffop=ops[2]
 
