@@ -2,6 +2,7 @@ using DistributedFactorGraphs
 using IncrementalInference
 using LineSearches
 using Manifolds
+using LieGroups
 using StaticArrays
 using Test
 
@@ -12,10 +13,10 @@ using Test
 ##
 
 # @defVariable SpecialOrthogonal2 SpecialOrthogonal(2) @MMatrix([1.0 0.0; 0.0 1.0])
-@defVariable SpecialOrthogonal2 SpecialOrthogonal(2) SMatrix{2,2}(1.0, 0.0, 0.0, 1.0)
+@defVariable SpecialOrthogonal2 SpecialOrthogonalGroup(2) SMatrix{2,2}(1.0, 0.0, 0.0, 1.0)
 
 M = getManifold(SpecialOrthogonal2)
-@test M == SpecialOrthogonal(2)
+@test M == SpecialOrthogonalGroup(2)
 pT = getPointType(SpecialOrthogonal2)
 # @test pT == MMatrix{2, 2, Float64, 4}
 @test pT == SMatrix{2,2,Float64,4}
@@ -28,7 +29,7 @@ fg = initfg()
 
 v0 = addVariable!(fg, :x0, SpecialOrthogonal2)
 
-mp = ManifoldPrior(SpecialOrthogonal(2), SA[1.0 0.0; 0.0 1.0], MvNormal([0.01]))
+mp = ManifoldPrior(SpecialOrthogonalGroup(2), SA[1.0 0.0; 0.0 1.0], MvNormal([0.01]))
 p = addFactor!(fg, [:x0], mp)
 
 ##
@@ -43,7 +44,7 @@ vnd = getState(fg, :x0, :default)
 ##
 
 v1 = addVariable!(fg, :x1, SpecialOrthogonal2)
-mf = ManifoldFactor(SpecialOrthogonal(2), MvNormal([pi], [0.01]))
+mf = ManifoldFactor(SpecialOrthogonalGroup(2), MvNormal([pi], [0.01]))
 f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
@@ -60,18 +61,18 @@ solveTree!(fg) #; smtasks, verbose=true, recordcliqs=ls(fg))
 end
 
 
-@testset "Test SpecialOrthogonal(3) prior" begin
+@testset "Test SpecialOrthogonalGroup(3) prior" begin
 
 ##
 
 # Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{3}) = (:Euclid, :Euclid, :Euclid)
 # Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{3}})  =  (:Euclid, :Euclid, :Euclid)
 
-# @defVariable SO3 SpecialOrthogonal(3) @MMatrix([1.0 0.0; 0.0 1.0])
-@defVariable SO3 SpecialOrthogonal(3) SMatrix{3,3}(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0)
+# @defVariable SO3 SpecialOrthogonalGroup(3) @MMatrix([1.0 0.0; 0.0 1.0])
+@defVariable SO3 SpecialOrthogonalGroup(3) SMatrix{3,3}(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0)
 
 M = getManifold(SO3)
-@test M == SpecialOrthogonal(3)
+@test M == SpecialOrthogonalGroup(3)
 pT = getPointType(SO3)
 # @test pT == MMatrix{2, 2, Float64, 4}
 @test pT == SMatrix{3,3,Float64,9}
@@ -84,29 +85,29 @@ fg = initfg()
 
 v0 = addVariable!(fg, :x0, SO3)
 
-mp = ManifoldPrior(SpecialOrthogonal(3), SA[1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0], MvNormal([0.01, 0.01, 0.01]))
+mp = ManifoldPrior(SpecialOrthogonalGroup(3), SA[1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0], MvNormal([0.01, 0.01, 0.01]))
 p = addFactor!(fg, [:x0], mp)
 
 doautoinit!(fg, :x0)
 
 vnd = getState(fg, :x0, :default)
-@test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
+@test all(isapprox.( mean(SpecialOrthogonalGroup(3),vnd.val), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
 @test all(is_point.(Ref(M), vnd.val))
 
 points = sampleFactor(fg, :x0f1, 100)
-_M = SpecialOrthogonal(3)
+_M = SpecialOrthogonalGroup(3)
 std(_M, points .|> Matrix)
 
 ##
 
 v1 = addVariable!(fg, :x1, SO3)
-mf = ManifoldFactor(SpecialOrthogonal(3), MvNormal([0.01,0.01,0.01], [0.01,0.01,0.01]))
+mf = ManifoldFactor(SpecialOrthogonalGroup(3), MvNormal([0.01,0.01,0.01], [0.01,0.01,0.01]))
 f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
 
 vnd = getState(fg, :x1, :default)
-@test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
+@test all(isapprox.( mean(SpecialOrthogonalGroup(3),vnd.val), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
 @test all(is_point.(Ref(M), vnd.val))
 
 # smtasks = Task[]
@@ -114,11 +115,11 @@ solveTree!(fg) # ; smtasks, verbose=true, recordcliqs=ls(fg))
 
 # test them again after solve
 vnd = getState(fg, :x0, :default)
-@test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
+@test all(isapprox.( mean(SpecialOrthogonalGroup(3),vnd.val), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
 @test all(is_point.(Ref(M), vnd.val))
 
 vnd = getState(fg, :x1, :default)
-@test all(isapprox.( mean(SpecialOrthogonal(3),vnd.val), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
+@test all(isapprox.( mean(SpecialOrthogonalGroup(3),vnd.val), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
 @test all(is_point.(Ref(M), vnd.val))
 
 # 23Q2 default HagerZhang fails with `AssertionError: isfinite(phi_c) && isfinite(dphi_c)`, using alternate LineSearch
