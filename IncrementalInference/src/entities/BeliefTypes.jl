@@ -88,7 +88,7 @@ end
 
 function TreeBelief(vari::VariableCompute, solveKey::Symbol = :default; solvableDim::Real = 0)
   return TreeBelief(getState(vari, solveKey), solvableDim)
-end 
+end
 #
 
 getVariableType(tb::TreeBelief) = tb.variableType
