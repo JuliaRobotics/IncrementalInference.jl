@@ -7,7 +7,7 @@ not recommended when non-Euclidean dimensions are used in variables.
 struct Prior{T} <: AbstractPrior
   Z::T
 end
-DFG.getManifold(pr::Prior) = TranslationGroup(getDimension(pr.Z))
+DFG.getManifold(pr::Prior) = LieGroups.TranslationGroup(getDimension(pr.Z))
 
 """
 $(TYPEDEF)

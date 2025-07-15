@@ -13,7 +13,7 @@ struct Position{N} <: StateType{N} end
 Position(N::Int) = Position{N}()
 
 # not sure if these overloads are necessary since DFG 775?
-DFG.getManifold(::InstanceType{Position{N}}) where {N} = TranslationGroup(N)
+DFG.getManifold(::InstanceType{Position{N}}) where {N} = LieGroups.TranslationGroup(N)
 function DFG.getDimension(val::InstanceType{Position{N}}) where {N}
   return manifold_dimension(getManifold(val))
 end
@@ -51,7 +51,7 @@ $(TYPEDEF)
 
 Circular is a `Manifolds.Circle{ℝ}` mechanization of one rotation, with `theta in [-pi,pi)`.
 """
-@defVariable Circular RealCircleGroup() [0.0;]
+@defVariable Circular Manifolds.RealCircleGroup() [0.0;]
 #TODO This is an example of what we want working, possible issue upstream in Manifolds.jl
 # @defVariable Circular RealCircleGroup() Scalar(0.0)
 

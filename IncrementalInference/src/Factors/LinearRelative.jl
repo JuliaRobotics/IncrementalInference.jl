@@ -52,7 +52,7 @@ function Base.convert(
   ::Type{<:MB.AbstractManifold},
   ::InstanceType{LinearRelative{N}},
 ) where {N}
-  return Manifolds.TranslationGroup(N)
+  return LieGroups.TranslationGroup(N)
 end
 
 """

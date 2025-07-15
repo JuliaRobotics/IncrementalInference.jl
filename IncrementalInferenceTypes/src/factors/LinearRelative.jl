@@ -12,7 +12,7 @@ struct LinearRelative{T} <: RelativeObservation
   Z::T
 end
 
-DFG.getManifold(obs::LinearRelative) = TranslationGroup(getDimension(obs.Z))
+DFG.getManifold(obs::LinearRelative) = LieGroups.TranslationGroup(getDimension(obs.Z))
 
 """
 $(TYPEDEF)

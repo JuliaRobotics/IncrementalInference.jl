@@ -2,7 +2,9 @@ module IncrementalInferenceTypes
 
 using DistributedFactorGraphs
 using DocStringExtensions
-using Manifolds
+import Manifolds
+using LieGroups
+using LieGroups: TranslationGroup
 using Distributions
 using StaticArrays
 import StructTypes

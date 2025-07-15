@@ -161,7 +161,7 @@ function DFG.getPointIdentity(
 end
 
 function DFG.getPointIdentity(
-  G::Manifolds.TranslationGroup{TypeParameter{Tuple{N}}},
+  G::LieGroups.TranslationGroup{TypeParameter{Tuple{N}}},
   ::Type{T} = Float64,
 ) where {N, T <: Real}
   return zeros(SVector{N, T})

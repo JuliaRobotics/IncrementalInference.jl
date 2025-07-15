@@ -1,5 +1,8 @@
 using Test
 
+# TODO remove, forcing conflict to use LieGroups
+using LieGroups: TranslationGroup
+
 TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
 
 # temporarily moved to start (for debugging)

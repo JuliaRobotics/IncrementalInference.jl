@@ -20,6 +20,7 @@ using ManifoldsBase: ℝ, AbstractManifold, AbstractBasis, TypeParameter, Abstra
 
 import LieGroups
 using LieGroups: LieGroup, LieAlgebra, ProductLieGroup, hat, vee, compose, AbstractProductGroupOperation, AdditionGroupOperation, SpecialEuclideanGroup, SpecialOrthogonalGroup
+using LieGroups: TranslationGroup
 # using LieGroups: ProductGroupOperation, SemiDirectProductGroupOperation
 
 using RecursiveArrayTools: ArrayPartition

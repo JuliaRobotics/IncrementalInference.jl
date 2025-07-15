@@ -387,7 +387,7 @@ function solveTree!(
 
   # perhaps duplicate current value
   if storeOld || opt.dbg
-    ss = listSupersolves(dfgl) .|> string
+    ss = listSolveKeys(dfgl) .|> string
     ss_ = ss[occursin.(r"default_", ss)] .|> x -> x[9:end]
     filter!(x -> occursin(r"^\d+$", x), ss_)  # ss_ = ss_[occursin.(r"^\d$",ss_)]
     allk = parse.(Int, ss_)

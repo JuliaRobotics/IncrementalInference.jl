@@ -20,7 +20,7 @@ getDimension(::InstanceType{<:EuclidDistance}) = 1
 (s::CalcFactor{<:EuclidDistance})(z, x1, x2) = z .- norm(x2 .- x1)
 
 function Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{EuclidDistance})
-  return Manifolds.TranslationGroup(1)
+  return LieGroups.TranslationGroup(1)
 end
 
 """
