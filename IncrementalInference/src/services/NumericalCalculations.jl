@@ -103,7 +103,8 @@ end
 function (hypoCalcFactor::CalcFactorNormSq)(M::AbstractManifold, Xc::AbstractVector)
   # hypoCalcFactor.manifold is the factor's manifold, not the variable's manifold that is needed here
   ϵ = getPointIdentity(M)
-  X = get_vector(M, ϵ, SVector(Xc), DefaultOrthogonalBasis())
+  # X = get_vector(M, ϵ, SVector(Xc), DefaultOrthogonalBasis())
+  X = hat(LieAlgebra(M), SVector(Xc), typeof(ϵ))
   p = exp(M, ϵ, X)
   return hypoCalcFactor(CalcConv, p)
 end
@@ -131,7 +132,7 @@ function _solveLambdaNumeric(
   ϵ = getPointIdentity(variableType)
 
   X0c = zero(MVector{getDimension(M),Float64})
-  X0c .= vee(M, u0, log(M, ϵ, u0))
+  X0c .= vee(LieAlgebra(M), log(M, ϵ, u0))
 
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
 
@@ -171,7 +172,8 @@ end
 # for deconv with the measurement a tangent vector, can dispatch for other measurement types.
 function (hypoCalcFactor::CalcFactorNormSq)(::Type{CalcDeconv}, M::AbstractManifold, Xc::AbstractVector)
   ϵ = getPointIdentity(M)
-  X = get_vector(M, ϵ, Xc, DefaultOrthogonalBasis())
+  # X = get_vector(M, ϵ, Xc, DefaultOrthogonalBasis())
+  X = hat(LieAlgebra(M), Xc, typeof(ϵ))
   return hypoCalcFactor(CalcDeconv, X)
 end
 
@@ -188,7 +190,7 @@ function _solveLambdaNumericMeas(
   M = getManifold(fcttype)
   ϵ = getPointIdentity(M)
   X0c = zeros(manifold_dimension(M))
-  X0c .= vee(M, ϵ, X0)
+  X0c .= vee(LieAlgebra(M), X0)
 
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
 

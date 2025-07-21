@@ -104,7 +104,7 @@ function DFG.getPointIdentity(G::ProductGroup, ::Type{T} = Float64) where {T <: 
 end
 
 # fallback 
-function DFG.getPointIdentity(G::LieGroup, ::Type{T} = Float64) where {T <: Real}
+function DFG.getPointIdentity(G::AbstractLieGroup, ::Type{T} = Float64) where {T <: Real}
   return error("getPointIdentity not implemented on $G")
 end
 
@@ -117,12 +117,20 @@ end
 
 #TODO test
 function DFG.getPointIdentity(
-  PrG::LieGroup{𝔽, Op, M},
+  PrG::AbstractLieGroup{𝔽, Op, M},
   ::Type{T} = Float64,
 ) where {𝔽, Op <: AbstractProductGroupOperation, M <: ProductManifold, T <: Real}
   PrM = PrG.manifold
-  ε = map(getPointIdentity, map(LieGroup, PrM.manifolds, PrG.op.operations), T)
+  ε = map(G -> getPointIdentity(G, T), map(LieGroup, PrM.manifolds, PrG.op.operations))
   return ArrayPartition(ε)
+end
+
+function DFG.getPointIdentity(
+  VG::LieGroups.ValidationLieGroup,
+  ::Type{T} = Float64,
+) where {T <: Real}
+  G = VG.lie_group
+  return LieGroups.ValidationMPoint(getPointIdentity(G, T))
 end
 
 function DFG.getPointIdentity(
@@ -167,6 +175,6 @@ function DFG.getPointIdentity(
   return zeros(SVector{N, T})
 end
 
-function DFG.getPointIdentity(G::LieGroup{ℝ,AdditionGroupOperation,<:Circle{ℝ}}, ::Type{T} = Float64) where {T <: Real}
+function DFG.getPointIdentity(G::AbstractLieGroup{ℝ,AdditionGroupOperation,<:Circle{ℝ}}, ::Type{T} = Float64) where {T <: Real}
   return [zero(T)] #FIXME we cannot support scalars yet
 end

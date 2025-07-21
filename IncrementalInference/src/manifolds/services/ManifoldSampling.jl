@@ -43,11 +43,11 @@ function sampleTangent(
   # return convert(typeof(p), hat(M, p, rand(z, 1)[:])) #TODO find something better than (z,1)[:]
 end
 
-function sampleTangent(M::LieGroup, z::Distribution, p = getPointIdentity(M))
+function sampleTangent(M::AbstractLieGroup, z::Distribution, p = getPointIdentity(M))
   return hat(LieAlgebra(M), SVector{length(z)}(rand(z)), typeof(p))
 end
 
-function sampleTangent(M::LieGroup, x::ManifoldKernelDensity, p = mean(x))
+function sampleTangent(M::AbstractLieGroup, x::ManifoldKernelDensity, p = mean(x))
   # get legacy matrix of coordinates and selected labels
   #TODO make sure that when `sample` is replaced in MKD, coordinates is a vector
   coords, lbls = sample(x.belief, 1)
@@ -84,7 +84,7 @@ function samplePoint(
 end
 
 function samplePoint(
-  M::LieGroup,
+  M::AbstractLieGroup,
   sbelief,
   p = getPointIdentity(M),
   retraction_method::AbstractRetractionMethod = ExponentialRetraction(),

@@ -34,7 +34,7 @@ end
 
 function (cf::CalcFactor{<:PriorCircular})(m, p)
   M = getManifold(cf)
-  Xc = vee(M, p, log(M, p, m))
+  Xc = vee(LieAlgebra(M), log(M, p, m))
   return Xc
 end
 

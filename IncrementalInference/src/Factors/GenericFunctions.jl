@@ -36,9 +36,17 @@ DFG.getDimension(Z::BallTreeDensity) = Ndim(Z)
 # end
 
 # ::MeasurementOnTangent
-function measurement_residual(G::LieGroup, X, p, q)
+function measurement_residual(G::AbstractLieGroup, X, p, q)
   X̂ = log(G, p, q)
-  return vee(LieAlgebra(G), p, X - X̂) # TODO check sign
+  return vee(LieAlgebra(G), X - X̂) # TODO check sign with gradients, does not matter for cost so can't double check.
+end
+
+function prior_residual(G::AbstractLieGroup, m, p)
+  #TODO should it be TₘM or TₚM?
+  # Is the covariance that of the point m? If so, I would think it should be TₘM, but that doesn't seem to work.
+  X = log(G, p, m) # X ∈ TₚM, # this one gives the correct hex.
+  # X = log(G, m, p) # X ∈ TₘM, 
+  return vee(LieAlgebra(G), X)
 end
 
 """
@@ -153,8 +161,8 @@ struct ManifoldPrior{M <: AbstractManifold, T <: SamplableBelief, P, B <: Abstra
   retract_method::AbstractRetractionMethod
 end
 
-function ManifoldPrior(M::LieGroup, p, Z)
-  return ManifoldPrior(M, p, Z, MB.VeeOrthogonalBasis(), MB.ExponentialRetraction())
+function ManifoldPrior(M::AbstractLieGroup, p, Z)
+  return ManifoldPrior(M, p, Z, DefaultLieAlgebraOrthogonalBasis(), MB.ExponentialRetraction())
 end
 
 DFG.getManifold(f::ManifoldPrior) = f.M
@@ -171,10 +179,19 @@ DFG.getManifold(f::ManifoldPrior) = f.M
 function getSample(cf::CalcFactor{<:ManifoldPrior})
   Z = cf.factor.Z
   p = cf.factor.p
-  M = cf.manifold # .factor.M
+  M = cf.factor.M
   basis = cf.factor.basis
   retract_method = cf.factor.retract_method
   point = samplePoint(M, Z, p, basis, retract_method)
+
+  return point
+end
+
+function getSample(cf::CalcFactor{<:ManifoldPrior{<:AbstractLieGroup}})
+  Z = cf.factor.Z
+  p = cf.factor.p
+  M = cf.factor.M
+  point = samplePoint(M, Z, p)
 
   return point
 end
@@ -191,11 +208,9 @@ end
 # dim = manifold_dimension(M)
 # Xc = [SVector{dim}(rand(Z)) for _ in 1:N]
 
-function (cf::CalcFactor{<:ManifoldPrior})(m, p)
+function (cf::CalcFactor{<:ManifoldPrior{<:AbstractLieGroup}})(m, p)
   M = cf.factor.M
-  # return log(M, p, m)
-  return vee(M, p, log(M, p, m))
-  # return distancePrior(M, m, p)
+  return prior_residual(M, m, p)
 end
 
 # dist²_Σ = ⟨X, Σ⁻¹*X'⟩

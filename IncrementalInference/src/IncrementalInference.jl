@@ -14,12 +14,12 @@ using Reexport
 @reexport using LinearAlgebra
 
 import Manifolds
-using Manifolds: ProductGroup, AbstractDecoratorManifold, get_vector, get_coordinates, ProductManifold, PowerManifold, GeodesicInterpolation, DefaultOrthogonalBasis, get_vector!
+using Manifolds: ProductGroup, AbstractDecoratorManifold, get_vector, ProductManifold, PowerManifold, GeodesicInterpolation, DefaultOrthogonalBasis, get_vector!
 using ManifoldsBase
 using ManifoldsBase: ℝ, AbstractManifold, AbstractBasis, TypeParameter, AbstractRetractionMethod, AbstractPowerManifold, NestedReplacingPowerRepresentation, retract, ExponentialRetraction
 
 import LieGroups
-using LieGroups: LieGroup, LieAlgebra, ProductLieGroup, hat, vee, compose, AbstractProductGroupOperation, AdditionGroupOperation, SpecialEuclideanGroup, SpecialOrthogonalGroup
+using LieGroups: AbstractLieGroup, LieGroup, LieAlgebra, ProductLieGroup, hat, vee, compose, AbstractProductGroupOperation, AdditionGroupOperation, SpecialEuclideanGroup, SpecialOrthogonalGroup, DefaultLieAlgebraOrthogonalBasis
 using LieGroups: TranslationGroup
 # using LieGroups: ProductGroupOperation, SemiDirectProductGroupOperation
 

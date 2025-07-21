@@ -141,9 +141,8 @@ function transferUpdateSubGraph!(
     @info "transferUpdateSubGraph! -- syms=$syms"
   end
 
-  # transfer specific fields into dest from src
-  @time for var in (x -> getVariable(src, x)).(syms)
-    # NOTE compared copytoState! vs surgical updateVariableSolverData!
+  for var in (x -> getVariable(src, x)).(syms)
+    # NOTE compared copytoState! vs deprecated surgical updateVariableSolverData!
     # updateVariableSolverData! 0.000626 seconds (1.11 k allocations: 114.289 KiB)
     # copytoState! 0.000099 seconds (315 allocations: 27.758 KiB)
     DFG.copytoState!(

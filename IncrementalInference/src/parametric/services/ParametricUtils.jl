@@ -104,7 +104,8 @@ function getFactorMeasurementParametric(fac::AbstractPrior)
   ϵ = getPointIdentity(M)
   dims = manifold_dimension(M)
   Xc, iΣ = getMeasurementParametric(fac)
-  X = get_vector(M, ϵ, Xc, DefaultOrthogonalBasis())
+  # X = get_vector(M, ϵ, Xc, DefaultOrthogonalBasis())
+  X = hat(LieAlgebra(M), Xc, typeof(ϵ))
   meas = convert(typeof(ϵ), exp(M, ϵ, X))
   iΣ = convert(SMatrix{dims, dims}, iΣ)
   meas, iΣ
@@ -115,7 +116,12 @@ function getFactorMeasurementParametric(fac::AbstractRelative)
   ϵ = getPointIdentity(M)
   dims = manifold_dimension(M)
   Xc, iΣ = getMeasurementParametric(fac)
-  measX = convert(typeof(ϵ), get_vector(M, ϵ, Xc, DefaultOrthogonalBasis()))
+  # measX = convert(typeof(ϵ), get_vector(M, ϵ, Xc, DefaultOrthogonalBasis()))
+  if M isa LieGroups.ValidationLieGroup
+    measX = LieGroups.unwrap_validation(hat(LieAlgebra(M), Xc, typeof(ϵ)))
+  else
+    measX = convert(typeof(ϵ), hat(LieAlgebra(M), Xc, typeof(ϵ)))
+  end
   iΣ = convert(SMatrix{dims, dims}, iΣ)
   measX, iΣ
 end
@@ -287,12 +293,18 @@ function buildGraphSolveManifold(vars::Vector{<:VariableCompute})
   PMs = map(vartypes) do vartype
     N = vartypecount[vartype]
     G = getManifold(vartype)
+    if G isa LieGroups.ValidationLieGroup
+      #strip away ValidationLieGroup
+      G = G.lie_group
+    end
     return NPowerManifold(G, N)
     # return LieGroups.PowerLieGroup(G, N)
+    # return Manifolds.PowerManifold(G, N)
     # PowerManifold(G, NestedReplacingPowerRepresentation(), N)
     # PowerManifold(G, NestedPowerRepresentation(), N) #TODO investigate as it does not converge
   end
   M = ProductManifold(PMs...)
+  # M = ProductLieGroup(PMs...)
   return M, vartypes, vartypeslist
 end
 
@@ -307,7 +319,8 @@ function GraphSolveBuffers(@nospecialize(M), ::Type{T}) where {T}
   ϵ = getPointIdentity(M, T)
   p = deepcopy(ϵ)# allocate_result(M, getPointIdentity)
   X = deepcopy(ϵ) #allcoate(p)
-  Xc = get_coordinates(M, ϵ, X, DefaultOrthogonalBasis())
+  # Xc = Manifolds.get_coordinates(M, ϵ, X, DefaultOrthogonalBasis())
+  Xc = vee(LieGroup(M), X)
   return GraphSolveBuffers(ϵ, p, X, Xc)
 end
 
@@ -569,7 +582,8 @@ function solveGraphParametricOptim(
   # log!(M, X, Identity(ProductOperation), p)
   # calculate initial coordinates vector for Optim
   log!(M, X, ϵ, p)
-  get_coordinates!(M, Xc, ϵ, X, DefaultOrthogonalBasis())
+  # get_coordinates!(M, Xc, ϵ, X, DefaultOrthogonalBasis())
+  vee!(LieGroup(M), Xc, X)
 
   initValues = Xc
   #FIXME, for some reason we get NANs and adding a small random value works

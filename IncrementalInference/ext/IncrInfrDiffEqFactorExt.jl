@@ -17,7 +17,7 @@ using DocStringExtensions
 
 export DERelative
 
-import Manifolds: allocate, compose, hat, Identity, vee, log
+using LieGroups: allocate, compose, hat, Identity, vee, log
 
 
 getManifold(de::DERelative{T}) where {T} = getManifold(de.domain)

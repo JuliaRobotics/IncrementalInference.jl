@@ -162,7 +162,7 @@ end
 # function JacF_RLM!(M, costF!; basis_domain::AbstractBasis = DefaultOrthonormalBasis())
 function JacF_RLM!(M, costF!, p, fg=nothing;
   all_points=p,
-  basis_domain::AbstractBasis = DefaultOrthogonalBasis(),
+  basis_domain::AbstractBasis = LieGroups.DefaultLieAlgebraOrthogonalBasis(),
   is_sparse=!isnothing(fg)
 )
 
@@ -171,6 +171,7 @@ function JacF_RLM!(M, costF!, p, fg=nothing;
   X0 = zeros(manifold_dimension(M))
   
   X = get_vector(M, p, X0, basis_domain)
+  # X = vee(LieAlgebra(M), X0)
 
   q = exp(M, p, X)
 
