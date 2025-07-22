@@ -388,7 +388,17 @@ function _solveCCWNumeric!(
     M = getManifold(ccwl) # TranslationGroup(length(ccwl.varValsAll[][sfidx][smpid]))
     src = Vector{typeof(retval)}()
     push!(src, retval)
-    setPointPartial!(M, ccwl.varValsAll[][sfidx], M, src, ccwl.partialDims, smpid, 1, true )
+    # setPointPartial!(M, ccwl.varValsAll[][sfidx], M, src, ccwl.partialDims, smpid, 1, true )
+    setPointPartial!(
+      getManifold(ccwl.fullvariables[sfidx]),
+      ccwl.varValsAll[][sfidx],
+      M,
+      src,
+      ccwl.partialDims,
+      smpid,
+      1,
+      true
+    )
     # ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims] .= retval
   else
     # copyto!(ccwl.varValsAll[sfidx][smpid], retval)

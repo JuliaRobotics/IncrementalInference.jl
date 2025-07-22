@@ -234,7 +234,7 @@ function approxDeconv(
   w...;
   kw...,
 )
-  return approxDeconv(dfg, fctlbl, factorType(), w...; kw...)
+  return approxDeconv(dfg, fctlbl, factorType(), w...; kw...) #FIXME empty factor observation constructor
 end
 #
 
@@ -300,7 +300,7 @@ function deconvSolveKey(
 
   # add the new dummy factor with default manifold for computations
   fctType = selectFactorType(refVarType, tstVarType)
-  nf = addFactor!(tfg, [refSym_; tstSym_], fctType())
+  nf = addFactor!(tfg, [refSym_; tstSym_], fctType()) #FIXME empty factor observation constructor
 
   # TODO connect from dfg all other data that might form part of FactorMetadata in tfg
   pts = approxDeconv(tfg, nf.label)

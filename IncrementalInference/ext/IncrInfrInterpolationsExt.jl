@@ -7,6 +7,8 @@ using Statistics
 using DocStringExtensions
 using TensorCast
 using Manifolds
+using LieGroups
+using LieGroups: TranslationGroup
 using ApproxManifoldProducts
 import ApproxManifoldProducts: sample
 const AMP = ApproxManifoldProducts

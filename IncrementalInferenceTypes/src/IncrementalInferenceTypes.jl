@@ -4,7 +4,7 @@ using DistributedFactorGraphs
 using DocStringExtensions
 import Manifolds
 using LieGroups
-using LieGroups: TranslationGroup
+using LieGroups: TranslationGroup, ℝ
 using Distributions
 using StaticArrays
 import StructTypes

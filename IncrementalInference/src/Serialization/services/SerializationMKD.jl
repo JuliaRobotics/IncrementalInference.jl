@@ -5,7 +5,7 @@
 # relies on later use of getManifold to give back the same <:AbstractManifold
 # NOTE added to DFG.@defVariable
 getVariableType(M::Euclidean{TypeParameter{Tuple{N}}}) where {N} = ContinuousEuclid(N)
-getVariableType(M::LieGroups.TranslationGroup{TypeParameter{Tuple{N}}}) where {N} = ContinuousEuclid(N)
+getVariableType(M::LieGroups.TranslationGroup{ℝ, TypeParameter{Tuple{N}}}) where {N} = ContinuousEuclid(N)
 
 # getVariableType(M::RealCircleGroup) = Circular()
 # getVariableType(M::Circle) = error("Circle manifold is deprecated use RealCircleGroup, will come back when we generalize to non-group Riemannian")

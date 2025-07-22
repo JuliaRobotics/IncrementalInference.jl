@@ -9,7 +9,7 @@ mutable struct MyType
    MyType() = new()
 end
 
-function f(M::MyType)
+function fff(M::MyType)
    mm = MyType()
    mm.arr = M.arr
    return mm
@@ -20,7 +20,7 @@ end
 
 m = MyType(rand(3),2,"hello")
 
-mmm = f(m)
+mmm = fff(m)
 
 mmm.arr[1] = 1.0
 

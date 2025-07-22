@@ -98,14 +98,20 @@ end
 
 import DistributedFactorGraphs: getPointIdentity
 
-function DFG.getPointIdentity(G::ProductGroup, ::Type{T} = Float64) where {T <: Real}
-  M = G.manifold
+# fallback 
+function DFG.getPointIdentity(G::AbstractLieGroup, ::Type{T} = Float64) where {T <: Real}
+  # error("getPointIdentity not implemented for $G.")
+  @warn("getPointIdentity not implemented on $G, falling back to identity_element")
+  return identity_element(G)
+end
+
+function DFG.getPointIdentity(M::ProductManifold, ::Type{T} = Float64) where {T <: Real}
   return ArrayPartition(map(x -> getPointIdentity(x, T), M.manifolds))
 end
 
-# fallback 
-function DFG.getPointIdentity(G::AbstractLieGroup, ::Type{T} = Float64) where {T <: Real}
-  return error("getPointIdentity not implemented on $G")
+function DFG.getPointIdentity(G::ProductGroup, ::Type{T} = Float64) where {T <: Real}
+  M = G.manifold
+  return ArrayPartition(map(x -> getPointIdentity(x, T), M.manifolds))
 end
 
 function DFG.getPointIdentity(
@@ -177,4 +183,8 @@ end
 
 function DFG.getPointIdentity(G::AbstractLieGroup{ℝ,AdditionGroupOperation,<:Circle{ℝ}}, ::Type{T} = Float64) where {T <: Real}
   return [zero(T)] #FIXME we cannot support scalars yet
+end
+
+function DFG.getPointIdentity(G::typeof(LieGroups.CircleGroup()), ::Type{T} = Float64) where {T <: Real}
+  return fill(Complex{T}(1,0))
 end

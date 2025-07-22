@@ -22,6 +22,30 @@ PoseMani = TranslationGroup(2) × SpecialOrthogonalGroup(2)
 
 ##
 
+DFG.@defObservationType SE2SE2 RelativeObservation SE2
+
+struct ManifoldFactorSE2{T <: SamplableBelief} <: IIF.RelativeObservation
+    Z::T
+end
+
+SE2SE2() = SE2SE2(MvNormal(Diagonal([1,1,1])))
+
+IIF.selectFactorType(::Type{<:SpecialEuclidean2}, ::Type{<:SpecialEuclidean2}) = SE2SE2
+
+function IIF.getSample(cf::CalcFactor{<:SE2SE2}) 
+  M = getManifold(SE2SE2)
+  X = sampleTangent(M, cf.factor.Z)
+  return X
+end
+
+function (cf::CalcFactor{<:SE2SE2})(X, p, q)
+    M = getManifold(SE2SE2)
+    X̂ = log(M, p, q)
+    return vee(LieAlgebra(M), X - X̂)
+end
+
+##
+
 @testset "Test SpecialEuclidean(2)" begin
 ##
 
@@ -211,7 +235,7 @@ vnd = getState(fg, :x6, :parametric)
 
 @test isapprox(M, getState(fg, :x0, :parametric).val[1], getState(fg, :x6, :parametric).val[1], atol=1e-6)
 
-
+if false
 fix, ax, plt = lines(points2(fg); label="parametric")
 # foreach(ls(fg)[1:7]) do vl
 foreach(ls(fg)) do vl
@@ -222,7 +246,7 @@ foreach(ls(fg)) do vl
     scatter!(ax, pnts; label=string(vl))
 end
 axislegend(ax)
-
+end
 ## Special test for manifold based messages
 
 #FIXME this may show some bug in propagateBelief caused by empty factors
@@ -239,28 +263,6 @@ end
 @testset "test deconv on <:RelativeObservation" begin
 ##
 
-struct ManifoldFactorSE2{T <: SamplableBelief} <: IIF.RelativeObservation
-    Z::T
-end
-
-ManifoldFactorSE2() = ManifoldFactorSE2(MvNormal(Diagonal([1,1,1])))
-DFG.getManifold(::ManifoldFactorSE2) = SE2
-
-IIF.selectFactorType(::Type{<:SpecialEuclidean2}, ::Type{<:SpecialEuclidean2}) = ManifoldFactorSE2
-
-function IIF.getSample(cf::CalcFactor{<:ManifoldFactorSE2}) 
-  M = cf.manifold # SpecialEuclidean(2)
-  ϵ = getPointIdentity(M)
-  X = sampleTangent(M, cf.factor.Z, ϵ)
-  return X
-end
-
-function (cf::CalcFactor{<:ManifoldFactorSE2})(X, p, q)
-    M = getManifold(ManifoldFactorSE2())
-    X̂ = log(M, p, q)
-    return vee(LieAlgebra(M), X - X̂)
-end
-
 fg = initfg()
 getSolverParams(fg).useMsgLikelihoods = true
 
@@ -272,7 +274,7 @@ p = addFactor!(fg, [:x0], mp)
 
 doautoinit!(fg,:x0)
 
-addFactor!(fg, [:x0;:x1], ManifoldFactorSE2(MvNormal([10.0,0,0.1], diagm([0.5,0.5,0.05].^2))))
+addFactor!(fg, [:x0;:x1], SE2SE2(MvNormal([10.0,0,0.1], diagm([0.5,0.5,0.05].^2))))
 
 initAll!(fg)
 
@@ -664,17 +666,20 @@ f = addFactor!(fg, [:x0, :x1a, :x1b], mf; multihypo=[1,0.5,0.5])
 
 solveTree!(fg)
 
+p0 = ArrayPartition([0.0,0.0], [1.0 0; 0 1])
+p1 = exp(SE2, hat(LieAlgebra(SE2), [1,2,pi/4], typeof(p0)))
+
 vnd = getState(fg, :x0, :default)
-@test isapprox(SE2, mean(SE2, vnd.val), ArrayPartition([0.0,0.0], [1.0 0; 0 1]), atol=0.1)
+@test isapprox(SE2, mean(SE2, vnd.val), p0, atol=0.1)
 
 #FIXME I would expect close to 50% of particles to land on the correct place
 # Currently software works so that 33% should land there so testing 20 for now
 pnt = getPoints(fg, :x1a)
-@test sum(isapprox.(Ref(SE2), pnt, Ref(ArrayPartition([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071])), atol=0.1)) > 20
+@test sum(isapprox.(Ref(SE2), pnt, Ref(p1), atol=0.1)) > 20
 
 #FIXME I would expect close to 50% of particles to land on the correct place
 pnt = getPoints(fg, :x1b)
-@test sum(isapprox.(Ref(SE2), pnt, Ref(ArrayPartition([1.0,2.0], [0.7071 -0.7071; 0.7071 0.7071])), atol=0.1)) > 20
+@test sum(isapprox.(Ref(SE2), pnt, Ref(p1), atol=0.1)) > 20
 
 ##
 end

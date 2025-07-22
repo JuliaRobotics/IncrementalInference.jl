@@ -80,7 +80,7 @@ end
 
 (lsg::LevelSetGridNormal)(w...; kw...) = lsg.densityFnc(w...; kw...)
 
-function sampleTangent(M::AbstractManifold, lsg::LevelSetGridNormal)
+function sampleTangent(M::AbstractLieGroup, lsg::LevelSetGridNormal)
   return sampleTangent(M, lsg.heatmap.densityFnc)
 end
 
@@ -203,7 +203,7 @@ function HeatmapGridDensity(
   bw = getBW(density_)[:, 1]
   @cast pts[i, j] := vec_preIS[j][i]
   bel = kde!(collect(pts), bw, weights)
-  density = ManifoldKernelDensity(TranslationGroup(Ndim(bel)), bel)
+  density = ManifoldKernelDensity(LieGroups.TranslationGroup(Ndim(bel)), bel)
 
   # return `<:SamplableBelief` object
   return HeatmapGridDensity(field_on_grid, domain, hint_callback, bw_factor, density)

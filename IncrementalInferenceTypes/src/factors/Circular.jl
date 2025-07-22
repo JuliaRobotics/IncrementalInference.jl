@@ -8,7 +8,7 @@ Related
 
 [`Sphere1`](@ref), [`PriorSphere1`](@ref), [`Polar`](@ref), [`ContinuousEuclid`](@ref)
 """
-DFG.@defObservationType CircularCircular RelativeObservation Manifolds.RealCircleGroup()
+DFG.@defObservationType CircularCircular RelativeObservation LieGroups.CircleGroup()
 
 
 """
@@ -26,5 +26,4 @@ Related
 
 [`Circular`](@ref), [`Prior`](@ref), [`PartialPrior`](@ref)
 """
-DFG.@defObservationType PriorCircular AbstractPrior Manifolds.RealCircleGroup()
-
+DFG.@defObservationType PriorCircular AbstractPrior LieGroups.CircleGroup()

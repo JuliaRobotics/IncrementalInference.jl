@@ -17,7 +17,7 @@ using DocStringExtensions
 
 export DERelative
 
-using LieGroups: allocate, compose, hat, Identity, vee, log
+using LieGroups: allocate, compose, hat, Identity, vee, log, LieAlgebra
 
 
 getManifold(de::DERelative{T}) where {T} = getManifold(de.domain)
@@ -217,7 +217,7 @@ function (cf::CalcFactor{<:DERelative})(
   # find the difference between measured and predicted.
   # assuming the ODE integrated from current X1 through to predicted X2 (ie `meas1[:,idx]`)
   res_ = compose(M, inv(M, X[solveforIdx]), meas1)
-  res = vee(M, Identity(M), log(M, Identity(M), res_))
+  res = vee(LieAlgebra(M), log(M, res_))
 
   return res
 end
@@ -285,7 +285,7 @@ function IncrementalInference.sampleFactor(cf::CalcFactor{<:DERelative}, N::Int 
     prob = oder.backwardProblem
     M_ = getManifold(getVariableType(cf.fullvariables[1]))
     addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
-      convert(Tuple, M_),
+      AMP._manifoldtuple(M_),
     )
     # getBelief(cf.fullvariables[2]) |> getPoints
     cf._legacyParams[2], M_
@@ -295,7 +295,7 @@ function IncrementalInference.sampleFactor(cf::CalcFactor{<:DERelative}, N::Int 
     M_ = getManifold(getVariableType(cf.fullvariables[2]))
     # buffer manifold operations for use during factor evaluation
     addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
-      convert(Tuple, M_),
+      AMP._manifoldtuple(M_),
     )
     # getBelief(cf.fullvariables[1]) |> getPoints
     cf._legacyParams[1], M_

@@ -319,8 +319,9 @@ function GraphSolveBuffers(@nospecialize(M), ::Type{T}) where {T}
   ϵ = getPointIdentity(M, T)
   p = deepcopy(ϵ)# allocate_result(M, getPointIdentity)
   X = deepcopy(ϵ) #allcoate(p)
-  # Xc = Manifolds.get_coordinates(M, ϵ, X, DefaultOrthogonalBasis())
-  Xc = vee(LieGroup(M), X)
+  #FIXME update to ProductLieGroup first, but only 2 groups supported.
+  Xc = Manifolds.get_coordinates(M, ϵ, X, DefaultOrthogonalBasis())
+  # Xc = vee(LieGroup(M), X)
   return GraphSolveBuffers(ϵ, p, X, Xc)
 end
 
@@ -582,8 +583,9 @@ function solveGraphParametricOptim(
   # log!(M, X, Identity(ProductOperation), p)
   # calculate initial coordinates vector for Optim
   log!(M, X, ϵ, p)
-  # get_coordinates!(M, Xc, ϵ, X, DefaultOrthogonalBasis())
-  vee!(LieGroup(M), Xc, X)
+  #FIXME update to ProductLieGroup first, but only 2 groups supported.
+  get_coordinates!(M, Xc, ϵ, X, DefaultOrthogonalBasis())
+  # vee!(LieGroup(M), Xc, X)
 
   initValues = Xc
   #FIXME, for some reason we get NANs and adding a small random value works

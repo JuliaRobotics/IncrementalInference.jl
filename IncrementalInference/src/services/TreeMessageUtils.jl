@@ -311,7 +311,7 @@ function addLikelihoodsDifferentialCHILD!(
       # chain of user factors are of the same type
       if isHom
         _sft = selectFactorType(tfg, sym1_, sym2_)
-        sft = _sft()
+        sft = _sft() #FIXME empty factor observation constructor
         # only take factors that are homogeneous with the generic relative
         if typeof(sft).name == ftyps[1]
           # assume default helper function # buildFactorDefault(nfactype)

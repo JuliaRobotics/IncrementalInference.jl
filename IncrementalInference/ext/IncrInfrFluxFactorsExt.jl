@@ -9,6 +9,7 @@ using DataStructures: OrderedDict
 using LinearAlgebra
 using Base64
 using Manifolds
+using LieGroups
 using DocStringExtensions
 using BSON
 
@@ -51,8 +52,10 @@ function Random.rand(nfb::FluxModelsDistribution, N::Integer = 1)
 end
 
 sampleTangent(M::AbstractManifold, fmd::FluxModelsDistribution, p = 0) = rand(fmd, 1)[1]
+sampleTangent(M::AbstractLieGroup, fmd::FluxModelsDistribution, p = 0) = rand(fmd, 1)[1]
+
 samplePoint(M::AbstractManifold, fmd::FluxModelsDistribution, p = 0) = rand(fmd, 1)[1]
-function samplePoint(M::AbstractDecoratorManifold, fmd::FluxModelsDistribution, p = 0)
+function samplePoint(M::AbstractLieGroup, fmd::FluxModelsDistribution, p = 0)
   return rand(fmd, 1)[1]
 end
 

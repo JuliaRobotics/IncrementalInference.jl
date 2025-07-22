@@ -51,8 +51,12 @@ $(TYPEDEF)
 
 Circular is a `Manifolds.Circle{ℝ}` mechanization of one rotation, with `theta in [-pi,pi)`.
 """
-@defVariable Circular Manifolds.RealCircleGroup() [0.0;]
+# @defVariable Circular CircleGroup(ℝ) [0.0;]
+# @defVariable(Circular, ValidationLieGroup(LieGroups.CircleGroup()), Scalar(1.0 + 0.0im))
+# @defVariable(Circular, LieGroups.CircleGroup(), Scalar(1.0 + 0.0im))
+@defVariable(Circular, LieGroups.CircleGroup(), fill(1.0 + 0.0im))
+# @defVariable Circular LieGroups.CircleGroup(ℝ) 0.0
 #TODO This is an example of what we want working, possible issue upstream in Manifolds.jl
-# @defVariable Circular RealCircleGroup() Scalar(0.0)
+# @defVariable Circular CircleGroup(ℝ) Scalar(0.0)
 
 #

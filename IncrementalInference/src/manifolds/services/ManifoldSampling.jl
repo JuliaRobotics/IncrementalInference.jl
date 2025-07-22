@@ -10,15 +10,19 @@ Notes
 function sampleTangent end
 
 # Sampling MKD
-function sampleTangent(M::AbstractDecoratorManifold, x::ManifoldKernelDensity, p = mean(x))
-  # get legacy matrix of coordinates and selected labels
-  #TODO make sure that when `sample` is replaced in MKD, coordinates is a vector
-  coords, lbls = sample(x.belief, 1)
-  X = hat(x.manifold, p, coords[:])
-  return X
-end
+# function sampleTangent(M::AbstractDecoratorManifold, x::ManifoldKernelDensity, p = mean(x))
+#   # get legacy matrix of coordinates and selected labels
+#   #TODO make sure that when `sample` is replaced in MKD, coordinates is a vector
+#   coords, lbls = sample(x.belief, 1)
+#   X = hat(x.manifold, p, coords[:])
+#   return X
+# end
 
 function sampleTangent(x::ManifoldKernelDensity, p = mean(x))
+  Base.depwarn(
+    "sampleTangent(x::ManifoldKernelDensity, p) should be replaced by sampleTangent(M<:AbstractManifold, x::ManifoldKernelDensity, p)",
+    :sampleTangent,
+  )
   return sampleTangent(x.manifold, x, p)
 end
 
@@ -33,18 +37,26 @@ function sampleTangent(
   return get_vector(M, p, rand(z), basis)
 end
 
-function sampleTangent(
-  M::AbstractDecoratorManifold,
-  z::Distribution,
-  p = getPointIdentity(M),
-)
-  return hat(M, p, SVector{length(z)}(rand(z))) #TODO make sure all Distribution has length, 
-  # if this errors maybe fall back no next line
-  # return convert(typeof(p), hat(M, p, rand(z, 1)[:])) #TODO find something better than (z,1)[:]
-end
+# function sampleTangent(
+#   M::AbstractDecoratorManifold,
+#   z::Distribution,
+#   p = getPointIdentity(M),
+# )
+#   return hat(M, p, SVector{length(z)}(rand(z))) #TODO make sure all Distribution has length, 
+#   # if this errors maybe fall back no next line
+#   # return convert(typeof(p), hat(M, p, rand(z, 1)[:])) #TODO find something better than (z,1)[:]
+# end
 
 function sampleTangent(M::AbstractLieGroup, z::Distribution, p = getPointIdentity(M))
   return hat(LieAlgebra(M), SVector{length(z)}(rand(z)), typeof(p))
+end
+
+function sampleTangent(M::typeof(LieGroups.CircleGroup()), z::Distribution, p = getPointIdentity(M))
+  return hat(LieAlgebra(M), rand(z))
+end
+
+function sampleTangent(M::AbstractLieGroup, z, p = getPointIdentity(M))
+  return hat(LieAlgebra(M), rand(z), typeof(p))
 end
 
 function sampleTangent(M::AbstractLieGroup, x::ManifoldKernelDensity, p = mean(x))
