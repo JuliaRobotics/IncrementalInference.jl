@@ -79,10 +79,11 @@ jobs:
       #     git config --global user.email te@st.er
       - name: Dev dependencies
         shell: julia --project=monorepo {0}
+        #FIXME: AMP back to develop
         run: |
           using Pkg;
           Pkg.add(PackageSpec(name="DistributedFactorGraphs",rev="develop"))
-          Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="develop"));
+          Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="maint/lieupdate"));
           Pkg.develop([PackageSpec(path="IncrementalInference"), PackageSpec(path="IncrementalInferenceTypes")]);
       - name: Run tests
         continue-on-error: ${{ matrix.group == 'tmp_debug_group' }}
