@@ -131,8 +131,6 @@ vnd = getState(fg, :x2, :parametric)
 @test all(isapprox(M, vnd.val[1], p2, atol=1e-6))
 
 ## test partial prior issue
-@test_broken begin
-@error "PartialPrior Broken on LieGroups"
 fg = initfg()
 
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
@@ -148,8 +146,6 @@ pbel_ = approxConvBelief(fg, :x0f1, :x0)
 
 @test pbel_._partial == [1;2]
 @test length(pbel_.infoPerCoord) == 3
-true
-end
 ##
 end
 
@@ -323,7 +319,7 @@ DFG.getManifold(::ManiPose2Point2) = TranslationGroup(2)
 function (cfo::CalcFactor{<:ManiPose2Point2})(measX, p, q)
     #
     M = SE2
-    q_SE = ArrayPartition(q, identity_element(SpecialOrthogonal(2), p.x[2]))
+    q_SE = ArrayPartition(q, identity_element(SpecialOrthogonalGroup(2), typeof(p.x[2])))
 
     X_se2 = log(M, p, q_SE)
     X = X_se2.x[1]
@@ -573,7 +569,6 @@ initAll!(fg)
 
 ##
 end
-
 
 @testset "Test SE2 to TranslationGroup(2) multihypo" begin
 ##
