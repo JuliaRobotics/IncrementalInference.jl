@@ -158,6 +158,8 @@ function _solveLambdaNumeric(
     # TODO find good way for a solve to store diagnostics about number of failed converges etc.
     @warn "Optim did not converge (maxlog=10):" r maxlog=10
   end
+
+  # FIXME, how to use this exp when either Manifolds or LieGroups is used?
   return exp(M, ϵ, hat(M, ϵ, r.minimizer))
 end
 

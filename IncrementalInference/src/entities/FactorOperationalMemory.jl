@@ -26,7 +26,8 @@ Base.@kwdef struct CommonConvWrapper{
   AM <: AbstractManifold,
   HR <: HypoRecipeCompute,
   MT, 
-  G
+  G,
+  KCF <: Union{Nothing, <: Channel{<: CalcFactor}}
 } <: FactorCache
   # Basic factor topological info
   """ Values consistent across all threads during approx convolution """
@@ -67,6 +68,8 @@ Base.@kwdef struct CommonConvWrapper{
   res::Vector{Float64} = zeros(manifold_dimension(manifold))
   """ experimental feature to embed gradient calcs with ccw """
   _gradients::G = nothing
+    """ working memory to store residual from optimization routines """
+  keepCalcFactor::KCF
 end
 
 

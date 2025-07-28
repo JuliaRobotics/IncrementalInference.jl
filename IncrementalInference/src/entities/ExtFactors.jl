@@ -19,11 +19,11 @@ DevNotes
 - FIXME Lots of consolidation and standardization to do, see RoME.jl #244 regarding Manifolds.jl.
 - TODO does not yet handle case where a factor spans across two timezones.
 """
-struct DERelative{T <: StateType, P, D} <: RelativeObservation
+struct DERelative{T <: StateType, P, D, O} <: RelativeObservation
   domain::Type{T}
   forwardProblem::P
   backwardProblem::P
   """ second element of this data tuple is additional variables that will be passed down as a parameter """
   data::D
-  # specialSampler::Function
+  keepSolution::O
 end

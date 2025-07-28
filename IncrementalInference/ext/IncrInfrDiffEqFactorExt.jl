@@ -75,6 +75,7 @@ function DERelative(
   state1::AbstractVector{<:Real} = allocate(getPointIdentity(domain)), # zeros(getDimension(domain)),
   tspan::Tuple{<:Real, <:Real} = _calcTimespan(Xi),
   problemType = ODEProblem, # DiscreteProblem,
+  keepSolution::Bool = false
 )
   #
   datatuple = if 2 < length(Xi)
@@ -87,8 +88,21 @@ function DERelative(
   fproblem = problemType(f, state0, tspan, datatuple; dt)
   # backward time problem
   bproblem = problemType(f, state1, (tspan[2], tspan[1]), datatuple; dt = -dt)
+
+  _keepSolution = if keepSolution
+    Vector{typeof((;t=Vector{Float64}(),u=Vector{Vector{Float64}}()))}()
+  else
+    nothing
+  end 
+
   # build the IIF recognizable object
-  return DERelative(domain, fproblem, bproblem, datatuple) #, getSample)
+  return DERelative(
+    domain, 
+    fproblem, 
+    bproblem, 
+    datatuple, 
+    _keepSolution
+  )
 end
 
 function DERelative(
@@ -103,6 +117,7 @@ function DERelative(
   state0::AbstractVector{<:Real} = allocate(getPointIdentity(domain)), #zeros(getDimension(domain)),
   tspan::Tuple{<:Real, <:Real} = _calcTimespan(Xi),
   problemType = DiscreteProblem,
+  keepSolution::Bool = false
 )
   return DERelative(
     Xi,
@@ -114,6 +129,7 @@ function DERelative(
     state1,
     tspan,
     problemType,
+    keepSolution,
   )
 end
 #
@@ -301,12 +317,28 @@ function IncrementalInference.sampleFactor(cf::CalcFactor{<:DERelative}, N::Int 
     cf._legacyParams[1], M_
   end
 
+  # solve ODE for N many particles transiting this factor
+  kS = cf.factor.keepSolution
+  if !isnothing( kS )
+    resize!(kS, N)
+    # @info "kS" length(kS)
+    for i in 1:N
+      kS[i] = (;t=Vector{Float64}(),u=Vector{Vector{Float64}}())
+    end
+  end
   # solve likely elements
   for i = 1:N
     # TODO, does this respect hyporecipe ???
     idxArr = (k -> cf._legacyParams[k][i]).(1:length(cf._legacyParams))
-    _solveFactorODE!(meas[i], prob, u0pts[i], _maketuplebeyond2args(idxArr...)...)
-    # _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(cf._legacyParams...)...)
+    oderes = _solveFactorODE!(meas[i], prob, u0pts[i], _maketuplebeyond2args(idxArr...)...)
+    if !isnothing( kS )
+      resize!(kS[i].t, length(oderes.t))
+      resize!(kS[i].u, length(oderes.u))
+      for j = 1:length(oderes.t)
+        kS[i].t[j] = oderes.t[j]
+        kS[i].u[j] = oderes.u[j]
+      end
+    end
   end
 
   # return meas, M

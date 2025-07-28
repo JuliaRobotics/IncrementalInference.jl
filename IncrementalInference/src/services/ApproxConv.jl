@@ -10,6 +10,7 @@ function approxConvBelief(
   N::Int = length(measurement),
   nullSurplus::Real = 0,
   skipSolve::Bool = false,
+  keepCalcFactor::Union{Nothing, <:Channel} = nothing,
 )
   #
   v_trg = getVariable(dfg, target)
@@ -25,7 +26,8 @@ function approxConvBelief(
     solveKey, 
     N, 
     skipSolve, 
-    nullSurplus
+    nullSurplus,
+    keepCalcFactor
   )
 
   len = length(ipc)
@@ -85,6 +87,7 @@ function approxConvBelief(
   path::AbstractVector{Symbol} = Symbol[],
   skipSolve::Bool = false,
   nullSurplus::Real = 0,
+  keepCalcFactor::Union{Nothing, <:Channel} = nothing,
 )
   #
   # @assert isVariable(dfg, target) "approxConv(dfg, from, target,...) where `target`=$target must be a variable in `dfg`"
@@ -137,6 +140,7 @@ function approxConvBelief(
       N,
       skipSolve,
       nullSurplus,
+      keepCalcFactor,
     )
     if length(path) == 2
       return pts1Bel
@@ -155,7 +159,7 @@ function approxConvBelief(
       # this is a factor path[idx]
       fct = getFactor(dfg, path[idx])
       addFactor!(tfg, fct)
-      ptsBel = approxConvBelief(tfg, fct, path[idx + 1]; solveKey, N, skipSolve)
+      ptsBel = approxConvBelief(tfg, fct, path[idx + 1]; solveKey, N, skipSolve, keepCalcFactor)
       initVariable!(tfg, path[idx + 1], ptsBel)
       !setPPE ? nothing : setPPE!(tfg, path[idx + 1], solveKey, ppemethod)
     end
@@ -184,10 +188,11 @@ function calcProposalBelief(
   solveKey::Symbol = :default,
   nullSurplus::Real = 0,
   dbg::Bool = false,
+  keepCalcFactor::Union{Nothing, <:Channel} = nothing,
 )
   #
   # assuming it is properly initialized TODO
-  proposal = approxConvBelief(dfg, fct, target, measurement; solveKey, N, nullSurplus)
+  proposal = approxConvBelief(dfg, fct, target, measurement; solveKey, N, nullSurplus, keepCalcFactor)
 
   # return the proposal belief and inferdim, NOTE likely to be changed
   return proposal

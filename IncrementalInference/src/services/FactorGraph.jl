@@ -723,6 +723,7 @@ function getDefaultFactorData(
   solveInProgress = 0,
   inflation::Real = getSolverParams(dfg).inflation,
   _blockRecursion::Bool = false,
+  keepCalcFactor::Bool = false,
 )
   #
   
@@ -741,6 +742,7 @@ function getDefaultFactorData(
     attemptGradients = getSolverParams(dfg).attemptGradients,
     _blockRecursion,
     userCache,
+    keepCalcFactor,
   )
 
   state = DFG.FactorState(
@@ -829,6 +831,7 @@ function DFG.addFactor!(
   inflation::Real = getSolverParams(dfg).inflation,
   namestring::Symbol = assembleFactorName(dfg, Xi),
   _blockRecursion::Bool = !getSolverParams(dfg).attemptGradients,
+  keepCalcFactor::Bool = false,
 )
   #
 
@@ -847,6 +850,7 @@ function DFG.addFactor!(
     # threadmodel,
     inflation,
     _blockRecursion,
+    keepCalcFactor,
   )
   #
   newFactor = FactorCompute(

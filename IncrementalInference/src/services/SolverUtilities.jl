@@ -50,7 +50,8 @@ end
 function sampleFactor!(
   ccwl::CommonConvWrapper, 
   N::Int; 
-  _allowThreads::Bool=true
+  _allowThreads::Bool=true,
+  keepCalcFactor::Union{Nothing, <:Channel} = nothing,
 )
   #
   
@@ -60,7 +61,7 @@ function sampleFactor!(
   # build a CalcFactor object and get fresh samples.
   # cf = CalcFactor(ccwl; _allowThreads) 
   resize!(ccwl.measurement, N)
-  ccwl.measurement[:] = sampleFactor(ccwl, N; _allowThreads)
+  ccwl.measurement[:] = sampleFactor(ccwl, N; _allowThreads, keepCalcFactor)
 
   return ccwl.measurement
 end
@@ -68,11 +69,14 @@ end
 function sampleFactor(
   ccwl::CommonConvWrapper, 
   N::Int; 
-  _allowThreads::Bool=true
+  _allowThreads::Bool=true,
+  keepCalcFactor::Union{Nothing, <:Channel} = nothing,
 )
   #
   cf = CalcFactorNormSq(ccwl; _allowThreads) 
-  return sampleFactor(cf, N)
+  smpls = sampleFactor(cf, N)
+  isnothing(keepCalcFactor) ? nothing : put!(keepCalcFactor, cf)
+  return smpls 
 end
 
 sampleFactor(

@@ -376,6 +376,7 @@ function _createCCW(
   _blockRecursion::Bool = false,
   attemptGradients::Bool = true,
   userCache::CT = nothing,
+  keepCalcFactor::Bool = false,
 ) where {T <: AbstractFactor, CT}
   #
   if length(Xi) !== 0
@@ -394,7 +395,7 @@ function _createCCW(
   fullvariables = tuple(Xi...) # convert(Vector{VariableCompute}, Xi)
   # create a temporary CalcFactor object for extracting the first sample
 
-  _cf = CalcFactorNormSq(
+  _cf_nt = CalcFactorNormSq(
     usrfnc,
     1,
     _varValsAll,
@@ -408,12 +409,12 @@ function _createCCW(
   )
 
   # get a measurement sample
-  meas_single = sampleFactor(_cf, 1)[1]
+  meas_single = sampleFactor(_cf_nt, 1)[1]
   elT = typeof(meas_single)
   #TODO preallocate measurement?
   measurement = Vector{elT}()
 
-  #FIXME chicken and egg problem for getting measurement type, so creating twice.
+  # NOTE chicken and egg problem for getting measurement type, so creating twice.
   _cf = CalcFactorNormSq(
     usrfnc,
     1,
@@ -427,6 +428,11 @@ function _createCCW(
     nothing,
   )
 
+  keepCalcFactor_ = if keepCalcFactor
+    Channel{CalcFactor}(1024)
+  else
+    nothing
+  end
 
   # partialDims are sensitive to both which solvefor variable index and whether the factor is partial
   partial = hasfield(T, :partial) # FIXME, use isPartial function instead
@@ -441,6 +447,7 @@ function _createCCW(
 
   # as per struct CommonConvWrapper
   _gradients = if attemptGradients
+    # FIXME update to proper AD tools
     attemptGradientPrep(
       varTypes,
       usrfnc,
@@ -477,6 +484,7 @@ function _createCCW(
     ),
     measurement,
     _gradients,
+    keepCalcFactor = keepCalcFactor_
   )
 end
 
@@ -485,14 +493,15 @@ function updateMeasurement!(
   N::Int=1;
   measurement::AbstractVector = Vector{Tuple{}}(),
   needFreshMeasurements::Bool=true,
-  _allowThreads::Bool = true
+  _allowThreads::Bool = true,
+  keepCalcFactor::Union{Nothing, <:Channel} = nothing,
 )
   # FIXME do not divert Mixture for sampling
   
   # option to disable fresh samples or user provided
   if needFreshMeasurements
     # TODO this is only one thread, make this a for loop for multithreaded sampling
-    sampleFactor!(ccwl, N; _allowThreads)
+    sampleFactor!(ccwl, N; _allowThreads, keepCalcFactor)
   elseif 0 < length(measurement) 
     resize!(ccwl.measurement, length(measurement))
     ccwl.measurement[:] = measurement
@@ -520,6 +529,7 @@ function _beforeSolveCCW!(
   measurement = Vector{Tuple{}}(),
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
+  keepCalcFactor::Union{Nothing, <:Channel} = nothing,
 ) where {F <: AbstractFactor} # F might be Mixture
   #
   if length(variables) !== 0
@@ -570,7 +580,7 @@ function _beforeSolveCCW!(
   _setCCWDecisionDimsConv!(ccwl, xDim)
 
   # FIXME do not divert Mixture for sampling
-  updateMeasurement!(ccwl, maxlen; needFreshMeasurements, measurement, _allowThreads=true)
+  updateMeasurement!(ccwl, maxlen; needFreshMeasurements, measurement, _allowThreads=true, keepCalcFactor)
 
   # used in ccw functor for AbstractRelativeMinimize
   resize!(ccwl.res, _getZDim(ccwl))
@@ -591,6 +601,7 @@ function _beforeSolveCCW!(
   measurement = Vector{Tuple{}}(),
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
+  keepCalcFactor::Union{Nothing, <:Channel} = nothing,
 ) where {F <: AbstractFactor} # F might be Mixture
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
 
@@ -606,7 +617,7 @@ function _beforeSolveCCW!(
 
   # FIXME do not divert Mixture for sampling
   # update ccwl.measurement values
-  updateMeasurement!(ccwl, maxlen; needFreshMeasurements, measurement, _allowThreads=true)
+  updateMeasurement!(ccwl, maxlen; needFreshMeasurements, measurement, _allowThreads=true, keepCalcFactor)
 
   return maxlen
 end

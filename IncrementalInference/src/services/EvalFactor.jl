@@ -335,6 +335,7 @@ function evalPotentialSpecific(
   dbg::Bool = false,
   skipSolve::Bool = false,
   _slack = nothing,
+  keepCalcFactor::Union{Nothing, <:Channel} = nothing,
 ) where {T <: AbstractFactor}
   #
 
@@ -342,7 +343,7 @@ function evalPotentialSpecific(
   # add user desired measurement values if 0 < length
   # 2023Q2, ccwl.varValsAll always points at the variable.VND.val memory locations
   #  remember when doing approxConv to make a deepcopy of the destination memory first.
-  maxlen = _beforeSolveCCW!(ccwl, variables, sfidx, N; solveKey, needFreshMeasurements, measurement)
+  maxlen = _beforeSolveCCW!(ccwl, variables, sfidx, N; solveKey, needFreshMeasurements, measurement, keepCalcFactor)
   
   # Check which variables have been initialized
   isinit = map(x -> isInitialized(x, solveKey), variables)
@@ -414,11 +415,12 @@ function evalPotentialSpecific(
   dbg::Bool = false,
   skipSolve::Bool = false,
   _slack = nothing,
+  keepCalcFactor::Union{Nothing, <:Channel} = nothing,
 ) where {T <: AbstractFactor}
   #
   
   # Prep computation variables
-  maxlen = _beforeSolveCCW!(ccwl, variables, sfidx, N; solveKey, needFreshMeasurements, measurement)
+  maxlen = _beforeSolveCCW!(ccwl, variables, sfidx, N; solveKey, needFreshMeasurements, measurement, keepCalcFactor)
 
   # # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
@@ -582,6 +584,7 @@ function evalFactor(
   dbg::Bool = false,
   skipSolve::Bool = false,
   _slack = nothing,
+  keepCalcFactor::Union{Nothing, <:Channel} = nothing,
 )
   #
   return evalPotentialSpecific(
@@ -598,6 +601,7 @@ function evalFactor(
     nullSurplus,
     skipSolve,
     _slack,
+    keepCalcFactor,
   )
   #
 end
