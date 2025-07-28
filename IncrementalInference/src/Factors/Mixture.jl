@@ -154,8 +154,8 @@ function sampleFactor(cf::CalcFactor{<:Mixture}, N::Int = 1)
   return smpls
 end
 
-function DistributedFactorGraphs.isPrior(::Mixture{N, F, S, T}) where {N, F, S, T}
-  return F <: AbstractPrior
+function DistributedFactorGraphs.isPrior(::Type{Mixture{N, F, S, T}}) where {N, F, S, T}
+  return F <: AbstractPriorObservation
 end
 
 """
