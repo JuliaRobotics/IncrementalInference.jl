@@ -83,7 +83,7 @@ jobs:
         run: |
           using Pkg;
           Pkg.add(PackageSpec(name="DistributedFactorGraphs",rev="develop"))
-          Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="maint/lieupdate"));
+          Pkg.add(PackageSpec(name="ApproxManifoldProducts",rev="develop"));
           Pkg.develop([PackageSpec(path="IncrementalInference"), PackageSpec(path="IncrementalInferenceTypes")]);
       - name: Run tests
         continue-on-error: ${{ matrix.group == 'tmp_debug_group' }}
