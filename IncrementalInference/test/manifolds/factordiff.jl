@@ -51,7 +51,7 @@ end
 
 
 # ## 
-# @testset "using RoME; FiniteDiff.jacobian of SpecialEuclidean(2) factor" begin
+# @testset "using RoME; FiniteDiff.jacobian of SpecialEuclideanGroup(2) factor" begin
 # ##
 
 # fg = LocalDFG(;

@@ -123,7 +123,7 @@ end
 
 #TODO test
 function DFG.getPointIdentity(
-  PrG::AbstractLieGroup{𝔽, Op, M},
+  PrG::LieGroup{𝔽, Op, M},
   ::Type{T} = Float64,
 ) where {𝔽, Op <: AbstractProductGroupOperation, M <: ProductManifold, T <: Real}
   PrM = PrG.manifold
@@ -162,7 +162,7 @@ end
 function DFG.getPointIdentity(
   ::typeof(SpecialEuclideanGroup(3; variant = :right)),
   ::Type{T} = Float64,
-) where {T}
+) where {T <: Real}
   N = 3
   return ArrayPartition(zeros(SVector{N, T}), SMatrix{N, N, T}(I))
 end

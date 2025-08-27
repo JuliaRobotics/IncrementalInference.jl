@@ -71,21 +71,6 @@ function getEliminationOrder(
   return permuteds[p]
 end
 
-# lets create all the vertices first and then deal with the elimination variables thereafter
-function addBayesNetVerts!(dfg::AbstractDFG, elimOrder::Array{Symbol, 1})
-  #
-  for pId in elimOrder
-    vert = DFG.getVariable(dfg, pId)
-    if  getState(vert, :default).BayesNetVertID === nothing ||
-        getState(vert, :default).BayesNetVertID == :_null # Special serialization case of nothing
-      @debug "[AddBayesNetVerts] Assigning $pId.data.BayesNetVertID = $pId"
-      getState(vert, :default).BayesNetVertID = pId
-    else
-      @warn "addBayesNetVerts -- Something is wrong, variable '$pId' should not have an existing Bayes net reference to '$(getState(vert, :default).BayesNetVertID)'"
-    end
-  end
-end
-
 function addConditional!(dfg::AbstractDFG, vertId::Symbol, Si::Vector{Symbol})
   #
   bnv = DFG.getVariable(dfg, vertId)

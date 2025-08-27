@@ -35,13 +35,27 @@ function _perturbIfNecessary(
 end
 #
 
+# lets create all the vertices first and then deal with the elimination variables thereafter
+function addBayesNetVerts!(dfg::AbstractDFG, elimOrder::Array{Symbol, 1})
+  #
+  for pId in elimOrder
+    vert = DFG.getVariable(dfg, pId)
+    if  getState(vert, :default).BayesNetVertID === nothing ||
+        getState(vert, :default).BayesNetVertID == :_null # Special serialization case of nothing
+      @debug "[AddBayesNetVerts] Assigning $pId.data.BayesNetVertID = $pId"
+      getState(vert, :default).BayesNetVertID = pId
+    else
+      @warn "addBayesNetVerts -- Something is wrong, variable '$pId' should not have an existing Bayes net reference to '$(getState(vert, :default).BayesNetVertID)'"
+    end
+  end
+end
 
 ## ================================================================================================
 ## ================================================================================================
 
 # TODO maybe upstream to DFG
-DFG.MeanMaxPPE(solveKey::Symbol, suggested::SVector, max::SVector, mean::SVector) =
-  DFG.MeanMaxPPE(solveKey, collect(suggested), collect(max), collect(mean))
+DFG.MeanMaxPPE(solveKey::Symbol, suggested::StaticArray, max::StaticArray, mean::StaticArray) =
+  DFG.MeanMaxPPE(solveKey, Vector(suggested), Vector(max), Vector(mean))
 
 
 ## ================================================================================================

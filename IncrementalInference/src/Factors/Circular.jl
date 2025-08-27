@@ -13,9 +13,10 @@ function getSample(cf::CalcFactor{<:CircularCircular})
   return sampleTangent(getManifold(cf), cf.factor.Z, getPointIdentity(Circular))
 end
 
-function Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{CircularCircular})
-  return Manifolds.RealCircleGroup()
-end
+#TODO should be deprecated?
+# function Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{CircularCircular})
+#   return Manifolds.RealCircleGroup()
+# end
 
 IIFTypes.CircularCircular(::UniformScaling) = CircularCircular(Normal())
 
@@ -40,8 +41,9 @@ function (cf::CalcFactor{<:PriorCircular})(m, p)
   return Xc
 end
 
-function Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{PriorCircular})
-  return Manifolds.RealCircleGroup()
-end
+#TODO should be deprecated?
+# function Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{PriorCircular})
+#   return Manifolds.RealCircleGroup()
+# end
 
 # --------------------------------------------

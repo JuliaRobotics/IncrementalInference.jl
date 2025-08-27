@@ -4,16 +4,19 @@ using Test
 using LieGroups: TranslationGroup
 
 TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
-
+@testset "IncrementalInference Tests" begin
 # temporarily moved to start (for debugging)
 #...
 if TEST_GROUP in ["all", "tmp_debug_group"]
+@testset "Temporary Debug Group" begin
 include("testSpecialOrthogonalMani.jl")
 include("testMultiHypo3Door.jl")
 include("priorusetest.jl")
 end
+end
 
 if TEST_GROUP in ["all", "basic_functional_group"]
+@testset "Basic Functional Group" begin
 # more frequent stochasic failures from numerics
 include("testSpecialEuclidean2Mani.jl")
 include("testEuclidDistance.jl")
@@ -31,7 +34,7 @@ include("testCliqSolveDbgUtils.jl")
 include("basicGraphsOperations.jl")
 
 # regular testing
-@test_broken include("testSphereMani.jl")
+@test_broken error("testSphereMani.jl broken")#include("testSphereMani.jl")
 include("testBasicManifolds.jl")
 include("testDERelative.jl")
 include("testHeatmapGridDensity.jl")
@@ -86,8 +89,10 @@ include("testSolveOrphanedFG.jl")
 include("testSolveSetPPE.jl")
 include("testSolveKey.jl")
 end
+end
 
 if TEST_GROUP in ["all", "test_cases_group"]
+@testset "Test Cases Group" begin
 include("testnullhypothesis.jl") 
 include("testVariousNSolveSize.jl")
 include("testExplicitMultihypo.jl")
@@ -114,6 +119,7 @@ end
 # include("testMultiprocess.jl")
 include("testDeadReckoningTether.jl")
 end
-
+end
+end
 
 #

@@ -46,7 +46,7 @@ end
 
 ##
 
-@testset "Test SpecialEuclidean(2)" begin
+@testset "Test SpecialEuclideanGroup(2)" begin
 ##
 
 M = getManifold(SpecialEuclidean2)
@@ -66,8 +66,8 @@ fg = initfg()
 
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 
-# mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
-# mp = ManifoldPrior(SpecialEuclidean(2), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal(Diagonal(abs2.([0.01, 0.01, 0.01]))))
+# mp = ManifoldPrior(SpecialEuclideanGroup(2), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
+# mp = ManifoldPrior(SpecialEuclideanGroup(2), ArrayPartition(@MVector([0.0,0.0]), @MMatrix([1.0 0.0; 0.0 1.0])), MvNormal(Diagonal(abs2.([0.01, 0.01, 0.01]))))
 # mp = ManifoldPrior(SE2, ArrayPartition([0.0,0.0], [1.0 0.0; 0.0 1.]), MvNormal(Diagonal(abs2.([0.01, 0.01, 0.01]))))
 mp = ManifoldPrior(SE2, ArrayPartition(SA[0.0,0.0], SA[1.0 0.0; 0.0 1.]), MvNormal(Diagonal(abs2.(SA[0.01, 0.01, 0.01]))))
 p = addFactor!(fg, [:x0], mp)
