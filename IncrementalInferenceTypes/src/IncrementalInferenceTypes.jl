@@ -13,6 +13,10 @@ using Dates: now
 using Distributed: nprocs
 # using RecursiveArrayTools
 
+# TODO using all interal functions of DFG as a transition step, remove true
+DFG.@usingDFG true
+using DistributedFactorGraphs: getManifold
+
 # export variable types
 export 
     Position,
