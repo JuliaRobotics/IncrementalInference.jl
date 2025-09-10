@@ -203,7 +203,7 @@ end
 function approxDeconv(
   dfg::AbstractDFG,
   fctlbl::Symbol,
-  factorType::AbstractRelative,
+  factorType::AbstractRelativeObservation,
   solveKey::Symbol = :default;
   tfg::AbstractDFG = initfg(),
   retries::Int = 3,
@@ -230,7 +230,7 @@ end
 function approxDeconv(
   dfg::AbstractDFG,
   fctlbl::Symbol,
-  factorType::Type{<:AbstractRelative},
+  factorType::Type{<:AbstractRelativeObservation},
   w...;
   kw...,
 )

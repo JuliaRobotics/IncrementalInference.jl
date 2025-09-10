@@ -4,7 +4,7 @@ _defaultNamesMixtures(N::Int) = ((Symbol[Symbol("c$i") for i = 1:N])...,)
 """
 $(TYPEDEF)
 
-A `Mixture` object for use with either a `<: AbstractPrior` or `<: AbstractRelative`.
+A `Mixture` object for use with either a `<: AbstractPriorObservation` or `<: AbstractRelativeObservation`.
 
 Notes
 - The internal data representation is a `::NamedTuple`, which allows total type-stability for all component types.
@@ -34,7 +34,7 @@ mlr = Mixture(LinearRelative,
 addFactor!(fg, [:x0;:x1], mlr)
 ```
 """
-struct Mixture{N, F <: AbstractFactor, S, T <: Tuple} <: AbstractFactor
+struct Mixture{N, F <: AbstractObservation, S, T <: Tuple} <: AbstractObservation
   """ factor mechanics """
   mechanics::F
   components::NamedTuple{S, T}
@@ -48,7 +48,7 @@ function Mixture(
   f::Type{F},
   z::NamedTuple{S, T},
   c::Distributions.DiscreteNonParametric,
-) where {F <: AbstractFactor, S, T}
+) where {F <: AbstractObservation, S, T}
   return Mixture{length(z), F, S, T}(
     f(LinearAlgebra.I),
     z,
@@ -61,21 +61,21 @@ function Mixture(
   f::F,
   z::NamedTuple{S, T},
   c::Distributions.DiscreteNonParametric,
-) where {F <: AbstractFactor, S, T}
+) where {F <: AbstractObservation, S, T}
   return Mixture{length(z), F, S, T}(f, z, c, size(rand(z[1], 1), 1), zeros(Int, 0))
 end
 function Mixture(
   f::Union{F, Type{F}},
   z::NamedTuple{S, T},
   c::AbstractVector{<:Real},
-) where {F <: AbstractFactor, S, T}
+) where {F <: AbstractObservation, S, T}
   return Mixture(f, z, Categorical([c...]))
 end
 function Mixture(
   f::Union{F, Type{F}},
   z::NamedTuple{S, T},
   c::NTuple{N, <:Real},
-) where {N, F <: AbstractFactor, S, T}
+) where {N, F <: AbstractObservation, S, T}
   return Mixture(f, z, [c...])
 end
 function Mixture(
@@ -86,7 +86,7 @@ function Mixture(
     <:AbstractVector{<:Real},
     <:NTuple{N, <:Real},
   },
-) where {F <: AbstractFactor, N}
+) where {F <: AbstractObservation, N}
   return Mixture(f, NamedTuple{_defaultNamesMixtures(length(z))}(z), c)
 end
 function Mixture(
@@ -97,7 +97,7 @@ function Mixture(
     <:AbstractVector{<:Real},
     <:NTuple{N, <:Real},
   },
-) where {F <: AbstractFactor, N}
+) where {F <: AbstractObservation, N}
   return Mixture(f, (z...,), c)
 end
 
@@ -138,9 +138,9 @@ function sampleFactor(cf::CalcFactor{<:Mixture}, N::Int = 1)
   M = cf.manifold
   
   # mixture needs to be refactored so let's make it worse :-)
-  if cf.factor.mechanics isa AbstractPrior
+  if cf.factor.mechanics isa AbstractPriorObservation
     samplef = samplePoint
-  elseif cf.factor.mechanics isa AbstractRelative
+  elseif cf.factor.mechanics isa AbstractRelativeObservation
     samplef = sampleTangent
   end
 
@@ -163,7 +163,7 @@ $(TYPEDEF)
 
 Serialization type for `Mixture`.
 """
-Base.@kwdef mutable struct PackedMixture <: AbstractPackedFactor
+Base.@kwdef mutable struct PackedMixture <: AbstractPackedObservation
   N::Int
   # store the packed type for later unpacking
   F_::String

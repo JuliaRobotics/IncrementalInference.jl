@@ -1,9 +1,9 @@
 
-# NOTE, user variables and manifolds will require the same definitions, TODO perhaps add into `@defVariable`
+# NOTE, user variables and manifolds will require the same definitions, TODO perhaps add into `@defStateType`
 # unusual definitions, but all they need to do is pack and unpack as one-to-one
 # this step actually occurs separate from the actual variables or factors (with their own manifolds) 
 # relies on later use of getManifold to give back the same <:AbstractManifold
-# NOTE added to DFG.@defVariable
+# NOTE added to DFG.@defStateType
 getVariableType(M::Euclidean{TypeParameter{Tuple{N}}}) where {N} = ContinuousEuclid(N)
 getVariableType(M::LieGroups.TranslationGroup{ℝ, TypeParameter{Tuple{N}}}) where {N} = ContinuousEuclid(N)
 

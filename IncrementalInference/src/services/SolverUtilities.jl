@@ -25,7 +25,7 @@ end
 function mmd(
   p1::AbstractVector{P1},
   p2::AbstractVector{P2},
-  varType::Union{InstanceType{<:StateType}, InstanceType{<:AbstractFactor}},
+  varType::Union{InstanceType{<:StateType}, InstanceType{<:AbstractObservation}},
   threads::Bool = true;
   bw::AbstractVector{<:Real} = SA[0.001;],
 ) where {P1 <: AbstractVector, P2 <: AbstractVector}
@@ -37,7 +37,7 @@ end
 function mmd(
   p1::ManifoldKernelDensity,
   p2::ManifoldKernelDensity,
-  nodeType::Union{InstanceType{<:StateType}, InstanceType{<:AbstractFactor}},
+  nodeType::Union{InstanceType{<:StateType}, InstanceType{<:AbstractObservation}},
   threads::Bool = true;
   bw::AbstractVector{<:Real} = SA[0.001;],
   asPartial::Bool = true
@@ -149,7 +149,7 @@ DevNotes
 - TODO allow pts to be full MKD beliefs, part of replacing old `approxConvCircular`, see #1351
 """
 function _buildGraphByFactorAndTypes!(
-  fct::AbstractFactor,
+  fct::AbstractObservation,
   varTypes::Tuple,
   pts::Tuple = ();
   dfg::AbstractDFG = initfg(),
@@ -243,7 +243,7 @@ function _checkVariableByReference(
   srcLabel::Symbol,
   destRegex::Regex,
   destType::Type{<:StateType},
-  factor::AbstractRelative;
+  factor::AbstractRelativeObservation;
   srcType::Type{<:StateType} = getVariableType(fg, srcLabel) |> typeof,
   doRef::Bool = true,
   refKey::Symbol = :simulated,
@@ -304,7 +304,7 @@ function _checkVariableByReference(
   srcLabel::Symbol,
   destRegex::Regex,
   destType::Type{<:StateType},
-  factor::AbstractPrior;
+  factor::AbstractPriorObservation;
   srcType::Type{<:StateType} = getVariableType(fg, srcLabel) |> typeof,
   doRef::Bool = true,
   refKey::Symbol = :simulated,

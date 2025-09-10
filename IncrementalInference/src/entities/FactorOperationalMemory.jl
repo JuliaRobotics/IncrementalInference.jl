@@ -19,7 +19,7 @@ Related
 [`CalcFactor`](@ref), [`CalcFactorMahalanobis`](@ref)
 """
 Base.@kwdef struct CommonConvWrapper{
-  T <: AbstractFactor, 
+  T <: AbstractObservation, 
   VT <: Tuple,
   TP <: Base.RefValue{<:Tuple},
   CT,

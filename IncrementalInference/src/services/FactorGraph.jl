@@ -57,8 +57,8 @@ getVal(v::VariableCompute; solveKey::Symbol = :default) = v.solverDataDict[solve
 function getVal(v::VariableCompute, idx::Int; solveKey::Symbol = :default)
   return v.solverDataDict[solveKey].val[:, idx]
 end
-getVal(vnd::VariableNodeData) = vnd.val
-getVal(vnd::VariableNodeData, idx::Int) = vnd.val[:, idx]
+getVal(vnd::State) = vnd.val
+getVal(vnd::State, idx::Int) = vnd.val[:, idx]
 function getVal(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol = :default)
   return getVariable(dfg, lbl).solverDataDict[solveKey].val
 end
@@ -72,7 +72,7 @@ function getNumPts(v::VariableCompute; solveKey::Symbol = :default)::Int
   return length(getVal(getState(v, solveKey)))
 end
 
-function AMP.getBW(vnd::VariableNodeData)
+function AMP.getBW(vnd::State)
   return vnd.bw
 end
 
@@ -80,7 +80,7 @@ end
 function getBWVal(v::VariableCompute; solveKey::Symbol = :default)
   return getState(v, solveKey).bw
 end
-function setBW!(vd::VariableNodeData, bw::Array{Float64, 2}; solveKey::Symbol = :default)
+function setBW!(vd::State, bw::Array{Float64, 2}; solveKey::Symbol = :default)
   vd.bw = bw
   return nothing
 end
@@ -89,7 +89,7 @@ function setBW!(v::VariableCompute, bw::Array{Float64, 2}; solveKey::Symbol = :d
   return nothing
 end
 
-function setVal!(vd::VariableNodeData, val::AbstractVector{P}) where {P}
+function setVal!(vd::State, val::AbstractVector{P}) where {P}
   vd.val = val
   return nothing
 end
@@ -102,7 +102,7 @@ function setVal!(
   return nothing
 end
 function setVal!(
-  vd::VariableNodeData,
+  vd::State,
   val::AbstractVector{P},
   bw::AbstractMatrix{Float64},
 ) where {P}
@@ -121,7 +121,7 @@ function setVal!(
   return nothing
 end
 function setVal!(
-  vd::VariableNodeData,
+  vd::State,
   val::AbstractVector{P},
   bw::AbstractVector{Float64},
 ) where {P}
@@ -156,7 +156,7 @@ Notes
 - `inferdim` is used to identify if the initialized was only partial.
 """
 function setValKDE!(
-  vd::VariableNodeData,
+  vd::State,
   pts::AbstractVector{P},
   bws::Vector{Float64},
   setinit::Bool = true,
@@ -171,7 +171,7 @@ function setValKDE!(
 end
 
 function setValKDE!(
-  vd::VariableNodeData,
+  vd::State,
   val::AbstractVector{P},
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;],
@@ -203,7 +203,7 @@ function setValKDE!(
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;];
   solveKey::Symbol = :default,
-  ppeType::Type{T} = MeanMaxPPE,
+  ppeType::Type{T} = DFG.MeanMaxPPE,
 ) where {P, T}
   vnd = getState(v, solveKey)
   # recover variableType information
@@ -248,7 +248,7 @@ function setValKDE!(
 end
 
 function setValKDE!(
-  vnd::VariableNodeData,
+  vnd::State,
   mkd::ManifoldKernelDensity{M, B, Nothing}, # TBD dispatch without partial?
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;],
@@ -263,7 +263,7 @@ function setValKDE!(
 end
 
 function setValKDE!(
-  vnd::VariableNodeData,
+  vnd::State,
   mkd::ManifoldKernelDensity{M, B, L},
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;],
@@ -301,7 +301,7 @@ end
 
 Set variable initialized status.
 """
-function setVariableInitialized!(varid::VariableNodeData, status::Bool)
+function setVariableInitialized!(varid::State, status::Bool)
   return varid.initialized = status
 end
 
@@ -314,7 +314,7 @@ end
 
 Set method for the inferred dimension value in a variable.
 """
-setIPC!(varid::VariableNodeData, val::AbstractVector{<:Real}) = varid.infoPerCoord = val
+setIPC!(varid::State, val::AbstractVector{<:Real}) = varid.infoPerCoord = val
 function setIPC!(
   vari::VariableCompute,
   val::AbstractVector{<:Real},
@@ -331,7 +331,7 @@ end
 
 Get a ManifoldKernelDensity estimate from variable node data.
 """
-function getBelief(vnd::VariableNodeData)
+function getBelief(vnd::State)
   return manikde!(getManifold(getVariableType(vnd)), getVal(vnd); bw = getBW(vnd)[:, 1])
 end
 
@@ -347,7 +347,7 @@ end
 
 Reset the solve state of a variable to uninitialized/unsolved state.
 """
-function resetVariable!(varid::VariableNodeData)
+function resetVariable!(varid::State)
   #
   val = getBelief(varid)
   pts = AMP.getPoints(val)
@@ -370,7 +370,7 @@ function resetVariable!(dfg::AbstractDFG, sym::Symbol, solveKey::Symbol = :defau
   return resetVariable!(getState(dfg, sym, solveKey))
 end
 
-# return VariableNodeData
+# return State
 function DefaultNodeDataParametric(
   dodims::Int,
   dims::Int,
@@ -390,13 +390,13 @@ function DefaultNodeDataParametric(
     # gbw2[:,1] = gbw[:]
     # pNpts = getPoints(pN)
     # #initval, stdev
-    # return VariableNodeData(pNpts,
+    # return State(pNpts,
     #                         gbw2, Symbol[], sp,
     #                         dims, false, :_null, Symbol[], variableType, true, 0.0, false, dontmargin)
   else
     # dimIDs = round.(Int, range(dodims; stop = dodims + dims - 1, length = dims))
     ϵ = getPointIdentity(variableType)
-    return VariableNodeData(variableType;
+    return State(variableType;
       id=nothing,
       val=[ϵ],
       bw=zeros(dims, dims),
@@ -420,7 +420,7 @@ end
 """
     $SIGNATURES
 
-Makes and sets a parametric `VariableNodeData` object (`.solverData`).
+Makes and sets a parametric `State` object (`.solverData`).
 
 DevNotes
 - TODO assumes parametric solves will always just be under the `solveKey=:parametric`, should be generalized.
@@ -469,7 +469,7 @@ function setDefaultNodeData!(
     (pNpts, bw)
   else
     sp = round.(Int, range(dodims; stop = dodims + dims - 1, length = dims))
-    @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defVariable $varType arguments is correct"
+    @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defStateType $varType arguments is correct"
     val = Vector{getPointType(varType)}(undef, N)
     for i = 1:length(val)
       val[i] = getPointIdentity(varType)
@@ -481,7 +481,7 @@ function setDefaultNodeData!(
   # make and set the new solverData
   mergeState!(
     v,
-    VariableNodeData(varType;
+    State(varType;
       id=nothing,
       val,
       bw,
@@ -532,7 +532,7 @@ function setVariableRefence!(
   var = getVariable(dfg, sym)
 
   # Construct an empty VND object
-  vnd = VariableNodeData(
+  vnd = State(
     val,
     zeros(getDimension(var), 1),
     Symbol[],
@@ -587,7 +587,7 @@ function addVariable!(
   nanosecondtime::Union{Nanosecond, Int64, Nothing} = Nanosecond(0),
   dontmargin::Bool = false,
   tags::Vector{Symbol} = Symbol[],
-  smalldata = Dict{Symbol, DFG.SmallDataTypes}(),
+  smalldata = Dict{Symbol, DFG.MetadataTypes}(),
   checkduplicates::Bool = true,
   initsolvekeys::Vector{Symbol} = getSolverParams(dfg).algorithms,
 ) where {T <: StateType}
@@ -699,7 +699,7 @@ addFactor!(fg, [:a;:b], mfc)
 function preambleCache(
   dfg::AbstractDFG,
   vars::AbstractVector{<:VariableCompute},
-  usrfnc::AbstractFactor,
+  usrfnc::AbstractObservation,
 )
   return nothing
 end
@@ -713,7 +713,7 @@ Generate the default factor data for a new FactorCompute.
 function getDefaultFactorData(
   dfg::AbstractDFG,
   Xi::Vector{<:VariableCompute},
-  usrfnc::AbstractFactor;
+  usrfnc::AbstractObservation;
   multihypo::Vector{<:Real} = Float64[],
   nullhypo::Float64 = 0.0,
   # threadmodel = SingleThreaded,
@@ -808,7 +808,7 @@ end
 """
     $(SIGNATURES)
 
-Add factor with user defined type `<:AbstractFactor`` to the factor graph
+Add factor with user defined type `<:AbstractObservation`` to the factor graph
 object. Define whether the automatic initialization of variables should be
 performed.  Use order sensitive `multihypo` keyword argument to define if any
 variables are related to data association uncertainty.
@@ -819,7 +819,7 @@ Experimental
 function DFG.addFactor!(
   dfg::AbstractDFG,
   Xi::AbstractVector{<:VariableCompute},
-  usrfnc::AbstractFactor;
+  usrfnc::AbstractObservation;
   multihypo::Vector{Float64} = Float64[],
   nullhypo::Float64 = 0.0,
   solvable::Int = 1,
@@ -874,7 +874,7 @@ function DFG.addFactor!(
 end
 
 function _checkFactorAdd(usrfnc, xisyms)
-  if length(xisyms) == 1 && !(usrfnc isa AbstractPrior) && !(usrfnc isa Mixture)
+  if length(xisyms) == 1 && !(usrfnc isa AbstractPriorObservation) && !(usrfnc isa Mixture)
     @warn("Listing only one variable $xisyms for non-unary factor type $(typeof(usrfnc))")
   end
   return nothing
@@ -883,7 +883,7 @@ end
 function DFG.addFactor!(
   dfg::AbstractDFG,
   vlbs::AbstractVector{Symbol},
-  usrfnc::AbstractFactor;
+  usrfnc::AbstractObservation;
   suppressChecks::Bool = false,
   kw...,
 )

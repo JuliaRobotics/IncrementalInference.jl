@@ -28,7 +28,7 @@ getDimension(::InstanceType{<:EuclidDistance}) = 1
 $(TYPEDEF)
 Serialization type for `EuclidDistance` binary factor.
 """
-Base.@kwdef mutable struct PackedEuclidDistance <: AbstractPackedFactor
+Base.@kwdef mutable struct PackedEuclidDistance <: AbstractPackedObservation
   _type::String
   Z::PackedBelief
 end

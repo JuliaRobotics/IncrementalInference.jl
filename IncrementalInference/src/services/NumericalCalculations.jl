@@ -1,6 +1,6 @@
 # internal use only, and selected out from approxDeconv functions
 function _solveLambdaNumeric(
-  fcttype::AbstractPrior,
+  fcttype::AbstractPriorObservation,
   objResX::Function,
   residual::AbstractVector{<:Real},
   u0::AbstractVector{<:Real},
@@ -209,7 +209,7 @@ function _solveLambdaNumericMeas(
 end
 
 ## ================================================================================================
-## Heavy dispatch for all AbstractFactor / Mixture cases below
+## Heavy dispatch for all AbstractObservation / Mixture cases below
 ## ================================================================================================
 
 # internal function to dispatch view on either vector or matrix, rows are dims and samples are columns

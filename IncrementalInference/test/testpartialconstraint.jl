@@ -10,7 +10,7 @@ import IncrementalInference: getManifold, getSample
 
 ##
 
-mutable struct DevelopPartial{P <: Tuple} <: AbstractPrior
+mutable struct DevelopPartial{P <: Tuple} <: AbstractPriorObservation
   x::Distribution
   partial::P 
 end
@@ -18,7 +18,7 @@ getSample(cf::CalcFactor{<:DevelopPartial}) = rand(cf.factor.x, 1)
 getManifold(dp::DevelopPartial) = TranslationGroup(length(dp.partial))
 
 #
-mutable struct DevelopDim2 <: AbstractPrior
+mutable struct DevelopDim2 <: AbstractPriorObservation
   x::Distribution
 end
 getSample(cf::CalcFactor{<:DevelopDim2}) = rand(cf.factor.x, 1)

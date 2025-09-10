@@ -113,7 +113,7 @@ The default behavior for `getSample` is as follows:
 - The `SamplableBelief`` shall be in the field `Z` and that shall be enough to fully define the factor, i.e. `Z<:SamplableBelief` should be the only field.
 - Sampling on `<:RelativeObservation` factors defined on Group Manifolds: 
   - `getSample` normally returns a tangent vector at the identity element, however it should just match the custom factor definition.
-- Sampling on prior (`<:AbstractPrior`) factors : 
+- Sampling on prior (`<:AbstractPriorObservation`) factors : 
   - `getSample` must return a point on the manifold that matches the point representation of the variable.
 
 Notes
@@ -125,7 +125,7 @@ See also: [`getMeasurementParametric`](@ref)
 """
 function getSample end
 
-function getSample(cf::CalcFactor{<:AbstractPrior})
+function getSample(cf::CalcFactor{<:AbstractPriorObservation})
   M = getManifold(cf)
   if hasfield(typeof(cf.factor), :Z)
     X = samplePoint(M, cf.factor.Z)
@@ -138,7 +138,7 @@ function getSample(cf::CalcFactor{<:AbstractPrior})
   return X
 end
 
-function getSample(cf::CalcFactor{<:AbstractRelative})
+function getSample(cf::CalcFactor{<:AbstractRelativeObservation})
   M = getManifold(cf)
   if hasfield(typeof(cf.factor), :Z)
     X = sampleTangent(M, cf.factor.Z)

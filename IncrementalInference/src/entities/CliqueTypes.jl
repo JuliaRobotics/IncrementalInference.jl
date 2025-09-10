@@ -3,7 +3,7 @@
 # this is a developmental type, will be standardized after conclusion of #1010
 # TODO resolve type instability
 const MsgRelativeType = Vector{
-  NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol}, <:DFG.AbstractRelative}},
+  NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol}, <:DFG.AbstractRelativeObservation}},
 }
 
 const MsgPriorType = Dict{Symbol, MsgPrior{<:ManifoldKernelDensity}}
@@ -38,7 +38,7 @@ DevNotes:
 
 $(TYPEDFIELDS)
 """
-mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
+mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPriorObservation
   sender::NamedTuple{(:id, :step), Tuple{Int, Int}}
   status::CliqStatus
   belief::Dict{Symbol, TreeBelief} # will eventually be deprecated
@@ -50,7 +50,7 @@ mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
   childSolvDims::Dict{Int, Float64}
   # calc differential factors for joint in the child clique
   jointmsg::_MsgJointLikelihood
-  # diffJoints::Vector{NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol},DFG.AbstractRelative}}}
+  # diffJoints::Vector{NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol},DFG.AbstractRelativeObservation}}}
 end
 
 """

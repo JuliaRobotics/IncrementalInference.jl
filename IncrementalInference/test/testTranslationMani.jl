@@ -12,7 +12,7 @@ using Test
 Base.convert(::Type{<:Tuple}, M::TranslationGroup{Tuple{2},ℝ}) = (:Euclid, :Euclid)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{TranslationGroup{Tuple{2},ℝ}})  = (:Euclid, :Euclid)
 
-@defVariable TranslationGroup2 TranslationGroup(2) [0.0, 0.0]
+@defStateType TranslationGroup2 TranslationGroup(2) [0.0, 0.0]
 getManifold(TranslationGroup2)
 getPointType(TranslationGroup2)
 getPointIdentity(TranslationGroup2)

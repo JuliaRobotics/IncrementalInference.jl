@@ -220,7 +220,7 @@ Base.getindex(cId::CliqueId) = cId.value
 Base.show(io::IO, ::MIME"text/plain", x::CliqueId) = print(io, x.value)
 Base.show(io::IO, x::CliqueId) = print(io, x.value)
 
-getId(c::TreeClique) = c.id
+DFG.getId(c::TreeClique) = c.id
 
 TreeClique(i::Int) = TreeClique(CliqueId(i), BayesTreeNodeData(), Dict{String, Any}())
 TreeClique(id::CliqueId) = TreeClique(id, BayesTreeNodeData(), Dict{String, Any}())

@@ -26,4 +26,4 @@ Related
 
 [`Circular`](@ref), [`Prior`](@ref), [`PartialPrior`](@ref)
 """
-DFG.@defObservationType PriorCircular AbstractPrior LieGroups.CircleGroup()
+DFG.@defObservationType PriorCircular AbstractPriorObservation LieGroups.CircleGroup()

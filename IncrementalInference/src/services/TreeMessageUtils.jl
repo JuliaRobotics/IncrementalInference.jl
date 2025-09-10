@@ -462,7 +462,7 @@ function addLikelihoodPriorCommon!(
   for (lbl, msgpr) in msg.jointmsg.priors
     # don't add numerical gauge reference unless absolutely necessary
     if msg.hasPriors || 0 == length(ls(subfg, lbl))
-      # finally add the single AbstractPrior from LikelihoodMessage
+      # finally add the single AbstractPriorObservation from LikelihoodMessage
       addFactor!(subfg, [lbl], msgpr; graphinit = false, tags = tags__)
     end
   end
@@ -475,7 +475,7 @@ function addLikelihoodPriorCommon!(
 
   # # get ready
   # tags__ = union(Symbol[:__LIKELIHOODMESSAGE__;:__UPWARD_COMMON__], tags)
-  # # finally add the single AbstractPrior from LikelihoodMessage
+  # # finally add the single AbstractPriorObservation from LikelihoodMessage
   # addFactor!(subfg, [topCandidate], msgPrior, graphinit=false, tags=tags__)
 end
 

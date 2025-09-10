@@ -108,7 +108,7 @@ function _prepFactorGradientLambdas(
 
   # build final lambdas which are mapped to the blocks of the full jacobian gradients matrix J_f
   Σd = 0
-  # each variable T, go down to coords, add eps to a coord, back to point and look at the change in residual (assumed in coords for AbstractRelative[Minimize/Roots])
+  # each variable T, go down to coords, add eps to a coord, back to point and look at the change in residual (assumed in coords for AbstractRelativeObservation[Minimize/Roots])
   # TODO change `a_` to `s_` as variable selection by factor order
   for (d_, T_d) in enumerate(varTypes)
     λ_row = ()

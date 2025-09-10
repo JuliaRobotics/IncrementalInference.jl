@@ -17,7 +17,7 @@ function approxConvOnElements!(
   elements::Union{Vector{Int}, UnitRange{Int}},
   # ::Type{<:SingleThreaded},
   _slack = nothing,
-) where {N_, F <: AbstractRelative, S, T}
+) where {N_, F <: AbstractRelativeObservation, S, T}
   #
   for n in elements
     ccwl.particleidx[] = n
@@ -154,7 +154,7 @@ function computeAcrossHypothesis!(
   skipSolve::Bool = false,
   testshuffle::Bool = false,
   _slack = nothing,
-) where {N_, F <: AbstractRelative, S, T}
+) where {N_, F <: AbstractRelativeObservation, S, T}
   #
   count = 0
   # transition to new hyporecipe approach
@@ -314,7 +314,7 @@ end
 """
     $(SIGNATURES)
 
-Multiple dispatch wrapper for `<:AbstractRelative` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
+Multiple dispatch wrapper for `<:AbstractRelativeObservation` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
 
 Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `StateType`.
 """
@@ -322,7 +322,7 @@ function evalPotentialSpecific(
   variables::AbstractVector{<:VariableCompute},
   ccwl::CommonConvWrapper{T},
   solvefor::Symbol,
-  T_::Type{<:AbstractRelative},          # NOTE Relative
+  T_::Type{<:AbstractRelativeObservation},          # NOTE Relative
   measurement::AbstractVector = Tuple[]; # TODO make this a concrete type
   needFreshMeasurements::Bool = true,    # superceeds over measurement
   solveKey::Symbol = :default,
@@ -336,7 +336,7 @@ function evalPotentialSpecific(
   skipSolve::Bool = false,
   _slack = nothing,
   keepCalcFactor::Union{Nothing, <:Channel} = nothing,
-) where {T <: AbstractFactor}
+) where {T <: AbstractObservation}
   #
 
   # Prep computation variables
@@ -359,9 +359,9 @@ function evalPotentialSpecific(
   # addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
   mani = getManifold(variables[sfidx])
   
-  # @assert destinationVarVals !== ccwl.varValsAll[][ccwl.varidx[]] "destination of evalPotential for AbstractRelative not be ccwl.varValsAll[sfidx]"
+  # @assert destinationVarVals !== ccwl.varValsAll[][ccwl.varidx[]] "destination of evalPotential for AbstractRelativeObservation not be ccwl.varValsAll[sfidx]"
   # NOTE disabled getVal part of this assert because solveKey may not yet exist in different use cases, new graph or loadDFG etc.
-  # @assert destinationVarVals !== getVal(variables[ccwl.varidx[]]) "destination of evalPotential for AbstractRelative not be variable.VND.val"
+  # @assert destinationVarVals !== getVal(variables[ccwl.varidx[]]) "destination of evalPotential for AbstractRelativeObservation not be variable.VND.val"
   
   # perform the numeric solutions on the indicated elements
   # FIXME consider repeat solve as workaround for inflation off-zero 
@@ -402,7 +402,7 @@ function evalPotentialSpecific(
   variables::AbstractVector{<:VariableCompute},
   ccwl::CommonConvWrapper{T},
   solvefor::Symbol,
-  T_::Type{<:AbstractPrior},             # NOTE Prior
+  T_::Type{<:AbstractPriorObservation},             # NOTE Prior
   measurement::AbstractVector = Tuple[];
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
@@ -416,7 +416,7 @@ function evalPotentialSpecific(
   skipSolve::Bool = false,
   _slack = nothing,
   keepCalcFactor::Union{Nothing, <:Channel} = nothing,
-) where {T <: AbstractFactor}
+) where {T <: AbstractObservation}
   #
   
   # Prep computation variables
@@ -456,7 +456,7 @@ function evalPotentialSpecific(
     ret
   end
 
-  # TODO consider improving isPartial(ccwl<:AbstractPrior) to also check dimensions since we know pretty well what varDim is.
+  # TODO consider improving isPartial(ccwl<:AbstractPriorObservation) to also check dimensions since we know pretty well what varDim is.
   # TODO workaround until partial manifold approach is standardized, see #1492
   Msrc = getManifold(fnc)
   asPartial = isPartial(ccwl) || manifold_dimension(Msrc) < manifold_dimension(mani)
@@ -549,7 +549,7 @@ function evalPotentialSpecific(
   solvefor::Symbol,
   measurement::AbstractVector = Tuple[];
   kw...,
-) where {N_, F <: AbstractFactor, S, T}
+) where {N_, F <: AbstractObservation, S, T}
   #
   return evalPotentialSpecific(Xi, ccwl, solvefor, F, measurement; kw...)
 end
@@ -560,7 +560,7 @@ function evalPotentialSpecific(
   solvefor::Symbol,
   measurement::AbstractVector = Tuple[];
   kw...,
-) where {F <: AbstractFactor}
+) where {F <: AbstractObservation}
   #
   return evalPotentialSpecific(Xi, ccwl, solvefor, F, measurement; kw...)
 end
@@ -627,7 +627,7 @@ B = _evalFactorTemporary!(EuclidDistance, (ContinuousScalar, ContinuousScalar), 
 See also:  [`calcFactorResidual`](@ref), [`testFactorResidualBinary`](@ref), [`solveFactorParametric`](@ref), [`approxConvBelief`](@ref)
 """
 function _evalFactorTemporary!(
-  fct::AbstractFactor,
+  fct::AbstractObservation,
   varTypes::Tuple,
   sfidx::Int,  # solve for index, assuming variable order for fct
   measurement::AbstractVector,

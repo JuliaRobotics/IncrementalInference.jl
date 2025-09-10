@@ -1,6 +1,6 @@
 # Meta prior brings additional information not necessarily numerical prior
 
-Base.@kwdef struct MetaPrior{T} <: AbstractPrior
+Base.@kwdef struct MetaPrior{T} <: AbstractPriorObservation
   data::T
   partial::Vector{Int} = Int[]
 end

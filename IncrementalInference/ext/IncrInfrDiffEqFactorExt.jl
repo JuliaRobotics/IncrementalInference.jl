@@ -158,7 +158,7 @@ function _solveFactorODE!(
   return sol
 end
 
-# # # output for AbstractRelative is tangents (but currently we working in coordinates for integration with DiffEqs)
+# # # output for AbstractRelativeObservation is tangents (but currently we working in coordinates for integration with DiffEqs)
 # # # FIXME, how to consolidate DERelative with parametric solve which currently only goes through getMeasurementParametric
 # function getSample(cf::CalcFactor{<:DERelative})
 #   #

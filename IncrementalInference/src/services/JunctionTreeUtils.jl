@@ -860,18 +860,14 @@ end
 """
     $SIGNATURES
 
-Partial reset of basic data fields in `::VariableNodeData` of `::FunctionNode` structures.
+Partial reset of basic data fields in `::State` of `::FunctionNode` structures.
 """
-function resetData!(vdata::VariableNodeData)
+function resetData!(vdata::State)
   vdata.eliminated = false
   vdata.BayesNetOutVertIDs = Symbol[]
   # vdata.BayesNetVertID = :_null # TODO dont use nothing, see DFG issue #16
   vdata.separator = Symbol[]
   return nothing
-end
-
-function resetData!(vdata::FunctionNodeData)
-  error("resetData!(vdata::FunctionNodeData) is deprecated, use resetData!(state::FactorState) instead")
 end
 
 function resetData!(state::DFG.FactorState)
@@ -1037,7 +1033,7 @@ end
 
 Return `::Bool` on whether factor is a partial constraint.
 """
-isPartial(fcf::T) where {T <: AbstractFactor} = :partial in fieldnames(T)
+isPartial(fcf::T) where {T <: AbstractObservation} = :partial in fieldnames(T)
 isPartial(ccw::CommonConvWrapper) = ccw.usrfnc! |> isPartial
 isPartial(fct::FactorCompute) = _getCCW(fct) |> isPartial
 

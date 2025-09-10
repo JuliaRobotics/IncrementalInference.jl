@@ -12,8 +12,8 @@ using Test
 
 ##
 
-# @defVariable SpecialOrthogonal2 SpecialOrthogonal(2) @MMatrix([1.0 0.0; 0.0 1.0])
-@defVariable SpecialOrthogonal2 SpecialOrthogonalGroup(2) SMatrix{2,2}(1.0, 0.0, 0.0, 1.0)
+# @defStateType SpecialOrthogonal2 SpecialOrthogonal(2) @MMatrix([1.0 0.0; 0.0 1.0])
+@defStateType SpecialOrthogonal2 SpecialOrthogonalGroup(2) SMatrix{2,2}(1.0, 0.0, 0.0, 1.0)
 
 M = getManifold(SpecialOrthogonal2)
 @test M == SpecialOrthogonalGroup(2)
@@ -68,8 +68,8 @@ end
 # Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{3}) = (:Euclid, :Euclid, :Euclid)
 # Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{3}})  =  (:Euclid, :Euclid, :Euclid)
 
-# @defVariable SO3 SpecialOrthogonalGroup(3) @MMatrix([1.0 0.0; 0.0 1.0])
-@defVariable SO3 SpecialOrthogonalGroup(3) SMatrix{3,3}(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0)
+# @defStateType SO3 SpecialOrthogonalGroup(3) @MMatrix([1.0 0.0; 0.0 1.0])
+@defStateType SO3 SpecialOrthogonalGroup(3) SMatrix{3,3}(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0)
 
 M = getManifold(SO3)
 @test M == SpecialOrthogonalGroup(3)

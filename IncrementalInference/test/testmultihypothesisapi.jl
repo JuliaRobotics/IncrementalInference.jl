@@ -12,7 +12,7 @@ import IncrementalInference: getSample, getManifold
 
 ##
 
-mutable struct DevelopPrior{T <: SamplableBelief} <: AbstractPrior
+mutable struct DevelopPrior{T <: SamplableBelief} <: AbstractPriorObservation
   # keeping to test user case using `.x` rather than default `.Z`
   x::T
 end
@@ -109,7 +109,7 @@ end
 println("Packing converters")
 
 
-Base.@kwdef mutable struct PackedDevelopPrior <: AbstractPackedFactor
+Base.@kwdef mutable struct PackedDevelopPrior <: AbstractPackedObservation
   x::PackedBelief
 end
 function convert(::Type{PackedDevelopPrior}, d::DevelopPrior)
@@ -119,7 +119,7 @@ function convert(::Type{DevelopPrior}, d::PackedDevelopPrior)
   DevelopPrior(convert(SamplableBelief, d.x))
 end
 
-@kwdef mutable struct PackedDevelopLikelihood <: AbstractPackedFactor
+@kwdef mutable struct PackedDevelopLikelihood <: AbstractPackedObservation
   x::PackedBelief
 end
 function convert(::Type{PackedDevelopLikelihood}, d::DevelopLikelihood)

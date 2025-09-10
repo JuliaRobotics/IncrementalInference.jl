@@ -5,7 +5,7 @@ export PartialPriorPassThrough, PackedPartialPriorPassThrough
 struct PartialPriorPassThrough{
   B <: Union{<:HeatmapGridDensity, <:LevelSetGridNormal},
   T <: Tuple,
-} <: AbstractPrior
+} <: AbstractPriorObservation
   Z::B
   partial::T
 end
@@ -27,7 +27,7 @@ end
 
 Required internal density to store its type
 """
-Base.@kwdef mutable struct PackedPartialPriorPassThrough <: AbstractPackedFactor
+Base.@kwdef mutable struct PackedPartialPriorPassThrough <: AbstractPackedObservation
   Z::PackedBelief # PackedHeatmapGridDensity
   partial::Vector{Int}
 end
@@ -38,7 +38,7 @@ end
 
 
 function convert(
-  ::Union{Type{<:AbstractPackedFactor}, Type{<:PackedPartialPriorPassThrough}},
+  ::Union{Type{<:AbstractPackedObservation}, Type{<:PackedPartialPriorPassThrough}},
   obj::PartialPriorPassThrough,
 )
   #
@@ -48,7 +48,7 @@ function convert(
 end
 
 function convert(
-  ::Union{Type{<:AbstractFactor}, Type{<:PartialPriorPassThrough}},
+  ::Union{Type{<:AbstractObservation}, Type{<:PartialPriorPassThrough}},
   obj::PackedPartialPriorPassThrough,
 )
   #

@@ -61,13 +61,7 @@ function incrSuffix(lbl::Symbol, val::Integer = +1; pattern::Regex = r"\d+")
   return Symbol(prefix, nint)
 end
 
-"""
-    $SIGNATURES
-Get the CommonConvWrapper for this factor.
-"""
-function _getCCW(gfnd::GenericFunctionNodeData)
-  error("_getCCW(gfnd::GenericFunctionNodeData) is deprecated, use DFG.getCache instead.")
-end
+
 _getCCW(fct::FactorCompute) = DFG.getCache(fct) #getState(fct) |> _getCCW
 _getCCW(dfg::AbstractDFG, lbl::Symbol) = DFG.getCache(getFactor(dfg, lbl)) #getFactor(dfg, lbl) |> _getCCW
 
@@ -77,10 +71,8 @@ _getZDim(ccw::CommonConvWrapper) = getManifold(ccw) |> manifold_dimension # ccw.
 # TODO is MsgPrior piggy backing zdim on inferdim???
 _getZDim(ccw::CommonConvWrapper{<:MsgPrior}) = length(ccw.usrfnc!.infoPerCoord) # ccw.usrfnc!.inferdim
 
-_getZDim(fcd::GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
 _getZDim(fct::FactorCompute) = _getCCW(fct) |> _getZDim
 
-DFG.getDimension(fct::GenericFunctionNodeData) = _getZDim(fct)
 DFG.getDimension(fct::FactorCompute) = _getZDim(fct)
 
 """
@@ -118,7 +110,7 @@ getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid)
 
 # extend convenience function (Matrix or Vector{P})
 function manikde!(
-  variableType::Union{InstanceType{<:StateType}, InstanceType{<:AbstractFactor}},
+  variableType::Union{InstanceType{<:StateType}, InstanceType{<:AbstractObservation}},
   pts::AbstractVector{P};
   kw...,
 ) where {P <: Union{<:AbstractArray, <:Number, <: ArrayPartition}}
@@ -218,7 +210,7 @@ function DFG.getCoordinates(typ::StateType, w...; kw...)
 end
 
 # WIP
-# _getMeasurementRepresentation(::AbstractPrior, coord::AbstractVector{<:Number}) = 
+# _getMeasurementRepresentation(::AbstractPriorObservation, coord::AbstractVector{<:Number}) = 
 
 
 """
@@ -239,7 +231,7 @@ Related
 function calcPPE(
   var::VariableCompute,
   varType::StateType = getVariableType(var);
-  ppeType::Type{<:MeanMaxPPE} = MeanMaxPPE,
+  ppeType::Type{<:DFG.MeanMaxPPE} = DFG.MeanMaxPPE,
   solveKey::Symbol = :default,
   ppeKey::Symbol = solveKey
 )
@@ -283,7 +275,7 @@ function calcPPE(
   dfg::AbstractDFG,
   label::Symbol;
   solveKey::Symbol = :default,
-  ppeType::Type{<:AbstractPointParametricEst} = MeanMaxPPE,
+  ppeType::Type{<:AbstractPointParametricEst} = DFG.MeanMaxPPE,
 )
   #
   var = getVariable(dfg, label)
@@ -548,7 +540,7 @@ Related
 function setPPE!(
   variable::VariableCompute,
   solveKey::Symbol = :default,
-  ppeType::Type{T} = MeanMaxPPE,
+  ppeType::Type{T} = DFG.MeanMaxPPE,
   newPPEVal::T = calcPPE(variable; ppeType = ppeType, solveKey = solveKey),
 ) where {T <: AbstractPointParametricEst}
   #
@@ -564,7 +556,7 @@ function setPPE!(
   subfg::AbstractDFG,
   label::Symbol,
   solveKey::Symbol = :default,
-  ppeType::Type{T} = MeanMaxPPE,
+  ppeType::Type{T} = DFG.MeanMaxPPE,
   newPPEVal::NothingUnion{T} = nothing,
 ) where {T <: AbstractPointParametricEst}
   #

@@ -138,7 +138,7 @@ Related
 Mixture, FluxModelsDistribution
 """
 function MixtureFluxModels(
-  F_::AbstractFactor,
+  F_::AbstractObservation,
   nnModels::Vector{P},
   inDim::NTuple{ID, Int},
   data::D,
@@ -174,7 +174,7 @@ function MixtureFluxModels(
   return Mixture(F_, ntup, diversity)
 end
 
-function MixtureFluxModels(::Type{F}, w...; kw...) where {F <: AbstractFactor}
+function MixtureFluxModels(::Type{F}, w...; kw...) where {F <: AbstractObservation}
   return MixtureFluxModels(F(LinearAlgebra.I), w...; kw...)
 end
 

@@ -8,13 +8,7 @@ function _getDimensionsPartial(ccw::CommonConvWrapper)
   # @warn "_getDimensionsPartial not ready for use yet"
   return ccw.partialDims
 end
-function _getDimensionsPartial(data::GenericFunctionNodeData)
-  Base.depwarn(
-    "_getDimensionsPartial(data::GenericFunctionNodeData) is deprecated, use solvercache <: FactorCache instead",
-    :_getDimensionsPartial,
-  ) 
-  return _getCCW(data) |> _getDimensionsPartial
-end
+
 _getDimensionsPartial(fct::FactorCompute) = _getDimensionsPartial(_getCCW(fct))
 function _getDimensionsPartial(fg::AbstractDFG, lbl::Symbol)
   return _getDimensionsPartial(getFactor(fg, lbl))
@@ -59,7 +53,7 @@ DevNotes
 - TODO only works on `.threadid()==1` at present, see #1094
 - Also see, JuliaRobotics/RoME.jl#465
 """
-sampleFactor(cf::CalcFactor{<:AbstractFactor}, N::Int = 1) = [getSample(cf) for _ = 1:N]
+sampleFactor(cf::CalcFactor{<:AbstractObservation}, N::Int = 1) = [getSample(cf) for _ = 1:N]
 
 function Base.show(io::IO, x::CalcFactor)
   println(io)
@@ -78,7 +72,7 @@ Notes
 - Will not work in all situations, but good enough so far.
   - # TODO standardize via domain or manifold definition...??
 """
-function calcZDim(cf::CalcFactor{T}) where {T <: AbstractFactor}
+function calcZDim(cf::CalcFactor{T}) where {T <: AbstractObservation}
   #
   M = getManifold(cf) # getManifold(T)
   try
@@ -149,7 +143,7 @@ Related
 [`calcFactorResidual`](@ref), [`CalcResidual`](@ref), [`_evalFactorTemporary!`](@ref), [`approxConvBelief`](@ref), [`_buildGraphByFactorAndTypes!`](@ref)
 """
 function calcFactorResidualTemporary(
-  fct::AbstractRelative,
+  fct::AbstractRelativeObservation,
   varTypes::Tuple,
   measurement,
   pts::Tuple;
@@ -325,7 +319,7 @@ function attemptGradientPrep(
     # https://github.com/JuliaRobotics/IncrementalInference.jl/blob/db7ff84225cc848c325e57b5fb9d0d85cb6c79b8/src/DispatchPackedConversions.jl#L46
     # also https://github.com/JuliaRobotics/DistributedFactorGraphs.jl/issues/590#issuecomment-891450762
     # FIXME, suppressing nested gradient propagation on GenericMarginals for the time being, see #1010
-    if (!_blockRecursion) && usrfnc isa AbstractRelative && !(usrfnc isa GenericMarginal)
+    if (!_blockRecursion) && usrfnc isa AbstractRelativeObservation && !(usrfnc isa GenericMarginal)
       # take first value from each measurement-tuple-element
       measurement_ = meas_single
       # compensate if no info available during deserialization
@@ -377,7 +371,7 @@ function _createCCW(
   attemptGradients::Bool = true,
   userCache::CT = nothing,
   keepCalcFactor::Bool = false,
-) where {T <: AbstractFactor, CT}
+) where {T <: AbstractObservation, CT}
   #
   if length(Xi) !== 0
     nothing
@@ -521,7 +515,7 @@ DevNotes
 - TODO consolidate with others, see https://github.com/JuliaRobotics/IncrementalInference.jl/projects/6
 """
 function _beforeSolveCCW!(
-  F_::Type{<:AbstractRelative},
+  F_::Type{<:AbstractRelativeObservation},
   ccwl::CommonConvWrapper{F},
   variables::AbstractVector{<:VariableCompute},
   sfidx::Int,
@@ -530,7 +524,7 @@ function _beforeSolveCCW!(
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
   keepCalcFactor::Union{Nothing, <:Channel} = nothing,
-) where {F <: AbstractFactor} # F might be Mixture
+) where {F <: AbstractObservation} # F might be Mixture
   #
   if length(variables) !== 0
     nothing
@@ -593,7 +587,7 @@ function _beforeSolveCCW!(
 end
 
 function _beforeSolveCCW!(
-  F_::Type{<:AbstractPrior},
+  F_::Type{<:AbstractPriorObservation},
   ccwl::CommonConvWrapper{F},
   variables::AbstractVector{<:VariableCompute},
   sfidx::Int,
@@ -602,7 +596,7 @@ function _beforeSolveCCW!(
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
   keepCalcFactor::Union{Nothing, <:Channel} = nothing,
-) where {F <: AbstractFactor} # F might be Mixture
+) where {F <: AbstractObservation} # F might be Mixture
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
 
   ccwl.varidx[] = sfidx
@@ -630,7 +624,7 @@ function _beforeSolveCCW!(
   sfidx::Int,
   N::Integer;
   kw...,
-) where {N_, F <: AbstractRelative, S, T}
+) where {N_, F <: AbstractRelativeObservation, S, T}
   #
   return _beforeSolveCCW!(F, ccwl, Xi, sfidx, N; kw...)
 end
@@ -642,7 +636,7 @@ function _beforeSolveCCW!(
   sfidx::Int,
   N::Integer;
   kw...,
-) where {N_, F <: AbstractPrior, S, T}
+) where {N_, F <: AbstractPriorObservation, S, T}
   #
   return _beforeSolveCCW!(F, ccwl, Xi, sfidx, N; kw...)
 end

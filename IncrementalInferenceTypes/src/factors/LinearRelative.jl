@@ -18,7 +18,7 @@ DFG.getManifold(obs::LinearRelative) = LieGroups.TranslationGroup(getDimension(o
 $(TYPEDEF)
 Serialization type for `LinearRelative` binary factor.
 """
-Base.@kwdef mutable struct PackedLinearRelative <: AbstractPackedFactor
+Base.@kwdef mutable struct PackedLinearRelative <: AbstractPackedObservation
   Z::PackedBelief
 end
 

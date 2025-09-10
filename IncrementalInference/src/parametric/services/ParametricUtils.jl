@@ -81,7 +81,7 @@ function getMeasurementParametric(s::ManifoldPrior)
   return meas, iΣ
 end
 
-function getMeasurementParametric(s::AbstractFactor)
+function getMeasurementParametric(s::AbstractObservation)
   if hasfield(typeof(s), :Z)
     Z = s.Z
   else
@@ -99,7 +99,7 @@ getMeasurementParametric(dfg::AbstractDFG, flb::Symbol) = getMeasurementParametr
 # maybe rename getMeasurementParametric to something like getNormalDistributionParams or getMeanCov
 
 # default to point on manifold
-function getFactorMeasurementParametric(fac::AbstractPrior)
+function getFactorMeasurementParametric(fac::AbstractPriorObservation)
   M = getManifold(fac)
   ϵ = getPointIdentity(M)
   dims = manifold_dimension(M)
@@ -111,7 +111,7 @@ function getFactorMeasurementParametric(fac::AbstractPrior)
   meas, iΣ
 end
 # default to point on tangent vector
-function getFactorMeasurementParametric(fac::AbstractRelative)
+function getFactorMeasurementParametric(fac::AbstractRelativeObservation)
   M = getManifold(fac)
   ϵ = getPointIdentity(M)
   dims = manifold_dimension(M)
@@ -134,7 +134,7 @@ getFactorMeasurementParametric(dfg::AbstractDFG, flb::Symbol) = getFactorMeasure
 ## ================================================================================================
 
 #TODO maybe remove with Mixture rework see #1504
-getFactorMechanics(f::AbstractFactor) = f
+getFactorMechanics(f::AbstractObservation) = f
 getFactorMechanics(f::Mixture) = f.mechanics
 
 function CalcFactorMahalanobis(fg, fct::FactorCompute)
@@ -824,7 +824,7 @@ Update the parametric solver data value and covariance.
 function updateSolverDataParametric! end
 
 function updateSolverDataParametric!(
-  vnd::VariableNodeData,
+  vnd::State,
   val::AbstractArray,
   cov::AbstractMatrix,
 )
@@ -936,7 +936,7 @@ function updateParametricSolution!(sfg, vardict::AbstractDict; solveKey::Symbol 
     updateSolverDataParametric!(vnd, val.val, val.cov)
     #fill in ppe as mean
     Xc = collect(getCoordinates(getVariableType(sfg, v), val.val))
-    ppe = MeanMaxPPE(solveKey, Xc, Xc, Xc)
+    ppe = DFG.MeanMaxPPE(solveKey, Xc, Xc, Xc)
     getPPEDict(getVariable(sfg, v))[solveKey] = ppe
   end
 end
@@ -954,7 +954,7 @@ function updateParametricSolution!(fg, M, labels::AbstractArray{Symbol}, vals, �
     updateSolverDataParametric!(vnd, val, covar)#FIXME add cov
     #fill in ppe as mean
     Xc = collect(getCoordinates(getVariableType(fg, v), val))
-    ppe = MeanMaxPPE(solveKey, Xc, Xc, Xc)
+    ppe = DFG.MeanMaxPPE(solveKey, Xc, Xc, Xc)
     getPPEDict(getVariable(fg, v))[solveKey] = ppe
   end
 
@@ -1041,7 +1041,7 @@ function autoinitParametricOptim!(
     vnd.initialized = true
     #fill in ppe as mean
     Xc = collect(getCoordinates(getVariableType(xi), val))
-    ppe = MeanMaxPPE(:parametric, Xc, Xc, Xc)
+    ppe = DFG.MeanMaxPPE(:parametric, Xc, Xc, Xc)
     getPPEDict(xi)[:parametric] = ppe
 
     # updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent=false)    

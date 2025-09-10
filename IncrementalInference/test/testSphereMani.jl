@@ -21,7 +21,7 @@ Manifolds.identity_element(::typeof(Sphere(2)), p::AbstractVector) = SVector(1.0
 Base.convert(::Type{<:Tuple}, M::typeof(Sphere(2))) = (:Euclid, :Euclid)
 Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{typeof(Sphere(2))})  = (:Euclid, :Euclid)
 
-@defVariable Sphere2 Sphere(2) SVector(1.0, 0.0, 0.0)
+@defStateType Sphere2 Sphere(2) SVector(1.0, 0.0, 0.0)
 M = getManifold(Sphere2)
 @test M == Sphere(2)
 pT = getPointType(Sphere2)

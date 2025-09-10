@@ -8,7 +8,7 @@ import IncrementalInference: getSample, getManifold
 
 ##
 
-mutable struct PartialDim2{T} <: AbstractPrior
+mutable struct PartialDim2{T} <: AbstractPriorObservation
   Z::T
   partial::Tuple{Int}
 end

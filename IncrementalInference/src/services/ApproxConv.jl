@@ -57,7 +57,7 @@ value already contained in the first variable.
 Notes
 - `target` must be a variable.
 - The ultimate `target` variable must be given to allow path discovery through n-ary factors.
-- Fresh starting point will be used if first element in `fctLabels` is a unary `<:AbstractPrior`.
+- Fresh starting point will be used if first element in `fctLabels` is a unary `<:AbstractPriorObservation`.
 - This function will not change any values in `dfg`, and might have slightly less speed performance to meet this requirement.
 - pass in `tfg` to get a recoverable result of all convolutions in the chain.
 - `setPPE` and `setPPEmethod` can be used to store PPE information in temporary `tfg`
@@ -150,7 +150,7 @@ function approxConvBelief(
   # didn't return early so shift focus to using `tfg` more intensely
   initVariable!(tfg, varLbls[1], pts)
   # use in combination with setPPE and setPPEmethod keyword arguments
-  ppemethod = setPPEmethod === nothing ? MeanMaxPPE : setPPEmethod
+  ppemethod = setPPEmethod === nothing ? DFG.MeanMaxPPE : setPPEmethod
   !setPPE ? nothing : setPPE!(tfg, varLbls[1], solveKey, ppemethod)
 
   # do chain of convolutions
@@ -263,7 +263,7 @@ function proposalbeliefs!(
     # relative sibling factors get nullSurplus
     for (i, f) in enumerate(factors)
       # don't add additional nullSurplus, since its already being done in ExplicitDiscreteMarg!!!  FIXME refactor to common solution
-      if isa(getFactorType(f), AbstractRelative) && !isMultihypo(f)
+      if isa(getFactorType(f), AbstractRelativeObservation) && !isMultihypo(f)
         nullSrp[i] = nullSurplusAdd
       end
     end

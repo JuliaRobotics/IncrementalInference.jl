@@ -36,8 +36,8 @@ export AbstractDFG,
 # listDataBlobs  # ERROR: LightDFG{} doesn't override 'listDataBlobs'.
 
 # Inference types
-export AbstractPackedFactor, AbstractFactor
-export AbstractPrior, AbstractRelative
+export AbstractPackedObservation, AbstractObservation
+export AbstractPriorObservation, AbstractRelativeObservation
 export AbstractRelativeMinimize, AbstractManifoldMinimize
 
 # not sure if this is necessary
@@ -116,8 +116,6 @@ export CSMHistory,
   getTags,
 
   # using either dictionary or cloudgraphs
-  FunctionNodeData,
-  PackedFunctionNodeData, # moved to DFG
   normalfromstring,
   categoricalfromstring,
   # extractdistribution,

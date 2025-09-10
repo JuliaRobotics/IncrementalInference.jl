@@ -7,7 +7,7 @@ Message prior on all dimensions of a variable node in the factor graph.
 Notes
 - Only temporary existance during CSM operations.
 """
-struct MsgPrior{T <: SamplableBelief} <: AbstractPrior
+struct MsgPrior{T <: SamplableBelief} <: AbstractPriorObservation
   Z::T
   infoPerCoord::Vector{Float64}
   M::Any
@@ -35,7 +35,7 @@ getManifold(mp::MsgPrior) = mp.M
 #FIXME this will not work on manifolds
 (cfo::CalcFactor{<:MsgPrior})(z, x1) = z .- x1
 
-Base.@kwdef struct PackedMsgPrior <: AbstractPackedFactor
+Base.@kwdef struct PackedMsgPrior <: AbstractPackedObservation
   Z::PackedBelief
   infoPerCoord::Vector{Float64}
 end

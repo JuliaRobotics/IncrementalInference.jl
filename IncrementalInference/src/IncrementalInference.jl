@@ -121,6 +121,11 @@ import DistributedFactorGraphs: packDistribution, unpackDistribution
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable
 
+# TODO using all interal functions of DFG as a transition step, remove true
+DFG.@usingDFG true
+# TODO remove these deprecated functions/types from DFG
+using DistributedFactorGraphs: AbstractRelativeMinimize, AbstractManifoldMinimize
+
 # must be moved to their own repos
 const KDE = KernelDensityEstimate
 const MB = ManifoldsBase
@@ -151,7 +156,7 @@ include("ExportAPI.jl")
 # Source code
 
 # FIXME, move up to DFG
-# abstract type AbstractManifoldMinimize <: AbstractRelative end
+# abstract type AbstractManifoldMinimize <: AbstractRelativeObservation end
 
 # regular
 

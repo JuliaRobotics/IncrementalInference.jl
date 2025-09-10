@@ -153,7 +153,7 @@ export ManifoldPrior, PackedManifoldPrior
 # `p` is a point on manifold `M`
 # `Z` is a measurement at the tangent space of `p` on manifold `M` 
 struct ManifoldPrior{M <: AbstractManifold, T <: SamplableBelief, P, B <: AbstractBasis} <:
-       AbstractPrior
+       AbstractPriorObservation
   M::M
   p::P #NOTE This is a fixed point from where the measurement `Z` is made in coordinates on tangent TpM
   Z::T
@@ -226,14 +226,14 @@ function mahalanobus_distance2(M, X, inv_Σ)
   return Xc' * inv_Σ * Xc
 end
 
-Base.@kwdef mutable struct PackedManifoldPrior <: AbstractPackedFactor
+Base.@kwdef mutable struct PackedManifoldPrior <: AbstractPackedObservation
   varType::String
   p::Vector{Float64}  #NOTE This is a fixed point from where the measurement `Z` likely stored as a coordinate
   Z::PackedBelief
 end
 
 function convert(
-  ::Union{Type{<:AbstractPackedFactor}, Type{<:PackedManifoldPrior}},
+  ::Union{Type{<:AbstractPackedObservation}, Type{<:PackedManifoldPrior}},
   obj::ManifoldPrior,
 )
   #
@@ -249,7 +249,7 @@ function convert(
 end
 
 function convert(
-  ::Union{Type{<:AbstractFactor}, Type{<:ManifoldPrior}},
+  ::Union{Type{<:AbstractObservation}, Type{<:ManifoldPrior}},
   obj::PackedManifoldPrior,
 )
   #
@@ -286,7 +286,7 @@ function samplePointPartial(
 end
 
 struct ManifoldPriorPartial{M <: AbstractManifold, T <: SamplableBelief, P <: Tuple} <:
-       AbstractPrior
+       AbstractPriorObservation
   M::M
   Z::T
   partial::P

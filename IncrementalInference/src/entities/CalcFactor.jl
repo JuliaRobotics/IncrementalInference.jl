@@ -2,7 +2,7 @@
 abstract type AbstractMaxMixtureSolver end
 
 
-abstract type CalcFactor{T<:AbstractFactor} end
+abstract type CalcFactor{T<:AbstractObservation} end
 
 
 """
@@ -31,7 +31,7 @@ Related
 [`CalcFactorMahalanobis`](@ref), [`CommonConvWrapper`](@ref)
 """
 struct CalcFactorNormSq{
-  FT <: AbstractFactor, 
+  FT <: AbstractObservation, 
   X, 
   C, 
   VT <: Tuple, 
@@ -101,7 +101,7 @@ end
 
 
 struct CalcFactorResidual{
-  FT <: AbstractFactor,
+  FT <: AbstractObservation,
   N,
   D,
   MEAS <: AbstractArray,

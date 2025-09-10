@@ -75,7 +75,7 @@ function TreeBelief(
   return TreeBelief{T, P, M}(val, bw, ipc, variableType, manifold, solvableDim)
 end
 
-function TreeBelief(vnd::VariableNodeData, solvDim::Real = 0)
+function TreeBelief(vnd::State, solvDim::Real = 0)
   return TreeBelief(
     vnd.val,
     vnd.bw,

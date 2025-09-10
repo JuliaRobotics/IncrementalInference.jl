@@ -8,7 +8,7 @@ Notes
 - If using [`AMP.ManifoldKernelDensity`](@ref), don't double partial.  Only define the partial in this `PartialPrior` container. 
   - Future TBD, consider using `AMP.getManifoldPartial` for more general abstraction.
 """
-struct PartialPrior{T <: SamplableBelief, P <: Tuple} <: AbstractPrior
+struct PartialPrior{T <: SamplableBelief, P <: Tuple} <: AbstractPriorObservation
   varType::Type{<:StateType}
   Z::T
   partial::P
@@ -27,7 +27,7 @@ $(TYPEDEF)
 
 Serialization type for `PartialPrior`.
 """
-Base.@kwdef struct PackedPartialPrior <: AbstractPackedFactor
+Base.@kwdef struct PackedPartialPrior <: AbstractPackedObservation
   varType::String
   Z::PackedBelief
   partials::Vector{Int}

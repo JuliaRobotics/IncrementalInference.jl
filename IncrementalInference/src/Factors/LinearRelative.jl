@@ -59,7 +59,7 @@ end
 $(TYPEDEF)
 Serialization type for `LinearRelative` binary factor.
 """
-Base.@kwdef mutable struct PackedLinearRelative <: AbstractPackedFactor
+Base.@kwdef mutable struct PackedLinearRelative <: AbstractPackedObservation
   Z::PackedBelief
 end
 function convert(::Type{PackedLinearRelative}, d::LinearRelative)

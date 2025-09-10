@@ -10,7 +10,7 @@ import IncrementalInference: getSample, getManifold
 
 ##
 
-struct SpecialPrior{T <: SamplableBelief} <: AbstractPrior
+struct SpecialPrior{T <: SamplableBelief} <: AbstractPriorObservation
   z::T
 end
 getManifold(::SpecialPrior) = TranslationGroup(1)

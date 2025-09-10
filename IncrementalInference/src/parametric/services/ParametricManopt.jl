@@ -547,7 +547,7 @@ function autoinitParametric!(
       return false
     end
 
-    vnd::VariableNodeData = getState(xi, solveKey)
+    vnd::State = getState(xi, solveKey)
     
     if perturb_point
       _M = getManifold(xi)
@@ -575,7 +575,7 @@ function autoinitParametric!(
     vnd.initialized = true
     #fill in ppe as mean
     Xc::Vector{Float64} = collect(getCoordinates(getVariableType(xi), val))
-    ppe = MeanMaxPPE(solveKey, Xc, Xc, Xc)
+    ppe = DFG.MeanMaxPPE(solveKey, Xc, Xc, Xc)
     getPPEDict(xi)[solveKey] = ppe
 
     result = true

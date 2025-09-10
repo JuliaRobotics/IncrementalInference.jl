@@ -11,14 +11,14 @@ import Rotations as _Rot
 
 ## define new local variable types for testing
 
-# @defVariable TranslationGroup2 ValidationLieGroup(TranslationGroup(2)) @SVector[0.0, 0.0]
-@defVariable TranslationGroup2 TranslationGroup(2) @SVector[0.0, 0.0]
+# @defStateType TranslationGroup2 ValidationLieGroup(TranslationGroup(2)) @SVector[0.0, 0.0]
+@defStateType TranslationGroup2 TranslationGroup(2) @SVector[0.0, 0.0]
 
 # SE2 = ValidationLieGroup(SpecialEuclideanGroup(2; variant=:right))
 SE2 = SpecialEuclideanGroup(2; variant=:right)
 # PoseMani = SE2
 PoseMani = TranslationGroup(2) × SpecialOrthogonalGroup(2)
-@defVariable SpecialEuclidean2 PoseMani ArrayPartition(@SVector([0.0,0.0]), @SMatrix([1.0 0.0; 0.0 1.0]))
+@defStateType SpecialEuclidean2 PoseMani ArrayPartition(@SVector([0.0,0.0]), @SMatrix([1.0 0.0; 0.0 1.0]))
 
 ##
 
@@ -385,8 +385,8 @@ pthru = PartialPriorPassThrough(hmd, (1,2))
 
 ## quick 
 
-pf = convert( AbstractPackedFactor, pthru )
-upf = convert( AbstractFactor, pf )
+pf = convert( AbstractPackedObservation, pthru )
+upf = convert( AbstractObservation, pf )
 
 @test pthru.partial == upf.partial
 @test isapprox( pthru.Z.heatmap.data, upf.Z.heatmap.data )
