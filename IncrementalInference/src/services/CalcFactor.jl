@@ -283,13 +283,10 @@ end
 Internal method to set which dimensions should be used as the decision variables for later numerical optimization.
 """
 function _setCCWDecisionDimsConv!(
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  ccwl::CommonConvWrapper{F},
   xDim::Int
 ) where {
-  N_,
   F <: AbstractObservation,
-  S,
-  T,
 }
   #
 
@@ -616,27 +613,14 @@ function _beforeSolveCCW!(
   return maxlen
 end
 
-# TODO, can likely deprecate this
 function _beforeSolveCCW!(
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  ccwl::CommonConvWrapper{F},
   Xi::AbstractVector{<:VariableCompute},
   # destVarVals::AbstractVector,
   sfidx::Int,
   N::Integer;
   kw...,
-) where {N_, F <: AbstractRelativeObservation, S, T}
-  #
-  return _beforeSolveCCW!(F, ccwl, Xi, sfidx, N; kw...)
-end
-
-function _beforeSolveCCW!(
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
-  Xi::AbstractVector{<:VariableCompute},
-  # destVarVals::AbstractVector,
-  sfidx::Int,
-  N::Integer;
-  kw...,
-) where {N_, F <: AbstractPriorObservation, S, T}
+) where {F}
   #
   return _beforeSolveCCW!(F, ccwl, Xi, sfidx, N; kw...)
 end

@@ -27,9 +27,9 @@ bss = AliasingScalarSampler(collect(1:50), v)
 
 
 # add bi-modal mixture prior
-Prior0 = Mixture(Prior,(a=Normal(-5.0,1.0), b=Uniform(0.0,1.0)), (0.5,0.5))
-Prior0 = Mixture(Prior,(Normal(-5.0,1.0), Normal(0.0,1.0)), (0.5,0.5))
-Prior0 = Mixture(Prior,[Normal(-5.0,1.0), Normal(0.0,1.0)], (0.5,0.5))
+Prior0 = Mixture(Prior,(a=Normal(-5.0,1.0), b=Uniform(0.0,1.0)), [0.5,0.5])
+Prior0 = Mixture(Prior,(Normal(-5.0,1.0), Normal(0.0,1.0)), [0.5,0.5])
+Prior0 = Mixture(Prior,[Normal(-5.0,1.0), Normal(0.0,1.0)], [0.5,0.5])
 Prior0 = Mixture(Prior,(Normal(-5.0,1.0), Normal(0.0,1.0)), [0.5;0.5])
 Prior0 = Mixture(Prior,[Normal(-5.0,1.0), Normal(0.0,1.0)], [0.5;0.5])
 Prior0 = Mixture(Prior,(Normal(-5.0,1.0), bss), Categorical([0.5;0.5]))

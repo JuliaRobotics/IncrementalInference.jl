@@ -13,11 +13,11 @@ Future work:
 """
 function approxConvOnElements!(
   destVarVals::AbstractArray,
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  ccwl::CommonConvWrapper{F},
   elements::Union{Vector{Int}, UnitRange{Int}},
   # ::Type{<:SingleThreaded},
   _slack = nothing,
-) where {N_, F <: AbstractRelativeObservation, S, T}
+) where {F <: AbstractRelativeObservation}
   #
   for n in elements
     ccwl.particleidx[] = n
@@ -143,7 +143,7 @@ DevNotes
 - Future combo with `_calcIPCRelative`
 """
 function computeAcrossHypothesis!(
-  ccwl::Union{<:CommonConvWrapper{F}, <:CommonConvWrapper{Mixture{N_, F, S, T}}},
+  ccwl::CommonConvWrapper{F},
   hyporecipe::HypoRecipe, #NamedTuple,
   sfidx::Int,
   maxlen::Int,
@@ -154,7 +154,7 @@ function computeAcrossHypothesis!(
   skipSolve::Bool = false,
   testshuffle::Bool = false,
   _slack = nothing,
-) where {N_, F <: AbstractRelativeObservation, S, T}
+) where {F <: AbstractRelativeObservation}
   #
   count = 0
   # transition to new hyporecipe approach
@@ -541,17 +541,6 @@ function evalPotentialSpecific(
 
   # check partial is easy as this is a prior
   return addEntr, ipc
-end
-
-function evalPotentialSpecific(
-  Xi::AbstractVector{<:VariableCompute},
-  ccwl::CommonConvWrapper{Mixture{N_, F, S, T}},
-  solvefor::Symbol,
-  measurement::AbstractVector = Tuple[];
-  kw...,
-) where {N_, F <: AbstractObservation, S, T}
-  #
-  return evalPotentialSpecific(Xi, ccwl, solvefor, F, measurement; kw...)
 end
 
 function evalPotentialSpecific(

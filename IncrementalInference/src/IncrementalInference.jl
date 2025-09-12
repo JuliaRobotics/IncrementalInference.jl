@@ -169,6 +169,7 @@ include("Factors/GenericMarginal.jl")
 include("entities/AliasScalarSampling.jl")
 include("entities/ExtDensities.jl") # used in BeliefTypes.jl::SamplableBeliefs
 include("entities/ExtFactors.jl")
+include("Factors/Mixture.jl")
 include("entities/BeliefTypes.jl")
 
 include("services/HypoRecipe.jl")
@@ -218,7 +219,6 @@ include("Variables/DefaultVariables.jl")
 
 # included factors, see RoME.jl for more examples
 include("Factors/GenericFunctions.jl")
-include("Factors/Mixture.jl")
 include("Factors/DefaultPrior.jl")
 include("Factors/LinearRelative.jl")
 include("Factors/EuclidDistance.jl")

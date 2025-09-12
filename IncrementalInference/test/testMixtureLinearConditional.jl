@@ -19,7 +19,7 @@ using TensorCast
 fg = initfg()
 addVariable!(fg, :x0, ContinuousScalar)
 
-mp = Mixture(Prior, (Normal(), Normal(10,1)),(1/2,1/2) )
+mp = Mixture(Prior, (Normal(), Normal(10,1)),[1/2,1/2] )
 addFactor!(fg, [:x0], mp)
 
 ##
@@ -49,7 +49,7 @@ addVariable!(fg, :x1, ContinuousScalar)
 addFactor!(fg, [:x0], Prior(Normal()), graphinit=false)
 initVariable!(fg, :x0, [zeros(1) for _ in 1:100])
 
-mlr = Mixture(LinearRelative, (Normal(), Normal(10,1)),(1/2,1/2) )
+mlr = Mixture(LinearRelative, (Normal(), Normal(10,1)), [1/2,1/2])
 addFactor!(fg, [:x0;:x1], mlr, graphinit=false)
 
 ##
@@ -118,13 +118,13 @@ rebuildFactorCache!(fg_, f1_)
 @show typeof(DFG.getCache(f1).varValsAll[]);
 @show typeof(DFG.getCache(f1_).varValsAll[]);
 
-@test DFG.compareFactor(f1, f1_, skip=[:components;:labels;:timezone;:zone;:vartypes;:fullvariables;:particleidx;:varidx])
+@test DFG.compareFactor(f1, f1_, skip=[:Z;:components;:labels;:timezone;:zone;:vartypes;:fullvariables;:particleidx;:varidx])
 
-@test IIF._getCCW(f1).usrfnc!.components.naive == IIF._getCCW(f1).usrfnc!.components.naive
+@test IIF._getCCW(f1).usrfnc!.Z.components.naive == IIF._getCCW(f1).usrfnc!.Z.components.naive
 
 # already ManifoldKernelDensity
-A = IIF._getCCW(f1).usrfnc!.components.fancy
-B = IIF._getCCW(f1_).usrfnc!.components.fancy
+A = IIF._getCCW(f1).usrfnc!.Z.components.fancy
+B = IIF._getCCW(f1_).usrfnc!.Z.components.fancy
 
 # A = ManifoldBelief(Euclid, IIF._getCCW(f1).usrfnc!.components.fancy )
 # B = ManifoldBelief(Euclid, IIF._getCCW(f1_).usrfnc!.components.fancy )
@@ -149,15 +149,14 @@ addFactor!(fg, [:x0], Prior(Normal(0.0,0.1)))
 ##
 
 # require default ::UnitScaling constructor from all factors
-mlr = Mixture(LinearRelative(I), [Normal(-1.0, 0.1), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
+mlr = Mixture(LinearRelative, [Normal(-1.0, 0.1), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
 
 # test serialization while we are here
-pmlr = convert(PackedMixture, mlr)
-umlr = convert(Mixture, pmlr)
+pmlr = DFG.pack(mlr)
+umlr = DFG.unpack(pmlr)
 
-@test mlr.mechanics == umlr.mechanics
-@test mlr.components == umlr.components
-@test mlr.diversity == umlr.diversity
+@test mlr.Z.components == umlr.Z.components
+@test mlr.Z.prior == umlr.Z.prior
 
 mlr = Mixture(LinearRelative, [Normal(-1.0, 0.1), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
 

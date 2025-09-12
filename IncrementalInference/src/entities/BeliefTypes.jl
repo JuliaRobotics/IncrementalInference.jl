@@ -18,6 +18,7 @@ struct ParametricMessage <: MessageType end
 
 using DistributedFactorGraphs: PackedBelief
 
+#TODO deprecate SamplableBelief
 const SamplableBelief = Union{
   <:Distributions.Distribution,
   <:KDE.BallTreeDensity, # FIXME deprecate
@@ -26,6 +27,7 @@ const SamplableBelief = Union{
   <:FluxModelsDistribution,
   <:HeatmapGridDensity,
   <:LevelSetGridNormal,
+  <:Mixture,
 }
 
 #Supported types for parametric

@@ -5,32 +5,32 @@
 #TODO this looks like dead code, should be removed
 # TODO deprecate testshuffle
 function _checkErrorCCWNumerics(
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  ccwl::CommonConvWrapper{F},
   testshuffle::Bool = false,
-) where {N_, F <: AbstractRelativeMinimize, S, T}
+) where {F <: AbstractRelativeMinimize}
   return nothing
 end
 function _checkErrorCCWNumerics(
-  ccwl::Union{CommonConvWrapper{F}, CommonConvWrapper{Mixture{N_, F, S, T}}},
+  ccwl::CommonConvWrapper{F},
   testshuffle::Bool = false,
-) where {N_, F <: AbstractManifoldMinimize, S, T}
+) where {F <: AbstractManifoldMinimize}
   return nothing
 end
 
 #TODO this looks like dead code, should be removed
 function _perturbIfNecessary(
-  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  fcttype::AbstractRelativeMinimize,
   len::Int = 1,
   perturbation::Real = 1e-10,
-) where {N_, F <: AbstractRelativeMinimize, S, T}
+)
   return 0
 end
 
 function _perturbIfNecessary(
-  fcttype::Union{F, <:Mixture{N_, F, S, T}},
+  fcttype::AbstractManifoldMinimize,
   len::Int = 1,
   perturbation::Real = 1e-10,
-) where {N_, F <: AbstractManifoldMinimize, S, T}
+)
   return 0
 end
 #
@@ -149,6 +149,10 @@ DFG.getDimension(fct::DFG.GenericFunctionNodeData) = _getZDim(fct)
 
 function resetData!(vdata::DFG.FunctionNodeData)
   error("resetData!(vdata::FunctionNodeData) is deprecated, use resetData!(state::FactorState) instead")
+end
+
+function sampleTangent(x::ManifoldKernelDensity, p = mean(x))
+  error("sampleTangent(x::ManifoldKernelDensity, p) should be replaced by sampleTangent(M<:AbstractManifold, x::ManifoldKernelDensity, p)")
 end
 
 ## ================================================================================================

@@ -35,7 +35,7 @@ function Random.rand(nfb::FluxModelsDistribution, N::Integer = 1)
   numModels = length(nfb.models)
   allPreds = 1:numModels |> collect
   # TODO -- compensate when there arent enough prediction models
-  if !(N isa Nothing) && numModels < N
+  if numModels < N
     reps = (N ÷ numModels) + 1
     allPreds = repeat(allPreds, reps)
     resize!(allPreds, N)
@@ -44,20 +44,16 @@ function Random.rand(nfb::FluxModelsDistribution, N::Integer = 1)
   # can suppress shuffle for NN training purposes
   selPred = 1 < numModels && nfb.shuffle[] ? rand(allPreds, N) : view(allPreds, 1:N)
 
-  # dev function, TODO simplify to direct call 
-  _sample() = map(pred -> (nfb.models[pred])(nfb.data), selPred)
-
-  return _sample()
-  # return [_sample() for _ in 1:N]
+  # FIXME not type stable, maybe use Univariate and Multivariate from Distributions.jl
+  samples = map(pred -> (nfb.models[pred])(nfb.data), selPred)
+  dim = length(samples[1]) # dim 1 is Univariate
+  if N == 1
+    return dim == 1 ? samples[1][1] : samples[1]
+  else
+    return dim == 1 ? reduce(vcat, samples) : reduce(hcat, samples)
+  end
 end
 
-sampleTangent(M::AbstractManifold, fmd::FluxModelsDistribution, p = 0) = rand(fmd, 1)[1]
-sampleTangent(M::AbstractLieGroup, fmd::FluxModelsDistribution, p = 0) = rand(fmd, 1)[1]
-
-samplePoint(M::AbstractManifold, fmd::FluxModelsDistribution, p = 0) = rand(fmd, 1)[1]
-function samplePoint(M::AbstractLieGroup, fmd::FluxModelsDistribution, p = 0)
-  return rand(fmd, 1)[1]
-end
 
 function FluxModelsDistribution(
   inDim::NTuple{ID, Int},
@@ -138,7 +134,7 @@ Related
 Mixture, FluxModelsDistribution
 """
 function MixtureFluxModels(
-  F_::AbstractObservation,
+  F_::Type{<:AbstractObservation},
   nnModels::Vector{P},
   inDim::NTuple{ID, Int},
   data::D,
@@ -172,10 +168,6 @@ function MixtureFluxModels(
 
   # construct all the internal objects
   return Mixture(F_, ntup, diversity)
-end
-
-function MixtureFluxModels(::Type{F}, w...; kw...) where {F <: AbstractObservation}
-  return MixtureFluxModels(F(LinearAlgebra.I), w...; kw...)
 end
 
 #

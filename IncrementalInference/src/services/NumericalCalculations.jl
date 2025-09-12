@@ -45,11 +45,8 @@ You can overload this method for your custom factor type to specify a different 
 - Overload this trait for your custom factor if you require a different solver for approxConv.
 - The solver determines which optimization backend and method will be used during inference.
 """
-ConvSolver(::Union{<:RelativeObservation, <:Mixture{N, <:RelativeObservation}}) where {N} = LieGroupOptimConvSolver()
-
-function ConvSolver(::Union{F, <:Mixture{N_, F, S, T}}) where {N_, F <: AbstractRelativeMinimize, S, T}
-  OptimConvSolver()
-end
+ConvSolver(::RelativeObservation) = LieGroupOptimConvSolver()
+ConvSolver(::AbstractRelativeMinimize) = OptimConvSolver()
 
 ## ================================================================================================
 function _solveLambdaNumeric(
@@ -312,10 +309,10 @@ DevNotes
 - TODO perhaps consolidate perturbation with inflation or nullhypo
 """
 function _solveCCWNumeric!(
-  ccwl::Union{<:CommonConvWrapper{F}, <:CommonConvWrapper{<:Mixture{N_, F, S, T}}},
+  ccwl::CommonConvWrapper{F},
   _slack = nothing;
   perturb::Real = 1e-10,
-) where {N_, F <: AbstractRelativeMinimize, S, T}
+) where {F <: AbstractRelativeMinimize}
   #
   
   #
@@ -454,10 +451,10 @@ function _buildHypoCalcFactor(ccwl::CommonConvWrapper, smpid::Integer, _slack=no
 end
 
 function _solveCCWNumeric!(
-  ccwl::Union{<:CommonConvWrapper{F}, <:CommonConvWrapper{<:Mixture{N_, F, S, T}}},
+  ccwl::CommonConvWrapper{F},
   _slack = nothing;
   perturb::Real = 1e-10,
-) where {N_, F <: RelativeObservation, S, T}
+) where {F <: RelativeObservation}
   #
   #   # FIXME, move this check higher and out of smpid loop
   # _checkErrorCCWNumerics(ccwl, testshuffle)

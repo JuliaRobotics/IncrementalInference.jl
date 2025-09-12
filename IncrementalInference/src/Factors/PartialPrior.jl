@@ -15,6 +15,7 @@ struct PartialPrior{T <: SamplableBelief, P <: Tuple} <: AbstractPriorObservatio
 end
 
 # TODO, standardize, but shows error on testPartialNH.jl
+#FIXME should call samplePoint(M, cf.factor.Z)
 getSample(cf::CalcFactor{<:PartialPrior}) = samplePoint(cf.factor.Z)   # remove in favor of ManifoldSampling.jl
 # getManifold(pp::PartialPrior) = TranslationGroup(length(pp.partial)) # uncomment
 

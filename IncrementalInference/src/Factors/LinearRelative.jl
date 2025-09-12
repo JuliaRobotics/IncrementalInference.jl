@@ -32,6 +32,7 @@ LinearRelative(nm::MvNormal) = LinearRelative{length(nm.μ), typeof(nm)}(nm)
 function LinearRelative(nm::Union{<:BallTreeDensity, <:ManifoldKernelDensity})
   return LinearRelative{Ndim(nm), typeof(nm)}(nm)
 end
+LinearRelative(z) = LinearRelative{length(z)}(z)
 
 getManifold(::InstanceType{LinearRelative{N}}) where {N} = getManifold(ContinuousEuclid{N})
 

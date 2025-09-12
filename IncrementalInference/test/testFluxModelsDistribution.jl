@@ -15,7 +15,7 @@ fxd = FluxModelsDistribution((5,),(3,),mdls,rand(5), false, false)
 
 # check sampler is working
 measd = rand(fxd, 2)
-@test length( measd ) == 2
+@test size( measd ) == (3,2)
 
 # convert to packed type
 fxp = convert(PackedBelief, fxd) # TODO, PackedBelief
@@ -50,7 +50,7 @@ addFactor!(fg, [:x0;], pr)
 ##
 
 smpls = sampleFactor(fg, :x0f1, 10)
-@test eltype(smpls) <: Vector{<:Real}
+@test eltype(smpls) <: AbstractVector{<:Real}
 @test smpls isa Vector #{Vector{Float64}}
 @test length( smpls ) == 10
 
@@ -119,7 +119,7 @@ pts_ = getBelief(fg, :x1) |> getPoints
 
 # will predict from existing fg
 f1 = getFactorType(fg, :x0x1f1)
-predictions = map(f->f(f1.components.nn.data), f1.components.nn.models)
+predictions = map(f->f(f1.Z.components.nn.data), f1.Z.components.nn.models)
 
 
 # unpack into new fg_
@@ -127,13 +127,13 @@ fg_ = loadDFG("/tmp/fg_test_flux")
 
 # same predictions with deserialized object
 f1_ = getFactorType(fg_, :x0x1f1)
-predictions_ = map(f->f(f1_.components.nn.data), f1_.components.nn.models)
+predictions_ = map(f->f(f1_.Z.components.nn.data), f1_.Z.components.nn.models)
 
 # check that all predictions line up
 @show norm(predictions - predictions_)
 @test norm(predictions - predictions_) < 1e-6
 
-f1_.components.nn.shuffle[] = true
+f1_.Z.components.nn.shuffle[] = true
 
 # test solving of the new object
 solveTree!(fg_);

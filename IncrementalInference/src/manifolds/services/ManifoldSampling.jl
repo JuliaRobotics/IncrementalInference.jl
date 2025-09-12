@@ -9,10 +9,6 @@ Notes
 """
 function sampleTangent end
 
-function sampleTangent(x::ManifoldKernelDensity, p = mean(x))
-  error("sampleTangent(x::ManifoldKernelDensity, p) should be replaced by sampleTangent(M<:AbstractManifold, x::ManifoldKernelDensity, p)")
-end
-
 # Sampling Distributions
 # assumes M is a group and will break for Riemannian, but leaving that enhancement as TODO
 function sampleTangent(
@@ -32,13 +28,6 @@ function sampleTangent(M::typeof(LieGroups.CircleGroup()), z::Distribution, p = 
   return hat(LieAlgebra(M), rand(z))
 end
 
-function sampleTangent(M::AbstractLieGroup, x::ManifoldKernelDensity, p = mean(x))
-  # get legacy matrix of coordinates and selected labels
-  #TODO make sure that when `sample` is replaced in MKD, coordinates is a vector
-  coords, lbls = sample(x.belief, 1)
-  X = hat(LieAlgebra(M), coords[:], typeof(p))
-  return X
-end
 
 """
     $SIGNATURES
