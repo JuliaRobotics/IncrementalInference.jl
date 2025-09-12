@@ -133,10 +133,6 @@ getFactorMeasurementParametric(dfg::AbstractDFG, flb::Symbol) = getFactorMeasure
 ## Parametric solve with Mahalanobis distance - CalcFactor
 ## ================================================================================================
 
-#TODO maybe remove with Mixture rework see #1504
-getFactorMechanics(f::AbstractObservation) = f
-getFactorMechanics(f::Mixture) = f.mechanics
-
 function CalcFactorMahalanobis(fg, fct::FactorCompute)
   fac_func = getFactorType(fct)
   varOrder = getVariableOrder(fct)
@@ -164,7 +160,7 @@ function CalcFactorMahalanobis(fg, fct::FactorCompute)
     special = nothing
   end
 
-  return CalcFactorMahalanobis(fct.label, getFactorMechanics(fac_func), cache, varOrder, meas, iΣ, special)
+  return CalcFactorMahalanobis(fct.label, fac_func, cache, varOrder, meas, iΣ, special)
 end
 
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric

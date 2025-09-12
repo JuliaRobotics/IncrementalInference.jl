@@ -37,7 +37,7 @@ function CalcFactorResidual(
 
   return CalcFactorResidual(
     fct.label,
-    getFactorMechanics(fac_func),
+    fac_func,
     tuple(varOrder...),
     tuple(varOrderIdxs...),
     meas,
