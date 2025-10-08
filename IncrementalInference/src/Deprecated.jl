@@ -53,103 +53,103 @@ end
 ## packing converters-----------------------------------------------------------
 # heavy use of multiple dispatch for converting between packed and original data types during DB usage
 
-function convert(
-  ::Type{DFG.PackedFunctionNodeData{P}},
-  d::DFG.FunctionNodeData{T},
-) where {P <: AbstractPackedObservation, T <: FactorCache}
-  error("TODO remove. PackedFunctionNodeData is obsolete")
-  return DFG.PackedFunctionNodeData(
-    d.eliminated,
-    d.potentialused,
-    d.edgeIDs,
-    convert(P, _getCCW(d).usrfnc!),
-    d.multihypo,
-    _getCCW(d).hyporecipe.certainhypo,
-    d.nullhypo,
-    d.solveInProgress,
-    d.inflation,
-  )  # extract two values from ccw for storage -- ccw thrown away
-end
+# function convert(
+#   ::Type{DFG.PackedFunctionNodeData{P}},
+#   d::DFG.FunctionNodeData{T},
+# ) where {P <: AbstractPackedObservation, T <: FactorCache}
+#   error("TODO remove. PackedFunctionNodeData is obsolete")
+#   return DFG.PackedFunctionNodeData(
+#     d.eliminated,
+#     d.potentialused,
+#     d.edgeIDs,
+#     convert(P, _getCCW(d).usrfnc!),
+#     d.multihypo,
+#     _getCCW(d).hyporecipe.certainhypo,
+#     d.nullhypo,
+#     d.solveInProgress,
+#     d.inflation,
+#   )  # extract two values from ccw for storage -- ccw thrown away
+# end
 
 ## unpack converters------------------------------------------------------------
 # see #1424
 #TODO Consolidate: this looks alot like `getDefaultFactorData`
-function DFG.reconstFactorData(
-  dfg::AbstractDFG,
-  varOrder::AbstractVector{Symbol},
-  ::Type{<:DFG.GenericFunctionNodeData{<:CommonConvWrapper{F}}},
-  packed::DFG.GenericFunctionNodeData{<:AbstractPackedObservation},
-) where {F <: AbstractObservation}
+# function DFG.reconstFactorData(
+#   dfg::AbstractDFG,
+#   varOrder::AbstractVector{Symbol},
+#   ::Type{<:DFG.GenericFunctionNodeData{<:CommonConvWrapper{F}}},
+#   packed::DFG.GenericFunctionNodeData{<:AbstractPackedObservation},
+# ) where {F <: AbstractObservation}
 
-  error("TODO remove. Obsolete: use `DFG.rebuildFactorCache!` and getDefaultFactorData instead.")
-  #
-  # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
-  usrfnc = convert(F, packed.fnc)
-  multihypo, nullhypo = parseusermultihypo(packed.multihypo, packed.nullhypo)
+#   error("TODO remove. Obsolete: use `DFG.rebuildFactorCache!` and getDefaultFactorData instead.")
+#   #
+#   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
+#   usrfnc = convert(F, packed.fnc)
+#   multihypo, nullhypo = parseusermultihypo(packed.multihypo, packed.nullhypo)
 
-  # IIF #1424
-  vars = map(f -> getVariable(dfg, f), varOrder)
-  userCache = preambleCache(dfg, vars, usrfnc)
+#   # IIF #1424
+#   vars = map(f -> getVariable(dfg, f), varOrder)
+#   userCache = preambleCache(dfg, vars, usrfnc)
 
-  # TODO -- improve _createCCW for hypotheses and certainhypo field recovery when deserializing
-  # reconstitute from stored data
-  # FIXME, add threadmodel=threadmodel
-  # FIXME https://github.com/JuliaRobotics/DistributedFactorGraphs.jl/issues/590#issuecomment-776838053
-  # FIXME dont know what manifolds to use in ccw
-  ccw = _createCCW(
-    vars,
-    usrfnc;
-    multihypo,
-    nullhypo,
-    certainhypo = packed.certainhypo,
-    inflation = packed.inflation,
-    userCache,
-    attemptGradients = getSolverParams(dfg).attemptGradients,
-    # Block recursion if NoSolverParams or if set to not attempt gradients.
-    _blockRecursion=
-      getSolverParams(dfg) isa NoSolverParams || 
-      !getSolverParams(dfg).attemptGradients,
-  )
-  #
+#   # TODO -- improve _createCCW for hypotheses and certainhypo field recovery when deserializing
+#   # reconstitute from stored data
+#   # FIXME, add threadmodel=threadmodel
+#   # FIXME https://github.com/JuliaRobotics/DistributedFactorGraphs.jl/issues/590#issuecomment-776838053
+#   # FIXME dont know what manifolds to use in ccw
+#   ccw = _createCCW(
+#     vars,
+#     usrfnc;
+#     multihypo,
+#     nullhypo,
+#     certainhypo = packed.certainhypo,
+#     inflation = packed.inflation,
+#     userCache,
+#     attemptGradients = getSolverParams(dfg).attemptGradients,
+#     # Block recursion if NoSolverParams or if set to not attempt gradients.
+#     _blockRecursion=
+#       getSolverParams(dfg) isa NoSolverParams || 
+#       !getSolverParams(dfg).attemptGradients,
+#   )
+#   #
 
-  # CommonConvWrapper{typeof(usrfnc)}
-  ret = DFG.FunctionNodeData{typeof(ccw)}(
-    packed.eliminated,
-    packed.potentialused,
-    packed.edgeIDs,
-    ccw,
-    packed.multihypo,
-    packed.certainhypo,
-    packed.nullhypo,
-    packed.solveInProgress,
-    packed.inflation,
-  )
-  #
-  return ret
-end
+#   # CommonConvWrapper{typeof(usrfnc)}
+#   ret = DFG.FunctionNodeData{typeof(ccw)}(
+#     packed.eliminated,
+#     packed.potentialused,
+#     packed.edgeIDs,
+#     ccw,
+#     packed.multihypo,
+#     packed.certainhypo,
+#     packed.nullhypo,
+#     packed.solveInProgress,
+#     packed.inflation,
+#   )
+#   #
+#   return ret
+# end
 
-function _getDimensionsPartial(data::DFG.GenericFunctionNodeData)
-  Base.depwarn(
-    "_getDimensionsPartial(data::GenericFunctionNodeData) is deprecated, use solvercache <: FactorCache instead",
-    :_getDimensionsPartial,
-  ) 
-  return _getCCW(data) |> _getDimensionsPartial
-end
+# function _getDimensionsPartial(data::DFG.GenericFunctionNodeData)
+#   Base.depwarn(
+#     "_getDimensionsPartial(data::GenericFunctionNodeData) is deprecated, use solvercache <: FactorCache instead",
+#     :_getDimensionsPartial,
+#   ) 
+#   return _getCCW(data) |> _getDimensionsPartial
+# end
 
-"""
-    $SIGNATURES
-Get the CommonConvWrapper for this factor.
-"""
-function _getCCW(gfnd::DFG.GenericFunctionNodeData)
-  error("_getCCW(gfnd::DFG.GenericFunctionNodeData) is deprecated, use DFG.getCache instead.")
-end
+# """
+#     $SIGNATURES
+# Get the CommonConvWrapper for this factor.
+# """
+# function _getCCW(gfnd::DFG.GenericFunctionNodeData)
+#   error("_getCCW(gfnd::DFG.GenericFunctionNodeData) is deprecated, use DFG.getCache instead.")
+# end
 
-_getZDim(fcd::DFG.GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
-DFG.getDimension(fct::DFG.GenericFunctionNodeData) = _getZDim(fct)
+# _getZDim(fcd::DFG.GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
+# DFG.getDimension(fct::DFG.GenericFunctionNodeData) = _getZDim(fct)
 
-function resetData!(vdata::DFG.FunctionNodeData)
-  error("resetData!(vdata::FunctionNodeData) is deprecated, use resetData!(state::FactorState) instead")
-end
+# function resetData!(vdata::DFG.FunctionNodeData)
+#   error("resetData!(vdata::FunctionNodeData) is deprecated, use resetData!(state::FactorState) instead")
+# end
 
 function sampleTangent(x::ManifoldKernelDensity, p = mean(x))
   error("sampleTangent(x::ManifoldKernelDensity, p) should be replaced by sampleTangent(M<:AbstractManifold, x::ManifoldKernelDensity, p)")

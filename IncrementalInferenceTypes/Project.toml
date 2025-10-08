@@ -18,7 +18,7 @@ StructTypes = "856f2bd8-1eba-4b0a-8007-ebc267875bd4"
 [compat]
 Dates = "1.10.0"
 Distributed = "1.10.0"
-DistributedFactorGraphs = "0.27.0"
+DistributedFactorGraphs = "0.27, 0.28.0"
 Distributions = "0.25.120"
 DocStringExtensions = "0.9.5"
 LieGroups = "0.1.2"
