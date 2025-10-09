@@ -14,7 +14,7 @@ Notes
 
 DevNotes
 - TODO ensure type stability, likely returning types `Any` at this time.
-- TODO MeanMaxPPE currently stored as coordinates, complicating fast calculation.
+- TODO parametric estimates currently stored as coordinates, complicating fast calculation.
 
 Related: [`getMeasurementParametric`](@ref), [`approxConvBelief`](@ref), [`MutablePose2Pose2Gaussian`](@ref)
 """
@@ -45,9 +45,6 @@ function solveFactorParametric(
 
   # get variable points
   function _getParametric(vari::VariableCompute, key = :default)
-    # hasp = haskey(getPPEDict(vari), key)
-    # FIXME use PPE via Manifold points currently in coordinates
-    # hasp ? getPPE(vari, key).suggested : calcMean(getBelief(vari, key))
     pt = calcMean(getBelief(vari, key))
 
     return collect(getCoordinates(getVariableType(vari), pt))

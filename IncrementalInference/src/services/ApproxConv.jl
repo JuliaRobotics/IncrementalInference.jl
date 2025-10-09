@@ -60,14 +60,12 @@ Notes
 - Fresh starting point will be used if first element in `fctLabels` is a unary `<:AbstractPriorObservation`.
 - This function will not change any values in `dfg`, and might have slightly less speed performance to meet this requirement.
 - pass in `tfg` to get a recoverable result of all convolutions in the chain.
-- `setPPE` and `setPPEmethod` can be used to store PPE information in temporary `tfg`
 
 DevNotes
 - TODO strong requirement that this function is super efficient on single factor/variable case!
 - FIXME must consolidate with `accumulateFactorMeans`
 - TODO `solveKey` not fully wired up everywhere yet
   - tfg gets all the solveKeys inside the source `dfg` variables
-- TODO add a approxConv on PPE option
   - Consolidate with [`accumulateFactorMeans`](@ref), `approxConvBinary`
 
 Related
@@ -82,8 +80,6 @@ function approxConvBelief(
   solveKey::Symbol = :default,
   N::Int = length(measurement),
   tfg::AbstractDFG = LocalDFG(;solverParams=getSolverParams(dfg)),
-  setPPEmethod::Union{Nothing, Type{<:AbstractPointParametricEst}} = nothing,
-  setPPE::Bool = setPPEmethod !== nothing,
   path::AbstractVector{Symbol} = Symbol[],
   skipSolve::Bool = false,
   nullSurplus::Real = 0,
@@ -149,9 +145,6 @@ function approxConvBelief(
   end
   # didn't return early so shift focus to using `tfg` more intensely
   initVariable!(tfg, varLbls[1], pts)
-  # use in combination with setPPE and setPPEmethod keyword arguments
-  ppemethod = setPPEmethod === nothing ? DFG.MeanMaxPPE : setPPEmethod
-  !setPPE ? nothing : setPPE!(tfg, varLbls[1], solveKey, ppemethod)
 
   # do chain of convolutions
   for idx = idxS:length(path)
@@ -161,7 +154,6 @@ function approxConvBelief(
       addFactor!(tfg, fct)
       ptsBel = approxConvBelief(tfg, fct, path[idx + 1]; solveKey, N, skipSolve, keepCalcFactor)
       initVariable!(tfg, path[idx + 1], ptsBel)
-      !setPPE ? nothing : setPPE!(tfg, path[idx + 1], solveKey, ppemethod)
     end
   end
 

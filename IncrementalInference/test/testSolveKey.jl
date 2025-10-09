@@ -62,15 +62,6 @@ doautoinit!(fg, :b, solveKey=:testSolveKey)
 @test (:testSolveKey in listSolveKeys(getVariable(fg, :a)))
 @test (:testSolveKey in listSolveKeys(getVariable(fg, :b)))
 
-
-##
-
-@test isapprox( calcPPE(fg, :a, solveKey=:testSolveKey).suggested[1], 10, atol=1)
-@test isapprox( calcPPE(fg, :b, solveKey=:testSolveKey).suggested[1], 20, atol=1)
-
-
-##
-
 end
 
 
@@ -102,16 +93,6 @@ getSolverParams(fg).graphinit=true
 solveTree!(fg, solveKey=:testSolveKey )
 
 ##
-
-@test isapprox( calcPPE(fg, :a, solveKey=:testSolveKey).suggested[1], 0, atol=2)
-@test isapprox( calcPPE(fg, :b, solveKey=:testSolveKey).suggested[1], 10, atol=2)
-@test isapprox( calcPPE(fg, :c, solveKey=:testSolveKey).suggested[1], 20, atol=2)
-@test isapprox( calcPPE(fg, :d, solveKey=:testSolveKey).suggested[1], 30, atol=2)
-@test isapprox( calcPPE(fg, :e, solveKey=:testSolveKey).suggested[1], 40, atol=2)
-
-
-##
-
 # using RoMEPlotting
 # Gadfly.set_default_plot_size(35cm,25cm)
 

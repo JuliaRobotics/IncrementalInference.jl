@@ -212,7 +212,6 @@ end
 # WIP
 # _getMeasurementRepresentation(::AbstractPriorObservation, coord::AbstractVector{<:Number}) = 
 
-
 """
     $SIGNATURES
 
@@ -223,20 +222,13 @@ Calculate new Parametric Point Estimates for a given variable.
 DevNotes
 - TODO update for manifold subgroups.
 - TODO standardize after AMP3D
-
-Related
-
-[`getPPE`](@ref), [`setPPE!`](@ref), [`getVariablePPE`](@ref)
 """
-function calcPPE(
-  var::VariableCompute,
-  varType::StateType = getVariableType(var);
-  ppeType::Type{<:DFG.MeanMaxPPE} = DFG.MeanMaxPPE,
-  solveKey::Symbol = :default,
-  ppeKey::Symbol = solveKey
+function calcMeanMaxSuggested(
+  vari::VariableCompute,
+  solveKey::Symbol = :default
 )
-  #
-  P = getBelief(var, solveKey)
+  varType = getVariableType(vari)
+  P = getBelief(vari, solveKey)
   maniDef = convert(MB.AbstractManifold, varType)
   manis = AMP._manifoldtuple(maniDef) # LEGACY, TODO REMOVE
   ops = buildHybridManifoldCallbacks(manis)
@@ -246,43 +238,24 @@ function calcPPE(
   Pma = getKDEMax(P; addop = ops[1], diffop = ops[2])
   # calculate point
 
-  ## TODO make PPE only use getCoordinates for now (IIF v0.25)
+  ## TODO use getCoordinates for now (IIF v0.25)
   Pme_ = getCoordinates(varType, Pme)
   # Pma_ = getCoordinates(M,Pme)
-
-  ppes = getPPEDict(var)
-  id = if haskey(ppes, ppeKey)
-    ppes[ppeKey].id
-  else
-    nothing
-  end
-
-  # suggested, max, mean, current time
-  # TODO, poor constructor argument assumptions on `ppeType`
-  return ppeType(;
-    id, 
-    solveKey=ppeKey, 
-    suggested=Pme_, 
-    max=Pma, 
+ 
+  return (
     mean=Pme_, 
+    max=Pma, 
+    suggested=Pme_, 
   )
 end
 
-# calcPPE(var::VariableCompute; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcPPE(var, getVariableType(var), method=method, solveKey=solveKey)
-
-
-function calcPPE(
+function calcMeanMaxSuggested(
   dfg::AbstractDFG,
-  label::Symbol;
+  label::Symbol,
   solveKey::Symbol = :default,
-  ppeType::Type{<:AbstractPointParametricEst} = DFG.MeanMaxPPE,
 )
-  #
-  var = getVariable(dfg, label)
-  return calcPPE(var, getVariableType(var); ppeType = ppeType, solveKey = solveKey)
+  return calcMeanMaxSuggested(getVariable(dfg, label), solveKey)
 end
-
-const calcVariablePPE = calcPPE
 
 """
     $SIGNATURES
@@ -381,58 +354,6 @@ end
 """
     $SIGNATURES
 
-Return `::Tuple` with matching variable ID symbols and `Suggested` PPE values.
-
-Related
-
-getVariablePPE
-"""
-function getPPESuggestedAll(dfg::AbstractDFG, regexFilter::Union{Nothing, Regex} = nothing)
-  #
-  # get values
-  vsyms = listVariables(dfg, regexFilter) |> sortDFG
-  slamPPE = map(x -> getVariablePPE(dfg, x).suggested, vsyms)
-  # sizes to convert to matrix
-  rumax = zeros(Int, 2)
-  for ppe in slamPPE
-    rumax[2] = length(ppe)
-    rumax[1] = maximum(rumax)
-  end
-
-  # populate with values
-  XYT = zeros(length(slamPPE), rumax[1])
-  for i = 1:length(slamPPE)
-    XYT[i, 1:length(slamPPE[i])] = slamPPE[i]
-  end
-  return (vsyms, XYT)
-end
-
-"""
-    $SIGNATURES
-
-Find and return a `::Tuple` of variables and distances to `loc::Vector{<:Real}`.
-
-Related
-
-findVariablesNearTimestamp
-"""
-function findVariablesNear(
-  dfg::AbstractDFG,
-  loc::Vector{<:Real},
-  regexFilter::Union{Nothing, Regex} = nothing;
-  number::Int = 3,
-)
-  #
-
-  xy = getPPESuggestedAll(dfg, regexFilter)
-  dist = sum((xy[2][:, 1:length(loc)] .- loc') .^ 2; dims = 2) |> vec
-  prm = (dist |> sortperm)[1:number]
-  return (xy[1][prm], sqrt.(dist[prm]))
-end
-
-"""
-    $SIGNATURES
-
 Find all factors that go `from` variable to any other complete variable set within `between`.
 
 Notes
@@ -506,71 +427,6 @@ function getFactorsAmongVariablesOnly(
 
   return usefcts
 end
-
-"""
-    $SIGNATURES
-
-Calculate new and then set PPE estimates for variable from some distributed factor graph.
-
-DevNotes
-- TODO solve key might be needed if one only wants to update one
-- TODO consider a more fiting name.
-- guess it would make sense that :default=>variableNodeData, goes with :default=>MeanMaxPPE
-
-Aliases
-- `setVariablePosteriorEstimates!`
-
-DevNotes:
-
-JT - TODO if subfg is in the cloud or from another fg it has to be updated
-it feels like a waste to update the whole variable for one field.
-currently i could find mergeUpdateVariableSolverData()
-might be handy to use a setter such as updatePointParametricEst(dfg, variable, solverkey)
-This might also not be the correct place, if it is uncomment:
-````
-if (subfg <: InMemoryDFGTypes)
-  updateVariable!(subfg, var)
-end
-```
-
-Related
-
-[`calcPPE`](@ref), getVariablePPE, (updatePPE! ?)
-"""
-function setPPE!(
-  variable::VariableCompute,
-  solveKey::Symbol = :default,
-  ppeType::Type{T} = DFG.MeanMaxPPE,
-  newPPEVal::T = calcPPE(variable; ppeType = ppeType, solveKey = solveKey),
-) where {T <: AbstractPointParametricEst}
-  #
-  # vnd = getState(variable, solveKey)
-
-  #TODO in the future one can perhaps populate other solver data types here by looking at the typeof ppeDict entries
-  getPPEDict(variable)[solveKey] = newPPEVal
-
-  return variable
-end
-
-function setPPE!(
-  subfg::AbstractDFG,
-  label::Symbol,
-  solveKey::Symbol = :default,
-  ppeType::Type{T} = DFG.MeanMaxPPE,
-  newPPEVal::NothingUnion{T} = nothing,
-) where {T <: AbstractPointParametricEst}
-  #
-  variable = getVariable(subfg, label)
-  # slight optimization to avoid double variable lookup (should be optimized out during code lowering)
-  newppe = if newPPEVal !== nothing
-    newPPEVal
-  else
-    calcPPE(variable; solveKey = solveKey, ppeType = ppeType)
-  end
-  return setPPE!(variable, solveKey, ppeType, newppe)
-end
-
-const setVariablePosteriorEstimates! = setPPE!
 
 ## ============================================================================
 # Starting integration with Manifolds.jl, via ApproxManifoldProducts.jl first

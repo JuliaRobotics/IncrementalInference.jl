@@ -21,7 +21,7 @@ deleteFactor!.(fg, [Symbol("x$(i)lm0f1") for i=1:(N-1)])
 tree = solveTree!(fg)
 
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    sppe = calcMeanMaxSuggested(fg, var, :default).suggested
     println("Testing ", var,": ", sppe)
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.35)
 end
@@ -39,7 +39,7 @@ fifoFreeze!(fg)
 
 tree = solveTree!(fg; recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    sppe = calcMeanMaxSuggested(fg, var, :default).suggested
     println("Testing ", var,": ", sppe)
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.35)
 end
@@ -76,7 +76,7 @@ hists = fetchCliqHistoryAll!(smtasks)
 @test !(IIF.solveUp_StateMachine in getindex.(hists[7], 3))
 
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    sppe = calcMeanMaxSuggested(fg, var, :default).suggested
     println("Testing ", var,": ", sppe)
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.35)
 end
@@ -109,7 +109,7 @@ hists = fetchCliqHistoryAll!(smtasks)
 
 tree = solveTree!(fg, tree; recordcliqs=ls(fg), eliminationOrder);
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    sppe = calcMeanMaxSuggested(fg, var, :default).suggested
     println("Testing ", var,": ", sppe)
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.355)
 end
@@ -163,7 +163,7 @@ hists = fetchCliqHistoryAll!(smtasks)
 @test !(IIF.solveUp_StateMachine in getindex.(hists[3], 3))
 
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    sppe = calcMeanMaxSuggested(fg, var, :default).suggested
     println("Testing ", var,": ", sppe)
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.35)
 end
@@ -202,7 +202,7 @@ smtasks = Task[]
 tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    sppe = calcMeanMaxSuggested(fg, var, :default).suggested
     # println("Testing ", var,": ", sppe)
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.35)
 end
@@ -213,7 +213,7 @@ deepcopyGraph!(fg, sfg, vsyms[4:6], fsyms[4:6])
 tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    sppe = calcMeanMaxSuggested(fg, var, :default).suggested
     # println("Testing ", var,": ", sppe)
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.35)
 end
@@ -224,7 +224,7 @@ deepcopyGraph!(fg, sfg, vsyms[7:8], fsyms[7:8])
 tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    sppe = calcMeanMaxSuggested(fg, var, :default).suggested
     # println("Testing ", var,": ", sppe)
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.35)
 end
@@ -235,7 +235,7 @@ deepcopyGraph!(fg, sfg, Symbol[], [fsyms[9]])
 tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    sppe = calcMeanMaxSuggested(fg, var, :default).suggested
     println("Testing ", var,": ", sppe)
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.35)
 end
@@ -245,7 +245,7 @@ addFactor!(fg, [:x4], Prior(Normal(4.1,0.1)))
 tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    sppe = calcMeanMaxSuggested(fg, var, :default).suggested
     # println("Testing ", var,": ", sppe)
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.35)
 end
@@ -256,7 +256,7 @@ addFactor!(fg, [:x4], Prior(Normal(3.9,0.1)))
 tree = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    sppe = calcMeanMaxSuggested(fg, var, :default).suggested
     # println("Testing ", var,": ", sppe)
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.355)
 end

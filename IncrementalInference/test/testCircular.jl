@@ -20,7 +20,8 @@ solveTree!(fg);
 
 ##
 
-sppes = map(var->getPPE(var).suggested[1], sortDFG(getVariables(fg),by=getLabel)) 
+sppes = map(var -> calcMeanMaxSuggested(fg, getLabel(var), :default).suggested[1],
+            sortDFG(getVariables(fg), by=getLabel)) 
 
 gt = rem2pi.(collect(0:4), RoundNearest)
 

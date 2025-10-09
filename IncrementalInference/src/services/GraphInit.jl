@@ -176,8 +176,6 @@ function doautoinit!(
           Npts(bel) == getSolverParams(dfg).N ? bel : resample(bel, getSolverParams(dfg).N)
         # @info "MANIFOLD IS" bel.manifold isPartial(bel) string(bel._partial) string(getPoints(bel, false)[1]) 
         setValKDE!(xi, bel_, true, ipc; solveKey) # getPoints(bel, false)
-        # Update the estimates (longer DFG function used so cloud is also updated)
-        setVariablePosteriorEstimates!(dfg, xi.label, solveKey)
         # Update the data in the event that it's not local
         # TODO perhaps use merge, but keeping to deepcopy as update variant used was set to copy.
         DFG.copytoState!(dfg, xi.label, solveKey, getState(xi, solveKey))

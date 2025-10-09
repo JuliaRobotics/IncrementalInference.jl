@@ -100,7 +100,7 @@ val = accumulateFactorMeans(fg, [:x0deadreckon_x0f1])
 
 # must fix return type stability
 fval = float(val...)
-@test isapprox(fval, calcVariablePPE(fg, :x0).suggested[1], atol=1e-4 )
+@test isapprox(fval, calcMeanMaxSuggested(fg, :x0).suggested[1], atol=1e-4 )
 
 #TODO improve test
 rebaseFactorVariable!(fg, :x0deadreckon_x0f1, [:x1; :deadreckon_x0])

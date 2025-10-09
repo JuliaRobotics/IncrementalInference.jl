@@ -26,7 +26,7 @@ tree = solveTree!(fg)
 
 ##
 
-@test isapprox(getPPE(fg, :x0).suggested[1], 0, atol=1)
+@test isapprox(calcMeanMaxSuggested(fg, :x0, :default).suggested[1], 0, atol=1)
 
 pts_ = getBelief(fg, :x1) |> getPoints
 @cast pts[i,j] := pts_[j][i]
@@ -57,8 +57,8 @@ addFactor!(fg, [:x0;:x1], eud)
 
 tree = solveTree!(fg)
 
-@test isapprox(getPPE(fg, :x0).suggested[1], 0, atol=1)
-@test isapprox(getPPE(fg, :x0).suggested[1], 0, atol=1)
+@test isapprox(calcMeanMaxSuggested(fg, :x0, :default).suggested[1], 0, atol=1)
+@test isapprox(calcMeanMaxSuggested(fg, :x0, :default).suggested[1], 0, atol=1)
 
 pts_ = getBelief(fg, :x1) |> getPoints
 @cast pts[i,j] := pts_[j][i]
@@ -179,7 +179,7 @@ points = [[100.0],]
 fg = IIF.generateGraph_EuclidDistance(points)
 solveTree!(fg)
 
-@test isapprox(getPPE(fg, :x1).suggested[1], 100, atol=1)
+@test isapprox(calcMeanMaxSuggested(fg, :x1, :default).suggested[1], 100, atol=1)
 
 pts_ = getBelief(fg, :l1) |> getPoints
 @cast pts[i,j] := pts_[j][i]

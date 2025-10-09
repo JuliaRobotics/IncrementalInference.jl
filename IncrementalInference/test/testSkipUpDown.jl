@@ -26,7 +26,7 @@ hists = fetchCliqHistoryAll!(smtasks)
 
 #test if values are still correct
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    sppe = calcMeanMaxSuggested(fg, var, :default).suggested
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end
 
@@ -43,7 +43,7 @@ hists = fetchCliqHistoryAll!(smtasks);
 
 #test if values are still correct
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    sppe = calcMeanMaxSuggested(fg, var, :default).suggested
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end
 

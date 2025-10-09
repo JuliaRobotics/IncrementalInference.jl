@@ -62,8 +62,8 @@ solveTree!(fg);
 ##
 
 # make sure each variable is where it should be first
-@test isapprox(getPPE(fg, :hypoA).suggested[1], 5, atol=1)
-@test isapprox(getPPE(fg, :hypoB).suggested[1], 10,atol=1)
+@test isapprox(calcMeanMaxSuggested(fg, :hypoA, :default).suggested[1], 5, atol=1)
+@test isapprox(calcMeanMaxSuggested(fg, :hypoB, :default).suggested[1], 10,atol=1)
 
 X0_ = getBelief(fg, :x0)
 X0 = AMP._pointsToMatrixCoords(X0_.manifold, getPoints(X0_))
@@ -140,7 +140,7 @@ solveTree!(fg);
 
 ## make sure result is in the right place
 
-@test abs(getPPE(fg, :x0).suggested[1]) < 1.0
+@test abs(calcMeanMaxSuggested(fg, :x0, :default).suggested[1]) < 1.0
 
 X1_ = getBelief(fg, :x1) |> getPoints
 TensorCast.@cast X1[i,j] := X1_[j][i]

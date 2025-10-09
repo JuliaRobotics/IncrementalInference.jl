@@ -329,7 +329,7 @@ addFactor!(fg, [:x0], Prior(Normal(1.0, 0.01)))
 
 # force a basic setup
 initAll!(fg)
-@test isapprox( 1, getPPE(fg, :x0).suggested[1]; atol=0.1)
+@test isapprox( 1, calcMeanMaxSuggested(fg, :x0, :default).suggested[1]; atol=0.1)
 
 ##
 
@@ -348,8 +348,8 @@ tree = solveGraph!(fg)
 
 ##
 
-@test isapprox( 1, getPPE(fg, :x0).suggested[1]; atol=0.1)
-@test isapprox( 4, getPPE(fg, :x3).suggested[1]; atol=0.3)
+@test isapprox( 1, calcMeanMaxSuggested(fg, :x0, :default).suggested[1]; atol=0.1)
+@test isapprox( 4, calcMeanMaxSuggested(fg, :x3, :default).suggested[1]; atol=0.3)
 
 ## check contents of tree messages
 

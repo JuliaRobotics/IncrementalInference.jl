@@ -165,15 +165,15 @@ ref_ = (getBelief(fg, :x0) |> getPoints)
 ## temp graph solve check
 
 tfg  = initfg()
-tx3_ = approxConvBelief(fg, :x0f1, :x3; setPPE=true, tfg)
+tx3_ = approxConvBelief(fg, :x0f1, :x3; tfg)
 pts_ = getPoints(tx3_)
 # initVariable!(tfg, :x3, pts)
 
 @cast pts[i,j] := pts_[j][i]
 
-@test isapprox( x0_val_ref, getPPE(tfg, :x0).suggested ; atol = 0.1)
-@test isapprox( x1_val_ref, getPPE(tfg, :x1).suggested ; atol = 0.1)
-@test isapprox( x2_val_ref, getPPE(tfg, :x2).suggested ; atol = 0.1)
+@test isapprox( x0_val_ref, calcMeanMaxSuggested(tfg, :x0, :default).suggested ; atol = 0.1)
+@test isapprox( x1_val_ref, calcMeanMaxSuggested(tfg, :x1, :default).suggested ; atol = 0.1)
+@test isapprox( x2_val_ref, calcMeanMaxSuggested(tfg, :x2, :default).suggested ; atol = 0.1)
 @test isapprox( x3_val_ref, mean(tx3_); atol=0.1)
 
 # using KernelDensityEstimatePlotting
@@ -234,7 +234,7 @@ printCSMHistoryLogical(hists)
 
 # intended steps at writing are 5, 6 (upsolve) 
 _, csmc = repeatCSMStep!(hists[1], 5; duplicate=true)
-@test isapprox( 1, getPPESuggested(csmc.cliqSubFg, :x0)[1]; atol=0.1 )
+@test isapprox( 1, calcMeanMaxSuggested(csmc.cliqSubFg, :x0, :default).suggested[1]; atol=0.1 )
 nval_x0 = mean(getBelief(csmc.cliqSubFg, :x0))
 @test isapprox( x0_val_ref, nval_x0; atol=0.1 )
 
@@ -255,7 +255,7 @@ dens, ipc = propagateBelief( sfg,  :x1,  :;)
 
 _, csmc = repeatCSMStep!(hists[1], 6; duplicate=true)
 # @enter repeatCSMStep!(hists[1], 6; duplicate=true)
-@test isapprox( x0_val_ref, getPPESuggested(csmc.cliqSubFg, :x0); atol=0.1 )
+@test isapprox( x0_val_ref, calcMeanMaxSuggested(csmc.cliqSubFg, :x0, :default).suggested; atol=0.1 )
 nval_x0 = mean(getBelief(csmc.cliqSubFg, :x0))
 @test isapprox( x0_val_ref, nval_x0; atol=0.1 )
 
@@ -266,18 +266,18 @@ nval_x0 = mean(getBelief(csmc.cliqSubFg, :x0))
 # TODO CHECK vnd.val points istype SArray???
 
 # intended steps at writing are 11,12 (post-root clique downsolve)
-val0 = getPPESuggested( hists[1][11][4].cliqSubFg[:x0] )
+val0 = calcMeanMaxSuggested(hists[1][11][4].cliqSubFg, :x0, :default).suggested
 @test isapprox( x0_val_ref, val0; atol=0.1)
-val0 = getPPESuggested( hists[1][12][4].cliqSubFg[:x0] )
+val0 = calcMeanMaxSuggested(hists[1][12][4].cliqSubFg, :x0, :default).suggested
 @test isapprox( x0_val_ref, val0; atol=0.1)
 
 
 ##
 
-@test isapprox( getPPE(fg, :x0).suggested, x0_val_ref; atol = 0.1)
-@test isapprox( getPPE(fg, :x1).suggested, x1_val_ref; atol = 0.1)
-@test isapprox( getPPE(fg, :x2).suggested, x2_val_ref; atol = 0.1)
-@test isapprox( getPPE(fg, :x3).suggested, x3_val_ref; atol = 0.1)
+@test isapprox( calcMeanMaxSuggested(fg, :x0, :default).suggested, x0_val_ref; atol = 0.1)
+@test isapprox( calcMeanMaxSuggested(fg, :x1, :default).suggested, x1_val_ref; atol = 0.1)
+@test isapprox( calcMeanMaxSuggested(fg, :x2, :default).suggested, x2_val_ref; atol = 0.1)
+@test isapprox( calcMeanMaxSuggested(fg, :x3, :default).suggested, x3_val_ref; atol = 0.1)
 
 ##
 
@@ -373,14 +373,14 @@ x7_val_ref = sl(getVariable(fg, :x7) |> getTimestamp |> DateTime |> datetime2uni
 
 ##
 
-@test isapprox( getPPESuggested(fg, :x0), x0_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x1), x1_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x2), x2_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x3), x3_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x4), x4_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x5), x5_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x6), x6_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x7), x7_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x0, :default).suggested, x0_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x1, :default).suggested, x1_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x2, :default).suggested, x2_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x3, :default).suggested, x3_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x4, :default).suggested, x4_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x5, :default).suggested, x5_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x6, :default).suggested, x6_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x7, :default).suggested, x7_val_ref; atol=0.2)
 
 
 ## check forward and backward solving
@@ -416,19 +416,19 @@ tfg = initfg()
 #   initVariable!(fg, s, [0.1.*zeros(2) for _ in 1:100])
 # end
 
-pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg)
+pts = approxConv(fg, :x0f1, :x7, tfg=tfg)
 initVariable!(tfg, :x7, pts)
 
 ##
 
-@test isapprox( getPPESuggested(tfg, :x0), x0_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(tfg, :x1), x1_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(tfg, :x2), x2_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(tfg, :x3), x3_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(tfg, :x4), x4_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(tfg, :x5), x5_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(tfg, :x6), x6_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(tfg, :x7), x7_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(tfg, :x0, :default).suggested, x0_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(tfg, :x1, :default).suggested, x1_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(tfg, :x2, :default).suggested, x2_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(tfg, :x3, :default).suggested, x3_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(tfg, :x4, :default).suggested, x4_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(tfg, :x5, :default).suggested, x5_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(tfg, :x6, :default).suggested, x6_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(tfg, :x7, :default).suggested, x7_val_ref; atol=0.2)
 
 ##
 
@@ -447,15 +447,15 @@ _, csmc = repeatCSMStep!(hists[2], 6; duplicate=true);
 ## 
 
 # solveTree has weird problem in breaking correct init and inserting zeros???
-@test isapprox( getPPESuggested(fg, :x0), x0_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x1), x1_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x2), x2_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x3), x3_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x4), x4_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x0, :default).suggested, x0_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x1, :default).suggested, x1_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x2, :default).suggested, x2_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x3, :default).suggested, x3_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x4, :default).suggested, x4_val_ref; atol=0.2)
 
-@test isapprox( getPPESuggested(fg, :x5), x5_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x6), x6_val_ref; atol=0.2)
-@test isapprox( getPPESuggested(fg, :x7), x7_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x5, :default).suggested, x5_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x6, :default).suggested, x6_val_ref; atol=0.2)
+@test isapprox( calcMeanMaxSuggested(fg, :x7, :default).suggested, x7_val_ref; atol=0.2)
 
 
 ##
@@ -601,7 +601,7 @@ push!(forcepath, :x5x6ωβf1)
 push!(forcepath, :x6)
 push!(forcepath, :x6x7ωβf1)
 push!(forcepath, :x7)
-pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg, path=forcepath)
+pts = approxConv(fg, :x0f1, :x7, tfg=tfg, path=forcepath)
 
 
 ##
@@ -636,7 +636,7 @@ sl = DifferentialEquations.solve(oder_.forwardProblem)
 ## check the approxConv is working right
 
 for sym in setdiff(ls(tfg), [:ωβ])
-  @test getPPE(tfg, sym).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
+  @test calcMeanMaxSuggested(tfg, sym, :default).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
 end
 
 
@@ -691,10 +691,9 @@ pts_ = approxConv(fg, :x0x1ωβf1, :ωβ)
 
 # ## Solve quality might not yet be good enough for this particular test case
 
-# @test getPPE(fg, :ωβ).suggested - [0.7;-0.3] |> norm < 0.2
-
+# @test calcMeanMaxSuggested(fg, :ωβ, :default).suggested - [0.7;-0.3] |> norm < 0.2
 # for sym in setdiff(ls(tfg), [:ωβ])
-#   @test getPPE(fg, sym).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
+#   @test calcMeanMaxSuggested(fg, sym, :default).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
 # end
 
 

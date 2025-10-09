@@ -133,7 +133,6 @@ function transferUpdateSubGraph!(
   src::AbstractDFG,
   syms::Vector{Symbol} = union(ls(src)...),
   logger = ConsoleLogger();
-  updatePPE::Bool = true,
   solveKey::Symbol = :default,
 )
   #
@@ -152,15 +151,6 @@ function transferUpdateSubGraph!(
       getState(var, solveKey),
     )
 
-    if updatePPE
-      # create ppe on new key using defaults, TODO improve
-      if haskey(getPPEDict(var), solveKey)
-        DFG.updatePPE!(dest, var, solveKey; warn_if_absent = false)
-      else
-        ppe = calcPPE(var; ppeKey = solveKey)
-        addPPE!(dest, var.label, ppe)
-      end
-    end
   end
 
   return nothing

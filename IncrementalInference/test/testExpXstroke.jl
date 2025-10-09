@@ -51,7 +51,7 @@ hist = IIF.solveTree!(fg; smtasks=smtasks); #, recordcliqs=ls(fg));
 
 
 for var in sortDFG(ls(fg))
-  sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+  sppe = calcMeanMaxSuggested(fg, var, :default).suggested
   println("Testing ", var,": ", sppe)
   @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end
@@ -94,7 +94,7 @@ tree = IIF.solveTree!(fg; smtasks=smtasks);
 ##
 
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    sppe = calcMeanMaxSuggested(fg, var, :default).suggested
     println("Testing ", var,": ", sppe)
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.4)
 end
@@ -118,7 +118,7 @@ smtasks = Task[]
 tree = IIF.solveTree!(fg; smtasks=smtasks);
 
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    sppe = calcMeanMaxSuggested(fg, var, :default).suggested
     println("Testing ", var,": ", sppe)
     s = findfirst(r"\d", string(var))[1]
     @test isapprox(sppe[1], parse(Int,string(var)[s:end]), atol=0.45)

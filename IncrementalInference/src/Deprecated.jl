@@ -155,12 +155,218 @@ function sampleTangent(x::ManifoldKernelDensity, p = mean(x))
   error("sampleTangent(x::ManifoldKernelDensity, p) should be replaced by sampleTangent(M<:AbstractManifold, x::ManifoldKernelDensity, p)")
 end
 
-## ================================================================================================
-## ================================================================================================
+export setPPE!, setVariablePosteriorEstimates!
+setPPE!(args...; kw...) = error("PPEs are obsolete (use `calcMeanMaxSuggested` provisionally), see DFG #1133")
+setVariablePosteriorEstimates!(args...; kw...) = error("PPEs are obsolete (use `calcMeanMaxSuggested` provisionally), see DFG #1133")
 
-# TODO maybe upstream to DFG
-DFG.MeanMaxPPE(solveKey::Symbol, suggested::StaticArray, max::StaticArray, mean::StaticArray) =
-  DFG.MeanMaxPPE(solveKey, Vector(suggested), Vector(max), Vector(mean))
+@deprecate calcPPE(
+  var::VariableCompute,
+  varType::StateType = getVariableType(var);
+  solveKey::Symbol = :default,
+  kwargs...,
+) calcMeanMaxSuggested(var, solveKey)
+
+@deprecate calcPPE(
+  dfg::AbstractDFG,
+  label::Symbol;
+  solveKey::Symbol = :default,
+  kwargs...,
+) calcMeanMaxSuggested(dfg, label, solveKey)
+
+export calcVariablePPE
+const calcVariablePPE = calcPPE
+
+#FIXME The next functions use PPEs and should be updated or deprecated
+# getPPESuggestedAll no external use
+# findVariablesNear used in 1 rome example
+# _checkVariableByReference used in ROME #TODO
+"""
+    $SIGNATURES
+
+Return `::Tuple` with matching variable ID symbols and `Suggested` PPE values.
+
+Related
+
+getVariablePPE
+"""
+function getPPESuggestedAll(dfg::AbstractDFG, regexFilter::Union{Nothing, Regex} = nothing)
+  #
+  # get values
+  vsyms = listVariables(dfg, regexFilter) |> sortDFG
+  slamPPE = map(x -> getVariablePPE(dfg, x).suggested, vsyms)
+  # sizes to convert to matrix
+  rumax = zeros(Int, 2)
+  for ppe in slamPPE
+    rumax[2] = length(ppe)
+    rumax[1] = maximum(rumax)
+  end
+
+  # populate with values
+  XYT = zeros(length(slamPPE), rumax[1])
+  for i = 1:length(slamPPE)
+    XYT[i, 1:length(slamPPE[i])] = slamPPE[i]
+  end
+  return (vsyms, XYT)
+end
+
+"""
+    $SIGNATURES
+
+Find and return a `::Tuple` of variables and distances to `loc::Vector{<:Real}`.
+
+Related
+
+findVariablesNearTimestamp
+"""
+function findVariablesNear(
+  dfg::AbstractDFG,
+  loc::Vector{<:Real},
+  regexFilter::Union{Nothing, Regex} = nothing;
+  number::Int = 3,
+)
+  #
+
+  xy = getPPESuggestedAll(dfg, regexFilter)
+  dist = sum((xy[2][:, 1:length(loc)] .- loc') .^ 2; dims = 2) |> vec
+  prm = (dist |> sortperm)[1:number]
+  return (xy[1][prm], sqrt.(dist[prm]))
+end
+
+
+"""
+    $SIGNATURES
+
+Check if a variable might already be located at the test location, by means of a (default) `refKey=:simulated` PPE stored in the existing variables.
+
+Notes
+- Checks, using provided `factor` from `srcLabel` in `fg` to an assumed `dest` variable whcih may or may not yet exist.
+- This function was written to aid in building simulation code, 
+  - it's use in real world usage may have unexpected behaviour -- hence not exported.
+- Return `::Tuple{Bool, Vector{Float64}, Symbol}`, eg. already exists `(true, [refVal], :l17)`, or if a refernce variable does not yet `(false, [refVal], :l28)`.
+  - Vector contains the PPE reference location of the new variable as calculated.
+- Auto `destPrefix` is trying to parse `destRegex` labels like `l\\d+` or `tag\\d+`, won't work with weirder labels e.g. `:l_4_23`.
+  - User can overcome weird names by self defining `destPrefix` and `srcNumber`.
+  - User can also ignore and replace the generated new label `Symbol(destPrefix, srcNumber)`.
+- This function does not add new variables or factors to `fg`, user must do that themselves after.
+  - Useful to use in combination with `setPPE!` on new variable.
+- At time of writing `accumulateFactorMeans` could only incorporate priors or binary relative factors.
+  - internal info, see [`solveFactorParametric`](@ref),
+  - This means at time of writing `factor` must be a binary factor.
+- Tip, if simulations are inducing odometry bias, think of using two factors from caller (e.g. simPerfect and simBias).
+
+Example
+```julia
+# fg has :x5 and :l2 and PPEs :simulated exists in all variables
+# user wants to add a factor from :x5 to potential new :l5, but maybe a (simulated) variable, say :l2, is already there.
+
+newFactor = RoME.Pose2Point2BearingRange(Normal(), Normal(20,0.5))
+isAlready, simPPE, genLabel = IIF._checkVariableByReference(fg, :x5, r"l\\d+", Point2, newFactor)
+
+# maybe add new variable
+if !isAlready
+  @info "New variable with simPPE" genLabel simPPE 
+  newVar = addVariable!(fg, genLabel, Point2)
+  addFactor!(fg, [:x5; genLabel], newFactor)
+
+  # also set :simulated PPE for similar future usage
+  newPPE = DFG.MeanMaxPPE(:simulated, simPPE, simPPE, simPPE)
+  setPPE!(newVar, :simulated, typeof(newPPE), newPPE)   # TODO this API can be improved
+else
+  @info "Adding simulated loop closure with perfect data association" :x5 genLabel
+  addFactor!(fg, [:x5; genLabel], newFactor)
+end
+
+# the point is that only the (0,20) values in newFactor are needed, all calculations are abstracted away.
+```
+
+See also: [`RoME.generateGraph_Honeycomb!`](@ref), [`accumulateFactorMeans`](@ref)
+"""
+function _checkVariableByReference(
+  fg::AbstractDFG,
+  srcLabel::Symbol,
+  destRegex::Regex,
+  destType::Type{<:StateType},
+  factor::AbstractRelativeObservation;
+  srcType::Type{<:StateType} = getVariableType(fg, srcLabel) |> typeof,
+  doRef::Bool = true,
+  refKey::Symbol = :simulated,
+  prior = if !doRef
+    nothing
+  else
+    DFG._getPriorType(srcType)(
+    MvNormal(calcMeanMaxSuggested(fg, srcLabel, refKey).suggested, diagm(ones(getDimension(srcType)))),
+  )
+  end,
+  atol::Real = 1e-2,
+  destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
+  srcNumber = match(r"\d+", string(srcLabel)).match |> x -> parse(Int, x),
+  overridePPE = doRef ? nothing : zeros(getDimension(destType)),
+)
+  #
+
+  refVal = if overridePPE !== nothing
+    overridePPE
+  else
+    # calculate and add the reference value
+    # TODO refactor consolidation to use `_buildGraphByFactorAndTypes!`
+    tfg = initfg()
+    addVariable!(tfg, :x0, srcType)
+    addFactor!(tfg, [:x0], prior)
+    addVariable!(tfg, :l0, destType)
+    addFactor!(tfg, [:x0; :l0], factor; graphinit = false)
+
+    # calculate where the landmark reference position is
+    accumulateFactorMeans(tfg, [:x0f1; :x0l0f1])
+  end
+
+  varLms = ls(fg, destRegex) |> sortDFG
+  already = if doRef
+    ppeLms = calcMeanMaxSuggested.(getVariable.(fg, varLms), refKey) .|> x -> x.suggested
+    errmask = ppeLms .|> (x -> isapprox(x, refVal; atol = atol))
+    any(errmask)
+  else
+    false
+  end
+
+  if already
+    # does exist, ppe, variableLabel
+    alrLm = varLms[findfirst(errmask)]
+    # @info "Variable on :$refKey does exists at" srcLabel alrLm
+    return true, ppe, alrLm
+  end
+
+  # Nope does not exist, ppe, generated new variable label only
+  return false, ppe, Symbol(destPrefix, srcNumber)
+end
+
+function _checkVariableByReference(
+  fg::AbstractDFG,
+  srcLabel::Symbol,
+  destRegex::Regex,
+  destType::Type{<:StateType},
+  factor::AbstractPriorObservation;
+  srcType::Type{<:StateType} = getVariableType(fg, srcLabel) |> typeof,
+  doRef::Bool = true,
+  refKey::Symbol = :simulated,
+  prior = typeof(factor)(MvNormal(getMeasurementParametric(factor)...)),
+  atol::Real = 1e-3,
+  destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
+  srcNumber = match(r"\d+", string(srcLabel)).match |> x -> parse(Int, x),
+  overridePPE = doRef ? nothing : zeros(getDimension(destType)),
+)
+  #
+
+  refVal = if overridePPE !== nothing
+    overridePPE
+  else
+    getMeasurementParametric(factor)[1]
+  end
+
+  ppe = nothing #FIXME
+
+  # Nope does not exist, ppe, generated new variable label only
+  return false, ppe, Symbol(destPrefix, srcNumber)
+end
 
 
 ## ================================================================================================

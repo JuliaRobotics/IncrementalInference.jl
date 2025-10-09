@@ -310,7 +310,7 @@ pts_ = getVal(fg, :x1)
 
 pts_ = getVal(fg, :x2)
 
-ppe = getPPE(fg, :x2).mean
+ppe = calcMeanMaxSuggested(fg, :x2, :default).mean
 
 X2 = getBelief(fg, :x2)
 

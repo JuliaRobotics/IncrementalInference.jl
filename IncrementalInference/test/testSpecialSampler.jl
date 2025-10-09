@@ -49,9 +49,8 @@ addFactor!(fg, [:x0;:x1], SpecialLinearOffset(Normal(10,1)))
 
 tree = solveTree!(fg)
 
-@test getPPE(fg, :x0).suggested[1] |> abs < 1.0
-
-@test getPPE(fg, :x1).suggested[1] - 10 |> abs < 3.0
+@test calcMeanMaxSuggested(fg, :x0, :default).suggested[1] |> abs < 1.0
+@test calcMeanMaxSuggested(fg, :x1, :default).suggested[1] - 10 |> abs < 3.0
 
 
 

@@ -110,7 +110,6 @@ import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare
 import DistributedFactorGraphs: rebuildFactorCache!
 import DistributedFactorGraphs: getDimension, getManifold, getPointType, getPointIdentity
-import DistributedFactorGraphs: getPPE, getPPEDict
 import DistributedFactorGraphs: getPoint, getCoordinates
 import DistributedFactorGraphs: getVariableType
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG

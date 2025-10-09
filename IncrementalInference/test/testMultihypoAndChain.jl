@@ -71,9 +71,9 @@ tree = solveTree!(fg, eliminationOrder=eo) #, smtasks=smtasks, recordcliqs=ls(fg
 
 ##
 
-@test isapprox(DFG.getPPESuggested(fg, :x0)[], 0, atol = 0.2) 
-@test isapprox(DFG.getPPESuggested(fg, :x1)[], 1, atol = 0.2) 
-@test isapprox(DFG.getPPESuggested(fg, :l1)[], 1, atol = 0.2) 
+@test isapprox(calcMeanMaxSuggested(fg, :x0, :default).suggested[], 0, atol = 0.2) 
+@test isapprox(calcMeanMaxSuggested(fg, :x1, :default).suggested[], 1, atol = 0.2) 
+@test isapprox(calcMeanMaxSuggested(fg, :l1, :default).suggested[], 1, atol = 0.2) 
 
 L2 = getBelief(fg, :l2)
 npts = length(getPoints(L2))
@@ -82,7 +82,6 @@ L2_ = manikde!(ContinuousScalar, pts)
 
 # test that there is at least a mode present
 @test mmd(L2_, L2, ContinuousScalar) < 1e-3
-# @test isapprox(DFG.getPPESuggested(fg, :l2)[], 2, atol = 0.2) 
 
 ##
 
@@ -123,15 +122,14 @@ tree = solveTree!(fg)
 
 # expect x1 x2 to have at least one mode at 0
 
-@test getPPE(fg, :x1).suggested[1] - x1 |> abs < 1.2
-@test getPPE(fg, :x2).suggested[1] - x2 |> abs < 1.2
+@test calcMeanMaxSuggested(fg, :x1, :default).suggested[1] - x1 |> abs < 1.2
+@test calcMeanMaxSuggested(fg, :x2, :default).suggested[1] - x2 |> abs < 1.2
 
-@test getPPE(fg, :l1).suggested[1] - l1 |> abs < 1.2
-@test getPPE(fg, :l2).suggested[1] - l2 |> abs < 1.2
+@test calcMeanMaxSuggested(fg, :l1, :default).suggested[1] - l1 |> abs < 1.2
+@test calcMeanMaxSuggested(fg, :l2, :default).suggested[1] - l2 |> abs < 1.2
 
-# l1_0, l2_0 should be nearby around l1 and l2, but cannot confirm 100%
-@test getPPE(fg, :l1_0).suggested[1] - l1 |> abs < 10
-@test getPPE(fg, :l2_0).suggested[1] - l2 |> abs < 10
+@test calcMeanMaxSuggested(fg, :l1_0, :default).suggested[1] - l1 |> abs < 10
+@test calcMeanMaxSuggested(fg, :l2_0, :default).suggested[1] - l2 |> abs < 10
 
 ##
 

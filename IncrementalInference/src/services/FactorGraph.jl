@@ -203,12 +203,10 @@ function setValKDE!(
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;];
   solveKey::Symbol = :default,
-  ppeType::Type{T} = DFG.MeanMaxPPE,
-) where {P, T}
+) where {P}
   vnd = getState(v, solveKey)
   # recover variableType information
   setValKDE!(vnd, val, setinit, ipc)
-  setPPE!(v; solveKey, ppeType)
   return nothing
 end
 function setValKDE!(

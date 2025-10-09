@@ -93,9 +93,6 @@ export CSMHistory,
   getLabel,
   getVariables,
   getVariableOrder,
-  getPPE,
-  getPPEDict,
-  getVariablePPE,
   isVariable,
   isFactor,
   getFactorType,
@@ -292,12 +289,7 @@ export CSMHistory,
   reshapeVec2Mat
 
 export incrSuffix
-
-export calcPPE, calcVariablePPE
-export setPPE!, setVariablePosteriorEstimates!
-export getPPEDict
-export getPPESuggested, getPPEMean, getPPEMax
-export getPPESuggestedAll
+export calcMeanMaxSuggested
 export loadDFG
 export findVariablesNear, defaultFixedLagOnTree!
 export fetchDataJSON

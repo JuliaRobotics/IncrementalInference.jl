@@ -207,16 +207,16 @@ if false
 ##
 
 
-# check the PPEs are the same
-@test isapprox(getPPE(fg, :x0).suggested[1], x0; atol = 3.0)
-@test isapprox(getPPE(fg, :x1).suggested[1], x1; atol = 3.0)
-@test isapprox(getPPE(fg, :x2).suggested[1], x2; atol = 3.0)
-@test isapprox(getPPE(fg, :x3).suggested[1], x3; atol = 3.0)
+# check the sugested are the same
+@test isapprox(calcMeanMaxSuggested(fg, :x0, :default).suggested[1], x0; atol = 3.0)
+@test isapprox(calcMeanMaxSuggested(fg, :x1, :default).suggested[1], x1; atol = 3.0)
+@test isapprox(calcMeanMaxSuggested(fg, :x2, :default).suggested[1], x2; atol = 3.0)
+@test isapprox(calcMeanMaxSuggested(fg, :x3, :default).suggested[1], x3; atol = 3.0)
 
-@test isapprox(getPPE(fg, :l0).suggested[1], l0; atol = 3.0)
-@test isapprox(getPPE(fg, :l1).suggested[1], l1; atol = 3.0)
-@test isapprox(getPPE(fg, :l2).suggested[1], l2; atol = 3.0)
-@test isapprox(getPPE(fg, :l3).suggested[1], l3; atol = 3.0)
+@test isapprox(calcMeanMaxSuggested(fg, :l0, :default).suggested[1], l0; atol = 3.0)
+@test isapprox(calcMeanMaxSuggested(fg, :l1, :default).suggested[1], l1; atol = 3.0)
+@test isapprox(calcMeanMaxSuggested(fg, :l2, :default).suggested[1], l2; atol = 3.0)
+@test isapprox(calcMeanMaxSuggested(fg, :l3, :default).suggested[1], l3; atol = 3.0)
 end
 
 ##

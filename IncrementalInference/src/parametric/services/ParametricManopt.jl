@@ -575,8 +575,6 @@ function autoinitParametric!(
     vnd.initialized = true
     #fill in ppe as mean
     Xc::Vector{Float64} = collect(getCoordinates(getVariableType(xi), val))
-    ppe = DFG.MeanMaxPPE(solveKey, Xc, Xc, Xc)
-    getPPEDict(xi)[solveKey] = ppe
 
     result = true
 

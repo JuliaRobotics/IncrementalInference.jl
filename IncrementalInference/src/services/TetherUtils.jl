@@ -141,7 +141,7 @@ function accumulateFactorMeans(
     nextsym =
       1 < length(fctsyms) ? intersect(vars, ls(dfg, fctsyms[nextidx + 1])) : vars[end]
     currsym = 1 < length(fctsyms) ? setdiff(vars, nextsym)[1] : vars[1]
-    calcPPE(dfg, currsym; solveKey).suggested
+    calcMeanMaxSuggested(dfg, currsym, solveKey).suggested
   end
 
   srcsym = currsym

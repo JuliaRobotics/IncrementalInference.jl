@@ -928,11 +928,9 @@ Notes
 function updateFromSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   isParametricSolve = csmc.algorithm == :parametric
 
-  # set PPE and solved for all frontals
+  # set solved for all frontals
   if !isParametricSolve
     for sym in getCliqFrontalVarIds(csmc.cliq)
-      # set PPE in cliqSubFg
-      setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
       # set solved flag
       vari = getVariable(csmc.cliqSubFg, sym, csmc.solveKey)
       setSolvedCount!(vari, getSolvedCount(vari, csmc.solveKey) + 1, csmc.solveKey)
@@ -951,7 +949,6 @@ function updateFromSubgraph_StateMachine(csmc::CliqStateMachineContainer)
     frsyms,
     csmc.logger;
     solveKey = csmc.solveKey,
-    updatePPE = !isParametricSolve,
   )
 
   #solve finished change color

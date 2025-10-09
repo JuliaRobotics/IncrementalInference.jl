@@ -88,7 +88,6 @@ include("testlocalconstraintexamples.jl")
 include("testManualInit.jl")
 include("testBasicTreeInit.jl")
 include("testSolveOrphanedFG.jl")
-include("testSolveSetPPE.jl")
 include("testSolveKey.jl")
 end
 end

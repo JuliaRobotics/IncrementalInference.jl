@@ -40,7 +40,7 @@ tree = solveTree!(fg);
 # tree = solveTree!(fg; smtasks, verbose=true, timeout=20, recordcliqs=ls(fg));
 
 for i = 0:4
-  ppe = getPPE(getVariable(fg, Symbol("x$i"))).suggested[1]
+  ppe = calcMeanMaxSuggested(fg, Symbol("x$i"), :default).suggested[1]
   @show i ppe
   @test isapprox(ppe, i; atol=0.7)
 end 

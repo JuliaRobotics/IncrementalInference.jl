@@ -923,17 +923,13 @@ end
 
 """
     $SIGNATURES
-Update the fg from solution in vardict and add MeanMaxPPE (all just mean). Usefull for plotting
+Update the fg from solution in vardict. Usefull for plotting
 """
 function updateParametricSolution!(sfg, vardict::AbstractDict; solveKey::Symbol = :parametric)
   for (v, val) in vardict
     vnd = getState(getVariable(sfg, v), solveKey)
     # Update the variable node data value and covariance
     updateSolverDataParametric!(vnd, val.val, val.cov)
-    #fill in ppe as mean
-    Xc = collect(getCoordinates(getVariableType(sfg, v), val.val))
-    ppe = DFG.MeanMaxPPE(solveKey, Xc, Xc, Xc)
-    getPPEDict(getVariable(sfg, v))[solveKey] = ppe
   end
 end
 
@@ -948,10 +944,6 @@ function updateParametricSolution!(fg, M, labels::AbstractArray{Symbol}, vals, Î
     covar = isnothing(Î£) ? vnd.bw : covars[i]
     # Update the variable node data value and covariance
     updateSolverDataParametric!(vnd, val, covar)#FIXME add cov
-    #fill in ppe as mean
-    Xc = collect(getCoordinates(getVariableType(fg, v), val))
-    ppe = DFG.MeanMaxPPE(solveKey, Xc, Xc, Xc)
-    getPPEDict(getVariable(fg, v))[solveKey] = ppe
   end
 
 end
@@ -973,7 +965,7 @@ function createMvNormal(v::VariableCompute, key = :parametric)
     dims = vnd.dims
     return createMvNormal(vnd.val[1:dims, 1], vnd.bw[1:dims, 1:dims])
   else
-    @warn "Trying MvNormal Fit, replace with PPE fits in future"
+    @warn "Trying MvNormal Fit, replace with homotopy? fits in future"
     return fit(MvNormal, getState(v, key).val)
   end
 end
@@ -1035,10 +1027,6 @@ function autoinitParametricOptim!(
     updateSolverDataParametric!(vnd, val, cov)
 
     vnd.initialized = true
-    #fill in ppe as mean
-    Xc = collect(getCoordinates(getVariableType(xi), val))
-    ppe = DFG.MeanMaxPPE(:parametric, Xc, Xc, Xc)
-    getPPEDict(xi)[:parametric] = ppe
 
     # updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent=false)    
     # updateVariableSolverData!(dfg, xi.label, getState(xi, solveKey), :graphinit, true, Symbol[]; warn_if_absent=false)
