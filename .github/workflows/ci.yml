@@ -45,6 +45,8 @@ jobs:
         run: >
           julia --color=yes --project=monorepo -e 'using Pkg; Pkg.test("IncrementalInference")'
       - uses: julia-actions/julia-processcoverage@v1
+        with:
+          directories: IncrementalInference/src,IncrementalInferenceTypes/src
       - uses: codecov/codecov-action@v2
         with:
           files: lcov.info
