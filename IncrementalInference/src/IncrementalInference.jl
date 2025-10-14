@@ -17,7 +17,6 @@ import Manifolds
 using Manifolds:
   Circle,
   Euclidean,
-  ProductGroup,
   AbstractDecoratorManifold,
   get_vector,
   ProductManifold,

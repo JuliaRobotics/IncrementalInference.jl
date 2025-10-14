@@ -92,7 +92,7 @@ p2 = exp(M, e0, hat(M, e0, [10,0,pi/2]))
 
 
 function resid_SE2(X, p, q)
-  q̂ = Manifolds.compose(M, p, exp(M, identity_element(M, typeof(p)), X)) #for groups
+  q̂ = LieGroups.compose(M, p, exp(M, identity_element(M, typeof(p)), X)) #for groups
   return vee(M, q, log(M, q, q̂))
 end
 
@@ -170,7 +170,7 @@ end
 
 # # modified from IIF/test/testSpecialEuclidean2Mani.jl
 # function f_SE2(X, p, q)
-#   q̂ = Manifolds.compose(M, p, exp(M, identity_element(M, p), X)) #for groups
+#   q̂ = LieGroups.compose(M, p, exp(M, identity_element(M, p), X)) #for groups
 #   Xc = zeros(3)
 #   vee!(M, Xc, q, log(M, q, q̂))
 #   return Xc

@@ -29,7 +29,7 @@ DFG.getDimension(Z::BallTreeDensity) = Ndim(Z)
 # Generic function that can be used in binary factors to calculate distance between points on Lie Groups with measurements.
 # """
 # function distancePoint2Point(M::SemidirectProductGroup, m, p, q)
-#   q̂ = Manifolds.compose(M, p, m)
+#   q̂ = LieGroups.compose(M, p, m)
 #   # return log(M, q, q̂)
 #   return vee(M, q, log(M, q, q̂))
 #   # return distance(M, q, q̂)

@@ -67,7 +67,7 @@ function Manifolds.exp!(M::NPowerManifold, q, p, X)
   return q
 end
 
-function Manifolds.compose!(M::NPowerManifold, x, p, q)
+function LieGroups.compose!(M::NPowerManifold, x, p, q)
   rep_size = representation_size(M.manifold)
   for i in Manifolds.get_iterator(M)
     x[i] = compose(
@@ -109,10 +109,10 @@ function DFG.getPointIdentity(M::ProductManifold, ::Type{T} = Float64) where {T 
   return ArrayPartition(map(x -> getPointIdentity(x, T), M.manifolds))
 end
 
-function DFG.getPointIdentity(G::ProductGroup, ::Type{T} = Float64) where {T <: Real}
-  M = G.manifold
-  return ArrayPartition(map(x -> getPointIdentity(x, T), M.manifolds))
-end
+# function DFG.getPointIdentity(G::ProductGroup, ::Type{T} = Float64) where {T <: Real}
+#   M = G.manifold
+#   return ArrayPartition(map(x -> getPointIdentity(x, T), M.manifolds))
+# end
 
 function DFG.getPointIdentity(
   G::LieGroups.TranslationGroup{ℝ, TypeParameter{Tuple{N}}},
