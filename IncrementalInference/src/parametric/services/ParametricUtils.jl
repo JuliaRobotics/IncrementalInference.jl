@@ -965,7 +965,7 @@ function createMvNormal(v::VariableCompute, key = :parametric)
     dims = vnd.dims
     return createMvNormal(vnd.val[1:dims, 1], vnd.bw[1:dims, 1:dims])
   else
-    @warn "Trying MvNormal Fit, replace with homotopy? fits in future"
+    @warn "Trying MvNormal Fit"
     return fit(MvNormal, getState(v, key).val)
   end
 end
