@@ -244,7 +244,7 @@ function _createVarValsAll(
   for var_i in variables
     push!(
       valsAll,
-      if haskey(getSolverDataDict(var_i), solveKey)
+      if hasState(var_i, solveKey)
         getVal(var_i; solveKey)
       else
         Vector{typeof(getPointDefault(getVariableType(var_i)))}()

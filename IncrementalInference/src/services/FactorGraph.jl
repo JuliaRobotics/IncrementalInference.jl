@@ -53,14 +53,14 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int, length(ve
 
 Fetch the variable marginal joint sampled points.  Use [`getBelief`](@ref) to retrieve the full Belief object.
 """
-getVal(v::VariableCompute; solveKey::Symbol = :default) = v.solverDataDict[solveKey].val
+getVal(v::VariableCompute; solveKey::Symbol = :default) = v.states[solveKey].val
 function getVal(v::VariableCompute, idx::Int; solveKey::Symbol = :default)
-  return v.solverDataDict[solveKey].val[:, idx]
+  return v.states[solveKey].val[:, idx]
 end
 getVal(vnd::State) = vnd.val
 getVal(vnd::State, idx::Int) = vnd.val[:, idx]
 function getVal(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol = :default)
-  return getVariable(dfg, lbl).solverDataDict[solveKey].val
+  return getVariable(dfg, lbl).states[solveKey].val
 end
 
 """
@@ -166,7 +166,7 @@ function setValKDE!(
 
   setVal!(vd, pts, bws) # BUG ...al!(., val, . ) ## TODO -- this can be a little faster
   setinit ? (vd.initialized = true) : nothing
-  vd.infoPerCoord = ipc
+  vd.observability = ipc
   return nothing
 end
 
@@ -374,7 +374,7 @@ function DefaultNodeDataParametric(
   dims::Int,
   variableType::StateType;
   initialized::Bool = true,
-  dontmargin::Bool = false,
+  # dontmargin::Bool = false,
   solveKey::Symbol = :parametric
 )
   # this should be the only function allocating memory for the node points
@@ -392,14 +392,12 @@ function DefaultNodeDataParametric(
     #                         gbw2, Symbol[], sp,
     #                         dims, false, :_null, Symbol[], variableType, true, 0.0, false, dontmargin)
   else
-    # dimIDs = round.(Int, range(dodims; stop = dodims + dims - 1, length = dims))
     ϵ = getPointIdentity(variableType)
     return State(variableType;
       id=nothing,
       val=[ϵ],
       bw=zeros(dims, dims),
       # Symbol[],
-      # dimIDs,
       dims,
       # false,
       # :_null,
@@ -407,7 +405,7 @@ function DefaultNodeDataParametric(
       initialized=false,
       infoPerCoord=zeros(dims),
       ismargin=false,
-      dontmargin,
+      # dontmargin,
       # 0,
       # 0,
       solveKey,
@@ -450,7 +448,7 @@ function setDefaultNodeData!(
   solveKey::Symbol = :default,
   gt = Dict(),
   initialized::Bool = true,
-  dontmargin::Bool = false,
+  # dontmargin::Bool = false,
   varType = nothing,
 )
   #
@@ -492,7 +490,7 @@ function setDefaultNodeData!(
       initialized=isinit,
       infoPerCoord=zeros(getDimension(v)),
       ismargin=false,
-      dontmargin,
+      # dontmargin,
       # 0,
       # 0,
       solveKey,
@@ -583,7 +581,7 @@ function addVariable!(
   solvable::Int = 1,
   timestamp::Union{DateTime, ZonedDateTime} = now(localzone()),
   nanosecondtime::Union{Nanosecond, Int64, Nothing} = Nanosecond(0),
-  dontmargin::Bool = false,
+  # dontmargin::Bool = false,
   tags::Vector{Symbol} = Symbol[],
   smalldata = Dict{Symbol, DFG.MetadataTypes}(),
   checkduplicates::Bool = true,
@@ -613,11 +611,16 @@ function addVariable!(
     getDimension(varType);
     initialized = false,
     varType = varType,
-    dontmargin = dontmargin,
+    # dontmargin = dontmargin,
   ) # dodims
 
   (:parametric in initsolvekeys) &&
-    setDefaultNodeDataParametric!(v, varType; initialized = false, dontmargin = dontmargin)
+    setDefaultNodeDataParametric!(
+      v,
+      varType;
+      initialized = false,
+      # dontmargin = dontmargin
+    )
 
   return DFG.addVariable!(dfg, v)
 end
@@ -718,7 +721,7 @@ function getDefaultFactorData(
   eliminated::Bool = false,
   potentialused::Bool = false,
   edgeIDs = Int[],
-  solveInProgress = 0,
+  # solveInProgress = 0,
   inflation::Real = getSolverParams(dfg).inflation,
   _blockRecursion::Bool = false,
   keepCalcFactor::Bool = false,
@@ -749,7 +752,7 @@ function getDefaultFactorData(
     multihypo,
     ccwl.hyporecipe.certainhypo,
     nullhypo,
-    solveInProgress,
+    # solveInProgress,
     inflation,
   )
 

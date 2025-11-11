@@ -32,7 +32,7 @@ function DFG.rebuildFactorCache!(
     inflation = state.inflation,
     eliminated = state.eliminated,
     potentialused = state.potentialused,
-    solveInProgress = state.solveInProgress,
+    # solveInProgress = state.solveInProgress,
     _blockRecursion=_blockRecursionGradients
   )
   #

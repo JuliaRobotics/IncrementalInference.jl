@@ -120,7 +120,7 @@ function _isInitializedOrInitSolveKey(
       solveKey = solveKey,
       initialized = false,
       varType = varType,
-      dontmargin = false,
+      # dontmargin = false,
     )
     #
     # data = getState(var, solveKey)

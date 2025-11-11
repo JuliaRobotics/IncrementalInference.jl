@@ -863,9 +863,8 @@ end
 Partial reset of basic data fields in `::State` of `::FunctionNode` structures.
 """
 function resetData!(vdata::State)
-  vdata.eliminated = false
-  vdata.BayesNetOutVertIDs = Symbol[]
-  # vdata.BayesNetVertID = :_null # TODO dont use nothing, see DFG issue #16
+  # vdata.eliminated = false #TODO e8d remove? looks unused
+  # vdata.BayesNetOutVertIDs = Symbol[]
   vdata.separator = Symbol[]
   return nothing
 end

@@ -962,7 +962,7 @@ end
 function createMvNormal(v::VariableCompute, key = :parametric)
   if key == :parametric
     vnd = getState(v, :parametric)
-    dims = vnd.dims
+    dims = getDimension(vnd)
     return createMvNormal(vnd.val[1:dims, 1], vnd.bw[1:dims, 1:dims])
   else
     @warn "Trying MvNormal Fit"

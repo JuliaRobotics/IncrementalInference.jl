@@ -47,7 +47,7 @@ solveTree!(fg)
 #manually change a few fields to test if they are preserved
 fa = getFactor(fg, :x2x3x4f1)
 getFactorState(fa).eliminated = true
-getFactorState(fa).solveInProgress = 1
+# getFactorState(fa).solveInProgress = 1
 getFactorState(fa).nullhypo = 0.5
 
 

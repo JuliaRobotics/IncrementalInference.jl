@@ -185,7 +185,7 @@ function presolveChecklist_StateMachine(csmc::CliqStateMachineContainer)
         solveKey = csmc.solveKey,
         initialized = false,
         varType = varType,
-        dontmargin = false,
+        # dontmargin = false,
       )
       #
       @info "create vnd solveKey" csmc.solveKey N

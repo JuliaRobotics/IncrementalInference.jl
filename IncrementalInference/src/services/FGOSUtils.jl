@@ -167,7 +167,7 @@ function setfreeze!(dfg::AbstractDFG, sym::Symbol, solveKey::Symbol = :default)
   end
   vert = DFG.getVariable(dfg, sym)
   data = getState(vert, solveKey)
-  data.ismargin = true
+  data.marginalized = true
   return nothing
 end
 function setfreeze!(dfg::AbstractDFG, syms::Vector{Symbol}, solveKey::Symbol = :default)

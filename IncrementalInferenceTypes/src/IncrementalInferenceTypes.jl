@@ -7,6 +7,7 @@ using LieGroups
 using LieGroups: TranslationGroup, ℝ
 using Distributions
 using StaticArrays
+using LinearAlgebra
 import StructTypes
 
 using Dates: now

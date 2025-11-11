@@ -287,7 +287,7 @@ function initVariable!(
   variable::VariableCompute,
   ptsArr::ManifoldKernelDensity,
   solveKey::Symbol = :default;
-  dontmargin::Bool = false,
+  # dontmargin::Bool = false,
   N::Int = length(getPoints(ptsArr)),
 )
   #
@@ -303,7 +303,7 @@ function initVariable!(
       solveKey = solveKey,
       initialized = false,
       varType = varType,
-      dontmargin = dontmargin,
+      # dontmargin = dontmargin,
     )
   end
   setValKDE!(variable, ptsArr, true; solveKey = solveKey)
@@ -314,12 +314,15 @@ function initVariable!(
   label::Symbol,
   belief::ManifoldKernelDensity,
   solveKey::Symbol = :default;
-  dontmargin::Bool = false,
+  # dontmargin::Bool = false,
   N::Int = getSolverParams(dfg).N,
 )
   #
   variable = getVariable(dfg, label)
-  initVariable!(variable, belief, solveKey; dontmargin = dontmargin, N = N)
+  initVariable!(variable, belief, solveKey;
+    # dontmargin = dontmargin,
+    N = N
+  )
   return nothing
 end
 

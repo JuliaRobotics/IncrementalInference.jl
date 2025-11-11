@@ -76,9 +76,9 @@ function addConditional!(dfg::AbstractDFG, vertId::Symbol, Si::Vector{Symbol})
   bnv = DFG.getVariable(dfg, vertId)
   bnvd = getState(bnv, :default)
   bnvd.separator = Si
-  for s in Si
-    push!(bnvd.BayesNetOutVertIDs, s)
-  end
+  # for s in Si
+  #   push!(bnvd.BayesNetOutVertIDs, s)
+  # end
   return nothing
 end
 
@@ -173,7 +173,7 @@ function buildBayesNet!(dfg::AbstractDFG, elimorder::Vector{Symbol}; solvable::I
     end
 
     # mark variable
-    getState(vert, :default).eliminated = true
+    # getState(vert, :default).eliminated = true #TODO e8d remove? looks unused
 
     # TODO -- remove links from current vertex to any marginals
     rmVarFromMarg(dfg, vert, gm)

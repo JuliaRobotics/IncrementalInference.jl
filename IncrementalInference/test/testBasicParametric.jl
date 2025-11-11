@@ -79,24 +79,24 @@ fg = generateGraph_LineStep(2, graphinit=true, vardims=1, poseEvery=1, landmarkE
 @test IIF.autoinitParametric!(fg, :x0)
 
 v0 = getVariable(fg,:x0)
-@test length(v0.solverDataDict[:parametric].val[1]) === 1
-@test isapprox(v0.solverDataDict[:parametric].val[1][1], 0.0, atol = 1e-4)
+@test length(v0.states[:parametric].val[1]) === 1
+@test isapprox(v0.states[:parametric].val[1][1], 0.0, atol = 1e-4)
 
 @test IIF.autoinitParametric!(fg, :x1)
 
 v0 = getVariable(fg,:x1)
-@test length(v0.solverDataDict[:parametric].val[1]) === 1
-@test isapprox(v0.solverDataDict[:parametric].val[1][1], 1.0, atol = 1e-4)
+@test length(v0.states[:parametric].val[1]) === 1
+@test isapprox(v0.states[:parametric].val[1][1], 1.0, atol = 1e-4)
 
 
 IIF.initParametricFrom!(fg)
 
 #
 v0 = getVariable(fg,:x0)
-@test length(v0.solverDataDict[:parametric].val[1]) === 1
-@test isapprox(v0.solverDataDict[:parametric].val[1][1], 0.0, atol = 0.1)
+@test length(v0.states[:parametric].val[1]) === 1
+@test isapprox(v0.states[:parametric].val[1][1], 0.0, atol = 0.1)
 v1 = getVariable(fg,:x1)
-@test isapprox(v1.solverDataDict[:parametric].val[1][1], 1.0, atol = 0.1)
+@test isapprox(v1.states[:parametric].val[1][1], 1.0, atol = 0.1)
 
 ##
 
@@ -139,7 +139,7 @@ tree2 = IIF.solveTree!(fg; algorithm = :parametric) #, recordcliqs=ls(fg))
 for i in 0:10
   sym = Symbol("x",i)
   var = getVariable(fg,sym)
-  @show val = var.solverDataDict[:parametric].val
+  @show val = var.states[:parametric].val
   @test isapprox(val[1][1], i, atol=1e-3)
   @test isapprox(val[1][2], i, atol=1e-3)
 end
@@ -204,9 +204,9 @@ tree2 = solveTree!(fg; algorithm=:parametric, eliminationOrder=[:x0, :x2, :x1])
 # end
 foreach(v->println(v.label, ": ", DFG.getState(v, :parametric).val), getVariables(fg))
 
-@test isapprox(getVariable(fg,:x0).solverDataDict[:parametric].val[1][1], -0.01, atol=1e-3)
-@test isapprox(getVariable(fg,:x1).solverDataDict[:parametric].val[1][1], 0.0, atol=1e-3)
-@test isapprox(getVariable(fg,:x2).solverDataDict[:parametric].val[1][1], 0.01, atol=1e-3)
+@test isapprox(getVariable(fg,:x0).states[:parametric].val[1][1], -0.01, atol=1e-3)
+@test isapprox(getVariable(fg,:x1).states[:parametric].val[1][1], 0.0, atol=1e-3)
+@test isapprox(getVariable(fg,:x2).states[:parametric].val[1][1], 0.01, atol=1e-3)
 
 ## ##############################################################################
 ## multiple sections
@@ -247,7 +247,7 @@ end
 for i in 0:10
   sym = Symbol("x",i)
   var = getVariable(fg,sym)
-  val = var.solverDataDict[:parametric].val
+  val = var.states[:parametric].val
   #TODO investigate why tolarance degraded (its tree related and not bad enough to worry now)
   @test isapprox(val[1][1], i, atol=5e-4) 
 end
