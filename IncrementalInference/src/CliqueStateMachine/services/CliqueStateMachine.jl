@@ -175,7 +175,7 @@ function presolveChecklist_StateMachine(csmc::CliqStateMachineContainer)
         csmc,
         "CSM-0b create empty data for $(getLabel(var)) on solveKey=$(csmc.solveKey)",
       )
-      varType = getVariableType(var)
+      varType = getStateKind(var)
       # FIXME check the marginalization requirements
       setDefaultNodeData!(
         var,

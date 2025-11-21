@@ -93,7 +93,7 @@ function getMeasurementParametric(s::AbstractObservation)
   return getMeasurementParametric(Z)
 end
 
-getMeasurementParametric(fct::FactorCompute) = getMeasurementParametric(getFactorType(fct))
+getMeasurementParametric(fct::FactorCompute) = getMeasurementParametric(getObservation(fct))
 getMeasurementParametric(dfg::AbstractDFG, flb::Symbol) = getMeasurementParametric(getFactor(dfg, flb))
 
 # maybe rename getMeasurementParametric to something like getNormalDistributionParams or getMeanCov
@@ -126,7 +126,7 @@ function getFactorMeasurementParametric(fac::AbstractRelativeObservation)
   measX, iΣ
 end
 
-getFactorMeasurementParametric(fct::FactorCompute) = getFactorMeasurementParametric(getFactorType(fct))
+getFactorMeasurementParametric(fct::FactorCompute) = getFactorMeasurementParametric(getObservation(fct))
 getFactorMeasurementParametric(dfg::AbstractDFG, flb::Symbol) = getFactorMeasurementParametric(getFactor(dfg, flb))
 
 ## ================================================================================================
@@ -134,7 +134,7 @@ getFactorMeasurementParametric(dfg::AbstractDFG, flb::Symbol) = getFactorMeasure
 ## ================================================================================================
 
 function CalcFactorMahalanobis(fg, fct::FactorCompute)
-  fac_func = getFactorType(fct)
+  fac_func = getObservation(fct)
   varOrder = getVariableOrder(fct)
 
   # NOTE, use getMeasurementParametric on FactorCompute{<:CCW} to allow special cases like OAS factors
@@ -144,7 +144,7 @@ function CalcFactorMahalanobis(fg, fct::FactorCompute)
   meas = typeof(_meas) <: Tuple ? _meas : (_meas,)
   iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
 
-  cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
+  cache = preambleCache(fg, getVariable.(fg, varOrder), getObservation(fct))
 
   multihypo = DFG.getFactorState(fct).multihypo
   nullhypo = DFG.getFactorState(fct).nullhypo
@@ -181,7 +181,7 @@ function calcFactorMahalanobisDict(fg)
   calcFactors = OrderedDict{Symbol, CalcFactorMahalanobis}()
   for fct in getFactors(fg)
     # skip non-numeric prior
-    getFactorType(fct) isa MetaPrior ? continue : nothing
+    getObservation(fct) isa MetaPrior ? continue : nothing
     calcFactors[fct.label] = CalcFactorMahalanobis(fg, fct)
   end
   return calcFactors
@@ -191,7 +191,7 @@ function getFactorTypesCount(facs::Vector{<:FactorCompute})
   typedict = OrderedDict{DataType, Int}()
   alltypes = OrderedDict{DataType, Vector{Symbol}}()
   for f in facs
-    facType = typeof(getFactorType(f))
+    facType = typeof(getObservation(f))
     cnt = get!(typedict, facType, 0)
     typedict[facType] = cnt + 1
 
@@ -268,7 +268,7 @@ function getVariableTypesCount(vars::Vector{<:VariableCompute})
   typedict = OrderedDict{DataType, Int}()
   alltypes = OrderedDict{DataType, Vector{Symbol}}()
   for v in vars
-    varType = typeof(getVariableType(v))
+    varType = typeof(getStateKind(v))
     cnt = get!(typedict, varType, 0)
     typedict[varType] = cnt + 1
 
@@ -639,7 +639,7 @@ function _totalCost(fg, cfdict::OrderedDict{Symbol, <:CalcFactorMahalanobis}, fl
     varOrder = cfp.varOrder
 
     Xparams = [
-      getPoint(getVariableType(fg, varId), view(Xc, flatvar.idx[varId])) for
+      getPoint(getStateKind(fg, varId), view(Xc, flatvar.idx[varId])) for
       varId in varOrder
     ]
 
@@ -688,7 +688,7 @@ function solveConditionalsParametric(
 
   for vId in varIds
     p = getState(fg, vId, solvekey).val[1]
-    flatvar[vId] = getCoordinates(getVariableType(fg, vId), p)
+    flatvar[vId] = getCoordinates(getStateKind(fg, vId), p)
   end
   initValues = flatvar.X
 
@@ -726,7 +726,7 @@ function solveConditionalsParametric(
 
   for key in frontals
     r = flatvar.idx[key]
-    p = getPoint(getVariableType(fg, key), rv[r])
+    p = getPoint(getStateKind(fg, key), rv[r])
     push!(d, key => (val = p, cov = Σ[r, r]))
   end
 
@@ -909,7 +909,7 @@ function addParametricSolver!(fg; init = true)
   if !(:parametric in fg.solverParams.algorithms)
     push!(fg.solverParams.algorithms, :parametric)
     foreach(
-      v -> IIF.setDefaultNodeDataParametric!(v, getVariableType(v); initialized = false),
+      v -> IIF.setDefaultNodeDataParametric!(v, getStateKind(v); initialized = false),
       getVariables(fg),
     )
     if init

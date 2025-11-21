@@ -16,7 +16,7 @@ getSolverParams(fg).useMsgLikelihoods = true
 ## test getSample
 
 fct = fg[:x0x1f1]
-fT = getFactorType(fct)
+fT = getObservation(fct)
 @test fT isa LinearRelative
 @test fT.Z isa Normal
 
@@ -73,7 +73,7 @@ IIF.addMsgFactors!(cfg, beliefMsg5, IIF.UpwardPass)
 ##
 
 fct = cfg[:x0x6f1]
-fT = getFactorType(fct)
+fT = getObservation(fct)
 @test fT isa LinearRelative
 @test fT.Z isa MKD
 

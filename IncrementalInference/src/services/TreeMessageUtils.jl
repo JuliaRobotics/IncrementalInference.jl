@@ -291,7 +291,7 @@ function addLikelihoodsDifferentialCHILD!(
   # create new local dfg and add all the variables with data
   for label in seps
     if !exists(tfg, label)
-      addVariable!(tfg, label, getVariableType(cliqSubFG, label))
+      addVariable!(tfg, label, getStateKind(cliqSubFG, label))
       @debug "New variable added to subfg" _group = :check_addLHDiff #TODO JT remove debug. 
     end
     initVariable!(tfg, label, getBelief(cliqSubFG, label, solveKey), solveKey)

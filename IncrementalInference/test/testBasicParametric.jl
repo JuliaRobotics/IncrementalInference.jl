@@ -105,7 +105,7 @@ fg = generateGraph_LineStep(10, vardims=2, poseEvery=1, landmarkEvery=3, posePri
     # addFactor!(fg, [:x15; :x25], LinearRelative(Normal(10, 0.1)))
 
 #to manually check all factors
-# foreach(fct->println(fct.label, ": ", getFactorType(fct).Z), getFactors(fg))
+# foreach(fct->println(fct.label, ": ", getObservation(fct).Z), getFactors(fg))
 
 # @profiler d,st = IIF.solveGraphParametric(fg)
 M, labels, minimizer, Σ = IIF.solveGraphParametric(fg)
@@ -175,7 +175,7 @@ addFactor!(fg, [:x1; :x2], LinearRelative(Normal(0.0, 1e-1)), graphinit=graphini
 
 
 
-foreach(fct->println(fct.label, ": ", getFactorType(fct).Z), getFactors(fg))
+foreach(fct->println(fct.label, ": ", getObservation(fct).Z), getFactors(fg))
 
 M, labels, minimizer, Σ = IIF.solveGraphParametric(fg)
 d = Dict(labels.=>minimizer)
@@ -217,7 +217,7 @@ deleteFactor!(fg, :x5x6f1)
 # plotDFG(fg)
 
 #check all factors
-# foreach(fct->println(fct.label, ": ", getFactorType(fct).Z), getFactors(fg))
+# foreach(fct->println(fct.label, ": ", getObservation(fct).Z), getFactors(fg))
 
 # @profiler d,st = IIF.solveGraphParametric(fg)
 M, labels, minimizer, Σ = IIF.solveGraphParametric(fg)

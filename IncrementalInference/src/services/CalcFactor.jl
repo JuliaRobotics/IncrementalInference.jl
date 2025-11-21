@@ -247,7 +247,7 @@ function _createVarValsAll(
       if hasState(var_i, solveKey)
         getVal(var_i; solveKey)
       else
-        Vector{typeof(getPointDefault(getVariableType(var_i)))}()
+        Vector{typeof(getPointDefault(getStateKind(var_i)))}()
       end
     )
   end
@@ -434,7 +434,7 @@ function _createCCW(
   end
 
   # FIXME, should incorporate multihypo selection
-  varTypes = getVariableType.(fullvariables)
+  varTypes = getStateKind.(fullvariables)
 
   # as per struct CommonConvWrapper
   _gradients = if attemptGradients
@@ -452,7 +452,7 @@ function _createCCW(
   end
 
   # variable Types
-  pttypes = getVariableType.(Xi) .|> getPointType
+  pttypes = getStateKind.(Xi) .|> getPointType
   PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
   if !isconcretetype(PointType)
     @warn "_createCCW PointType is not concrete $PointType" maxlog=50
@@ -549,7 +549,7 @@ function _beforeSolveCCW!(
 
   # if solving for more or less points in destination
   if N != length(ccwl.varValsAll[][ccwl.varidx[]])
-    varT = getVariableType(variables[ccwl.varidx[]])
+    varT = getStateKind(variables[ccwl.varidx[]])
     # make vector right length
     resize!(ccwl.varValsAll[][ccwl.varidx[]], N)
     # define any new memory that might have been allocated
@@ -562,7 +562,7 @@ function _beforeSolveCCW!(
 
   # FIXME, confirm what happens when this is a partial dimension factor?  See #1246
   # indexing over all possible hypotheses
-  xDim = getDimension(getVariableType(variables[ccwl.varidx[]]))
+  xDim = getDimension(getStateKind(variables[ccwl.varidx[]]))
   # TODO maybe refactor different type or api call?
 
   # setup the partial or complete decision variable dimensions for this ccwl object
@@ -601,7 +601,7 @@ function _beforeSolveCCW!(
 
   # setup the partial or complete decision variable dimensions for this ccwl object
   # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
-  _setCCWDecisionDimsConv!(ccwl, getDimension(getVariableType(variables[ccwl.varidx[]])))
+  _setCCWDecisionDimsConv!(ccwl, getDimension(getStateKind(variables[ccwl.varidx[]])))
 
   solveForPts = getVal(variables[ccwl.varidx[]]; solveKey)
   maxlen = maximum([N; length(solveForPts); length(ccwl.varValsAll[][ccwl.varidx[]])])  # calcZDim(ccwl); length(measurement[1])

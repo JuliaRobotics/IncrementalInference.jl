@@ -246,7 +246,7 @@ function _checkVariableByReference(
   destRegex::Regex,
   destType::Type{<:StateType},
   factor::AbstractRelativeObservation;
-  srcType::Type{<:StateType} = getVariableType(fg, srcLabel) |> typeof,
+  srcType::Type{<:StateType} = getStateKind(fg, srcLabel) |> typeof,
   doRef::Bool = true,
   refKey::Symbol = :simulated,
   prior = if !doRef
@@ -304,7 +304,7 @@ function _checkVariableByReference(
   destRegex::Regex,
   destType::Type{<:StateType},
   factor::AbstractPriorObservation;
-  srcType::Type{<:StateType} = getVariableType(fg, srcLabel) |> typeof,
+  srcType::Type{<:StateType} = getStateKind(fg, srcLabel) |> typeof,
   doRef::Bool = true,
   refKey::Symbol = :simulated,
   prior = typeof(factor)(MvNormal(getMeasurementParametric(factor)...)),

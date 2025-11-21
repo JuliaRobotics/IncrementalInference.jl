@@ -65,7 +65,7 @@ end
 _getCCW(fct::FactorCompute) = DFG.getCache(fct) #getState(fct) |> _getCCW
 _getCCW(dfg::AbstractDFG, lbl::Symbol) = DFG.getCache(getFactor(dfg, lbl)) #getFactor(dfg, lbl) |> _getCCW
 
-DFG.getFactorType(ccw::CommonConvWrapper) = ccw.usrfnc!
+DFG.getObservation(ccw::CommonConvWrapper) = ccw.usrfnc!
 
 _getZDim(ccw::CommonConvWrapper) = getManifold(ccw) |> manifold_dimension # ccw.zDim
 # TODO is MsgPrior piggy backing zdim on inferdim???
@@ -227,7 +227,7 @@ function calcMeanMaxSuggested(
   vari::VariableCompute,
   solveKey::Symbol = :default
 )
-  varType = getVariableType(vari)
+  varType = getStateKind(vari)
   P = getBelief(vari, solveKey)
   maniDef = convert(MB.AbstractManifold, varType)
   manis = AMP._manifoldtuple(maniDef) # LEGACY, TODO REMOVE

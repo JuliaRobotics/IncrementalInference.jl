@@ -94,7 +94,7 @@ function treeProductDwn(
   dict = Dict{Int, TreeBelief}()
   for (dsy, btd) in msgdict
     dict[fg.IDs[dsy]] =
-      TreeBelief(btd.val, btd.bw, btd.infoPerCoord, getVariableType(getVariable(fg, sym)))
+      TreeBelief(btd.val, btd.bw, btd.infoPerCoord, getStateKind(getVariable(fg, sym)))
   end
   dwnmsgssym = LikelihoodMessage[LikelihoodMessage(dict);]
 

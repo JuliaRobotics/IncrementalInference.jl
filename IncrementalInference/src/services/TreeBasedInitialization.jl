@@ -111,7 +111,7 @@ function _isInitializedOrInitSolveKey(
 )
   # TODO, this solveKey existence test should probably be removed?
   if !(solveKey in listSolveKeys(var))
-    varType = getVariableType(var)
+    varType = getStateKind(var)
     setDefaultNodeData!(
       var,
       0,

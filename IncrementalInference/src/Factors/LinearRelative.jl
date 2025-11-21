@@ -1,5 +1,5 @@
 
-export LinearRelative, PackedLinearRelative
+export LinearRelative
 
 """
 $(TYPEDEF)
@@ -10,8 +10,8 @@ Default linear offset between two scalar variables.
 X_2 = X_1 + η_Z
 ```
 """
-struct LinearRelative{N, T <: SamplableBelief} <: RelativeObservation 
-  Z::T
+DFG.@tags struct LinearRelative{N, T <: SamplableBelief} <: RelativeObservation 
+  Z::T & (lower = DFG.Packed, choosetype = DFG.resolvePackedType)
 end
 
 # need several helper constructors since the dimension over which LinearRelative will be used is unknown at this point
@@ -54,26 +54,6 @@ function Base.convert(
   ::InstanceType{LinearRelative{N}},
 ) where {N}
   return LieGroups.TranslationGroup(N)
-end
-
-"""
-$(TYPEDEF)
-Serialization type for `LinearRelative` binary factor.
-"""
-Base.@kwdef mutable struct PackedLinearRelative <: AbstractPackedObservation
-  Z::PackedBelief
-end
-function convert(::Type{PackedLinearRelative}, d::LinearRelative)
-  return PackedLinearRelative(convert(PackedBelief, d.Z))
-end
-function convert(::Type{LinearRelative}, d::PackedLinearRelative)
-  return LinearRelative(convert(SamplableBelief, d.Z))
-end
-function DFG.pack(d::LinearRelative)
-  return PackedLinearRelative(DFG.packDistribution(d.Z))
-end
-function DFG.unpack(d::PackedLinearRelative)
-  return LinearRelative(DFG.unpackDistribution(d.Z))
 end
 
 #

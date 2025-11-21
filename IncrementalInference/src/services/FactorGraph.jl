@@ -177,7 +177,7 @@ function setValKDE!(
   ipc::AbstractVector{<:Real} = [0.0;],
 ) where {P}
   # recover variableType information
-  varType = getVariableType(vd)
+  varType = getStateKind(vd)
   p = AMP.manikde!(varType, val)
   setValKDE!(vd, p, setinit, ipc)
   return nothing
@@ -312,7 +312,7 @@ end
 
 Set method for the inferred dimension value in a variable.
 """
-setIPC!(varid::State, val::AbstractVector{<:Real}) = varid.infoPerCoord = val
+setIPC!(varid::State, val::AbstractVector{<:Real}) = varid.observability = val
 function setIPC!(
   vari::VariableCompute,
   val::AbstractVector{<:Real},
@@ -330,7 +330,7 @@ end
 Get a ManifoldKernelDensity estimate from variable node data.
 """
 function getBelief(vnd::State)
-  return manikde!(getManifold(getVariableType(vnd)), getVal(vnd); bw = getBW(vnd)[:, 1])
+  return manikde!(getManifold(getStateKind(vnd)), getVal(vnd); bw = getBW(vnd)[:, 1])
 end
 
 function getBelief(v::VariableCompute, solvekey::Symbol = :default)
@@ -393,22 +393,19 @@ function DefaultNodeDataParametric(
     #                         dims, false, :_null, Symbol[], variableType, true, 0.0, false, dontmargin)
   else
     ϵ = getPointIdentity(variableType)
-    return State(variableType;
-      id=nothing,
+    return State(solveKey, variableType;
       val=[ϵ],
       bw=zeros(dims, dims),
       # Symbol[],
-      dims,
       # false,
       # :_null,
       # Symbol[],
       initialized=false,
-      infoPerCoord=zeros(dims),
-      ismargin=false,
+      observability=zeros(dims),
+      marginalized=false,
       # dontmargin,
       # 0,
       # 0,
-      solveKey,
     )
   end
 end
@@ -443,8 +440,7 @@ Notes
 function setDefaultNodeData!(
   v::VariableCompute,
   dodims::Int,
-  N::Int,
-  dims::Int=getDimension(v);
+  N::Int;
   solveKey::Symbol = :default,
   gt = Dict(),
   initialized::Bool = true,
@@ -454,6 +450,7 @@ function setDefaultNodeData!(
   #
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
+  dims = getDimension(v)
   data = nothing
   isinit = false
   sp = Int[0;]
@@ -477,23 +474,23 @@ function setDefaultNodeData!(
   # make and set the new solverData
   mergeState!(
     v,
-    State(varType;
-      id=nothing,
+    State(solveKey, varType;
+      # id=nothing,
       val,
       bw,
       # Symbol[],
       # sp,
-      dims,
+      # dims,
       # false,
       # :_null,
       # Symbol[],
       initialized=isinit,
-      infoPerCoord=zeros(getDimension(v)),
-      ismargin=false,
+      observability=zeros(getDimension(v)),
+      marginalized=false,
       # dontmargin,
       # 0,
       # 0,
-      solveKey,
+      
     )
   )
   return nothing
@@ -537,7 +534,7 @@ function setVariableRefence!(
     false,
     :_null,
     Symbol[],
-    getVariableType(var),
+    getStateKind(var),
     true,
     zeros(getDimension(var)),
     false,
@@ -598,17 +595,16 @@ function addVariable!(
     label,
     varType;
     tags = Set(tags),
-    smallData = smalldata,
+    bloblets = smalldata,
     solvable = solvable,
     timestamp = _zonedtime(timestamp),
-    nstime = Nanosecond(nanosecondtime),
+    steadytime = Nanosecond(nanosecondtime),
   )
 
   (:default in initsolvekeys) && setDefaultNodeData!(
     v,
     0,
-    N,
-    getDimension(varType);
+    N;
     initialized = false,
     varType = varType,
     # dontmargin = dontmargin,

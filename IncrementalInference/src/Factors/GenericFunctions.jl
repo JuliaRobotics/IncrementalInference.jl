@@ -238,7 +238,7 @@ function convert(
 )
   #
 
-  varT = DFG.typeModuleName(getVariableType(obj.M))
+  varT = DFG.typeModuleName(getStateKind(obj.M))
 
   c = AMP.makeCoordsFromPoint(obj.M, obj.p)
 

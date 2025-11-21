@@ -21,19 +21,19 @@ function CalcFactorResidual(
   fct::FactorCompute, 
   varIntLabel
 )
-  fac_func = getFactorType(fct)
-  varOrder = getVariableOrder(fct)
+  fac_func = getObservation(fct)
+  varOrder = collect(getVariableOrder(fct))
 
   varOrderIdxs = getindex.(Ref(varIntLabel), varOrder)
 
-  M = getManifold(getFactorType(fct))
+  M = getManifold(getObservation(fct))
 
   dims = manifold_dimension(M)
 
   meas, iΣ = getFactorMeasurementParametric(fct)
 
   sqrt_iΣ = convert(SMatrix{dims, dims}, sqrt(iΣ))
-  cache = preambleCache(fg, getVariable.(fg, varOrder), getFactorType(fct))
+  cache = preambleCache(fg, getVariable.(fg, varOrder), getObservation(fct))
 
   return CalcFactorResidual(
     fct.label,
@@ -574,7 +574,7 @@ function autoinitParametric!(
 
     vnd.initialized = true
     #fill in ppe as mean
-    Xc::Vector{Float64} = collect(getCoordinates(getVariableType(xi), val))
+    Xc::Vector{Float64} = collect(getCoordinates(getStateKind(xi), val))
 
     result = true
 

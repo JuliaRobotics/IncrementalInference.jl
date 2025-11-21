@@ -354,7 +354,7 @@ function _solveCCWNumeric!(
 
   # TODO small off-manifold perturbation is a numerical workaround only, make on-manifold requires RoME.jl #244
   # use all element dimensions : ==> 1:ccwl.xDim
-  # target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
+  # target .+= _perturbIfNecessary(getObservation(ccwl), length(target), perturb)
   sfidx = ccwl.varidx[]
   # do the parameter search over defined decision variables using Minimization
   X = ccwl.varValsAll[][sfidx][smpid][ccwl.partialDims]
@@ -366,7 +366,7 @@ function _solveCCWNumeric!(
   # # X = destVarVals[smpid]#[ccwl.partialDims]
       
   retval = _solveLambdaNumeric(
-    getFactorType(ccwl), 
+    getObservation(ccwl), 
     _hypoObj, 
     ccwl.res, 
     X,
@@ -475,11 +475,11 @@ function _solveCCWNumeric!(
   sfidx = ccwl.varidx[]
   u0 = ccwl.varValsAll[][ccwl.varidx[]][smpid] # starting point for optimization
   retval = _solveLambdaNumeric(
-    getFactorType(ccwl),
+    getObservation(ccwl),
     _hypoCalcFactor,
     ccwl.res,
     u0,
-    getVariableType(ccwl.fullvariables[sfidx]), # only used for getting variable manifold and identity_element
+    getStateKind(ccwl.fullvariables[sfidx]), # only used for getting variable manifold and identity_element
     islen1,
   )
 

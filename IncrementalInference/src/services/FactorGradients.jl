@@ -201,11 +201,11 @@ function (fgc::FactorGradientsCached!)(meas_pts...)
   fgc.measurement = meas_pts[1] # why not 1:1 since ccwl.measurement::Vector{typeof(z)}
 
   # update the residual _slack in preparation for new gradient calculation
-  fct = getFactorType(fgc.dfgfct)
+  fct = getObservation(fgc.dfgfct)
   measurement = meas_pts[1]
   pts = meas_pts[2:end]
   varTypes =
-    tuple(getVariableType.(getVariable.(fgc._tfg, getVariableOrder(fgc.dfgfct)))...)
+    tuple(getStateKind.(getVariable.(fgc._tfg, getVariableOrder(fgc.dfgfct)))...)
   new_slack = calcFactorResidualTemporary(fct, varTypes, measurement, pts; tfg = fgc._tfg)
   # TODO make sure slack_residual is properly wired up with all the lambda functions as expected
   _setFGCSlack!(fgc, new_slack)
@@ -319,7 +319,7 @@ function calcPerturbationFromVariable(
       nothing
     else
       @warn(
-      "Expecting incoming length(infoPerCoord) to equal the block size for variable $fromVar, as per factor used to construct the FactorGradientsCached!: $(getFactorType(fgc.dfgfct))"
+      "Expecting incoming length(infoPerCoord) to equal the block size for variable $fromVar, as per factor used to construct the FactorGradientsCached!: $(getObservation(fgc.dfgfct))"
     )
     end
     # get range of interest

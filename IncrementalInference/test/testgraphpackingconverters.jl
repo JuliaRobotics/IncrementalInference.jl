@@ -72,9 +72,9 @@ pd = packState(dat)
 unpckd = unpackState(pd)
 
 @test compareFields(dat, unpckd, skip=[:variableType])
-@test compareFields(getVariableType(dat), getVariableType(unpckd))
-@test isa(getVariableType(dat), ContinuousScalar)
-@test isa(getVariableType(unpckd), ContinuousScalar)
+@test compareFields(getStateKind(dat), getStateKind(unpckd))
+@test isa(getStateKind(dat), ContinuousScalar)
+@test isa(getStateKind(unpckd), ContinuousScalar)
 
 ##
 end

@@ -109,7 +109,7 @@ function approxConvBelief(
     # put the non-existing variables into the temporary graph `tfg`
     # bring all the solveKeys too
     for v in getVariable.(dfg, varLbls[neMsk])
-      addVariable!(tfg, v.label, getVariableType(v))
+      addVariable!(tfg, v.label, getStateKind(v))
     end
     # variables adjacent to the shortest path should be initialized from dfg
     setdiff(varLbls, path[xor.(fctMsk, true)]) .|>
@@ -204,13 +204,13 @@ function calcProposalBelief(
   #
 
   # density passed through directly from PartialPriorPassThrough.Z
-  fctFnc = getFactorType(fct)
+  fctFnc = getObservation(fct)
   proposal = fctFnc.Z.heatmap.densityFnc
 
   # in case of partial, place the proposal into larger marginal/partial MKD
   proposal_ = if isPartial(fctFnc)
     # oldbel = getBelief(dfg, target, solveKey)
-    varType = getVariableType(dfg, target)
+    varType = getStateKind(dfg, target)
     M = getManifold(varType)
     u0 = getPointIdentity(varType)
     # replace(oldbel, proposal)
@@ -255,7 +255,7 @@ function proposalbeliefs!(
     # relative sibling factors get nullSurplus
     for (i, f) in enumerate(factors)
       # don't add additional nullSurplus, since its already being done in ExplicitDiscreteMarg!!!  FIXME refactor to common solution
-      if isa(getFactorType(f), AbstractRelativeObservation) && !isMultihypo(f)
+      if isa(getObservation(f), AbstractRelativeObservation) && !isMultihypo(f)
         nullSrp[i] = nullSurplusAdd
       end
     end
@@ -283,7 +283,7 @@ function proposalbeliefs!(
     # partial density
     propBel = if isPartial(ccwl)
       pardims = _getDimensionsPartial(ccwl)
-      @assert [getFactorType(fct).partial...] == [pardims...] "partial dims error $(getFactorType(fct).partial) vs $pardims"
+      @assert [getObservation(fct).partial...] == [pardims...] "partial dims error $(getObservation(fct).partial) vs $pardims"
       AMP.marginal(propBel_, Int[pardims...])
     else
       propBel_

@@ -30,11 +30,11 @@ function solveFactorParametric(
   #
 
   varLbls = getVariableOrder(fct)
-  varTypes = tuple((getVariableType.(dfg, varLbls))...)
+  varTypes = tuple((getStateKind.(dfg, varLbls))...)
   sfidx = findfirst(varLbls .== trgsym)
 
   # get the measurement point
-  fctTyp = getFactorType(fct)
+  fctTyp = getObservation(fct)
   # this is definitely in coordinates, see JuliaRobotics/RoME.jl#465
   mea, _ = getMeasurementParametric(fctTyp)
   # must change measT to be a tangent vector
@@ -47,7 +47,7 @@ function solveFactorParametric(
   function _getParametric(vari::VariableCompute, key = :default)
     pt = calcMean(getBelief(vari, key))
 
-    return collect(getCoordinates(getVariableType(vari), pt))
+    return collect(getCoordinates(getStateKind(vari), pt))
   end
 
   # overwrite specific src values from user
@@ -71,5 +71,5 @@ function solveFactorParametric(
     evaltmpkw...,
   )[1]
 
-  return getCoordinates(getVariableType(dfg, trgsym), pt)
+  return getCoordinates(getStateKind(dfg, trgsym), pt)
 end

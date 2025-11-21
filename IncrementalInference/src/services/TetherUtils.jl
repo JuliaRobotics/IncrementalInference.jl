@@ -69,7 +69,7 @@ function rebaseFactorVariable!(
 
   # get existing factor details
   fct = getFactor(dfg, fctsym)
-  fcttype = getFactorType(fct)
+  fcttype = getObservation(fct)
   mh = getMultihypoDistribution(fct)
 
   mh = isnothing(mh) ? Float64[] : mh
@@ -130,7 +130,7 @@ function accumulateFactorMeans(
     # if first factor is prior
     # @assert !onePrior
     onePrior = true
-    val, = getMeasurementParametric(getFactorType(dfg, fctsyms[nextidx]))
+    val, = getMeasurementParametric(getObservation(dfg, fctsyms[nextidx]))
     # val = getFactorMean(dfg, fctsyms[nextidx])
     currsym = ls(dfg, fctsyms[nextidx])[1] # prior connected to only one variable
     nextidx += 1

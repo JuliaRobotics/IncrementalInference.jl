@@ -45,7 +45,7 @@ function propagateBelief(
   end
 
   # few more data requirements
-  varType = getVariableType(destvar)
+  varType = getStateKind(destvar)
   M = getManifold(varType)
   # @info "BUILDING MKD" varType M isPartial.(dens)
   

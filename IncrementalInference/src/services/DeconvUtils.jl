@@ -40,12 +40,12 @@ function approxDeconv(
   # FIXME needs xDim for all variables at once? xDim = 0 likely to break?
 
   # but what if this is a partial factor -- is that important for general cases in deconv?
-  _setCCWDecisionDimsConv!(ccw, 0) # ccwl.xDim used to hold the last forward solve getDimension(getVariableType(Xi[sfidx]))
+  _setCCWDecisionDimsConv!(ccw, 0) # ccwl.xDim used to hold the last forward solve getDimension(getStateKind(Xi[sfidx]))
 
   # FIXME This does not incorporate multihypo??
   varsyms = getVariableOrder(fcto)
   # vars = getPoints.(getBelief.(dfg, varsyms, solveKey) )
-  fcttype = getFactorType(fcto)
+  fcttype = getObservation(fcto)
 
   # get measurement dimension
   zDim = _getZDim(fcto)
@@ -150,7 +150,7 @@ function approxDeconv(
   #make a copy of the original measurement before mutating it
   sampled_meas = deepcopy(measurement)
 
-  fcttype = getFactorType(fcto)
+  fcttype = getObservation(fcto)
   
   for idx = 1:N
 
@@ -212,10 +212,10 @@ function approxDeconv(
 
   # build a local temporary graph copy containing the same values but user requested factor type.
   fct = getFactor(dfg, fctlbl)
-  fctT = getFactorType(fct)
+  fctT = getObservation(fct)
   lbls = getVariableOrder(fct)
   for lb in lbls
-    exists(tfg, lb) ? nothing : addVariable!(tfg, lb, getVariableType(dfg, lb))
+    exists(tfg, lb) ? nothing : addVariable!(tfg, lb, getStateKind(dfg, lb))
     initVariable!(tfg, lb, getBelief(dfg, lb, solveKey))
   end
 
@@ -240,7 +240,7 @@ end
 
 function approxDeconvBelief(dfg::AbstractDFG, lb::Symbol, w...; kw...)
   return manikde!(
-    getManifold(getFactorType(dfg, lb)),
+    getManifold(getObservation(dfg, lb)),
     approxDeconv(dfg, lb, w...; kw...)[1],
   )
 end
@@ -283,14 +283,14 @@ function deconvSolveKey(
   # add the first "reference" variable
   Xref = getBelief(dfg, refSym, refKey)
   refSym_ = Symbol(refSym, "_ref")
-  refVarType = getVariableType(dfg, refSym)
+  refVarType = getStateKind(dfg, refSym)
   if !exists(tfg, refSym_)
     addVariable!(tfg, refSym_, refVarType)
   end
   initVariable!(tfg, refSym_, Xref)
 
   # add the second "test" variable
-  tstVarType = getVariableType(dfg, tstSym)
+  tstVarType = getStateKind(dfg, tstSym)
   Xtst = getBelief(dfg, tstSym, tstKey)
   tstSym_ = Symbol(tstSym, "_tst")
   if !exists(tfg, tstSym_)

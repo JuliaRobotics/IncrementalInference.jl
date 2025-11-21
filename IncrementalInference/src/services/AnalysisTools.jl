@@ -172,7 +172,7 @@ function mmdSolveKey(
   tstVal = getBelief(vari, tstKey)
 
   # calc mmd distance
-  return mmd(refVal, tstVal, getVariableType(vari); bw = bw)
+  return mmd(refVal, tstVal, getStateKind(vari); bw = bw)
 end
 
 # vari = getVariable(fg, :x1)

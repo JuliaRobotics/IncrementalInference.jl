@@ -67,7 +67,7 @@ saveDFG("/tmp/fg_test_flux", fg)
 
 fg_ = loadDFG("/tmp/fg_test_flux")
 
-ff1 = getFactorType(fg_, :x0f1)
+ff1 = getObservation(fg_, :x0f1)
 ff1.Z.shuffle[] = true
 
 solveTree!(fg_);
@@ -118,7 +118,7 @@ pts_ = getBelief(fg, :x1) |> getPoints
 
 
 # will predict from existing fg
-f1 = getFactorType(fg, :x0x1f1)
+f1 = getObservation(fg, :x0x1f1)
 predictions = map(f->f(f1.Z.components.nn.data), f1.Z.components.nn.models)
 
 
@@ -126,7 +126,7 @@ predictions = map(f->f(f1.Z.components.nn.data), f1.Z.components.nn.models)
 fg_ = loadDFG("/tmp/fg_test_flux")
 
 # same predictions with deserialized object
-f1_ = getFactorType(fg_, :x0x1f1)
+f1_ = getObservation(fg_, :x0x1f1)
 predictions_ = map(f->f(f1_.Z.components.nn.data), f1_.Z.components.nn.models)
 
 # check that all predictions line up

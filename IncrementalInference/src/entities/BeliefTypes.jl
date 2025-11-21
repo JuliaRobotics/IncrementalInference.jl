@@ -1,5 +1,5 @@
 
-import DistributedFactorGraphs: getVariableType
+import DistributedFactorGraphs: getStateKind
 
 """
     CliqStatus
@@ -81,8 +81,8 @@ function TreeBelief(vnd::State, solvDim::Real = 0)
   return TreeBelief(
     vnd.val,
     vnd.bw,
-    vnd.infoPerCoord,
-    getVariableType(vnd),
+    vnd.observability,
+    getStateKind(vnd),
     getManifold(vnd),
     solvDim,
   )
@@ -93,7 +93,7 @@ function TreeBelief(vari::VariableCompute, solveKey::Symbol = :default; solvable
 end
 #
 
-getVariableType(tb::TreeBelief) = tb.variableType
+getStateKind(tb::TreeBelief) = tb.variableType
 
 getManifold(treeb::TreeBelief) = getManifold(treeb.variableType)
 

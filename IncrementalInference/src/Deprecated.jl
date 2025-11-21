@@ -161,7 +161,7 @@ setVariablePosteriorEstimates!(args...; kw...) = error("PPEs are obsolete (use `
 
 @deprecate calcPPE(
   var::VariableCompute,
-  varType::StateType = getVariableType(var);
+  varType::StateType = getStateKind(var);
   solveKey::Symbol = :default,
   kwargs...,
 ) calcMeanMaxSuggested(var, solveKey)
@@ -246,7 +246,7 @@ end
 # function ManifoldsVector(fg::AbstractDFG, varIds::Vector{Symbol})
 #   manis = Bool[]
 #   for k = varIds
-#     push!(manis, getVariableType(fg, k) |> getManifold)
+#     push!(manis, getStateKind(fg, k) |> getManifold)
 #   end
 #   ManifoldsVector(manis)
 # end
@@ -309,7 +309,7 @@ function solveGraphParametric2(
 
   for vId in varIds
     p = getState(fg, vId, solvekey).val[1]
-    flatvar[vId] = getCoordinates(getVariableType(fg, vId), p)
+    flatvar[vId] = getCoordinates(getStateKind(fg, vId), p)
   end
 
   initValues = flatvar.X
@@ -379,7 +379,7 @@ end
 # ) where {N_, F <: AbstractRelativeRoots, S, T}
 #   #
 #   # error("<:AbstractRelativeRoots is obsolete, use one of the other <:AbstractRelative types instead.")
-#   # TODO get xDim = getDimension(getVariableType(Xi[sfidx])) but without having Xi
+#   # TODO get xDim = getDimension(getStateKind(Xi[sfidx])) but without having Xi
 #   if testshuffle || ccwl.partial
 #     error(
 #       "<:AbstractRelativeRoots factors with less or more measurement dimensions than variable dimensions have been discontinued, rather use <:AbstractManifoldMinimize.",
@@ -442,8 +442,8 @@ function Base.getproperty(ccw::CommonConvWrapper, f::Symbol)
     error("CommonConvWrapper.params is deprecated, use .varValsAll instead")
     return ccw.varValsAll[]
   elseif f == :vartypes
-    @warn "CommonConvWrapper.vartypes is deprecated, use typeof.(getVariableType.(ccw.fullvariables) instead" maxlog=3
-    return typeof.(getVariableType.(ccw.fullvariables))
+    @warn "CommonConvWrapper.vartypes is deprecated, use typeof.(getStateKind.(ccw.fullvariables) instead" maxlog=3
+    return typeof.(getStateKind.(ccw.fullvariables))
   elseif f == :hypotheses
     @warn "CommonConvWrapper.hypotheses is now under ccw.hyporecipe.hypotheses" maxlog=5
     return ccw.hyporecipe.hypotheses

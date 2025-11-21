@@ -27,7 +27,7 @@ function selectFactorType(T1::StateType, T2::StateType)
   return selectFactorType(typeof(T1), typeof(T2))
 end
 function selectFactorType(dfg::AbstractDFG, s1::Symbol, s2::Symbol)
-  return selectFactorType(getVariableType(dfg, s1), getVariableType(dfg, s2))
+  return selectFactorType(getStateKind(dfg, s1), getStateKind(dfg, s2))
 end
 
 #

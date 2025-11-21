@@ -34,7 +34,7 @@ inferdim = IIF.proposalbeliefs!(fg, destlbl, factors, dens )
 oldBel = getBelief(fg, destlbl)
 oldpts = getPoints(oldBel)
 
-varType = getVariableType(fg, destlbl)
+varType = getStateKind(fg, destlbl)
 pGM = getPoints( AMP.manifoldProduct(dens, getManifold(varType), N=100, oldPoints=oldpts), false )
 # pGM = AMP.productbelief(oldpts, getManifold(varType), dens, 100, asPartial=false )
 

@@ -103,7 +103,7 @@ retcode = DifferentialEquations.solve(oder_.backwardProblem)
 ## one layer wrapped API test through IIFExt to DiffEq
 
 f = getFactor(fg, intersect(ls(fg,:x0),ls(fg,:x1))[1] )
-fc = getFactorType(f)
+fc = getObservation(f)
 
 fprob = fc.forwardProblem
 

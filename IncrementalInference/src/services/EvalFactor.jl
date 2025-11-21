@@ -46,7 +46,7 @@ function calcVariableDistanceExpectedFractional(
 )
   #
   @assert sfidx == ccwl.varidx[] "ccwl.varidx[] is expected to be the same as sfidx"
-  varTypes = getVariableType.(ccwl.fullvariables)
+  varTypes = getStateKind.(ccwl.fullvariables)
   # @info "WHAT" isdefined(ccwl.varValsAll[][sfidx], 101)
   if sfidx in certainidx
     # on change of destination variable count N, only use the defined values before a solve
@@ -279,7 +279,7 @@ function _calcIPCRelative(
   @show sfidx
   # @show getLabel.(Xi)
   @show getLabel.(activeVars)
-  @show getVariableType.(activeVars)
+  @show getStateKind.(activeVars)
   # @show _getindextuple(ccwl.measurement, smpid)
   meas_pts =
     tuple((_getindextuple(ccwl.measurement, smpid))..., (getindex.(activeParams, smpid))...)
@@ -451,7 +451,7 @@ function evalPotentialSpecific(
       ret[i] = solveForPts[i]
     end
     for i = (length(solveForPts) + 1):maxlen
-      ret[i] = getPointIdentity(getVariableType(variables[sfidx]))
+      ret[i] = getPointIdentity(getStateKind(variables[sfidx]))
     end
     ret
   end
@@ -463,7 +463,7 @@ function evalPotentialSpecific(
 
   # view on elements marked for nullhypo
   addEntrNH = view(addEntr, nhmask)
-  spreadDist = spreadNH * calcStdBasicSpread(getVariableType(variables[sfidx]), addEntr)
+  spreadDist = spreadNH * calcStdBasicSpread(getStateKind(variables[sfidx]), addEntr)
   # partials are treated differently
   ipc = if !asPartial # isPartial(ccwl) #ccwl.partial
     # TODO for now require measurements to be coordinates too
@@ -566,7 +566,7 @@ function evalFactor(
   measurement::AbstractVector = Tuple[]; # FIXME ensure type stable in all cases
   needFreshMeasurements::Bool = true,
   solveKey::Symbol = :default,
-  variables = getVariable.(dfg, getVariableOrder(fct)), # FIXME use tuple instead for type stability
+  variables = collect(getVariable.(dfg, getVariableOrder(fct))), # FIXME use tuple instead for type stability - JT closer now with variable order a tuple, but need to pull it through everywhere.
   N::Int = length(measurement),
   inflateCycles::Int = getSolverParams(dfg).inflateCycles,
   nullSurplus::Real = 0,

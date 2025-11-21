@@ -110,9 +110,9 @@ import DistributedFactorGraphs: compare
 import DistributedFactorGraphs: rebuildFactorCache!
 import DistributedFactorGraphs: getDimension, getManifold, getPointType, getPointIdentity
 import DistributedFactorGraphs: getPoint, getCoordinates
-import DistributedFactorGraphs: getVariableType
+import DistributedFactorGraphs: getStateKind
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
-import DistributedFactorGraphs: getFactorType
+import DistributedFactorGraphs: getObservation
 import DistributedFactorGraphs: solveGraph!, solveGraphParametric!
 import DistributedFactorGraphs: packDistribution, unpackDistribution
 
@@ -194,9 +194,9 @@ include("services/FactorGraph.jl")
 include("services/BayesNet.jl")
 
 # Serialization helpers
-include("Serialization/entities/SerializingDistributions.jl")
+# include("Serialization/entities/SerializingDistributions.jl")
 include("Serialization/entities/AdditionalDensities.jl")
-include("Serialization/services/SerializingDistributions.jl")
+# include("Serialization/services/SerializingDistributions.jl")
 include("Serialization/services/SerializationMKD.jl")
 include("Serialization/services/DispatchPackedConversions.jl")
 

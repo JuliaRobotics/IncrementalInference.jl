@@ -39,6 +39,6 @@ end
 function calcMeanCovar(vari::VariableCompute, solvekey = :default)
   pts = getState(vari, solvekey).val
   μ = mean(getManifold(vari), pts)
-  Σ = cov(getVariableType(vari), pts)
+  Σ = cov(getStateKind(vari), pts)
   return μ, Σ
 end

@@ -57,7 +57,7 @@ end
 Base.@kwdef struct PackedMixture{C} <: PackedBelief
   _type::String = "IncrementalInference.PackedMixture"
   components::C
-  prior::PackedCategorical
+  prior::DFG.PackedCategorical #FIXME will maybe move to IIFTypes
 end
 
 # FIXME 🦨 use JSON properly (in JSONv1 upgrade)
