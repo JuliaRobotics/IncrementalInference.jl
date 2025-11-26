@@ -21,18 +21,16 @@ function DFG.rebuildFactorCache!(
   # Set up the neighbor data
 
   # Rebuilding the CCW
-  state = DFG.getFactorState(factor)
-  state, solvercache = getDefaultFactorData(
+  _, _, solvercache = getDefaultFactorData(
     dfg,
     neighbors,
     DFG.getObservation(factor);
-    multihypo = state.multihypo,
-    nullhypo = state.nullhypo,
+    multihypo = factor.hyper.multihypo,
+    nullhypo = factor.hyper.nullhypo,
     # special inflation override
-    inflation = state.inflation,
-    eliminated = state.eliminated,
-    potentialused = state.potentialused,
-    # solveInProgress = state.solveInProgress,
+    inflation = factor.hyper.inflation,
+    eliminated = factor.state.eliminated,
+    potentialused = factor.state.potentialused,
     _blockRecursion=_blockRecursionGradients
   )
   #

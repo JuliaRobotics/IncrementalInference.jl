@@ -21,12 +21,11 @@ Base.rm(saveFolder*".tar.gz")
 @test symdiff(ls(fg), ls(retDFG)) == []
 @test symdiff(lsf(fg), lsf(retDFG)) == []
 
-@show getFactorState(fg, :x2x3x4f1).multihypo
-@show getFactorState(retDFG, :x2x3x4f1).multihypo
+@show DFG.getRecipehyper(fg, :x2x3x4f1).multihypo
+@show DFG.getRecipehyper(retDFG, :x2x3x4f1).multihypo
 
 # check for match
-@test getFactorState(fg, :x2x3x4f1).multihypo - getFactorState(retDFG, :x2x3x4f1).multihypo |> norm < 1e-10
-@test getFactorState(fg, :x2x3x4f1).certainhypo - getFactorState(retDFG, :x2x3x4f1).certainhypo |> norm < 1e-10
+@test DFG.getRecipehyper(fg, :x2x3x4f1).multihypo - DFG.getRecipehyper(retDFG, :x2x3x4f1).multihypo |> norm < 1e-10
 
 ##
 end
@@ -46,9 +45,8 @@ solveTree!(fg)
 
 #manually change a few fields to test if they are preserved
 fa = getFactor(fg, :x2x3x4f1)
-getFactorState(fa).eliminated = true
-# getFactorState(fa).solveInProgress = 1
-getFactorState(fa).nullhypo = 0.5
+fa.state.eliminated = true
+fa.hyper.nullhypo = 0.5
 
 
 saveFolder = "/tmp/dfg_test"
@@ -62,12 +60,11 @@ Base.rm(saveFolder*".tar.gz")
 @test issetequal(ls(fg), ls(retDFG))
 @test issetequal(lsf(fg), lsf(retDFG))
 
-@show getFactorState(fg, :x2x3x4f1).multihypo
-@show getFactorState(retDFG, :x2x3x4f1).multihypo
+@show DFG.getRecipehyper(fg, :x2x3x4f1).multihypo
+@show DFG.getRecipehyper(retDFG, :x2x3x4f1).multihypo
 
 # check for match
-@test isapprox(getFactorState(fg, :x2x3x4f1).multihypo, getFactorState(retDFG, :x2x3x4f1).multihypo)
-@test isapprox(getFactorState(fg, :x2x3x4f1).certainhypo, getFactorState(retDFG, :x2x3x4f1).certainhypo)
+@test isapprox(DFG.getRecipehyper(fg, :x2x3x4f1).multihypo, DFG.getRecipehyper(retDFG, :x2x3x4f1).multihypo)
 
 
 fb = getFactor(retDFG, :x2x3x4f1)

@@ -146,8 +146,8 @@ function CalcFactorMahalanobis(fg, fct::FactorCompute)
 
   cache = preambleCache(fg, getVariable.(fg, varOrder), getObservation(fct))
 
-  multihypo = DFG.getFactorState(fct).multihypo
-  nullhypo = DFG.getFactorState(fct).nullhypo
+  multihypo = fct.hyper.multihypo
+  nullhypo = fct.hyper.nullhypo
 
   # FIXME, type instability
   if length(multihypo) > 0

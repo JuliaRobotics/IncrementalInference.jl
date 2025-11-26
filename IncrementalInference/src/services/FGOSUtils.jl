@@ -409,7 +409,7 @@ function getFactorsAmongVariablesOnly(
     # now check if those factors have already been added
     for fct in prefcts
       vert = DFG.getFactor(dfg, fct)
-      if !DFG.getFactorState(vert).potentialused
+      if !vert.state.potentialused
         push!(almostfcts, fct)
       end
     end

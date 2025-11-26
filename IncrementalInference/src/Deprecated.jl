@@ -195,10 +195,6 @@ end
 # _getZDim(fcd::DFG.GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
 # DFG.getDimension(fct::DFG.GenericFunctionNodeData) = _getZDim(fct)
 
-# function resetData!(vdata::DFG.FunctionNodeData)
-#   error("resetData!(vdata::FunctionNodeData) is deprecated, use resetData!(state::FactorState) instead")
-# end
-
 function sampleTangent(x::ManifoldKernelDensity, p = mean(x))
   error("sampleTangent(x::ManifoldKernelDensity, p) should be replaced by sampleTangent(M<:AbstractManifold, x::ManifoldKernelDensity, p)")
 end

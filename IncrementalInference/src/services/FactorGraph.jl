@@ -716,8 +716,6 @@ function getDefaultFactorData(
   # threadmodel = SingleThreaded,
   eliminated::Bool = false,
   potentialused::Bool = false,
-  edgeIDs = Int[],
-  # solveInProgress = 0,
   inflation::Real = getSolverParams(dfg).inflation,
   _blockRecursion::Bool = false,
   keepCalcFactor::Bool = false,
@@ -742,17 +740,11 @@ function getDefaultFactorData(
     keepCalcFactor,
   )
 
-  state = DFG.FactorState(
-    eliminated,
-    potentialused,
-    multihypo,
-    ccwl.hyporecipe.certainhypo,
-    nullhypo,
-    # solveInProgress,
-    inflation,
-  )
+  state = DFG.Recipestate(; eliminated, potentialused)
+    
+  hyper = DFG.Recipehyper(; nullhypo, multihypo, inflation)
 
-  return state, ccwl
+  return hyper, state, ccwl
 
 end
 
@@ -838,7 +830,7 @@ function DFG.addFactor!(
   _zonedtime(s::DateTime) = ZonedDateTime(s, localzone())
 
   varOrderLabels = Symbol[v.label for v in Xi]
-  state, solvercache = getDefaultFactorData(
+  hyper, state, solvercache = getDefaultFactorData(
     dfg,
     Xi,
     deepcopy(usrfnc);
@@ -854,6 +846,7 @@ function DFG.addFactor!(
     Symbol(namestring),
     varOrderLabels,
     usrfnc,
+    hyper,
     state,
     solvercache;
     tags = Set(union(tags, [:FACTOR])),
