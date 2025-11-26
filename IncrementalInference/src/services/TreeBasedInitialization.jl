@@ -115,8 +115,7 @@ function _isInitializedOrInitSolveKey(
     setDefaultNodeData!(
       var,
       0,
-      N,
-      getDimension(varType);
+      N;
       solveKey = solveKey,
       initialized = false,
       varType = varType,

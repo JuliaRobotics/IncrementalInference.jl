@@ -13,3 +13,12 @@ Base.@kwdef struct PackedAliasingScalarSampler <: PackedBelief
   domain::Vector{Float64} = [0; 1.0]
   weights::Vector{Float64} = [0.5; 0.5]
 end
+
+
+function DFG.pack(dtr::AliasingScalarSampler)
+  return PackedAliasingScalarSampler(; domain = dtr.domain, weights = dtr.weights.values)
+end
+
+function DFG.unpack(dtr::PackedAliasingScalarSampler)
+  return AliasingScalarSampler(dtr.domain, dtr.weights ./ sum(dtr.weights))
+end

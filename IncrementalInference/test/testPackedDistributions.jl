@@ -11,12 +11,12 @@ using Test
 
 ctg = Categorical(5)
 
-packed = packDistribution(ctg)
+packed = pack(ctg)
 
 @test packed isa PackedBelief
 @test packed isa IncrementalInference.PackedCategorical
 
-upck = unpackDistribution(packed)
+upck = unpack(packed)
 
 @test upck isa Categorical
 @test isapprox(ctg, upck)
@@ -30,12 +30,12 @@ end
 
 nor = Normal()
 
-packed = packDistribution(nor)
+packed = pack(nor)
 
 @test packed isa PackedBelief
 @test packed isa PackedNormal
 
-upck = unpackDistribution(packed)
+upck = unpack(packed)
 
 @test upck isa Normal
 @test isapprox(nor, upck)
@@ -48,12 +48,12 @@ end
 ##
 
 mv = MvNormal([0.0;1.0], [1 0.1; 0.1 1])
-packed = packDistribution(mv)
+packed = pack(mv)
 
 @test packed isa PackedBelief
 @test packed isa PackedFullNormal
 
-upck = unpackDistribution(packed)
+upck = unpack(packed)
 
 @test upck isa FullNormal
 @test isapprox(mv, upck)
@@ -66,12 +66,12 @@ end
 ##
 
 mv = MvNormal([0.0; 1.0], [4.0; 4.0])
-packed = packDistribution(mv)
+packed = pack(mv)
 
 @test packed isa PackedBelief
 @test packed isa PackedDiagNormal
 
-upck = unpackDistribution(packed)
+upck = unpack(packed)
 
 @test upck isa DiagNormal
 @test isapprox(mv, upck)
@@ -83,12 +83,12 @@ end
 ##
 
 mv = MvNormal([1 0.1; 0.1 1])
-packed = packDistribution(mv)
+packed = pack(mv)
 
 @test packed isa PackedBelief
 @test packed isa PackedZeroMeanFullNormal
 
-upck = unpackDistribution(packed)
+upck = unpack(packed)
 
 @test upck isa ZeroMeanFullNormal
 @test isapprox(mv, upck)
@@ -101,12 +101,12 @@ end
 ##
 
 mv = MvNormal([4.0;4.0])
-packed = packDistribution(mv)
+packed = pack(mv)
 
 @test packed isa PackedBelief
 @test packed isa PackedZeroMeanDiagNormal
 
-upck = unpackDistribution(packed)
+upck = unpack(packed)
 
 @test upck isa ZeroMeanDiagNormal
 @test isapprox( mv.Σ.diag, upck.Σ.diag )
@@ -121,12 +121,12 @@ end
 ##
 
 bss = AliasingScalarSampler([1.0;2.0], [0.6;0.4])
-packed = packDistribution(bss)
+packed = pack(bss)
 
 @test packed isa PackedBelief
 @test packed isa IncrementalInference.PackedAliasingScalarSampler
 
-upck = unpackDistribution(packed)
+upck = unpack(packed)
 
 @test upck isa AliasingScalarSampler
 @test isapprox( bss.domain, upck.domain )
@@ -146,12 +146,12 @@ T = ContinuousEuclid{2}
 pts = [randn(2) for _ in 1:50]
 
 mkd = manikde!(T, pts)
-packed = packDistribution(mkd)
+packed = pack(mkd)
 
 @test packed isa PackedBelief
 @test packed isa IncrementalInference.PackedManifoldKernelDensity
 
-upck = unpackDistribution(packed)
+upck = unpack(packed)
 
 @test upck isa ManifoldKernelDensity
 
@@ -165,12 +165,12 @@ end
 ##
 
 r = Rayleigh(1.1)
-r_ = packDistribution(r)
+r_ = pack(r)
 
 @test r_ isa PackedBelief
 @test r_ isa PackedRayleigh
 
-r__ = unpackDistribution(r_)
+r__ = unpack(r_)
 
 @test r__ isa Rayleigh
 @test isapprox(r.σ, r__.σ)

@@ -30,7 +30,7 @@ function makeSolverData!(
     varType = getStateKind(v) |> IIF._variableType
     vsolveKeys = listSolveKeys(dfg,vl)
     if solveKey != :parametric && !(solveKey in vsolveKeys)
-        IIF.setDefaultNodeData!(v, 0, getSolverParams(dfg).N, getDimension(varType); initialized=false, varType, solveKey) # dodims
+        IIF.setDefaultNodeData!(v, 0, getSolverParams(dfg).N; initialized=false, varType, solveKey) # dodims
         count += 1
     elseif solveKey == :parametric && !(:parametric in vsolveKeys)
         # global doinit = true
@@ -298,8 +298,7 @@ function initVariable!(
     setDefaultNodeData!(
       variable,
       0,
-      N,
-      getDimension(varType);
+      N;
       solveKey = solveKey,
       initialized = false,
       varType = varType,
@@ -520,8 +519,7 @@ function initAll!(
       setDefaultNodeData!(
         vari,
         0,
-        N,
-        getDimension(varType);
+        N;
         solveKey,
         initialized = false,
         varType,

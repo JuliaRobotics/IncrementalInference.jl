@@ -4,17 +4,19 @@
 # this step actually occurs separate from the actual variables or factors (with their own manifolds) 
 # relies on later use of getManifold to give back the same <:AbstractManifold
 # NOTE added to DFG.@defStateType
-getVariableType(M::Euclidean{TypeParameter{Tuple{N}}}) where {N} = ContinuousEuclid(N)
-getVariableType(M::LieGroups.TranslationGroup{ℝ, TypeParameter{Tuple{N}}}) where {N} = ContinuousEuclid(N)
+getStateKind(M::Euclidean{TypeParameter{Tuple{N}}}) where {N} = ContinuousEuclid(N)
+getStateKind(M::LieGroups.TranslationGroup{ℝ, TypeParameter{Tuple{N}}}) where {N} = ContinuousEuclid(N)
 
-# getVariableType(M::RealCircleGroup) = Circular()
-# getVariableType(M::Circle) = error("Circle manifold is deprecated use RealCircleGroup, will come back when we generalize to non-group Riemannian")
+# getStateKind(M::RealCircleGroup) = Circular()
+# getStateKind(M::Circle) = error("Circle manifold is deprecated use RealCircleGroup, will come back when we generalize to non-group Riemannian")
 
 # Type converters for MKD
 function Base.convert(::Type{<:SamplableBelief}, ::Type{<:PackedManifoldKernelDensity})
+  error("convert to SamplableBelief from PackedManifoldKernelDensity")
   return ManifoldKernelDensity
 end
 function Base.convert(::Type{<:PackedBelief}, ::Type{<:ManifoldKernelDensity})
+  error("convert to PackedBelief from ManifoldKernelDensity")
   return PackedManifoldKernelDensity
 end
 
@@ -43,14 +45,14 @@ function parchDistribution(mkd::ManifoldKernelDensity)
 end
 
 # Data converters for MKD
-function DFG.packDistribution(mkd::ManifoldKernelDensity)
+function DFG.pack(mkd::ManifoldKernelDensity)
   #
   pts = getPoints(mkd)
 
   return PackedManifoldKernelDensity(
     "IncrementalInference.PackedManifoldKernelDensity",
     # piggy back on StateType serialization rather than try serialize anything Manifolds.jl
-    DFG.typeModuleName(getVariableType(mkd.manifold)),
+    typeModuleName(getStateKind(mkd.manifold)),
     [AMP.makeCoordsFromPoint(mkd.manifold, pt) for pt in pts],
     getBW(mkd.belief)[:, 1],
     mkd._partial isa Nothing ? collect(1:manifold_dimension(mkd.manifold)) : mkd._partial,
@@ -58,9 +60,9 @@ function DFG.packDistribution(mkd::ManifoldKernelDensity)
   )
 end
 
-function DFG.unpackDistribution(dtr::PackedManifoldKernelDensity)
+function DFG.unpack(dtr::PackedManifoldKernelDensity)
   # find StateType type from string (anything Manifolds.jl?)
-  M = DFG.getTypeFromSerializationModule(dtr.varType) |> getManifold
+  M = getTypeFromSerializationModule(dtr.varType) |> getManifold
   vecP = [AMP.makePointFromCoords(M, pt) for pt in dtr.pts]
   bw = length(dtr.bw) === 0 ? nothing : dtr.bw
   partial = if length(dtr.partial) == manifold_dimension(M) || length(dtr.partial) === 0
@@ -74,7 +76,7 @@ end
 
 function Base.convert(::Type{String}, mkd::ManifoldKernelDensity)
   #
-  packedMKD = packDistribution(mkd)
+  packedMKD = pack(mkd)
   return JSON3.write(packedMKD)
 end
 
@@ -87,7 +89,7 @@ end
 #  https://discourse.julialang.org/t/is-there-a-way-to-import-modules-with-a-string/15723/6
 function Base.convert(::Type{<:ManifoldKernelDensity}, str::AbstractString)
   dtr = JSON3.read(str, PackedManifoldKernelDensity)
-  return unpackDistribution(dtr)
+  return unpack(dtr)
 end
 
 #

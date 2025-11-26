@@ -33,8 +33,8 @@ hgd = IIF.HeatmapGridDensity(img, (x,y), nothing, 0.07; N=1000)
 
 println("test packing converters")
 # check conversions to packed types
-phgd = convert(PackedBelief, hgd)
-hgd_ = convert(SamplableBelief, phgd)
+phgd = pack(hgd)
+hgd_ = unpack(phgd)
 
 @test isapprox( hgd, hgd_ )
 

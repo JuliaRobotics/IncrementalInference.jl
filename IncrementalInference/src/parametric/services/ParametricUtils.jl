@@ -135,7 +135,7 @@ getFactorMeasurementParametric(dfg::AbstractDFG, flb::Symbol) = getFactorMeasure
 
 function CalcFactorMahalanobis(fg, fct::FactorCompute)
   fac_func = getObservation(fct)
-  varOrder = getVariableOrder(fct)
+  varOrder = collect(getVariableOrder(fct))
 
   # NOTE, use getMeasurementParametric on FactorCompute{<:CCW} to allow special cases like OAS factors
   _meas, _iΣ = getFactorMeasurementParametric(fct) # fac_func

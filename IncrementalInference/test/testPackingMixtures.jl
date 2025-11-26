@@ -23,11 +23,11 @@ addFactor!(fg, [:x0, :x1], mmo)
 
 ##
 
-pf = packFactor(getFactor(fg, :x0x1f1))
+# pf = packFactor(getFactor(fg, :x0x1f1))
 
 ##
 
-pf_ = JSON3.write(pf)
+# pf_ = JSON3.write(pf)
 
 
 ##

@@ -23,7 +23,7 @@ function PackedHeatmapGridDensity(
   return PackedHeatmapGridDensity(_type, data_, domain_, hint_callback, bw_factor, N)
 end
 
-function packDistribution(obj::HeatmapGridDensity)
+function DFG.pack(obj::HeatmapGridDensity)
   #
   data_ = obj.data
   @cast data[j][i] := data_[i, j]
@@ -40,13 +40,13 @@ function packDistribution(obj::HeatmapGridDensity)
   )
 end
 
-function packDistribution(dtr::LevelSetGridNormal)
+function DFG.pack(dtr::LevelSetGridNormal)
   return PackedLevelSetGridNormal(
     "IncrementalInference.PackedLevelSetGridNormal",
     dtr.level,
     dtr.sigma,
     dtr.sigma_scale,
-    convert(PackedHeatmapGridDensity, dtr.heatmap),
+    DFG.pack(dtr.heatmap),
   )
 end
 #
@@ -68,7 +68,7 @@ function parchDistribution(hgd::HeatmapGridDensity)
   return HeatmapGridDensity(data, domain, hint_callback, bw_factor, densityFnc)
 end
 
-function unpackDistribution(obj::PackedHeatmapGridDensity)
+function DFG.unpack(obj::PackedHeatmapGridDensity)
   #
   # do intermediate conversions
   data_ = obj.data
@@ -86,12 +86,12 @@ function unpackDistribution(obj::PackedHeatmapGridDensity)
   )
 end
 
-function unpackDistribution(dtr::PackedLevelSetGridNormal)
+function DFG.unpack(dtr::PackedLevelSetGridNormal)
   return LevelSetGridNormal(
     dtr.level,
     dtr.sigma,
     dtr.sigma_scale,
-    convert(HeatmapGridDensity, dtr.heatmap),
+    unpack(dtr.heatmap),
   )
 end
 

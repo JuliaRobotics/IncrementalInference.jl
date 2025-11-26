@@ -13,8 +13,8 @@ using Test
 
 td = Uniform()
 
-ptd = convert(String, td) # TODO, PackedBelief
-utd = convert(SamplableBelief, td)
+ptd = pack(td) # TODO, PackedBelief
+utd = unpack(td)
 
 @test td.a - utd.a |> abs < 1e-10
 @test td.b - utd.b |> abs < 1e-10
@@ -47,13 +47,13 @@ f2 = addFactor!(fg, [:x1; :x2], lc)
 ##
 
 topack = DFG.getObservation(f1)
-dd = DFG.packObservation(topack)
+dd = DFG.pack(topack)
 upd = DFG.unpack(dd)
 
 @test topack == upd
 
 topack = DFG.getObservation(f2)
-dd =  DFG.packObservation(topack)
+dd =  DFG.pack(topack)
 upd = DFG.unpack(dd)
 
 @test topack == upd
@@ -87,8 +87,8 @@ end
 mkd = manikde!(TranslationGroup(2), [randn(2) for _ in 1:100])
 
 # convert up and down
-st = convert(String, mkd) # TODO, PackedBelief
-upk = convert(SamplableBelief, st)
+st = pack(mkd) # TODO, PackedBelief
+upk = unpack(st)
 
 # and check the basics
 @test isapprox( getPoints(mkd)[1], getPoints(upk)[1])

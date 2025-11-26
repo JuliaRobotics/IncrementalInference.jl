@@ -1,9 +1,9 @@
 
-function packDistribution(dtr::AliasingScalarSampler)
+function pack(dtr::AliasingScalarSampler)
   return PackedAliasingScalarSampler(; domain = dtr.domain, weights = dtr.weights.values)
 end
 
-function unpackDistribution(dtr::PackedAliasingScalarSampler)
+function unpack(dtr::PackedAliasingScalarSampler)
   return AliasingScalarSampler(dtr.domain, dtr.weights ./ sum(dtr.weights))
 end
 
@@ -34,16 +34,16 @@ end
 
 # NOTE part of new effort to overhaul the SamplableBelief serialization approach
 function convert(::Type{<:PackedBelief}, obj::StringThemSamplableBeliefs)
-  return packDistribution(obj)
+  return pack(obj)
 end
-convert(::Type{<:SamplableBelief}, obj::PackedBelief) = unpackDistribution(obj)
+convert(::Type{<:SamplableBelief}, obj::PackedBelief) = unpack(obj)
 
 ##===================================================================================
 
 # FIXME ON FIRE, must deprecate nested JSON written fields in all serialization
 # TODO is string necessary, because unpacking templated e.g. PackedType{T} has problems, see DFG #668
 function convert(::Type{String}, dtr::StringThemSamplableBeliefs)
-  return JSON3.write(packDistribution(dtr))
+  return JSON3.write(pack(dtr))
 end
 
 function convert(::Type{<:SamplableBelief}, str_obj::AbstractString)
@@ -52,12 +52,12 @@ function convert(::Type{<:SamplableBelief}, str_obj::AbstractString)
   # go from stringified to generic packed (no type info)
   _pck = JSON3.read(str_obj)
   # NOTE, get the packed type from strong assumption that field `_type` exists in the 
-  T = DFG.getTypeFromSerializationModule(_pck._type)
+  T = getTypeFromSerializationModule(_pck._type)
   # unpack again to described packedType
   pckT = JSON3.read(str_obj, T)
 
   # unpack to regular <:SamplableBelief
-  return unpackDistribution(pckT)
+  return unpack(pckT)
 end
 
 #

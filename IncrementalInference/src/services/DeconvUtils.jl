@@ -213,7 +213,7 @@ function approxDeconv(
   # build a local temporary graph copy containing the same values but user requested factor type.
   fct = getFactor(dfg, fctlbl)
   fctT = getObservation(fct)
-  lbls = getVariableOrder(fct)
+  lbls = collect(getVariableOrder(fct))
   for lb in lbls
     exists(tfg, lb) ? nothing : addVariable!(tfg, lb, getStateKind(dfg, lb))
     initVariable!(tfg, lb, getBelief(dfg, lb, solveKey))

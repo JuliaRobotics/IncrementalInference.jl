@@ -54,32 +54,18 @@ function Mixture(f::Type{<:AbstractObservation}, args...)
     return f(Mixture(args...))
 end
 
-Base.@kwdef struct PackedMixture{C} <: PackedBelief
-  _type::String = "IncrementalInference.PackedMixture"
-  components::C
-  prior::DFG.PackedCategorical #FIXME will maybe move to IIFTypes
+DFG.@tags struct PackedMixture
+  components::NamedTuple & (choosetype = obj->NamedTuple{Tuple(Symbol.(keys(obj))), Tuple{DFG.resolveType.(values(obj))...}}, )
+  prior & (lower = DFG.Packed, choosetype = DFG.resolvePackedType)
 end
 
-# FIXME 🦨 use JSON properly (in JSONv1 upgrade)
-function PackedMixture(_type::String, comp_obj::JSON3.Object, prior_obj::JSON3.Object) 
-  PackedMixture(
-    _type,
-    NamedTuple(map(c -> c[1]=>convert(PackedBelief, c[2]), collect(pairs(comp_obj)))),
-    PackedCategorical(; prior_obj...),
-  )
+function DFG.pack(m::Mixture)
+  PackedMixture(map(DFG.Packed, m.components), m.prior)
 end
 
-
-function DFG.packDistribution(m::Mixture)
-  PackedMixture(;
-    components = map(packDistribution, m.components),
-    prior = PackedCategorical(; p = m.prior.p)
-  )
-end
-
-function DFG.unpackDistribution(pm::PackedMixture)
+function DFG.unpack(pm::PackedMixture)
   Mixture(
-    map(unpackDistribution, pm.components),
-    unpackDistribution(pm.prior)
+    map(unpack, pm.components),
+    pm.prior
   )
 end

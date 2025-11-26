@@ -66,7 +66,7 @@ x1b = getVariable(fg2, :x0)
 
 initAll!(fg2)
 
-@test compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:infoPerCoord;:ppeDict;:solvedCount])
+@test compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:observability;:solves])
 # fg2 has been solved, so it should fail on the estimate dictionary
 @test !compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:infoPerCoord])
 

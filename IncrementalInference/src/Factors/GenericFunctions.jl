@@ -238,7 +238,7 @@ function convert(
 )
   #
 
-  varT = DFG.typeModuleName(getStateKind(obj.M))
+  varT = typeModuleName(getStateKind(obj.M))
 
   c = AMP.makeCoordsFromPoint(obj.M, obj.p)
 
@@ -255,7 +255,7 @@ function convert(
   #
 
   # piggy back on serialization of StateType rather than try serialize anything Manifolds.jl
-  M = DFG.getTypeFromSerializationModule(obj.varType) |> getManifold
+  M = getTypeFromSerializationModule(obj.varType) |> getManifold
 
   # TODO this is too excessive
   e0 = getPointIdentity(M)

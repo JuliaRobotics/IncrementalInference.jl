@@ -1,16 +1,16 @@
 # prior factor that passes a density belief straight through to inference without resampling
 
-export PartialPriorPassThrough, PackedPartialPriorPassThrough
+export PartialPriorPassThrough#, PackedPartialPriorPassThrough
 
-struct PartialPriorPassThrough{
+DFG.@tags struct PartialPriorPassThrough{
   B <: Union{<:HeatmapGridDensity, <:LevelSetGridNormal},
   T <: Tuple,
 } <: AbstractPriorObservation
-  Z::B
-  partial::T
+  Z::B & (lower = DFG.Packed, choosetype = DFG.resolvePackedType)
+  partial::T & (choosetype = x->NTuple{length(x), Int},)
 end
 
-getManifold(pppt::PartialPriorPassThrough) = getManifold(pppt.Z)
+DFG.getManifold(pppt::PartialPriorPassThrough) = getManifold(pppt.Z)
 
 # this step is skipped during main inference process
 function getSample(cf::CalcFactor{<:PartialPriorPassThrough})
@@ -22,39 +22,34 @@ end
 ## Serialize PartialPriorPassThrough
 ## ====================================================================================================
 
-"""
-    $TYPEDEF
+# """
+#     $TYPEDEF
 
-Required internal density to store its type
-"""
-Base.@kwdef mutable struct PackedPartialPriorPassThrough <: AbstractPackedObservation
-  Z::PackedBelief # PackedHeatmapGridDensity
-  partial::Vector{Int}
-end
+# Required internal density to store its type
+# """
+# Base.@kwdef mutable struct PackedPartialPriorPassThrough <: AbstractPackedObservation
+#   Z::PackedBelief # PackedHeatmapGridDensity
+#   partial::Vector{Int}
+# end
 
-# StructTypes.StructType(::Type{PackedPartialPriorPassThrough}) = StructTypes.UnorderedStruct()
-# StructTypes.idproperty(::Type{PackedPartialPriorPassThrough}) = :id
-# StructTypes.omitempties(::Type{PackedPartialPriorPassThrough}) = (:id,)
+# function convert(
+#   ::Union{Type{<:AbstractPackedObservation}, Type{<:PackedPartialPriorPassThrough}},
+#   obj::PartialPriorPassThrough,
+# )
+#   #
 
+#   po = convert(PackedBelief, obj.Z)
+#   return PackedPartialPriorPassThrough(po, Int[obj.partial...])
+# end
 
-function convert(
-  ::Union{Type{<:AbstractPackedObservation}, Type{<:PackedPartialPriorPassThrough}},
-  obj::PartialPriorPassThrough,
-)
-  #
+# function convert(
+#   ::Union{Type{<:AbstractObservation}, Type{<:PartialPriorPassThrough}},
+#   obj::PackedPartialPriorPassThrough,
+# )
+#   #
 
-  po = convert(PackedBelief, obj.Z)
-  return PackedPartialPriorPassThrough(po, Int[obj.partial...])
-end
-
-function convert(
-  ::Union{Type{<:AbstractObservation}, Type{<:PartialPriorPassThrough}},
-  obj::PackedPartialPriorPassThrough,
-)
-  #
-
-  dens = convert(SamplableBelief, obj.Z)
-  return PartialPriorPassThrough(dens, tuple(obj.partial...))
-end
+#   dens = convert(SamplableBelief, obj.Z)
+#   return PartialPriorPassThrough(dens, tuple(obj.partial...))
+# end
 
 #

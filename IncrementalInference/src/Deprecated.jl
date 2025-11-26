@@ -1,3 +1,51 @@
+
+# moved here from DistributedFactorGraphs.jl, replace with new way.
+function typeModuleName(variableType::StateType)
+    Base.depwarn("typeModuleName is obsolete", :typeModuleName)
+    io = IOBuffer()
+    ioc = IOContext(io, :module => DistributedFactorGraphs)
+    show(ioc, typeof(variableType))
+    return String(take!(io))
+end
+
+"""
+    $(SIGNATURES)
+Get a type from the serialization module.
+"""
+function getTypeFromSerializationModule(_typeString::AbstractString)
+    @debug "DFG converting type string to Julia type" _typeString
+    try
+        # split the type at last `.`
+        split_st = split(_typeString, r"\.(?!.*\.)")
+        #if module is specified look for the module in main, otherwise use Main        
+        if length(split_st) == 2
+            m = getfield(Main, Symbol(split_st[1]))
+        else
+            m = Main
+        end
+        noparams = split(split_st[end], r"{")
+        ret = if 1 < length(noparams)
+            # fix #671, but does not work with specific module yet
+            bidx = findfirst(r"{", split_st[end])[1]
+            @error("getTypeFromSerializationModule eval obsolete")
+            Core.eval(m, Base.Meta.parse("$(noparams[1])$(split_st[end][bidx:end])"))
+        else
+            getfield(m, Symbol(split_st[end]))
+        end
+
+        return ret
+
+    catch ex
+        @error "Unable to deserialize type $(_typeString)"
+        io = IOBuffer()
+        showerror(io, ex, catch_backtrace())
+        err = String(take!(io))
+        @error(err)
+    end
+    return nothing
+end
+
+
 ## ================================================================================================
 ## Deprecated in v0.36
 ## ================================================================================================

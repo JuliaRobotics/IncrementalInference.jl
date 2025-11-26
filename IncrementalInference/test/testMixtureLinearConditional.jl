@@ -89,27 +89,10 @@ f0 = addFactor!(fg, [:x0;], mp)
 mr = Mixture(LinearRelative, (fancy=manikde!(ContinuousEuclid(1), [randn(1) for _ in 1:75]), naive=Normal(0,10)), [0.4;0.6])
 f1 = addFactor!(fg, [:x0;:x1], mr)
 
-##
+saveDFG("/tmp/mixture", fg)
+fg_ = loadDFG("/tmp/mixture")
 
-pf0 = DFG.packFactor(f0)
-pf1 = DFG.packFactor(f1)
-
-# now test unpacking
-fg_ = initfg();
-addVariable!(fg_, :x0, ContinuousScalar)
-addVariable!(fg_, :x1, ContinuousScalar)
-
-##
-
-f0_ = DFG.unpackFactor(pf0)
-f1_ = DFG.unpackFactor(pf1)
-
-addFactor!(fg_, f0_)
-addFactor!(fg_, f1_)
-rebuildFactorCache!(fg_, f0_)
-rebuildFactorCache!(fg_, f1_)
-##
-
+f1_ = getFactor(fg_, getLabel(f1))
 # ENV["JULIA_DEBUG"] = "DistributedFactorGraphs"
 @warn("Skipping pack/unpack compareFactor test for `timezone` and `zone`")
 @show typeof(f1)
@@ -118,7 +101,7 @@ rebuildFactorCache!(fg_, f1_)
 @show typeof(DFG.getCache(f1).varValsAll[]);
 @show typeof(DFG.getCache(f1_).varValsAll[]);
 
-@test DFG.compareFactor(f1, f1_, skip=[:Z;:components;:labels;:timezone;:zone;:vartypes;:fullvariables;:particleidx;:varidx])
+@test DFG.compareFactor(f1, f1_, skip=[:Z;:components;:labels;:atzone;:inzone;:vartypes;:fullvariables;:particleidx;:varidx])
 
 @test IIF._getCCW(f1).usrfnc!.Z.components.naive == IIF._getCCW(f1).usrfnc!.Z.components.naive
 

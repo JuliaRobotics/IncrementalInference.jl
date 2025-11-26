@@ -114,7 +114,7 @@ import DistributedFactorGraphs: getStateKind
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 import DistributedFactorGraphs: getObservation
 import DistributedFactorGraphs: solveGraph!, solveGraphParametric!
-import DistributedFactorGraphs: packDistribution, unpackDistribution
+import DistributedFactorGraphs: pack, unpack
 
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable

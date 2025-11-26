@@ -8,6 +8,7 @@ using LieGroups
 using LieGroups: TranslationGroup
 import IncrementalInference: LevelSetGridNormal
 import Rotations as _Rot
+using DistributedFactorGraphs.JSON
 
 ## define new local variable types for testing
 
@@ -385,17 +386,21 @@ pthru = PartialPriorPassThrough(hmd, (1,2))
 
 ## quick 
 
-pf = convert( AbstractPackedObservation, pthru )
-upf = convert( AbstractObservation, pf )
+# pf = convert( AbstractPackedObservation, pthru )
+# upf = convert( AbstractObservation, pf )
 
-@test pthru.partial == upf.partial
-@test isapprox( pthru.Z.heatmap.data, upf.Z.heatmap.data )
-@test isapprox( pthru.Z.heatmap.domain[1], upf.Z.heatmap.domain[1] )
-@test isapprox( pthru.Z.heatmap.domain[2], upf.Z.heatmap.domain[2] )
-@test isapprox( pthru.Z.level, upf.Z.level )
-@test isapprox( pthru.Z.sigma, upf.Z.sigma )
-@test isapprox( pthru.Z.sigma_scale, upf.Z.sigma_scale )
+# @test pthru.partial == upf.partial
+# @test isapprox( pthru.Z.heatmap.data, upf.Z.heatmap.data )
+# @test isapprox( pthru.Z.heatmap.domain[1], upf.Z.heatmap.domain[1] )
+# @test isapprox( pthru.Z.heatmap.domain[2], upf.Z.heatmap.domain[2] )
+# @test isapprox( pthru.Z.level, upf.Z.level )
+# @test isapprox( pthru.Z.sigma, upf.Z.sigma )
+# @test isapprox( pthru.Z.sigma_scale, upf.Z.sigma_scale )
 
+fac_in = FactorDFG([:x0], pthru)
+jstr = JSON.json(fac_in; style = DFG.DFGJSONStyle())
+fac_out = JSON.parse(jstr, FactorDFG; style = DFG.DFGJSONStyle())
+@test fac_in == fac_out
 
 ## test without nullhyp
 
@@ -475,12 +480,12 @@ solveGraph!(fg);
 
 
 ## check saveDFG (check consistency of packing converters above)
-
 @error "Whats going on in PackedManifoldPrior, skipping tests"
 @test_broken begin
     saveDFG(joinpath(tempdir(),"passthru"), fg)
     fg_ = loadDFG(joinpath(tempdir(),"passthru.tar.gz"))
     Base.rm(joinpath(tempdir(),"passthru.tar.gz"))
+    true
 end
 
 # @error "#FIXME test propagateBelief w HeatmapSampler ... broken on ci but not local"

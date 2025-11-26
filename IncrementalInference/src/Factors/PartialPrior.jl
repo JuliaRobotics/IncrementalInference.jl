@@ -35,10 +35,10 @@ Base.@kwdef struct PackedPartialPrior <: AbstractPackedObservation
 end
 
 function convert(::Type{PackedPartialPrior}, d::PartialPrior)
-  return PackedPartialPrior(DFG.typeModuleName(d.varType), convert(PackedBelief, d.Z), [d.partial...;])
+  return PackedPartialPrior(typeModuleName(d.varType), convert(PackedBelief, d.Z), [d.partial...;])
   # return PackedPartialPrior(convert(PackedBelief, d.Z), [d.partial...;])
 end
 function convert(::Type{PartialPrior}, d::PackedPartialPrior)
-  return PartialPrior(DFG.getTypeFromSerializationModule(d.varType), convert(SamplableBelief, d.Z),(d.partials...,))
+  return PartialPrior(getTypeFromSerializationModule(d.varType), convert(SamplableBelief, d.Z),(d.partials...,))
   # return PartialPrior(convert(SamplableBelief, d.Z), (d.partials...,))
 end

@@ -29,7 +29,7 @@ function solveFactorParametric(
 ) where {P}
   #
 
-  varLbls = getVariableOrder(fct)
+  varLbls = collect(getVariableOrder(fct))
   varTypes = tuple((getStateKind.(dfg, varLbls))...)
   sfidx = findfirst(varLbls .== trgsym)
 

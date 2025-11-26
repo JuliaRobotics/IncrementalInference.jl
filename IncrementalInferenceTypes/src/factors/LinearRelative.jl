@@ -8,26 +8,29 @@ Default linear offset between two scalar variables.
 X_2 = X_1 + η_Z
 ```
 """
-struct LinearRelative{T} <: RelativeObservation
-  Z::T
-end
+# @tags struct LinearRelative{T} <: RelativeObservation
+#   Z::T & (lower = DFG.Packed, choosetype = DFG.resolvePackedType)
+# end
 
-DFG.getManifold(obs::LinearRelative) = LieGroups.TranslationGroup(getDimension(obs.Z))
+#TODO
+DFG.@defObservationType LinearRelative RelativeObservation obs->IncrementalInferenceTypes.TranslationGroup(getDimension(obs.Z))
 
-"""
-$(TYPEDEF)
-Serialization type for `LinearRelative` binary factor.
-"""
-Base.@kwdef mutable struct PackedLinearRelative <: AbstractPackedObservation
-  Z::PackedBelief
-end
+# DFG.getManifold(obs::LinearRelative) = LieGroups.TranslationGroup(getDimension(obs.Z))
 
-function DFG.pack(d::LinearRelative)
-  return PackedLinearRelative(DFG.packDistribution(d.Z))
-end
+# """
+# $(TYPEDEF)
+# Serialization type for `LinearRelative` binary factor.
+# """
+# Base.@kwdef mutable struct PackedLinearRelative <: AbstractPackedObservation
+#   Z::PackedBelief
+# end
 
-function DFG.unpack(d::PackedLinearRelative)
-  return LinearRelative(DFG.unpackDistribution(d.Z))
-end
+# function DFG.pack(d::LinearRelative)
+#   return PackedLinearRelative(DFG.pack(d.Z))
+# end
+
+# function DFG.unpack(d::PackedLinearRelative)
+#   return LinearRelative(DFG.unpack(d.Z))
+# end
 
 #
