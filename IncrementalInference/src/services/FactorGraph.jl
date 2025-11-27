@@ -558,10 +558,6 @@ $(SIGNATURES)
 
 Add a variable node `label::Symbol` to `dfg::AbstractDFG`, as `varType<:StateType`.
 
-Notes
------
-- keyword `nanosecondtime` is experimental and intended as the whole subsection portion -- i.e. accurateTime = (timestamp MOD second) + Nanosecond
-
 Example
 -------
 
@@ -577,14 +573,21 @@ function addVariable!(
   N::Int = getSolverParams(dfg).N,
   solvable::Int = 1,
   timestamp::Union{DateTime, ZonedDateTime} = now(localzone()),
-  nanosecondtime::Union{Nanosecond, Int64, Nothing} = Nanosecond(0),
+  nanosecondtime = nothing,
   # dontmargin::Bool = false,
   tags::Vector{Symbol} = Symbol[],
   smalldata = Dict{Symbol, DFG.MetadataTypes}(),
   checkduplicates::Bool = true,
   initsolvekeys::Vector{Symbol} = getSolverParams(dfg).algorithms,
 ) where {T <: StateType}
-  #
+  
+  if !isnothing(nanosecondtime)
+    Base.depwarn(
+      "nanosecondtime kwarg is deprecated, use `timestamp` instead",
+      :addVariable!,
+    )
+  end
+
   varType = _variableType(varTypeU)
 
   _zonedtime(s::DateTime) = ZonedDateTime(s, localzone())
@@ -598,7 +601,6 @@ function addVariable!(
     bloblets = smalldata,
     solvable = solvable,
     timestamp = _zonedtime(timestamp),
-    steadytime = Nanosecond(nanosecondtime),
   )
 
   (:default in initsolvekeys) && setDefaultNodeData!(
