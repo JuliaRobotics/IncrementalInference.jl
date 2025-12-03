@@ -41,11 +41,11 @@ IIF.setDefaultNodeData!(getVariable(fg, :b), 0, 100; solveKey=:testSolveKey,
 #
 
 
-@test !(:default in listSolveKeys(getVariable(fg, :a)))
-@test !(:default in listSolveKeys(getVariable(fg, :b)))
+@test !(:default in listStates(getVariable(fg, :a)))
+@test !(:default in listStates(getVariable(fg, :b)))
 
-@test (:testSolveKey in listSolveKeys(getVariable(fg, :a)))
-@test (:testSolveKey in listSolveKeys(getVariable(fg, :b)))
+@test (:testSolveKey in listStates(getVariable(fg, :a)))
+@test (:testSolveKey in listStates(getVariable(fg, :b)))
 
 
 ##
@@ -56,11 +56,11 @@ doautoinit!(fg, :b, solveKey=:testSolveKey)
 ##
 
 
-@test !(:default in listSolveKeys(getVariable(fg, :a)))
-@test !(:default in listSolveKeys(getVariable(fg, :b)))
+@test !(:default in listStates(getVariable(fg, :a)))
+@test !(:default in listStates(getVariable(fg, :b)))
 
-@test (:testSolveKey in listSolveKeys(getVariable(fg, :a)))
-@test (:testSolveKey in listSolveKeys(getVariable(fg, :b)))
+@test (:testSolveKey in listStates(getVariable(fg, :a)))
+@test (:testSolveKey in listStates(getVariable(fg, :b)))
 
 end
 

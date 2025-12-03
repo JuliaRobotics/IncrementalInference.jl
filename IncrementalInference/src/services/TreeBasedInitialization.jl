@@ -110,7 +110,7 @@ function _isInitializedOrInitSolveKey(
   N::Int = 100,
 )
   # TODO, this solveKey existence test should probably be removed?
-  if !(solveKey in listSolveKeys(var))
+  if !(solveKey in listStates(var))
     varType = getStateKind(var)
     setDefaultNodeData!(
       var,

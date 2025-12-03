@@ -28,7 +28,7 @@ function makeSolverData!(
   for vl in varList
     v = getVariable(dfg,vl)
     varType = getStateKind(v) |> IIF._variableType
-    vsolveKeys = listSolveKeys(dfg,vl)
+    vsolveKeys = listStates(dfg,vl)
     if solveKey != :parametric && !(solveKey in vsolveKeys)
         IIF.setDefaultNodeData!(v, 0, getSolverParams(dfg).N; initialized=false, varType, solveKey) # dodims
         count += 1
@@ -292,7 +292,7 @@ function initVariable!(
 )
   #
   @debug "initVariable! $(getLabel(variable))"
-  if !(solveKey in listSolveKeys(variable))
+  if !(solveKey in listStates(variable))
     @debug "$(getLabel(variable)) needs new VND solveKey=$(solveKey)"
     varType = getStateKind(variable)
     setDefaultNodeData!(
@@ -512,7 +512,7 @@ function initAll!(
     vari = getVariable(dfg, sym)
     varType = DFG.getStateKind(vari)
     # does SolverData exist for this solveKey?
-    vsolveKeys = listSolveKeys(vari)
+    vsolveKeys = listStates(vari)
     # FIXME, likely some consolidation needed with #1637
     if !_parametricInit && !(solveKey in vsolveKeys)  
       # accept complete defaults for a novel solveKey

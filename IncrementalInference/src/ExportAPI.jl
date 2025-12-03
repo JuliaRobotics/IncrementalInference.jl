@@ -109,14 +109,6 @@ export CSMHistory,
   deepcopyGraph,
   deepcopyGraph!,
   copyGraph!,
-  getSolverData,
-  getTags,
-
-  # using either dictionary or cloudgraphs
-  normalfromstring,
-  categoricalfromstring,
-  # extractdistribution,
-
   SolverParams,
   getSolvable,
   setSolvable!,

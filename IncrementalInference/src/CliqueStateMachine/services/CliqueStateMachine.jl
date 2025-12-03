@@ -170,7 +170,7 @@ function presolveChecklist_StateMachine(csmc::CliqStateMachineContainer)
 
   # check if solveKey is available in all variables?
   for var in getVariable.(csmc.cliqSubFg, ls(csmc.cliqSubFg))
-    if !(csmc.solveKey in listSolveKeys(var))
+    if !(csmc.solveKey in listStates(var))
       logCSM(
         csmc,
         "CSM-0b create empty data for $(getLabel(var)) on solveKey=$(csmc.solveKey)",
@@ -188,7 +188,7 @@ function presolveChecklist_StateMachine(csmc::CliqStateMachineContainer)
       )
       #
       @info "create vnd solveKey" csmc.solveKey N
-      @info "also" listSolveKeys(var)
+      @info "also" listStates(var)
     end
   end
 

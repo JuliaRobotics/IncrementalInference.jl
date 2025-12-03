@@ -21,7 +21,7 @@ function shrinkFactorGraph(fg; upto::Int = 6)
   delVars = filter(x -> isSolvable(getVariable(fgs, x)) == 0, ls(fgs))
   todel = setdiff(lsf(fgs; solvable = 0), lsf(fgs; solvable = 1))
   delFcts = intersect(lsf(fgs), todel)
-  allMags = filter(x -> :MAGNETOMETER in getTags(getFactor(fgs, x)), lsfPriors(fgs))
+  allMags = filter(x -> :MAGNETOMETER in listTags(getFactor(fgs, x)), lsfPriors(fgs))
   union!(delFcts, filter(x -> length(ls(fgs, x)) == 0, allMags))
 
   union!(delVars, (ls(fgs, r"x\d") |> sortDFG)[upto:end])
@@ -176,7 +176,7 @@ function mmdSolveKey(
 end
 
 # vari = getVariable(fg, :x1)
-# kys = filter(x->!(x in [:graphinit;:default]), listSolveKeys(fg) |> collect |>sortDFG)
+# kys = filter(x->!(x in [:graphinit;:default]), listStates(fg) |> collect |>sortDFG)
 # X1_dist_0 = kys .|> x->mmdSolveKey(vari, :default_0, x)
 
 # kyD = [(kys[i],kys[i+1]) for i in 1:length(kys)-1]

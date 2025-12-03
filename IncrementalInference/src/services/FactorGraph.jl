@@ -228,7 +228,7 @@ function setValKDE!(
   solveKey::Symbol = :default,
 )
   #
-  # @error("TESTING setValKDE! ", solveKey, string(listSolveKeys(v)))
+  # @error("TESTING setValKDE! ", solveKey, string(listStates(v)))
   setValKDE!(getState(v, solveKey), mkd, setinit, Float64.(ipc))
   return nothing
 end
