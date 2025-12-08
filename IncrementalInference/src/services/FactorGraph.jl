@@ -566,41 +566,47 @@ fg = initfg()
 addVariable!(fg, :x0, Pose2)
 ```
 """
-function addVariable!(
+function DFG.addVariable!(
   dfg::AbstractDFG,
   label::Symbol,
-  varTypeU::Union{T, Type{T}};
-  N::Int = getSolverParams(dfg).N,
+  statetype::Union{T, Type{T}};
+  tags::Union{Set{Symbol}, Vector{Symbol}} = Set{Symbol}(),
+  timestamp::Union{TimeDateZone, ZonedDateTime}  = DFG.now_tdz(),
   solvable::Int = 1,
-  timestamp::Union{DateTime, ZonedDateTime} = now(localzone()),
-  nanosecondtime = nothing,
-  # dontmargin::Bool = false,
-  tags::Vector{Symbol} = Symbol[],
-  smalldata = Dict{Symbol, DFG.MetadataTypes}(),
+  # IIF extras
+  N::Int = getSolverParams(dfg).N,
   checkduplicates::Bool = true,
+  # dontmargin::Bool = false,
   initsolvekeys::Vector{Symbol} = getSolverParams(dfg).algorithms,
+
+  #deprecated v0.37
+  smalldata = nothing,
+  nanosecondtime = nothing,
+
+  # default DFG
+  bloblets = DFG.Bloblets(),
+  blobentries = DFG.Blobentries(),
+  kwargs...,  
 ) where {T <: StateType}
   
   if !isnothing(nanosecondtime)
-    Base.depwarn(
-      "nanosecondtime kwarg is deprecated, use `timestamp` instead",
-      :addVariable!,
-    )
+    error("nanosecondtime kwarg is deprecated, use `timestamp` instead")
   end
 
-  varType = _variableType(varTypeU)
+  if !isnothing(smalldata)
+    error("smalldata kwarg is deprecated, use `bloblets` instead")
+  end
 
-  _zonedtime(s::DateTime) = ZonedDateTime(s, localzone())
-  _zonedtime(s::ZonedDateTime) = s 
-
-  union!(tags, [:VARIABLE])
-  v = VariableCompute(
+  tags = union(Set(tags), [:VARIABLE])
+  v = VariableDFG(
     label,
-    varType;
-    tags = Set(tags),
-    bloblets = smalldata,
-    solvable = solvable,
-    timestamp = _zonedtime(timestamp),
+    statetype;
+    tags,
+    bloblets,
+    blobentries,
+    solvable,
+    timestamp,
+    kwargs...,
   )
 
   (:default in initsolvekeys) && setDefaultNodeData!(
@@ -608,19 +614,19 @@ function addVariable!(
     0,
     N;
     initialized = false,
-    varType = varType,
+    varType = T(),
     # dontmargin = dontmargin,
   ) # dodims
 
   (:parametric in initsolvekeys) &&
     setDefaultNodeDataParametric!(
       v,
-      varType;
+      T();
       initialized = false,
       # dontmargin = dontmargin
     )
 
-  return DFG.addVariable!(dfg, v)
+  return addVariable!(dfg, v)
 end
 
 function parseusermultihypo(multihypo::Nothing, nullhypo::Float64)

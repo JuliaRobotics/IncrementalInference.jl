@@ -11,7 +11,7 @@ X_2 = X_1 + η_Z
 ```
 """
 DFG.@tags struct LinearRelative{N, T <: SamplableBelief} <: RelativeObservation 
-  Z::T & (lower = DFG.Packed, choosetype = DFG.resolvePackedType)
+  Z::T & DFG.@packed
 end
 
 # need several helper constructors since the dimension over which LinearRelative will be used is unknown at this point

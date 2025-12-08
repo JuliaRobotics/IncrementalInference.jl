@@ -9,7 +9,7 @@ X_2 = X_1 + η_Z
 ```
 """
 # @tags struct LinearRelative{T} <: RelativeObservation
-#   Z::T & (lower = DFG.Packed, choosetype = DFG.resolvePackedType)
+#   Z::T & DFG.@packed
 # end
 
 #TODO

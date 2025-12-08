@@ -29,7 +29,7 @@ export AbstractDFG,
   addBlob!,
   getData,
   VariableCompute,
-  DFGVariableSummary,
+  VariableSummary,
   FactorCompute,
   DFGFactorSummary,
   deleteVariableSolverData!

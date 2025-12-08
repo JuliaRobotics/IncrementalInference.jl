@@ -56,7 +56,7 @@ end
 
 DFG.@tags struct PackedMixture
   components::NamedTuple & (choosetype = obj->NamedTuple{Tuple(Symbol.(keys(obj))), Tuple{DFG.resolveType.(values(obj))...}}, )
-  prior & (lower = DFG.Packed, choosetype = DFG.resolvePackedType)
+  prior & DFG.@packed
 end
 
 function DFG.pack(m::Mixture)

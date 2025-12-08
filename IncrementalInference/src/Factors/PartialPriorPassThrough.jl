@@ -6,7 +6,7 @@ DFG.@tags struct PartialPriorPassThrough{
   B <: Union{<:HeatmapGridDensity, <:LevelSetGridNormal},
   T <: Tuple,
 } <: AbstractPriorObservation
-  Z::B & (lower = DFG.Packed, choosetype = DFG.resolvePackedType)
+  Z::B & DFG.@packed
   partial::T & (choosetype = x->NTuple{length(x), Int},)
 end
 
