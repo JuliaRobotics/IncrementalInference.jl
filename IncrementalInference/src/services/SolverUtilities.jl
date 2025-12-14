@@ -198,7 +198,7 @@ end
 Check if a variable might already be located at the test location, by means of a (default) `refKey=:simulated` PPE stored in the existing variables.
 
 Notes
-- Checks, using provided `factor` from `srcLabel` in `fg` to an assumed `dest` variable whcih may or may not yet exist.
+- Checks, using provided `factor` from `srcLabel` in `fg` to an assumed `dest` variable which may or may not yet exist.
 - This function was written to aid in building simulation code, 
   - it's use in real world usage may have unexpected behaviour -- hence not exported.
 - Return `::Tuple{Bool, Vector{Float64}, Symbol}`, eg. already exists `(true, [refVal], :l17)`, or if a refernce variable does not yet `(false, [refVal], :l28)`.
