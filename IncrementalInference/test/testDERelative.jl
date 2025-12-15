@@ -7,6 +7,7 @@ using IncrementalInference
 using Dates
 using Statistics
 using TensorCast
+using DistributedFactorGraphs: @tz_str
 
 ## plotting functions
 
@@ -38,7 +39,7 @@ tstForce(t) = 0
 fg = initfg()
 # the starting points and "0 seconds"
 # `accurate_time = trunc(getDatetime(var), Second) + (1e-9*getNstime(var) % 1)`
-addVariable!(fg, :x0, Position{1}, timestamp=DateTime(2000,1,1,0,0,0)) 
+addVariable!(fg, :x0, Position{1}, timestamp=DFG.Timestamp(DateTime(2000,1,1,0,0,0), tz"UTC")) 
 # pin with a simple prior
 addFactor!(fg, [:x0], Prior(Normal(1,0.01)))
 
@@ -51,7 +52,7 @@ for i in 1:3
   nextSym = Symbol("x$i")
 
   # another point in the trajectory 5 seconds later
-  addVariable!(fg, nextSym, Position{1}, timestamp=DateTime(2000,1,1,0,0,5*i))
+  addVariable!(fg, nextSym, Position{1}, timestamp=DFG.Timestamp(DateTime(2000,1,1,0,0,5*i), tz"UTC"))
   # build factor against manifold Manifolds.TranslationGroup(1)
   ode_fac = IIF.DERelative(
     fg, [prev; nextSym],
@@ -311,7 +312,7 @@ tstForce(t) = 0
 fg = initfg()
 
 # the starting points and "0 seconds"
-addVariable!(fg, :x0, Position{2}, timestamp=DateTime(2000,1,1,0,0,0))
+addVariable!(fg, :x0, Position{2}, timestamp=DFG.Timestamp(DateTime(2000,1,1,0,0,0), tz"UTC"))
 # pin with a simple prior
 addFactor!(fg, [:x0], Prior(MvNormal([1;0],0.01*diagm(ones(2)))))
 
@@ -326,7 +327,7 @@ for i in 1:7
   nextSym = Symbol("x$i")
 
   # another point in the trajectory 5 seconds later
-  addVariable!(fg, nextSym, Position{2}, timestamp=DateTime(2000,1,1,0,0,DT*i))
+  addVariable!(fg, nextSym, Position{2}, timestamp=DFG.Timestamp(DateTime(2000,1,1,0,0,DT*i), tz"UTC"))
   oder = DERelative( fg, [prev; nextSym], 
                       Position{2}, 
                       dampedOscillator!,
@@ -508,7 +509,7 @@ tstForce(t) = 0
 fg = initfg()
 
 # the starting points and "0 seconds"
-addVariable!(fg, :x0, Position{2}, timestamp=DateTime(2000,1,1,0,0,0))
+addVariable!(fg, :x0, Position{2}, timestamp=DFG.Timestamp(DateTime(2000,1,1,0,0,0), tz"UTC"))
 # pin with a simple prior
 addFactor!(fg, [:x0], Prior(MvNormal([1;0],0.01*diagm(ones(2)))))
 doautoinit!(fg, :x0)
@@ -534,7 +535,7 @@ for i in 1:7
   nextSym = Symbol("x$i")
 
   # another point in the trajectory 5 seconds later
-  addVariable!(fg, nextSym, Position{2}, timestamp=DateTime(2000,1,1,0,0,DT*i))
+  addVariable!(fg, nextSym, Position{2}, timestamp=DFG.Timestamp(DateTime(2000,1,1,0,0,DT*i), tz"UTC"))
   oder = DERelative( fg, [prev; nextSym; :ωβ], 
                       Position{2}, 
                       dampedOscillatorParametrized!,
