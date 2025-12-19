@@ -618,7 +618,7 @@ function deleteMsgFactors!(
   tags::Vector{Symbol} = [:__LIKELIHOODMESSAGE__],
 )
   # remove msg factors that were added to the subfg
-  facs = lsf(subfg; tags = tags)
+  facs = lsf(subfg; tagsFilter = !isdisjoint(tags))
   deleteFactor!.(subfg, facs)
   return facs
 end
