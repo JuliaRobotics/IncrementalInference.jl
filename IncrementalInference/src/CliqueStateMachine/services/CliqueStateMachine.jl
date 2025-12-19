@@ -287,7 +287,7 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   logCSM(
     csmc,
     "CSM-2a messages for up";
-    upmsg = lsf(csmc.cliqSubFg; tags = [:__LIKELIHOODMESSAGE__]),
+    upmsg = lsf(csmc.cliqSubFg; tagsFilter = ⊇([:__LIKELIHOODMESSAGE__])),
   )
 
   # store the cliqSubFg for later debugging
@@ -762,7 +762,7 @@ function tryDownInit_StateMachine(csmc::CliqStateMachineContainer)
   # structure for all up message densities computed during this initialization procedure.
   # XXX
   dwnkeys_ =
-    lsf(csmc.cliqSubFg; tags = [:__DOWNWARD_COMMON__;]) .|> x -> ls(csmc.cliqSubFg, x)[1]
+    lsf(csmc.cliqSubFg; tagsFilter = ⊇([:__DOWNWARD_COMMON__;])) .|> x -> ls(csmc.cliqSubFg, x)[1]
   initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwnkeys_)
   # initorder = getCliqVarInitOrderUp(csmc.tree, csmc.cliq)
 

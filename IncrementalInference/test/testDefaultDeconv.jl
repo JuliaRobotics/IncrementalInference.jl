@@ -108,7 +108,7 @@ addLikelihoodsDifferential!.(tfg, values(msg))
 @show ls(tfg)
 @test issetequal(ls(tfg), [:x2,:x4,:x6])
 @test lsf(tfg) |> length == 2
-@test lsf(tfg, tags=[:__UPWARD_DIFFERENTIAL__]) |> length == 2
+@test lsf(tfg, tagsFilter = ⊇([:__UPWARD_DIFFERENTIAL__])) |> length == 2
 
 ##
 

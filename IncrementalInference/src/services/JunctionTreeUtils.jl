@@ -778,7 +778,7 @@ function buildTreeFromOrdering!(
   # copy required for both remote and local graphs
   DFG.deepcopyGraph!(fge, dfg)
 
-  println("Building Bayes net...")
+  @info "Building Bayes net..."
   buildBayesNet!(fge, elimOrder; solvable = solvable)
 
   tree = BayesTree()
@@ -793,7 +793,7 @@ function buildTreeFromOrdering!(
     close(fid)
   end
 
-  println("Find potential functions for each clique")
+  @info "Find potential functions for each clique"
   for cliqIds in getCliqueIds(tree)
     # start at the root, of which there could be multiple disconnected trees
     if isRoot(tree, cliqIds)
@@ -999,7 +999,7 @@ function getCliqFactorsFromFrontals(
     for fctid in ls(fgl, frsym)
       fct = getFactor(fgl, fctid)
       if !unused || !fct.state.potentialused
-        loutn = ls(fgl, fctid; solvable = solvable)
+        loutn = listNeighbors(fgl, fctid; solvableFilter = >=(solvable))
         # deal with unary factors
         if length(loutn) == 1
           union!(usefcts, Symbol[Symbol(fct.label);])
@@ -1194,9 +1194,9 @@ function getCliqVarsWithFrontalNeighbors(
   union!(syms, Symbol.(cond))
 
   # TODO Can we trust factors are frontal connected?
-  ffcs = union(map(x -> ls(fgl, x; solvable = solvable), frtl)...)
+  ffcs = union(map(x -> listNeighbors(fgl, x; solvableFilter = >=(solvable)), frtl)...)
   # @show ffcs = getCliqueData(cliq).potentials
-  neig = union(map(x -> ls(fgl, x; solvable = solvable), ffcs)...)
+  neig = union(map(x -> listNeighbors(fgl, x; solvableFilter = >=(solvable)), ffcs)...)
   union!(syms, Symbol.(neig))
   return syms
 end
