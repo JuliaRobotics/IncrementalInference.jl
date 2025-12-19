@@ -120,14 +120,7 @@ function approxDeconv(
   ccw::CommonConvWrapper = _getCCW(fcto);
   N::Int = 100,
   measurement::AbstractVector = sampleFactor(ccw, N),
-  retries=nothing,
 )
-  if !isnothing(retries)
-    Base.depwarn(
-      "approxDeconv kwarg retries is not used",
-      :approxDeconv,
-    )
-  end
   # but what if this is a partial factor -- is that important for general cases in deconv?
   _setCCWDecisionDimsConv!(ccw, 0)
 
@@ -188,15 +181,12 @@ function approxDeconv(
   dfg::AbstractDFG,
   fctsym::Symbol,
   solveKey::Symbol = :default;
-  retries::Int = 3,
 )
-  #
-
   # which factor
   fct = getFactor(dfg, fctsym)
   pts = getPoints(getBelief(dfg, getVariableOrder(fct)[1], solveKey))
   N = length(pts)
-  pts = approxDeconv(fct; N = N, retries = retries)
+  pts = approxDeconv(fct; N = N)
   return pts
 end
 
@@ -206,10 +196,7 @@ function approxDeconv(
   factorType::AbstractRelativeObservation,
   solveKey::Symbol = :default;
   tfg::AbstractDFG = initfg(),
-  retries::Int = 3,
 )
-  #
-
   # build a local temporary graph copy containing the same values but user requested factor type.
   fct = getFactor(dfg, fctlbl)
   fctT = getObservation(fct)
@@ -223,7 +210,7 @@ function approxDeconv(
   f_ = addFactor!(tfg, lbls, factorType; graphinit = false)
 
   # peform the deconvolution operation on the temporary graph with user desired factor instead.
-  return approxDeconv(tfg, getLabel(f_); retries = retries)
+  return approxDeconv(tfg, getLabel(f_))
 end
 
 # try default constructor

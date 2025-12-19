@@ -43,7 +43,7 @@ function taskSolveTree!(
 
   approx_iters = getNumCliqs(treel) * 24
   solve_progressbar =
-    verbose ? nothing : ProgressUnknown("Solve Progress: approx max $approx_iters, at iter")
+    verbose ? nothing : ProgressUnknown(; desc = "Solve Progress: approx max $approx_iters, at iter")
 
   # queue all the tasks/threads
   if !isTreeSolved(treel; skipinitialized = true)
@@ -393,7 +393,10 @@ function solveTree!(
     allk = parse.(Int, ss_)
     nextk = length(allk) == 0 ? 0 : maximum(allk) + 1
     newKey = Symbol(:default_, nextk)
-    DFG.cloneSolveKey!(dfgl, newKey, :default; solvable = 1)
+    # DFG.cloneStates!(dfgl, newKey, :default; solvableFilter = >=(1))
+    for vlabel in ls(dfgl; solvableFilter = >=(1))
+        DFG.copytoState!(dfgl, vlabel, newKey, getState(dfgl, vlabel, :default))
+    end
     # foreach(x->updateVariableSolverData!(dfgl, x, getState(getVariable(dfgl,x), :default), newKey, true, Symbol[]), ls(dfgl, solvable=1))
     @info "storeOld=true, previous :default deepcopied into $newKey for solvable==1 variables."
   end

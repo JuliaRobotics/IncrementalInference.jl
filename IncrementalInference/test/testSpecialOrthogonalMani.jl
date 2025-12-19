@@ -29,7 +29,7 @@ fg = initfg()
 
 v0 = addVariable!(fg, :x0, SpecialOrthogonal2)
 
-mp = ManifoldPrior(SpecialOrthogonalGroup(2), SA[1.0 0.0; 0.0 1.0], MvNormal([0.01]))
+mp = ManifoldPrior(SpecialOrthogonalGroup(2), SA[1.0 0.0; 0.0 1.0], MvNormal([0.0001;;]))
 p = addFactor!(fg, [:x0], mp)
 
 ##
@@ -44,7 +44,7 @@ vnd = getState(fg, :x0, :default)
 ##
 
 v1 = addVariable!(fg, :x1, SpecialOrthogonal2)
-mf = ManifoldFactor(SpecialOrthogonalGroup(2), MvNormal([pi], [0.01]))
+mf = ManifoldFactor(SpecialOrthogonalGroup(2), MvNormal([pi], [0.0001;;]))
 f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
@@ -85,7 +85,7 @@ fg = initfg()
 
 v0 = addVariable!(fg, :x0, SO3)
 
-mp = ManifoldPrior(SpecialOrthogonalGroup(3), SA[1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0], MvNormal([0.01, 0.01, 0.01]))
+mp = ManifoldPrior(SpecialOrthogonalGroup(3), SA[1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0], MvNormal(diagm([0.01, 0.01, 0.01].^2)))
 p = addFactor!(fg, [:x0], mp)
 
 doautoinit!(fg, :x0)
@@ -101,7 +101,7 @@ std(_M, points .|> Matrix)
 ##
 
 v1 = addVariable!(fg, :x1, SO3)
-mf = ManifoldFactor(SpecialOrthogonalGroup(3), MvNormal([0.01,0.01,0.01], [0.01,0.01,0.01]))
+mf = ManifoldFactor(SpecialOrthogonalGroup(3), MvNormal([0.01,0.01,0.01], diagm([0.01,0.01,0.01].^2)))
 f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)

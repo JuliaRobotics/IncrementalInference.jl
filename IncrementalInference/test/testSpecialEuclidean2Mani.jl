@@ -85,7 +85,7 @@ vnd = getState(fg, :x0, :default)
 
 ##
 v1 = addVariable!(fg, :x1, SpecialEuclidean2)
-mf = ManifoldFactor(SE2, MvNormal(SA[1,2,pi/4], SA[0.01,0.01,0.01]))
+mf = ManifoldFactor(SE2, MvNormal(SA[1,2,pi/4], diagm(SA[0.01,0.01,0.01].^2)))
 f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
@@ -112,7 +112,7 @@ vnd = getState(fg, :x1, :default)
 @test all(is_point.(Ref(M), vnd.val))
 
 v1 = addVariable!(fg, :x2, SpecialEuclidean2)
-mf = ManifoldFactor(SE2, MvNormal(SA[1,2,pi/4], SA[0.01,0.01,0.01]))
+mf = ManifoldFactor(SE2, MvNormal(SA[1,2,pi/4], diagm(SA[0.01,0.01,0.01].^2)))
 f = addFactor!(fg, [:x1, :x2], mf)
 
 ##
@@ -135,7 +135,7 @@ vnd = getState(fg, :x2, :parametric)
 fg = initfg()
 
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
-mp = PartialPrior(SpecialEuclidean2,MvNormal([0.01, 0.01]), (1,2))
+mp = PartialPrior(SpecialEuclidean2,MvNormal(diagm([0.01, 0.01].^2)), (1,2))
 
 p = addFactor!(fg, [:x0], mp, graphinit=false)
 
@@ -183,7 +183,7 @@ fg = initfg()
 # fg.solverParams.graphinit = false
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 
-mp = ManifoldPrior(SE2, ArrayPartition(Vector([10.0,10.0]), Matrix([-1.0 0.0; 0.0 -1.0])), MvNormal([0.05, 0.05, 0.005]))
+mp = ManifoldPrior(SE2, ArrayPartition(Vector([10.0,10.0]), Matrix([-1.0 0.0; 0.0 -1.0])), MvNormal(diagm([0.05, 0.05, 0.005].^2)))
 p = addFactor!(fg, [:x0], mp)
 
 ##
