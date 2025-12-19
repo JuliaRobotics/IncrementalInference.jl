@@ -149,11 +149,11 @@ function buildBayesNet!(dfg::AbstractDFG, elimorder::Vector{Symbol}; solvable::I
     gm = FactorCompute[]
 
     vert = DFG.getVariable(dfg, v)
-    for fctId in listNeighbors(dfg, vert; solvable = solvable)
+    for fctId in listNeighbors(dfg, vert; solvableFilter = >=(solvable))
       fct = DFG.getFactor(dfg, fctId)
       if (fct.state.eliminated != true)
         push!(fi, fctId)
-        for sepNode in listNeighbors(dfg, fct; solvable = solvable)
+        for sepNode in listNeighbors(dfg, fct; solvableFilter = >=(solvable))
           # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
           if sepNode != v && !(sepNode in Si) # Symbol comparison!
             push!(Si, sepNode)

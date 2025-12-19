@@ -1194,9 +1194,9 @@ function getCliqVarsWithFrontalNeighbors(
   union!(syms, Symbol.(cond))
 
   # TODO Can we trust factors are frontal connected?
-  ffcs = union(map(x -> ls(fgl, x; solvable = solvable), frtl)...)
+  ffcs = union(map(x -> listNeighbors(fgl, x; solvableFilter = >=(solvable)), frtl)...)
   # @show ffcs = getCliqueData(cliq).potentials
-  neig = union(map(x -> ls(fgl, x; solvable = solvable), ffcs)...)
+  neig = union(map(x -> listNeighbors(fgl, x; solvableFilter = >=(solvable)), ffcs)...)
   union!(syms, Symbol.(neig))
   return syms
 end
