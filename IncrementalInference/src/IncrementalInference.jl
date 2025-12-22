@@ -124,8 +124,6 @@ import DistributedFactorGraphs: isSolvable
 
 # TODO using all interal functions of DFG as a transition step, remove true
 DFG.@usingDFG true
-# TODO remove these deprecated functions/types from DFG
-using DistributedFactorGraphs: AbstractRelativeMinimize, AbstractManifoldMinimize
 
 # must be moved to their own repos
 const KDE = KernelDensityEstimate
@@ -156,8 +154,9 @@ include("ExportAPI.jl")
 ## =============================
 # Source code
 
-# FIXME, move up to DFG
-# abstract type AbstractManifoldMinimize <: AbstractRelativeObservation end
+# TODO deprecate, moved here from DFG, replace with traits
+abstract type AbstractRelativeMinimize <: RelativeObservation end
+abstract type AbstractManifoldMinimize <: RelativeObservation end
 
 # regular
 

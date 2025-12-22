@@ -437,7 +437,7 @@ end
 Fetch and unpack JSON dictionary stored as a data blob.
 """
 function fetchDataJSON(dfg::AbstractDFG, varsym::Symbol, lbl::Symbol)
-  gde, rawData = getData(dfg, varsym, lbl)
+  gde, rawData = DFG.loadBlob_Variable(dfg, varsym, lbl)
   if gde.mimeType == "application/json/octet-stream"
     JSON3.read(IOBuffer(rawData))
   else

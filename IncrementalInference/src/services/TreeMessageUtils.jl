@@ -163,16 +163,12 @@ function _findSubgraphsFactorType(
     # search connectivity throughout remaining variables, some duplicate computation occurring
     for key2 in setdiff(keys(sepsCount), keys(subClassify))
       defaultFct = selectFactorType(dfg_, key1, key2)
-      # @show key1, key2, defaultFct
-      # TODO validate getfield Main here
-      # resname = defaultFct isa UnionAll ? getfield(Main, defaultFct.body.name |> Symbol) : defaultFct
-      resname =
-        defaultFct isa UnionAll ? getfield(Main, nameof(defaultFct.body)) : defaultFct
+
       pth = findShortestPathDijkstra(
         dfg_,
         key1,
         key2;
-        typeFactors = [resname;],
+        typeFilterFactors = x -> x <: defaultFct,
         initialized = true,
       )
       # check if connected to existing subClass
