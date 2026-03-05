@@ -40,6 +40,7 @@ Base.rm(d*".tar.gz")
 # check loaded fg for all variable and factors
 @test issetequal(ls(fg), ls(lfg))
 @test issetequal(lsf(fg), lsf(lfg))
+true
 end
 ##
 

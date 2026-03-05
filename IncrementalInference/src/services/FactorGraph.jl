@@ -59,7 +59,7 @@ function getVal(v::VariableCompute, idx::Int; solveKey::Symbol = :default)
   return DFG.refPoints(getState(v, solveKey))[idx]
 end
 getVal(vnd::State) = DFG.refPoints(vnd)
-getVal(vnd::State, idx::Int) = DFG.refPoints(vnd)[:, idx]
+getVal(vnd::State, idx::Int) = DFG.refPoints(vnd)[idx]
 function getVal(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol = :default)
   return DFG.refPoints(getVariable(dfg, lbl).states[solveKey])
 end
