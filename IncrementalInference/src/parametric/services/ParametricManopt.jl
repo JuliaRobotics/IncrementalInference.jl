@@ -330,7 +330,7 @@ function solve_RLM(
 
   #Can use varIntLabel (because its an OrderedDict), but varLabelsAP makes the ArrayPartition.
   p0 = map(varlabelsAP) do label
-    getVal(fg, label; solveKey)[1]
+    DFG.refMeans(getState(fg, label, solveKey))[1]
   end
 
   # create an ArrayPartition{CalcFactorResidual} for faclabels
@@ -415,7 +415,7 @@ function solve_RLM_conditional(
 
   # get the subgraph formed by all frontals, separators and fully connected factors
   varlabels = union(frontals, separators)
-  faclabels = sortDFG(setdiff(listNeighborhood(fg, varlabels, 1), varlabels))
+  _, faclabels = listNeighborhood(fg, varlabels, 1)
 
   filter!(faclabels) do fl
     return issubset(getVariableOrder(fg, fl), varlabels)
@@ -440,7 +440,7 @@ function solve_RLM_conditional(
   all_varlabelsAP = ArrayPartition((frontal_varlabelsAP.x..., separator_varlabelsAP.x...))
 
   all_points = map(all_varlabelsAP) do label
-    getVal(fg, label; solveKey)[1]
+    DFG.refMeans(getState(fg, label, solveKey))[1]
   end
   
   p0 = ArrayPartition(all_points.x[1:length(frontal_varlabelsAP.x)])
@@ -547,12 +547,10 @@ function autoinitParametric!(
       return false
     end
 
-    vnd::State = getState(xi, solveKey)
-    
     if perturb_point
       _M = getManifold(xi)
-      p = vnd.val[1]
-      vnd.val[1] = exp(
+      p = DFG.refMeans(vnd)[1]
+      DFG.refMeans(vnd)[1] = exp(
         _M,
         p, 
         get_vector(
@@ -566,9 +564,9 @@ function autoinitParametric!(
     M, vartypeslist, lm_r, Σ = solve_RLM_conditional(dfg, [initme], initfrom; solveKey, kwargs...)
     
     val = lm_r[1]
-    vnd.val[1] = val
+    DFG.refMeans(vnd)[1] = val
 
-    !isnothing(Σ) && (vnd.bw .= Σ)
+    !isnothing(Σ) && (DFG.refCovariances(vnd)[1] .= Σ)
   
     # updateSolverDataParametric!(vnd, val, Σ)
 

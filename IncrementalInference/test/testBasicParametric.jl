@@ -79,24 +79,24 @@ fg = generateGraph_LineStep(2, graphinit=true, vardims=1, poseEvery=1, landmarkE
 @test IIF.autoinitParametric!(fg, :x0)
 
 v0 = getVariable(fg,:x0)
-@test length(v0.states[:parametric].val[1]) === 1
-@test isapprox(v0.states[:parametric].val[1][1], 0.0, atol = 1e-4)
+@test length(DFG.refMeans(v0.states[:parametric])[1]) === 1
+@test isapprox(DFG.refMeans(v0.states[:parametric])[1][1], 0.0, atol = 1e-4)
 
 @test IIF.autoinitParametric!(fg, :x1)
 
 v0 = getVariable(fg,:x1)
-@test length(v0.states[:parametric].val[1]) === 1
-@test isapprox(v0.states[:parametric].val[1][1], 1.0, atol = 1e-4)
+@test length(DFG.refMeans(v0.states[:parametric])[1]) === 1
+@test isapprox(DFG.refMeans(v0.states[:parametric])[1][1], 1.0, atol = 1e-4)
 
 
 IIF.initParametricFrom!(fg)
 
 #
 v0 = getVariable(fg,:x0)
-@test length(v0.states[:parametric].val[1]) === 1
-@test isapprox(v0.states[:parametric].val[1][1], 0.0, atol = 0.1)
+@test length(DFG.refMeans(v0.states[:parametric])[1]) === 1
+@test isapprox(DFG.refMeans(v0.states[:parametric])[1][1], 0.0, atol = 0.1)
 v1 = getVariable(fg,:x1)
-@test isapprox(v1.states[:parametric].val[1][1], 1.0, atol = 0.1)
+@test isapprox(DFG.refMeans(v1.states[:parametric])[1][1], 1.0, atol = 0.1)
 
 ##
 
@@ -125,7 +125,7 @@ end
 
 ##
 
-foreach(x->getState(getVariable(fg,x.first),:parametric).val[1] = x.second, pairs(d))
+foreach(x->DFG.refMeans(DFG.getState(fg, x.first, :parametric))[1] = x.second, pairs(d))
 
 
 # getSolverParams(fg).dbg=true
@@ -138,8 +138,7 @@ tree2 = IIF.solveTree!(fg; algorithm = :parametric) #, recordcliqs=ls(fg))
 
 for i in 0:10
   sym = Symbol("x",i)
-  var = getVariable(fg,sym)
-  @show val = var.states[:parametric].val
+  @show val = DFG.refMeans(DFG.getState(fg, sym, :parametric))
   @test isapprox(val[1][1], i, atol=1e-3)
   @test isapprox(val[1][2], i, atol=1e-3)
 end
@@ -149,7 +148,7 @@ end
 # Print answers
 if false
 vsds = DFG.getState.(getVariables(fg), :parametric)
-foreach(v->println(v.label, ": ", DFG.getState(v, :parametric).val), sort!(getVariables(fg), by=getLabel, lt=natural_lt))
+foreach(v->println(v.label, ": ", DFG.refMeans(DFG.getState(v, :parametric))), sort!(getVariables(fg), by=getLabel, lt=natural_lt))
 end
 
 
@@ -188,7 +187,7 @@ foreach(println, d)
 
 ##
 
-foreach(x->getState(getVariable(fg,x.first),:parametric).val[1] = x.second, pairs(d))
+foreach(x->DFG.refMeans(DFG.getState(getVariable(fg,x.first),:parametric))[1] = x.second, pairs(d))
 
 # fg.solverParams.showtree = true
 # fg.solverParams.drawtree = true
@@ -202,11 +201,11 @@ foreach(x->getState(getVariable(fg,x.first),:parametric).val[1] = x.second, pair
 #force message passing with manual variable order
 tree2 = solveTree!(fg; algorithm=:parametric, eliminationOrder=[:x0, :x2, :x1])
 # end
-foreach(v->println(v.label, ": ", DFG.getState(v, :parametric).val), getVariables(fg))
+foreach(v->println(v.label, ": ", DFG.refMeans(DFG.getState(v, :parametric))), getVariables(fg))
 
-@test isapprox(getVariable(fg,:x0).states[:parametric].val[1][1], -0.01, atol=1e-3)
-@test isapprox(getVariable(fg,:x1).states[:parametric].val[1][1], 0.0, atol=1e-3)
-@test isapprox(getVariable(fg,:x2).states[:parametric].val[1][1], 0.01, atol=1e-3)
+@test isapprox(DFG.refMeans(getVariable(fg,:x0).states[:parametric])[1][1], -0.01, atol=1e-3)
+@test isapprox(DFG.refMeans(getVariable(fg,:x1).states[:parametric])[1][1], 0.0, atol=1e-3)
+@test isapprox(DFG.refMeans(getVariable(fg,:x2).states[:parametric])[1][1], 0.01, atol=1e-3)
 
 ## ##############################################################################
 ## multiple sections
@@ -230,7 +229,7 @@ for i in 0:10
   @test isapprox(d[sym][1], i, atol=1e-6)
 end
 
-foreach(x->getState(getVariable(fg,x.first),:parametric).val[1] = x.second, pairs(d))
+foreach(x->DFG.refMeans(DFG.getState(getVariable(fg,x.first),:parametric))[1] = x.second, pairs(d))
 
 # fg.solverParams.showtree = true
 # fg.solverParams.drawtree = true
@@ -241,13 +240,13 @@ tree2 = IIF.solveTree!(fg; algorithm=:parametric)
 # print results
 if false
 vsds = DFG.getState.(getVariables(fg), :parametric)
-foreach(v->println(v.label, ": ", DFG.getState(v, :parametric).val), getVariables(fg))
+foreach(v->println(v.label, ": ", DFG.refMeans(DFG.getState(v, :parametric))), getVariables(fg))
 end
 
 for i in 0:10
   sym = Symbol("x",i)
   var = getVariable(fg,sym)
-  val = var.states[:parametric].val
+  val = DFG.refMeans(var.states[:parametric])
   #TODO investigate why tolarance degraded (its tree related and not bad enough to worry now)
   @test isapprox(val[1][1], i, atol=5e-4) 
 end

@@ -80,8 +80,8 @@ doautoinit!(fg, :x0)
 
 ##
 vnd = getState(fg, :x0, :default)
-@test all(isapprox.(mean(vnd.val), ArrayPartition(SA[0.0,0.0], SA[1.0 0.0; 0.0 1.0]), atol=0.1))
-@test all(is_point.(Ref(M), vnd.val))
+@test all(isapprox.(mean(DFG.refPoints(vnd)), ArrayPartition(SA[0.0,0.0], SA[1.0 0.0; 0.0 1.0]), atol=0.1))
+@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
 
 ##
 v1 = addVariable!(fg, :x1, SpecialEuclidean2)
@@ -95,8 +95,8 @@ p1 = exp(SE2, p0, hat(LieAlgebra(SE2), [1.0,2,pi/4], typeof(p0)))
 p2 = exp(SE2, p1, hat(LieAlgebra(SE2), [1.0,2,pi/4], typeof(p1)))
 
 vnd = getState(fg, :x1, :default)
-@test all(isapprox(M, mean(M,vnd.val), p1, atol=0.1))
-@test all(is_point.(Ref(M), vnd.val))
+@test all(isapprox(M, mean(M, DFG.refPoints(vnd)), p1, atol=0.1))
+@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
 
 ##
 smtasks = Task[]
@@ -104,12 +104,12 @@ solveTree!(fg; smtasks, verbose=true) #, recordcliqs=ls(fg))
 # hists = fetchCliqHistoryAll!(smtasks);
 
 vnd = getState(fg, :x0, :default)
-@test all(isapprox.(mean(vnd.val), ArrayPartition(SA[0.0,0.0], SA[1.0 0.0; 0.0 1.0]), atol=0.1))
-@test all(is_point.(Ref(M), vnd.val))
+@test all(isapprox.(mean(DFG.refPoints(vnd)), ArrayPartition(SA[0.0,0.0], SA[1.0 0.0; 0.0 1.0]), atol=0.1))
+@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
 
 vnd = getState(fg, :x1, :default)
-@test all(isapprox(M, mean(vnd.val), p1, atol=0.1))
-@test all(is_point.(Ref(M), vnd.val))
+@test all(isapprox(M, mean(M, DFG.refPoints(vnd)), p1, atol=0.1))
+@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
 
 v1 = addVariable!(fg, :x2, SpecialEuclidean2)
 mf = ManifoldFactor(SE2, MvNormal(SA[1,2,pi/4], diagm(SA[0.01,0.01,0.01].^2)))
@@ -125,11 +125,11 @@ result = solveTree!(fg; smtasks, verbose=true)
 IIF.solveGraphParametric!(fg; sparse = false, damping_term_min=1e-12)
 
 vnd = getState(fg, :x0, :parametric)
-@test all(isapprox(M, vnd.val[1], p0, atol=1e-6))
+@test all(isapprox(M, DFG.refMeans(vnd)[1], p0, atol=1e-6))
 vnd = getState(fg, :x1, :parametric)
-@test all(isapprox(M, vnd.val[1], p1, atol=1e-6))
+@test all(isapprox(M, DFG.refMeans(vnd)[1], p1, atol=1e-6))
 vnd = getState(fg, :x2, :parametric)
-@test all(isapprox(M, vnd.val[1], p2, atol=1e-6))
+@test all(isapprox(M, DFG.refMeans(vnd)[1], p2, atol=1e-6))
 
 ## test partial prior issue
 fg = initfg()
@@ -212,25 +212,25 @@ IIF.autoinitParametric!(fg)
 IIF.solveGraphParametric!(fg; sparse = false, damping_term_min=1e-12)
 
 vnd = getState(fg, :x0, :default)
-@test isapprox(M, mean(M, vnd.val), ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.2)
+@test isapprox(M, mean(M, DFG.refPoints(vnd)), ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.2)
 vnd = getState(fg, :x0, :parametric)
-@test isapprox(M, vnd.val[1], ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=1e-6)
+@test isapprox(M, DFG.refMeans(vnd)[1], ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=1e-6)
 
 # calculate the reference solution
 p0 = ArrayPartition(Vector([10.0,10.0]), Matrix([-1.0 0.0; 0.0 -1.0]))
 ref = exp(SE2, p0, hat(LieAlgebra(SE2), [10.0,0,pi/3], typeof(p0)))
 
 vnd = getState(fg, :x1, :default)
-@test isapprox(M, mean(M, vnd.val), ref, atol=0.4)
+@test isapprox(M, mean(M, DFG.refPoints(vnd)), ref, atol=0.4)
 vnd = getState(fg, :x1, :parametric)
-@test isapprox(M, vnd.val[1], ref, atol=1e-6)
+@test isapprox(M, DFG.refMeans(vnd)[1], ref, atol=1e-6)
 
 vnd = getState(fg, :x6, :default)
-@test isapprox(M, mean(M, vnd.val), ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.5)
+@test isapprox(M, mean(M, DFG.refPoints(vnd)), ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.5)
 vnd = getState(fg, :x6, :parametric)
-@test isapprox(M, vnd.val[1], ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=1e-6)
+@test isapprox(M, DFG.refMeans(vnd)[1], ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=1e-6)
 
-@test isapprox(M, getState(fg, :x0, :parametric).val[1], getState(fg, :x6, :parametric).val[1], atol=1e-6)
+@test isapprox(M, DFG.refMeans(getState(fg, :x0, :parametric))[1], DFG.refMeans(getState(fg, :x6, :parametric))[1], atol=1e-6)
 
 if false
 fix, ax, plt = lines(points2(fg); label="parametric")
@@ -352,7 +352,7 @@ f = addFactor!(fg, [:x0, :x1], mf)
 doautoinit!(fg, :x1)
 
 vnd = getState(fg, :x1, :default)
-@test all(isapprox.(mean(vnd.val), [1.0,2.0], atol=0.1))
+@test all(isapprox.(mean(DFG.refPoints(vnd)), [1.0,2.0], atol=0.1))
 
 ##
 smtasks = Task[]
@@ -360,10 +360,10 @@ solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
 # # hists = fetchCliqHistoryAll!(smtasks);
 
 vnd = getState(fg, :x0, :default)
-@test isapprox(mean(getManifold(fg,:x0),vnd.val), ArrayPartition([0.0,0.0], [1.0 0.0; 0.0 1.0]), atol=0.1)
+@test isapprox(mean(getManifold(fg,:x0),DFG.refPoints(vnd)), ArrayPartition([0.0,0.0], [1.0 0.0; 0.0 1.0]), atol=0.1)
 
 vnd = getState(fg, :x1, :default)
-@test all(isapprox.(mean(vnd.val), [1.0,2.0], atol=0.1))
+@test all(isapprox.(mean(DFG.refPoints(vnd)), [1.0,2.0], atol=0.1))
 
 ##
 end
@@ -596,7 +596,7 @@ f = addFactor!(fg, [:x0, :x1a, :x1b], mf; multihypo=[1,0.5,0.5])
 solveTree!(fg)
 
 vnd = getState(fg, :x0, :default)
-@test isapprox(SE2, mean(SE2, vnd.val), ArrayPartition([0.0,0.0], [1.0 0; 0 1]), atol=0.1)
+@test isapprox(SE2, mean(SE2, DFG.refPoints(vnd)), ArrayPartition([0.0,0.0], [1.0 0; 0 1]), atol=0.1)
 
 #FIXME I would expect close to 50% of particles to land on the correct place
 # Currently software works so that 33% should land there so testing 20 for now
@@ -670,7 +670,7 @@ p0 = ArrayPartition([0.0,0.0], [1.0 0; 0 1])
 p1 = exp(SE2, hat(LieAlgebra(SE2), [1,2,pi/4], typeof(p0)))
 
 vnd = getState(fg, :x0, :default)
-@test isapprox(SE2, mean(SE2, vnd.val), p0, atol=0.1)
+@test isapprox(SE2, mean(SE2, DFG.refPoints(vnd)), p0, atol=0.1)
 
 #FIXME I would expect close to 50% of particles to land on the correct place
 # Currently software works so that 33% should land there so testing 20 for now

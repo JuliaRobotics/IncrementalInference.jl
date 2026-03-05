@@ -53,14 +53,15 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int, length(ve
 
 Fetch the variable marginal joint sampled points.  Use [`getBelief`](@ref) to retrieve the full Belief object.
 """
-getVal(v::VariableCompute; solveKey::Symbol = :default) = v.states[solveKey].val
+#FIXME replace with refPoints
+getVal(v::VariableCompute; solveKey::Symbol = :default) = DFG.refPoints(getState(v, solveKey))
 function getVal(v::VariableCompute, idx::Int; solveKey::Symbol = :default)
-  return v.states[solveKey].val[:, idx]
+  return DFG.refPoints(getState(v, solveKey))[idx]
 end
-getVal(vnd::State) = vnd.val
-getVal(vnd::State, idx::Int) = vnd.val[:, idx]
+getVal(vnd::State) = DFG.refPoints(vnd)
+getVal(vnd::State, idx::Int) = DFG.refPoints(vnd)[idx]
 function getVal(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol = :default)
-  return getVariable(dfg, lbl).states[solveKey].val
+  return DFG.refPoints(getVariable(dfg, lbl).states[solveKey])
 end
 
 """
@@ -73,15 +74,15 @@ function getNumPts(v::VariableCompute; solveKey::Symbol = :default)::Int
 end
 
 function AMP.getBW(vnd::State)
-  return vnd.bw
+  return DFG.refBandwidth(vnd)
 end
 
 # setVal! assumes you will update values to database separate, this used for local graph mods only
 function getBWVal(v::VariableCompute; solveKey::Symbol = :default)
-  return getState(v, solveKey).bw
+  return DFG.refBandwidth(getState(v, solveKey))
 end
 function setBW!(vd::State, bw::Array{Float64, 2}; solveKey::Symbol = :default)
-  vd.bw = bw
+  DFG.refBandwidth(vd) .= bw
   return nothing
 end
 function setBW!(v::VariableCompute, bw::Array{Float64, 2}; solveKey::Symbol = :default)
@@ -90,7 +91,9 @@ function setBW!(v::VariableCompute, bw::Array{Float64, 2}; solveKey::Symbol = :d
 end
 
 function setVal!(vd::State, val::AbstractVector{P}) where {P}
-  vd.val = val
+  points = DFG.refPoints(vd)
+  resize!(points, length(val))
+  points .= val
   return nothing
 end
 function setVal!(
@@ -393,20 +396,13 @@ function DefaultNodeDataParametric(
     #                         dims, false, :_null, Symbol[], variableType, true, 0.0, false, dontmargin)
   else
     ϵ = getPointIdentity(variableType)
-    return State(solveKey, variableType;
-      val=[ϵ],
-      bw=zeros(dims, dims),
-      # Symbol[],
-      # false,
-      # :_null,
-      # Symbol[],
-      initialized=false,
-      observability=zeros(dims),
-      marginalized=false,
-      # dontmargin,
-      # 0,
-      # 0,
+    belief = DFG.BeliefRepresentation(
+      DFG.GaussianDensityKind(),
+      variableType;
+      means = [ϵ],
+      covariances = [zeros(dims, dims)],
     )
+    return State(solveKey, variableType; belief)
   end
 end
 
@@ -471,26 +467,20 @@ function setDefaultNodeData!(
     #
     (val, bw)
   end
+
+  belief = DFG.BeliefRepresentation(
+    DFG.NonparametricDensityKind(),
+    varType;
+    points = val,
+    bandwidth = bw,
+  )
   # make and set the new solverData
   mergeState!(
     v,
     State(solveKey, varType;
-      # id=nothing,
-      val,
-      bw,
-      # Symbol[],
-      # sp,
-      # dims,
-      # false,
-      # :_null,
-      # Symbol[],
+      belief,
       initialized=isinit,
-      observability=zeros(getDimension(v)),
       marginalized=false,
-      # dontmargin,
-      # 0,
-      # 0,
-      
     )
   )
   return nothing
@@ -569,7 +559,7 @@ addVariable!(fg, :x0, Pose2)
 function DFG.addVariable!(
   dfg::AbstractDFG,
   label::Symbol,
-  statetype::Union{T, Type{T}};
+  statekind::Union{T, Type{T}};
   tags::Union{Set{Symbol}, Vector{Symbol}} = Set{Symbol}(),
   timestamp::Union{TimeDateZone, ZonedDateTime}  = DFG.now_tdz(),
   solvable::Int = 1,
@@ -600,7 +590,7 @@ function DFG.addVariable!(
   tags = union(Set(tags), [:VARIABLE])
   v = VariableDFG(
     label,
-    statetype;
+    statekind;
     tags,
     bloblets,
     blobentries,

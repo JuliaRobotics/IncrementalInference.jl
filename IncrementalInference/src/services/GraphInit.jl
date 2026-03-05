@@ -349,8 +349,8 @@ function initVariable!(
   if solveKey == :parametric
     μ, iΣ = getMeasurementParametric(samplable_belief)
     vnd = getState(variable, solveKey)
-    vnd.val[1] = getPoint(getStateKind(variable), μ)
-    vnd.bw .= inv(iΣ)
+    DFG.refMeans(vnd)[1] = getPoint(getStateKind(variable), μ)
+    DFG.refCovariances(vnd)[1] .= inv(iΣ)
     vnd.initialized = true
   else
     points = [samplePoint(M, samplable_belief) for _ = 1:N]

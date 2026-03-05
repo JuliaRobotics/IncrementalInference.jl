@@ -110,7 +110,6 @@ import ApproxManifoldProducts: isPartial
 import ApproxManifoldProducts: _update!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare
-import DistributedFactorGraphs: rebuildFactorCache!
 import DistributedFactorGraphs: getDimension, getManifold, getPointType, getPointIdentity
 import DistributedFactorGraphs: getPoint, getCoordinates
 import DistributedFactorGraphs: getStateKind
