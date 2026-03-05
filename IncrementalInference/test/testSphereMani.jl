@@ -41,8 +41,8 @@ p = addFactor!(fg, [:x0], mp)
 doautoinit!(fg, :x0)
 
 vnd = getState(fg, :x0, :default)
-@test all(isapprox.(mean(M, vnd.val), [1,0,0], atol=0.1))
-@test all(is_point.(Ref(M), vnd.val))
+@test all(isapprox.(mean(M, DFG.refPoints(vnd)), [1,0,0], atol=0.1))
+@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
 
 v1 = addVariable!(fg, :x1, Sphere2)
 mf = ManifoldFactor(Sphere(2), MvNormal([0.1, 0.2], [0.05,0.05]))
@@ -59,10 +59,10 @@ X = get_vector(M, p, SA[0.1,0.2], DefaultOrthonormalBasis())
 q = exp(M, p, X)
 
 vnd = getState(fg, :x1, :default)
-mn_ = mean(M, vnd.val)
+mn_ = mean(M, DFG.refPoints(vnd))
 @info "isapprox" q mn_
 @test all(isapprox.(mn_, q, atol=0.05))
-@test all(is_point.(Ref(M), vnd.val))
+@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
 
 ##
 end

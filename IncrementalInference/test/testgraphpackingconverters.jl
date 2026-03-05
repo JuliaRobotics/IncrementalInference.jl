@@ -64,16 +64,16 @@ end
 @testset "Testing conversion to packed variable node data structure and back" begin
 ##
 
-dat = getState(getVariable(fg,:x1), :default)
+state = getState(getVariable(fg,:x1), :default)
 
 # dat.BayesNetVertID
+#FIXME packState obsolete
+pd = DFG.JSON.json(state; style = DFG.DFGJSONStyle())
+unpckd = DFG.JSON.parse(pd, State; style = DFG.DFGJSONStyle())
 
-pd = packState(dat)
-unpckd = unpackState(pd)
-
-@test compareFields(dat, unpckd, skip=[:variableType])
-@test compareFields(getStateKind(dat), getStateKind(unpckd))
-@test isa(getStateKind(dat), ContinuousScalar)
+@test compareFields(state, unpckd, skip=[:variableType])
+@test compareFields(getStateKind(state), getStateKind(unpckd))
+@test isa(getStateKind(state), ContinuousScalar)
 @test isa(getStateKind(unpckd), ContinuousScalar)
 
 ##

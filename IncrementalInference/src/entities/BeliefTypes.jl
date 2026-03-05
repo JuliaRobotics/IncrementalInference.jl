@@ -78,9 +78,24 @@ function TreeBelief(
 end
 
 function TreeBelief(vnd::State, solvDim::Real = 0)
+  TreeBelief(DFG.getDensityKind(vnd), vnd, solvDim)
+end
+
+function TreeBelief(::DFG.GaussianDensityKind, vnd::State, solvDim::Real = 0)
   return TreeBelief(
-    vnd.val,
-    vnd.bw,
+    DFG.refMeans(vnd),
+    DFG.refCovariances(vnd)[1],
+    vnd.observability,
+    getStateKind(vnd),
+    getManifold(vnd),
+    solvDim,
+  )
+end
+
+function TreeBelief(::DFG.NonparametricDensityKind, vnd::State, solvDim::Real = 0)
+  return TreeBelief(
+    DFG.refPoints(vnd),
+    DFG.refBandwidth(vnd),
     vnd.observability,
     getStateKind(vnd),
     getManifold(vnd),
@@ -93,9 +108,9 @@ function TreeBelief(vari::VariableCompute, solveKey::Symbol = :default; solvable
 end
 #
 
-getStateKind(tb::TreeBelief) = tb.variableType
+DFG.getStateKind(tb::TreeBelief) = tb.variableType
 
-getManifold(treeb::TreeBelief) = getManifold(treeb.variableType)
+DFG.getManifold(treeb::TreeBelief) = getManifold(treeb.variableType)
 
 function compare(t1::TreeBelief, t2::TreeBelief)
   TP = true

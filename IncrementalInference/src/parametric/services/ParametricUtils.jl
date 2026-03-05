@@ -500,7 +500,7 @@ function initPoints!(p, gsc, fg::AbstractDFG, solveKey = :parametric)
   for (i, vartype) in enumerate(gsc.varTypes)
     varIds = gsc.varTypesIds[vartype]
     for (j, vId) in enumerate(varIds)
-      p[gsc.M, i][j] = getState(fg, vId, solveKey).val[1]
+      p[gsc.M, i][j] = DFG.refMeans(getState(fg, vId, solveKey))[1]
     end
   end
 end
@@ -687,7 +687,7 @@ function solveConditionalsParametric(
   flatvar = FlatVariables(fg, varIds)
 
   for vId in varIds
-    p = getState(fg, vId, solvekey).val[1]
+    p = DFG.refMeans(getState(fg, vId, solvekey))[1]
     flatvar[vId] = getCoordinates(getStateKind(fg, vId), p)
   end
   initValues = flatvar.X
@@ -825,9 +825,9 @@ function updateSolverDataParametric!(
   cov::AbstractMatrix,
 )
   # fill in the variable node data value
-  vnd.val[1] = val
+  DFG.refMeans(vnd)[1] = val
   #calculate and fill in covariance
-  vnd.bw .= cov
+  DFG.refCovariances(vnd)[1] .= cov
   return vnd
 end
 
@@ -888,15 +888,15 @@ function initParametricFrom!(
     for v in getVariables(fg)
       fromvnd = getState(v, fromkey)
       dims = getDimension(v)
-      getState(v, parkey).val[1] = fromvnd.val[1]
-      getState(v, parkey).bw[1:dims, 1:dims] = LinearAlgebra.I(dims)
+      DFG.refMeans(getState(v, parkey))[1] = DFG.refMeans(fromvnd)[1]
+      DFG.refCovariances(getState(v, parkey))[1] = LinearAlgebra.I(dims)
     end
   else
     for var in getVariables(fg)
       dims = getDimension(var)
       μ, Σ = calcMeanCovar(var, fromkey)
-      getState(var, parkey).val[1] = μ
-      getState(var, parkey).bw[1:dims, 1:dims] = Σ
+      DFG.refMeans(getState(var, parkey))[1] = μ
+      DFG.refCovariances(getState(var, parkey))[1] = Σ
     end
   end
 end
@@ -963,10 +963,12 @@ function createMvNormal(v::VariableCompute, key = :parametric)
   if key == :parametric
     vnd = getState(v, :parametric)
     dims = getDimension(vnd)
-    return createMvNormal(vnd.val[1:dims, 1], vnd.bw[1:dims, 1:dims])
+    val = DFG.refMeans(vnd)[1]
+    cov = DFG.refCovariances(vnd)[1:dims, 1:dims]
+    return createMvNormal(val, cov)
   else
     @warn "Trying MvNormal Fit"
-    return fit(MvNormal, getState(v, key).val)
+    return fit(MvNormal, DFG.refPoints(getState(v, key)))
   end
 end
 

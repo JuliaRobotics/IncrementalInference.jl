@@ -38,10 +38,10 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
       vnd = getState(getVariable(csmc.cliqSubFg, v), :parametric)
       # fill in the variable node data value
       logCSM(csmc, "$(csmc.cliq.id) up: updating $v : $val")
-      vnd.val[1] = val.val
+      DFG.refMeans(vnd)[1] = val.val
       #calculate and fill in covariance
       #TODO rather broadcast than make new memory
-      vnd.bw = val.cov
+      DFG.refCovariances(vnd)[1] = val.cov
     end
     # elseif length(lsfPriors(csmc.cliqSubFg)) == 0 #FIXME
     #   @error "Par-3, clique $(csmc.cliq.id) failed to converge in upsolve, but ignoring since no priors" result
@@ -118,8 +118,8 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
         #TODO maybe combine variable and factor in new prior?
         vnd = getState(getVariable(csmc.cliqSubFg, msym), :parametric)
         logCSM(csmc, "$(csmc.cliq.id): Updating separator $msym from message $(belief.val)")
-        vnd.val .= belief.val
-        vnd.bw .= belief.bw
+        DFG.refMeans(vnd)[1] = belief.val[1] #FIXME 🦨 shares data structure in belief
+        DFG.refCovariances(vnd)[1] = belief.bw
       end
     end
   end
@@ -146,8 +146,8 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
         logCSM(csmc, "$(csmc.cliq.id) down: updating $v : $val"; loglevel = Logging.Info)
         vnd = getState(getVariable(csmc.cliqSubFg, v), :parametric)
         #Update subfg variables
-        vnd.val[1] = val.val
-        vnd.bw .= val.cov
+        DFG.refMeans(vnd)[1] = val.val
+        DFG.refCovariances(vnd)[1] = val.cov
       end
     else
       @error "Par-5, clique $(csmc.cliq.id) failed to converge in down solve" result

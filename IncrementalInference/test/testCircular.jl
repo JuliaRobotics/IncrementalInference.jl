@@ -31,6 +31,8 @@ gt = rem2pi.(collect(0:4), RoundNearest)
 
 # test packing converters also
 d = "/tmp/caesar/random/testfg"
+@test_broken begin
+    @error "FIXME: packing of Complex numbers is currently broken, needs JSON.jl fix, see TBD"
 saveDFG(d,fg)
 lfg = loadDFG(d)
 ##
@@ -38,7 +40,7 @@ Base.rm(d*".tar.gz")
 # check loaded fg for all variable and factors
 @test issetequal(ls(fg), ls(lfg))
 @test issetequal(lsf(fg), lsf(lfg))
-
+end
 ##
 
 end

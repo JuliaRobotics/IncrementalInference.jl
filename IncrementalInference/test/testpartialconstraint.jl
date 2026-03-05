@@ -350,7 +350,7 @@ setVal!(fg, :x1, arr)
 ##----------- sanity check that predictbelief plumbing is doing the right thing
 nbel, = propagateBelief(fg, :x1, ls(fg, :x1), N=75)
 
-@test_broken 75 == Npts(nbel)
+@test 75 == Npts(nbel)
 
 ##
 end
