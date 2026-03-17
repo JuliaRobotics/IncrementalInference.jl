@@ -10,8 +10,6 @@ Notes
 - **NOT USING SUITE SPARSE** -- which would requires commercial license.
 - Columns of `A` are system variables, rows are factors (without differentiating between partial or full factor).
 - default is to use `solvable=1` and ignore factors and variables that might be used for dead reckoning or similar.
-- Constraints can be used with any ordering method. Constrained vertices are forced to form a clique
-  and pivoted to the end of the ordering using `CliqueTrees.CompositeRotations`.
 """
 function getEliminationOrder(
   dfg::AbstractDFG;
