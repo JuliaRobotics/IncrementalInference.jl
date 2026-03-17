@@ -8,13 +8,10 @@ Notes
 - Heuristic method -- equivalent to QR or Cholesky.
 - Are using Blas `QR` function to extract variable ordering.
 - **NOT USING SUITE SPARSE** -- which would requires commercial license.
-- For now `A::Array{<:Number,2}` as a dense matrix.
 - Columns of `A` are system variables, rows are factors (without differentiating between partial or full factor).
 - default is to use `solvable=1` and ignore factors and variables that might be used for dead reckoning or similar.
-
-Future
-- TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
-- TODO: Incidence matrix is rectagular and adjacency is the square.
+- Constraints can be used with any ordering method. Constrained vertices are forced to form a clique
+  and pivoted to the end of the ordering using `CliqueTrees.CompositeRotations`.
 """
 function getEliminationOrder(
   dfg::AbstractDFG;
@@ -22,48 +19,45 @@ function getEliminationOrder(
   solvable::Int = 1,
   constraints::Vector{Symbol} = Symbol[],
 )
-  #
-  @assert 0 == length(constraints) || ordering == :ccolamd "Must use ordering=:ccolamd when trying to use constraints"
   # Get the sparse adjacency matrix, variable, and factor labels
   adjMat, permuteds, permutedsf = DFG.getBiadjacencyMatrix(dfg; solvable = solvable)
-  # adjMat, permuteds, permutedsf = DFG.getAdjacencyMatrixSparse(dfg, solvable=solvable)
 
-  # Create dense adjacency matrix
+  # get constraint indices
+  clique = findall(∈(constraints), permuteds)
 
-  p = Int[]
-  if ordering == :chol
-    # hack for dense matrix....
-    A = adjMat
-    p = cholesky(Matrix(A'A), Val(true)).piv
-    @warn "check that cholesky ordering is not reversed -- basically how much fill in (separator size) are you seeing???  Long skinny chains in tree is bad."
-  elseif ordering == :qr
-    # hack for dense matrix....
-    A = Array(adjMat)
-    # this is the default
-    q, r, p = qr(A, (v"1.7" <= VERSION ? ColumnNorm() : Val(true)))
-    p .= p |> reverse
-  elseif ordering == :ccolamd
+  if ordering == :ccolamd
+    # ccolamd handles constraints internally
     cons = zeros(Int, length(adjMat.colptr) - 1)
-    cons[findall(x -> x in constraints, permuteds)] .= 1
+    cons[clique] .= 1
     p = _ccolamd(adjMat, cons)
-      # cons = zeros(SuiteSparse_long, length(adjMat.colptr) - 1)
-      # cons[findall(x -> x in constraints, permuteds)] .= 1
-      # p = Ccolamd.ccolamd(adjMat, cons)
     @warn "Integration via AMD.ccolamd under development and replaces pre-Julia 1.9 direct ccall approach." maxlog=5
-  elseif ordering == :mcs
-    # maximum cardinality search
-    A = adjMat
-    p, _ = CliqueTrees.permutation(A'A; alg=CliqueTrees.MCS())
-  elseif ordering == :rcm
-    # reverse Cuthill-Mckee
-    A = adjMat
-    p, _ = CliqueTrees.permutation(A'A; alg=CliqueTrees.RCM())
-  elseif ordering == :mmd
-    # multiple minimum degree
-    A = adjMat
-    p, _ = CliqueTrees.permutation(A'A; alg=CliqueTrees.MMD())
   else
-    @error("getEliminationOrder -- cannot do the requested ordering $(ordering)")
+    S = adjMat' * adjMat
+
+    # force contraint indices to be a clique
+    S[clique, clique] .= 1
+
+    if ordering == :chol
+      p = cholesky(Matrix(S), Val(true)).piv
+      @warn "check that cholesky ordering is not reversed -- basically how much fill in (separator size) are you seeing???  Long skinny chains in tree is bad."
+    elseif ordering == :qr
+      A = Array(adjMat)
+      q, r, p = qr(A, (v"1.7" <= VERSION ? ColumnNorm() : Val(true)))
+      reverse!(p)
+    elseif ordering == :mcs
+      p, _ = CliqueTrees.permutation(S; alg=CliqueTrees.MCS())
+    elseif ordering == :rcm
+      p, _ = CliqueTrees.permutation(S; alg=CliqueTrees.RCM())
+    elseif ordering == :mmd
+      p, _ = CliqueTrees.permutation(S; alg=CliqueTrees.MMD())
+    else
+      @error("getEliminationOrder -- cannot do the requested ordering $(ordering)")
+    end
+
+    # move constraints to end of ordering
+    if !isempty(clique)
+      p, _ = CliqueTrees.permutation(S; alg=CliqueTrees.CompositeRotations(clique, p))
+    end
   end
 
   # Return the variable ordering that we should use for the Bayes map
