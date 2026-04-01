@@ -78,8 +78,8 @@ drec = MutableLinearRelative(Normal(0.0,0.1))
 addFactor!(fg, [:x0; :deadreckon_x0], drec, solvable=0)
 
 #
-@test length(map( x->x.label, getVariables(fg, solvableFilter = >=(1)))) == 8
-@test length(map( x->x.label, getVariables(fg, solvableFilter = >=(0)))) == 9
+@test length(map( x->x.label, getVariables(fg, whereSolvable = >=(1)))) == 8
+@test length(map( x->x.label, getVariables(fg, whereSolvable = >=(0)))) == 9
 #
 # # make sure
 @test length(getEliminationOrder(fg, solvable=1)) == 8

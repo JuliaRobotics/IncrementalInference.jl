@@ -105,7 +105,7 @@ addFactor!(fg, [:x1;:x2], LinearRelative(Normal(4.0, 0.1)))
 addVariable!(fg, :l1, ContinuousScalar)
 addFactor!(fg, [:x1;:l1], LinearRelative(Rayleigh()))
 
-sfg = buildSubgraph(fg, [:x0;:x1], 1) # distance=1 to include factors 
+sfg = getSubgraph(fg, [:x0;:x1], 1) # distance=1 to include factors 
 
 #FIXME JT - this doesn't make sense to pass, it is a subgraph so should it not rather be ⊂ [subset]?
 # compareDFG(fg1, fg2, by=⊂, skip=...)

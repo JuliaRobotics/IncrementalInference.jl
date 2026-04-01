@@ -999,7 +999,7 @@ function getCliqFactorsFromFrontals(
     for fctid in ls(fgl, frsym)
       fct = getFactor(fgl, fctid)
       if !unused || !fct.state.potentialused
-        loutn = listNeighbors(fgl, fctid; solvableFilter = >=(solvable))
+        loutn = listNeighbors(fgl, fctid; whereSolvable = >=(solvable))
         # deal with unary factors
         if length(loutn) == 1
           union!(usefcts, Symbol[Symbol(fct.label);])
@@ -1194,9 +1194,9 @@ function getCliqVarsWithFrontalNeighbors(
   union!(syms, Symbol.(cond))
 
   # TODO Can we trust factors are frontal connected?
-  ffcs = union(map(x -> listNeighbors(fgl, x; solvableFilter = >=(solvable)), frtl)...)
+  ffcs = union(map(x -> listNeighbors(fgl, x; whereSolvable = >=(solvable)), frtl)...)
   # @show ffcs = getCliqueData(cliq).potentials
-  neig = union(map(x -> listNeighbors(fgl, x; solvableFilter = >=(solvable)), ffcs)...)
+  neig = union(map(x -> listNeighbors(fgl, x; whereSolvable = >=(solvable)), ffcs)...)
   union!(syms, Symbol.(neig))
   return syms
 end

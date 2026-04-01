@@ -21,7 +21,7 @@ See also: [`doautoinit!`](@ref), [`initAll!`](@ref)
 function makeSolverData!(
   dfg::AbstractDFG;
   solvable = 1,
-  varList::AbstractVector{Symbol} = ls(dfg; solvableFilter = >=(solvable)),
+  varList::AbstractVector{Symbol} = ls(dfg; whereSolvable = >=(solvable)),
   solveKey::Symbol=:default
 )
   count = 0
@@ -475,8 +475,8 @@ function ensureSolvable!(
   solvableFallback::Int = 0,
 )
   # workaround in case isolated variables occur
-  solvVars = ls(dfg; solvableFilter = >=(solvableTarget))
-  varHasFact = (x -> length(listNeighbors(dfg, x; solvableFilter = >=(solvableTarget))) == 0).(solvVars)
+  solvVars = ls(dfg; whereSolvable = >=(solvableTarget))
+  varHasFact = (x -> length(listNeighbors(dfg, x; whereSolvable = >=(solvableTarget))) == 0).(solvVars)
   blankVars = solvVars[findall(varHasFact)]
   if 0 < length(blankVars)
     @warn(
@@ -504,7 +504,7 @@ function initAll!(
 )
   #
   # allvarnodes = getVariables(dfg)
-  syms = intersect(DFG.getAddHistory(dfg), ls(dfg; solvableFilter = >=(solvable)))
+  syms = intersect(DFG.getAddHistory(dfg), ls(dfg; whereSolvable = >=(solvable)))
   # syms = ls(dfg, solvable=solvable) # |> sortDFG
 
   # May have to first add the solveKey VNDs if they are not yet available

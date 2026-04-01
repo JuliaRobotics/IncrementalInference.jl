@@ -393,8 +393,8 @@ function solveTree!(
     allk = parse.(Int, ss_)
     nextk = length(allk) == 0 ? 0 : maximum(allk) + 1
     newKey = Symbol(:default_, nextk)
-    # DFG.cloneStates!(dfgl, newKey, :default; solvableFilter = >=(1))
-    for vlabel in ls(dfgl; solvableFilter = >=(1))
+    # DFG.cloneStates!(dfgl, newKey, :default; whereSolvable = >=(1))
+    for vlabel in ls(dfgl; whereSolvable = >=(1))
         DFG.copytoState!(dfgl, vlabel, newKey, getState(dfgl, vlabel, :default))
     end
     # foreach(x->updateVariableSolverData!(dfgl, x, getState(getVariable(dfgl,x), :default), newKey, true, Symbol[]), ls(dfgl, solvable=1))

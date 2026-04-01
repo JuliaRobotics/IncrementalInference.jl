@@ -46,11 +46,11 @@ tp2_ = [ :x0;:x0x3f1;:x3;:x2x3f1;:x2]
 pth = findShortestPathDijkstra(fg, :x0, :x2)
 @test pth == tp1_ || pth == tp2_
 
-pth = findShortestPathDijkstra(fg, :x0, :x2, typeFilterFactors = x -> x <: LinearRelative)
+pth = findShortestPathDijkstra(fg, :x0, :x2, whereFactorType = x -> x <: LinearRelative)
 @test pth == tp1_
 
 # different path
-pth = findShortestPathDijkstra(fg, :x0, :x2, typeFilterFactors = x -> x <: EuclidDistance)
+pth = findShortestPathDijkstra(fg, :x0, :x2, whereFactorType = x -> x <: EuclidDistance)
 @test pth == tp2_
 
 
@@ -160,11 +160,11 @@ tp2_ = [ :x0;:x0x3f1;:x3;:x2x3f1;:x2]
 pth = findShortestPathDijkstra(fg, :x0, :x2)
 @test pth == tp1_ || pth == tp2_
 
-pth = findShortestPathDijkstra(fg, :x0, :x2, typeFilterFactors = x -> x <: LinearRelative)
+pth = findShortestPathDijkstra(fg, :x0, :x2, whereFactorType = x -> x <: LinearRelative)
 @test pth == tp1_ || pth == tp2_
 
 # different path
-pth = findShortestPathDijkstra(fg, :x0, :x2, typeFilterFactors = x -> x <: EuclidDistance)
+pth = findShortestPathDijkstra(fg, :x0, :x2, whereFactorType = x -> x <: EuclidDistance)
 @test pth == Symbol[]
 
 
