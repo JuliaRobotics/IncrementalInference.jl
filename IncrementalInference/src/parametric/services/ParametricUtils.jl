@@ -682,7 +682,7 @@ function solveConditionalsParametric(
 )
   varIds = [frontals; separators]
 
-  sfg = issetequal(varIds, listVariables(fg)) ? fg : buildSubgraph(fg, varIds, 1)
+  sfg = issetequal(varIds, listVariables(fg)) ? fg : getSubgraph(fg, varIds, 1)
 
   flatvar = FlatVariables(fg, varIds)
 
@@ -941,7 +941,7 @@ function updateParametricSolution!(fg, M, labels::AbstractArray{Symbol}, vals, �
 
   for (i, (v, val)) in enumerate(zip(labels, vals))
     vnd = getState(getVariable(fg, v), solveKey)
-    covar = isnothing(Σ) ? vnd.bw : covars[i]
+    covar = isnothing(Σ) ? DFG.refCovariances(vnd)[1] : covars[i]
     # Update the variable node data value and covariance
     updateSolverDataParametric!(vnd, val, covar)#FIXME add cov
   end

@@ -136,8 +136,8 @@ function _findSubgraphsFactorType(
   # 1. count separtor connectivity in UPWARD_DIFFERENTIAL
   sepsCount = Dict{Symbol, Int}()
   map(x -> (sepsCount[x] = 0), separators)
-  # tagsFilter = [:__LIKELIHOODMESSAGE__;]
-  # tflsf = lsf(fg, tags=tagsFilter)
+  # whereTags = [:__LIKELIHOODMESSAGE__;]
+  # tflsf = lsf(fg, tags=whereTags)
   for likl in jointrelatives
     for vari in likl.variables
       sepsCount[vari] += 1
@@ -168,7 +168,7 @@ function _findSubgraphsFactorType(
         dfg_,
         key1,
         key2;
-        typeFilterFactors = x -> x <: defaultFct,
+        whereFactorType = x -> x <: defaultFct,
         initialized = true,
       )
       # check if connected to existing subClass
@@ -614,7 +614,7 @@ function deleteMsgFactors!(
   tags::Vector{Symbol} = [:__LIKELIHOODMESSAGE__],
 )
   # remove msg factors that were added to the subfg
-  facs = lsf(subfg; tagsFilter = !isdisjoint(tags))
+  facs = lsf(subfg; whereTags = !isdisjoint(tags))
   deleteFactor!.(subfg, facs)
   return facs
 end

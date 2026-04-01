@@ -19,7 +19,7 @@ function shrinkFactorGraph(fg; upto::Int = 6)
   fgs = deepcopy(fg)
 
   delVars = filter(x -> isSolvable(getVariable(fgs, x)) == 0, ls(fgs))
-  todel = setdiff(lsf(fgs; solvableFilter = >=(0)), lsf(fgs; solvableFilter = >=(1)))
+  todel = setdiff(lsf(fgs; whereSolvable = >=(0)), lsf(fgs; whereSolvable = >=(1)))
   delFcts = intersect(lsf(fgs), todel)
   allMags = filter(x -> :MAGNETOMETER in listTags(getFactor(fgs, x)), lsfPriors(fgs))
   union!(delFcts, filter(x -> length(ls(fgs, x)) == 0, allMags))

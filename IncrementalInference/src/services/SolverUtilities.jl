@@ -157,7 +157,7 @@ function _buildGraphByFactorAndTypes!(
   newFactor::Bool = true,
   destPattern::Regex = r"x\d+",
   destPrefix::Symbol = match(r"[a-zA-Z_]+", destPattern.pattern).match |> Symbol,
-  _allVars::AbstractVector{Symbol} = sortDFG(ls(dfg; labelFilter=contains(destPattern))),
+  _allVars::AbstractVector{Symbol} = sortDFG(ls(dfg; whereLabel=contains(destPattern))),
   currLabel::Symbol = 0 < length(_allVars) ? _allVars[end] : Symbol(destPrefix, 0),
   currNumber::Integer = reverse(match(r"\d+", reverse(string(currLabel))).match) |>
                         x -> parse(Int, x),
