@@ -69,7 +69,7 @@ IncrInfrInterpolationsExt = "Interpolations"
 
 [compat]
 AMD = "0.5"
-ApproxManifoldProducts = "0.10"
+ApproxManifoldProducts = "0.10, 0.14"
 BSON = "0.2, 0.3"
 CliqueTrees = "0.5, 1"
 Combinatorics = "1.0"
