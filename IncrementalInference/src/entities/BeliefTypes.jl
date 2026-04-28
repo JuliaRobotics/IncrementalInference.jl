@@ -78,10 +78,10 @@ function TreeBelief(
 end
 
 function TreeBelief(vnd::State, solvDim::Real = 0)
-  TreeBelief(DFG.getDensityKind(vnd), vnd, solvDim)
+  TreeBelief(DFG.getTopologyKind(vnd), vnd, solvDim)
 end
 
-function TreeBelief(::DFG.GaussianDensityKind, vnd::State, solvDim::Real = 0)
+function TreeBelief(::DFG.RootsOnlyTopology, vnd::State, solvDim::Real = 0)
   return TreeBelief(
     DFG.refMeans(vnd),
     DFG.refCovariances(vnd)[1],
@@ -92,7 +92,7 @@ function TreeBelief(::DFG.GaussianDensityKind, vnd::State, solvDim::Real = 0)
   )
 end
 
-function TreeBelief(::DFG.NonparametricDensityKind, vnd::State, solvDim::Real = 0)
+function TreeBelief(::DFG.LeavesOnlyTopology, vnd::State, solvDim::Real = 0)
   return TreeBelief(
     DFG.refPoints(vnd),
     DFG.refBandwidth(vnd),

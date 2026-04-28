@@ -396,11 +396,11 @@ function DefaultNodeDataParametric(
     #                         dims, false, :_null, Symbol[], variableType, true, 0.0, false, dontmargin)
   else
     ϵ = getPointIdentity(variableType)
-    belief = DFG.BeliefRepresentation(
-      DFG.GaussianDensityKind(),
+    belief = DFG.StoredHomotopyBelief(
+      DFG.RootsOnlyTopology(),
       variableType;
       means = [ϵ],
-      covariances = [zeros(dims, dims)],
+      shapes = [zeros(dims, dims)],
     )
     return State(solveKey, variableType; belief)
   end
@@ -468,11 +468,11 @@ function setDefaultNodeData!(
     (val, bw)
   end
 
-  belief = DFG.BeliefRepresentation(
-    DFG.NonparametricDensityKind(),
+  belief = DFG.StoredHomotopyBelief(
+    DFG.LeavesOnlyTopology(),
     varType;
     points = val,
-    bandwidth = bw,
+    bandwidths = [bw],
   )
   # make and set the new solverData
   mergeState!(
