@@ -55,6 +55,18 @@ function Manifolds.get_vector!(M::NPowerManifold, Y, p, c, B::AbstractBasis)
   return Y
 end
 
+# Allocating get_vector that infers element type from coordinates (Dual-compatible)
+function ManifoldsBase.get_vector(M::NPowerManifold, p, c, B::AbstractBasis)
+  dim = manifold_dimension(M.manifold)
+  rep_size = Manifolds.representation_size(M.manifold)
+  v_iter = Ref(0)
+  return [begin
+    coords_i = SVector{dim}(view(c, v_iter[]+1:v_iter[]+dim))
+    v_iter[] += dim
+    get_vector(M.manifold, Manifolds._read(M, rep_size, p, i), coords_i, B)
+  end for i in Manifolds.get_iterator(M)]
+end
+
 function Manifolds.exp!(M::NPowerManifold, q, p, X)
   rep_size = Manifolds.representation_size(M.manifold)
   for i in Manifolds.get_iterator(M)
@@ -65,6 +77,16 @@ function Manifolds.exp!(M::NPowerManifold, q, p, X)
     )
   end
   return q
+end
+
+# Allocating exp that infers element type from tangent vector (Dual-compatible)
+function ManifoldsBase.exp(M::NPowerManifold, p, X)
+  rep_size = Manifolds.representation_size(M.manifold)
+  return [exp(
+    M.manifold,
+    Manifolds._read(M, rep_size, p, i),
+    Manifolds._read(M, rep_size, X, i),
+  ) for i in Manifolds.get_iterator(M)]
 end
 
 function LieGroups.compose!(M::NPowerManifold, x, p, q)

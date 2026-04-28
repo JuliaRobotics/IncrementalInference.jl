@@ -1,6 +1,6 @@
 # ================================================================================================
-## FlatVariables - used for packing variables for optimization
-## ================================================================================================
+# FlatVariables - used for packing variables for optimization
+# ================================================================================================
 
 struct FlatVariables{T <: Real}
   X::Vector{T}
@@ -35,9 +35,9 @@ function Base.getindex(flatVar::FlatVariables{T}, vId::Symbol) where {T <: Real}
   return flatVar.X[flatVar.idx[vId]]
 end
 
-## ================================================================================================
-## Parametric Factors
-## ================================================================================================
+# ================================================================================================
+# Parametric Factors
+# ================================================================================================
 
 """
     $SIGNATURES
@@ -129,9 +129,9 @@ end
 getFactorMeasurementParametric(fct::FactorCompute) = getFactorMeasurementParametric(getObservation(fct))
 getFactorMeasurementParametric(dfg::AbstractDFG, flb::Symbol) = getFactorMeasurementParametric(getFactor(dfg, flb))
 
-## ================================================================================================
-## Parametric solve with Mahalanobis distance - CalcFactor
-## ================================================================================================
+# ================================================================================================
+# Parametric solve with Mahalanobis distance - CalcFactor
+# ================================================================================================
 
 function CalcFactorMahalanobis(fg, fct::FactorCompute)
   fac_func = getObservation(fct)
@@ -167,7 +167,7 @@ end
 # function (cfp::CalcFactorMahalanobis{FT, 1, C, MEAS, D, L, Nothing})(variables...) where {FT, C, MEAS, D, L, Nothing}# AbstractArray{T} where T <: Real
 #   # call the user function
 #   res = cfp.calcfactor!(cfp.meas..., variables...)
-#   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+#   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  # k = dim(μ)
 #   return res' * cfp.iΣ[1] * res
 # end
 
@@ -221,15 +221,15 @@ function calcFactorMahalanobisVec(fg)
   return ArrayPartition{CalcFactorMahalanobis, typeof(parts_tuple)}(parts_tuple)
 end
 
-## ================================================================================================
-## ================================================================================================
-## New Parametric refactor WIP
-## ================================================================================================
-## ================================================================================================
+# ================================================================================================
+# ================================================================================================
+# New Parametric refactor WIP
+# ================================================================================================
+# ================================================================================================
 
-## ================================================================================================
-## LazyCase based on LazyBufferCache from PreallocationTools.jl
-## ================================================================================================
+# ================================================================================================
+# LazyCase based on LazyBufferCache from PreallocationTools.jl
+# ================================================================================================
 
 """
   $SIGNATURES
@@ -258,9 +258,9 @@ function getCoordCache!(cache::LazyCache, M, T::DataType, varname::Symbol)
   return val
 end
 
-## ================================================================================================
-## GraphSolveStructures
-## ================================================================================================
+# ================================================================================================
+# GraphSolveStructures
+# ================================================================================================
 
 getVariableTypesCount(fg::AbstractDFG) = getVariableTypesCount(getVariables(fg))
 
@@ -379,7 +379,7 @@ function cost_cfp(
 ) where {T,N}
   # cfp(map(v->p[v],vi)...)
   res = cfp(cfp.meas..., map(v->p[v],vi)...)
-  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  # k = dim(μ)
   return res' * cfp.iΣ[1] * res
 
 end
@@ -485,7 +485,7 @@ function (gsc::GraphSolveContainer)(Xc::Vector{T}, ::MultiThreaded) where {T <: 
     # obj += retval
   end
 
-  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  # k = dim(μ)
 
   #NOTE multi threaded option
   return sum(obj) / 2
@@ -629,7 +629,7 @@ function solveGraphParametricOptim(
   return (opti = d, stat = result, varIds = varIdDict, Σ = Σ)
 end
 
-## Original
+# Original
 # ==============================
 
 function _totalCost(fg, cfdict::OrderedDict{Symbol, <:CalcFactorMahalanobis}, flatvar, Xc)
@@ -646,7 +646,7 @@ function _totalCost(fg, cfdict::OrderedDict{Symbol, <:CalcFactorMahalanobis}, fl
     # call the user function
     # retval = cfp(Xparams...)
     res = cfp(cfp.meas..., Xparams...)
-    # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+    # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  # k = dim(μ)
     obj += 1 / 2 * res' * cfp.iΣ[1] * res
   end
 
@@ -733,9 +733,9 @@ function solveConditionalsParametric(
   return (opti = d, stat = result, varIds = flatvar.idx, Σ = Σ)
 end
 
-## ================================================================================================
-## UNDER DEVELOPMENT Parametric solveTree utils
-## ================================================================================================
+# ================================================================================================
+# UNDER DEVELOPMENT Parametric solveTree utils
+# ================================================================================================
 
 """
     $SIGNATURES
@@ -766,10 +766,7 @@ function calculateMarginalCliqueLikelihood(vardict, Σ, varindxs, subsetVarIds)
   return createMvNormal(μₘ, Σₘ)
 end
 
-"""
-    $SIGNATURES
-
-"""
+#FIXME delete!!!
 function calculateCoBeliefMessage(soldict, Σ, flatvars, separators, frontals)
   Aidx = IIF.collectIdx(flatvars, separators)
   Cidx = IIF.collectIdx(flatvars, frontals)
@@ -808,11 +805,11 @@ function calculateCoBeliefMessage(soldict, Σ, flatvars, separators, frontals)
   end
 end
 
-## ================================================================================================
-## Parametric utils
-## ================================================================================================
+# ================================================================================================
+# Parametric utils
+# ================================================================================================
 
-## SANDBOX of usefull development functions to be cleaned up
+# SANDBOX of usefull development functions to be cleaned up
 """
     $SIGNATURES
 Update the parametric solver data value and covariance.
@@ -933,17 +930,30 @@ function updateParametricSolution!(sfg, vardict::AbstractDict; solveKey::Symbol 
   end
 end
 
-function updateParametricSolution!(fg, M, labels::AbstractArray{Symbol}, vals, Σ; solveKey::Symbol = :parametric)
+function updateParametricSolution!(fg, M, labels::AbstractArray{Symbol}, vals, Λ; solveKey::Symbol = :parametric)
   
-  if !isnothing(Σ)
-    covars = getComponentsCovar(M, Σ)
+  if isnothing(Λ)
+    covars = nothing
+  else
+    Σ = try 
+      cholesky(Symmetric(Matrix(Λ))) \ I
+    catch ex
+      if size(Λ, 1) < 1000 
+        @warn "Precision matrix inversion failed, using pinv" ex
+        pinv(Matrix(Λ))
+      else
+        @error "Precision matrix inversion failed and matrix is large, not updating covariance" ex
+        nothing
+      end
+    end
+    covars = isnothing(Σ) ? nothing : getComponentsCovar(M, Σ)
   end
 
   for (i, (v, val)) in enumerate(zip(labels, vals))
     vnd = getState(getVariable(fg, v), solveKey)
-    covar = isnothing(Σ) ? DFG.refCovariances(vnd)[1] : covars[i]
+    covar = isnothing(covars) ? DFG.refCovariances(vnd)[1] : covars[i]
     # Update the variable node data value and covariance
-    updateSolverDataParametric!(vnd, val, covar)#FIXME add cov
+    updateSolverDataParametric!(vnd, val, covar)
   end
 
 end
