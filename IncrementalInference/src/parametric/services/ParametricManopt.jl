@@ -3,7 +3,7 @@ using FiniteDiff
 using SparseDiffTools
 using SparseArrays
 
-# using ForwardDiff
+using ForwardDiff
 # using Zygote
 
 ##
@@ -111,7 +111,7 @@ end
 function calcFactorResVec!(
   x::Vector{T},
   cfm_part::Vector{<:CalcFactorResidual{FT, N, D}},
-  p::AbstractArray{T},
+  p::AbstractArray,
   st::Int
 ) where {T, FT, N, D}
   for cfm in cfm_part
@@ -121,7 +121,7 @@ function calcFactorResVec!(
   return st
 end
 
-function calcFactorResVec_threaded!(x::Vector{T}, cfm_part::Vector{<:CalcFactorResidual}, p::AbstractArray{T}, st::Int) where T
+function calcFactorResVec_threaded!(x::Vector{T}, cfm_part::Vector{<:CalcFactorResidual}, p::AbstractArray, st::Int) where T
   l = getDimension(cfm_part[1]) # all should be the same
   N = length(cfm_part)
   chunkies = Iterators.partition(1:N, N ÷ Threads.nthreads())
@@ -135,7 +135,7 @@ function calcFactorResVec_threaded!(x::Vector{T}, cfm_part::Vector{<:CalcFactorR
   return st + l*N
 end
 
-function (costf::CostFres!{CFT})(M::AbstractManifold, x::Vector{T}, p::AbstractVector{T}) where {CFT,T}
+function (costf::CostFres!{CFT})(M::AbstractManifold, x::Vector{T}, p::AbstractVector) where {CFT,T}
   st = 1
   for cfm_part in costf.costfuns.x
       # if length(cfm_part) > Threads.nthreads() * 10
@@ -150,11 +150,11 @@ end
 ## --------------------------------------------------------------------------------------------------------------
 ## jacobian of function for Riemannian Levenberg-Marquardt
 ## --------------------------------------------------------------------------------------------------------------
-struct JacF_RLM!{CF, T, JC}
+struct JacF_RLM!{CF, TX, TQ, JC}
   costF!::CF
   X0::Vector{Float64}
-  X::T
-  q::T
+  X::TX
+  q::TQ
   res::Vector{Float64}
   Jcache::JC
 end
@@ -204,7 +204,8 @@ function (jacF!::JacF_RLM!)(
   J,
   p::T;
   # basis_domain::AbstractBasis = DefaultOrthonormalBasis(),
-  basis_domain::AbstractBasis = DefaultOrthogonalBasis(),
+  # basis_domain::AbstractBasis = DefaultOrthogonalBasis(),
+  basis_domain::AbstractBasis = LieGroups.DefaultLieAlgebraOrthogonalBasis(),
 ) where T
   
   X0 = jacF!.X0
@@ -245,6 +246,79 @@ end
   #   ManifoldDiff.default_differential_backend()
   # )
 
+## --------------------------------------------------------------------------------------------------------------
+## ForwardDiff jacobian for Riemannian Levenberg-Marquardt
+## --------------------------------------------------------------------------------------------------------------
+
+struct JacF_RLM_ForwardDiff!{CF, JC}
+  costF!::CF
+  X0::Vector{Float64}
+  res::Vector{Float64}
+  sparsity::Union{SparseMatrixCSC, Nothing}
+  jac_cache::JC  # ForwardColorJacCache or nothing
+end
+
+function JacF_RLM_ForwardDiff!(M, costF!, p, fg=nothing;
+  all_points=p,
+  basis_domain::AbstractBasis = LieGroups.DefaultLieAlgebraOrthogonalBasis(),
+  is_sparse=!isnothing(fg),
+)
+  res = reduce(vcat, map(f -> f(all_points), Vector(costF!.costfuns)))
+  X0 = zeros(manifold_dimension(M))
+
+  if is_sparse && !isnothing(fg)
+    factLabels = collect(getproperty.(costF!.costfuns, :faclbl))
+    sparsity = eltype(res).(getSparsityPattern(fg, costF!.varLabels, factLabels))
+    colorvec = matrix_colors(sparsity)
+    # build the in-place wrapper that ForwardColorJacCache expects: f(out, x)
+    function _inplace_costf!(out, Xc)
+      _X = get_vector(M, p, Xc, basis_domain)
+      _q = exp(M, p, _X)
+      costF!(M, out, _q)
+    end
+    jac_cache = ForwardColorJacCache(_inplace_costf!, X0; dx=similar(res), colorvec, sparsity)
+  else
+    sparsity = nothing
+    jac_cache = nothing
+  end
+
+  return JacF_RLM_ForwardDiff!(costF!, X0, res, sparsity, jac_cache)
+end
+
+function (jacF!::JacF_RLM_ForwardDiff!)(
+  M::AbstractManifold,
+  J,
+  p;
+  basis_domain::AbstractBasis = DefaultOrthogonalBasis(),
+  # basis_domain::AbstractBasis = LieGroups.DefaultLieAlgebraOrthogonalBasis(),
+)
+  X0 = jacF!.X0
+  fill!(X0, 0)
+
+  if !isnothing(jacF!.jac_cache)
+    # sparse path: use coloring-aware ForwardDiff via SparseDiffTools
+    function _inplace_costf_sparse!(out, Xc)
+      X = get_vector(M, p, Xc, basis_domain)
+      # X = hat(LieAlgebra(M), Xc)
+      q = exp(M, p, X)
+      jacF!.costF!(M, out, q)
+    end
+    forwarddiff_color_jacobian!(J, _inplace_costf_sparse!, X0, jacF!.jac_cache)
+  else
+    # dense path: standard ForwardDiff
+    nres = length(jacF!.res)
+    function costf(Xc)
+      X = get_vector(M, p, Xc, basis_domain)
+      q = exp(M, p, X)
+      _res = zeros(eltype(Xc), nres)
+      jacF!.costF!(M, _res, q)
+      return _res
+    end
+    ForwardDiff.jacobian!(J, costf, X0)
+  end
+  return J
+end
+
 struct FactorGradient{A <: AbstractMatrix}
   manifold::AbstractManifold
   JacF!::JacF_RLM!
@@ -278,31 +352,36 @@ function getSparsityPattern(fg, varLabels, factLabels)
   return sparse(getindex.(iter,1), getindex.(iter,2), ones(Bool, length(iter)))
 end
 
-# TODO only calculate marginal covariances
-
-function covarianceFiniteDiff(M, jacF!::JacF_RLM!, p0)
+function precisionFiniteDiff(M, jacF!::JacF_RLM!, p0)
     # Jcache
     X0 = fill!(deepcopy(jacF!.X0), 0)
     
     function costf(Xc)
       let res = jacF!.res, X = jacF!.X, q = jacF!.q, p0=p0
         get_vector!(M, X, p0, Xc, DefaultOrthogonalBasis())
+        # get_vector!(M, X, p0, Xc, LieGroups.DefaultLieAlgebraOrthogonalBasis())
         exp!(M, q, p0, X)
         1/2*norm(jacF!.costF!(M, res, q))^2
       end
     end
     
-    H = FiniteDiff.finite_difference_hessian(costf, X0)
+    FiniteDiff.finite_difference_hessian(costf, X0)
+end
 
-    # inv(H)
-    Σ = try 
-        Matrix(H) \ Matrix{eltype(H)}(I, size(H)...)
-      catch ex #TODO only catch correct exception and try with pinv as fallback in certain cases.
-        @warn "Hessian inverse failed" ex
-        # Σ = pinv(H)
-        nothing
-      end
-    return Σ
+function precisionFiniteDiff(M, jacF!::JacF_RLM_ForwardDiff!, p0)
+    X0 = fill!(copy(jacF!.X0), 0)
+    nres = length(jacF!.res)
+    
+    function costf(Xc)
+      # X = get_vector(M, p0, Xc, DefaultOrthogonalBasis())
+      X = get_vector(M, p0, Xc, LieGroups.DefaultLieAlgebraOrthogonalBasis())
+      q = exp(M, p0, X)
+      _res = zeros(nres)
+      jacF!.costF!(M, _res, q)
+      return 1/2*norm(_res)^2
+    end
+    
+    FiniteDiff.finite_difference_hessian(costf, X0)
 end
 
 function qr_linear_subsolver!(sk, JJ, grad_f_c)
@@ -316,7 +395,9 @@ function solve_RLM(
   faclabels = lsf(fg);
   is_sparse = true,
   finiteDiffCovariance = false,
+  jacobian_method::Symbol = :finitediff,
   solveKey::Symbol = :parametric,
+  # linear_subsolver! = Manopt.default_lm_lin_solve!,
   linear_subsolver! = qr_linear_subsolver!,
   kwargs...
 )
@@ -341,15 +422,23 @@ function solve_RLM(
   costF! = CostFres!(calcfacs, collect(varlabelsAP))
 
   # jacobian of function for Riemannian Levenberg-Marquardt
-  jacF! = JacF_RLM!(M, costF!, p0, fg; is_sparse)
+  if jacobian_method == :forwarddiff
+    jacF! = JacF_RLM_ForwardDiff!(M, costF!, p0, fg; is_sparse)
+  else
+    jacF! = JacF_RLM!(M, costF!, p0, fg; is_sparse)
+  end
 
   num_components = length(jacF!.res)
   initial_residual_values = zeros(num_components)
 
   # initial_jacobian_f not type stable, but function barrier so should be ok.
-  initial_jacobian_f = is_sparse ? 
-    jacF!.Jcache.sparsity : 
+  initial_jacobian_f = if jacF! isa JacF_RLM! && is_sparse
+    jacF!.Jcache.sparsity
+  elseif jacF! isa JacF_RLM_ForwardDiff! && !isnothing(jacF!.sparsity)
+    jacF!.sparsity
+  else
     zeros(num_components, manifold_dimension(M))
+  end
 
   lm_r = Manopt.LevenbergMarquardt!(
     M,
@@ -358,30 +447,23 @@ function solve_RLM(
     p0,
     num_components;
     evaluation=InplaceEvaluation(),
-    jacobian_tangent_basis = DefaultOrthogonalBasis(),
+    jacobian_tangent_basis = LieGroups.DefaultLieAlgebraOrthogonalBasis(),
+    # jacobian_tangent_basis = DefaultOrthogonalBasis(),
     initial_residual_values,
     initial_jacobian_f,
     linear_subsolver!,
     kwargs...
   )
 
-  if length(initial_residual_values) < 1000 
-    if finiteDiffCovariance
-      # TODO this seems to be correct, but way to slow
-      Σ = covarianceFiniteDiff(M, jacF!, lm_r)
-    else
-      # TODO make sure J initial_jacobian_f is updated, otherwise recalc jacF!(M, J, lm_r) # lm_r === p0
-      J = initial_jacobian_f
-      H = J'J # approx
-      Σ = H \ Matrix{eltype(H)}(I, size(H)...)
-      # Σ = pinv(H)
-    end
+  if finiteDiffCovariance
+    Λ = precisionFiniteDiff(M, jacF!, lm_r)
   else
-    @warn "Not estimating a Dense Covariance $(size(initial_jacobian_f))"
-    Σ = nothing  
+    J = initial_jacobian_f
+    jacF!(M, J, lm_r) # recompute J at solution point
+    Λ = Symmetric(J'J) # approx Hessian = precision matrix
   end
 
-  return M, varlabelsAP, lm_r, Σ
+  return M, varlabelsAP, lm_r, Λ
 end
 
   # nlso = NonlinearLeastSquaresObjective(
@@ -402,12 +484,45 @@ end
   #   kwargs...
   # )
 
+function build_costF_jacF(
+    fg,
+    varlabels = ls(fg),
+    faclabels = lsf(fg);
+    is_sparse = false,
+)
+  
+  # get the manifold and variable types
+  vars = getVariable.(fg, varlabels)
+    
+  M, varTypes, vartypeslist = buildGraphSolveManifold(vars)
+
+  varIntLabel, varlabelsAP = getVarIntLabelMap(vartypeslist)
+
+  #Can use varIntLabel (because its an OrderedDict), but varLabelsAP makes the ArrayPartition.
+  p0 = map(varlabelsAP) do label
+    getVal(fg, label, solveKey = :parametric)[1]
+  end
+
+  # create an ArrayPartition{CalcFactorResidual} for faclabels
+  calcfacs = CalcFactorResidualAP(fg, faclabels, varIntLabel)
+
+  #cost and jacobian functions
+  # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
+  costF! = CostFres!(calcfacs, collect(varlabelsAP))
+
+  # jacobian of function for Riemannian Levenberg-Marquardt
+  jacF! = JacF_RLM!(M, costF!, p0, fg; is_sparse)
+  
+  return M, costF!, jacF!, p0
+end
+
 function solve_RLM_conditional(
   fg,
   frontals::Vector{Symbol} = ls(fg),
   separators::Vector{Symbol} = setdiff(ls(fg), frontals);
   is_sparse=false,
   finiteDiffCovariance=true,
+  jacobian_method::Symbol = :finitediff,
   solveKey::Symbol = :parametric,
   kwargs...
 )
@@ -420,6 +535,8 @@ function solve_RLM_conditional(
   filter!(faclabels) do fl
     return issubset(getVariableOrder(fg, fl), varlabels)
   end
+
+  @assert !isempty(faclabels) "Empty factor set for graph with variables $(ls(fg))"
 
   frontal_vars = getVariable.(fg, frontals)
   separator_vars = getVariable.(fg, separators)
@@ -464,15 +581,23 @@ function solve_RLM_conditional(
   costF! = CostFres_cond!(all_points, calcfacs, Vector{Symbol}(collect(all_varlabelsAP)))
 
   # jacobian of function for Riemannian Levenberg-Marquardt
-  jacF! = JacF_RLM!(M, costF!, p0, fg; all_points, is_sparse)
+  if jacobian_method == :forwarddiff
+    jacF! = JacF_RLM_ForwardDiff!(M, costF!, p0, fg; all_points, is_sparse)
+  else
+    jacF! = JacF_RLM!(M, costF!, p0, fg; all_points, is_sparse)
+  end
 
   num_components = length(jacF!.res)
 
   initial_residual_values = zeros(num_components)
 
-  initial_jacobian_f = is_sparse ? 
-    jacF!.Jcache.sparsity : 
+  initial_jacobian_f = if jacF! isa JacF_RLM! && is_sparse
+    jacF!.Jcache.sparsity
+  elseif jacF! isa JacF_RLM_ForwardDiff! && !isnothing(jacF!.sparsity)
+    jacF!.sparsity
+  else
     zeros(num_components, manifold_dimension(M))
+  end
 
   lm_r = LevenbergMarquardt(
     M,
@@ -487,13 +612,26 @@ function solve_RLM_conditional(
   )
 
   if finiteDiffCovariance
-    Σ = covarianceFiniteDiff(M, jacF!, lm_r)
+    Λ = precisionFiniteDiff(M, jacF!, lm_r)
   else
-    J = initial_jacobian_f
-    Σ = pinv(J'J)
+    jacF!(M, initial_jacobian_f, lm_r)
+    Λ = Symmetric(initial_jacobian_f' * initial_jacobian_f)
   end
+  
+  return M, frontal_varlabelsAP, lm_r, Λ
+end
 
-  return M, all_varlabelsAP, lm_r, Σ
+function extractMarginalsAP(M, labelsAP::ArrayPartition{Symbol}, Σ::AbstractArray{<:Real})
+  st = 1
+  Σvec = map(eachindex(labelsAP.x)) do i
+      l = getDimension(M.manifolds[i].manifold)
+      map(eachindex(labelsAP.x[i])) do j
+          r = st:st + l - 1
+          st += l
+          SMatrix{l,l,Float64}(Σ[r,r])
+      end
+  end 
+  ArrayPartition(Σvec...)
 end
 
   #HEX solve
@@ -557,16 +695,18 @@ function autoinitParametric!(
           _M,
           p,
           randn(manifold_dimension(_M))*10^-6,
-          DefaultOrthogonalBasis()
+          LieGroups.DefaultLieAlgebraOrthogonalBasis()
         )
       )
     end
-    M, vartypeslist, lm_r, Σ = solve_RLM_conditional(dfg, [initme], initfrom; solveKey, kwargs...)
+    M, vartypeslist, lm_r, Λ = solve_RLM_conditional(dfg, [initme], initfrom; solveKey, kwargs...)
     
     val = lm_r[1]
     DFG.refMeans(vnd)[1] = val
 
-    !isnothing(Σ) && (DFG.refCovariances(vnd)[1] .= Σ)
+    if !isnothing(Λ)
+      DFG.refCovariances(vnd)[1] .= inv(Matrix(Λ))
+    end
   
     # updateSolverDataParametric!(vnd, val, Σ)
 
@@ -609,11 +749,11 @@ function DFG.solveGraphParametric!(
     error("TODO: not implemented")
   end
 
-  M, v, r, Σ = solve_RLM(fg, args...; is_sparse, kwargs...)
+  M, v, r, Λ = solve_RLM(fg, args...; is_sparse, kwargs...)
 
-  updateParametricSolution!(fg, M, v, r, Σ)
+  updateParametricSolution!(fg, M, v, r, Λ)
 
-  return M, v, r, Σ 
+  return M, v, r, Λ 
 end
 
 
