@@ -133,15 +133,6 @@ end
 """
     $SIGNATURES
 
-Return params.N measurement samples for a factor in `<:AbstractDFG`.
-"""
-function getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int = getSolverParams(dfg).N)
-  return sampleFactor(dfg, fsym, N)
-end
-
-"""
-    $SIGNATURES
-
 Get the folder location where debug and solver information is recorded for a particular factor graph.
 """
 getLogPath(opt::SolverParams) = opt.logpath

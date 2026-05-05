@@ -139,14 +139,14 @@ function localProductAndUpdate!(
   setkde::Bool = true,
   logger = ConsoleLogger();
   solveKey::Symbol = :default,
+  N = getSolverParams(dfg).N,
 )
   #
   # calculate new points for sym using existing structure around sym in dfg
-  newPts, dens, lbl, ipc =
-    localProduct(dfg, sym; solveKey = solveKey, N = getSolverParams(dfg).N, logger = logger)
+  newPts, dens, lbl, ipc = localProduct(dfg, sym; solveKey, N, logger)
   # maybe update dfg sym with newly calculated points
   if setkde && 0 < length(getPoints(newPts))
-    setValKDE!(dfg, sym, newPts, false, ipc; solveKey = solveKey)
+    setValKDE!(dfg, sym, newPts, false, ipc; solveKey)
   else
     nothing
   end

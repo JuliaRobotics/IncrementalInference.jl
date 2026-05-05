@@ -143,7 +143,7 @@ function areCliqVariablesAllInitialized(
   dfg::AbstractDFG,
   cliq::TreeClique,
   solveKey::Symbol = :default;
-  N::Int = getSolverParams(dfg).N,
+  N::Int = 100,
 )
   #
   allids = getCliqAllVarIds(cliq)

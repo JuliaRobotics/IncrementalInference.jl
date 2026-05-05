@@ -368,7 +368,7 @@ function initVariable!(
   kwargs...,
 )
   #
-  pts = propagateBelief(dfg, label, usefcts; solveKey = solveKey)[1]
+  pts = propagateBelief(dfg, label, usefcts; solveKey, N)[1]
   # pts = predictbelief(dfg, label, usefcts; solveKey = solveKey)[1]
   vert = getVariable(dfg, label)
   Xpre = manikde!(getManifold(getStateKind(vert)), pts)
@@ -548,7 +548,7 @@ function initAll!(
         if _parametricInit
           autoinitParametric!(dfg, var; solveKey)
         else
-          doautoinit!(dfg, [var;]; solveKey, singles = true)
+          doautoinit!(dfg, [var;]; N, solveKey, singles = true)
         end
         !isInitialized(var, solveKey) ? (repeatFlag = true) : nothing
       end

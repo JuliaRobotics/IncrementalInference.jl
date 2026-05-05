@@ -113,6 +113,7 @@ function tryCliqStateMachineSolve!(
   treel::AbstractBayesTree,
   cliqKey::Union{Int, CliqueId},
   timeout::Union{Nothing, <:Real} = nothing;
+  solverparams = getSolverParams(dfg), #FIXME deprecation step
   oldtree::AbstractBayesTree = BayesTree(),
   verbose::Bool = false,
   verbosefid = stdout,
@@ -134,7 +135,7 @@ function tryCliqStateMachineSolve!(
   oldcliq = attemptTreeSimilarClique(oldtree, getCliqueData(cliq))
   oldcliqdata = getCliqueData(oldcliq)
 
-  opts = getSolverParams(dfg)
+  opts = solverparams
   # Base.rm(joinpath(opts.logpath,"logs/cliq$i"), recursive=true, force=true)
   mkpath(joinpath(opts.logpath, "logs/cliq$(cliq.id)/"))
   logger = SimpleLogger(open(joinpath(opts.logpath, "logs/cliq$(cliq.id)/log.txt"), "w+")) # NullLogger()
@@ -326,28 +327,35 @@ Related
 function solveTree!(
   dfgl::AbstractDFG,
   oldtree::AbstractBayesTree = BayesTree();
-  timeout::Union{Nothing, <:Real} = nothing,
-  storeOld::Bool = false,
-  verbose::Bool = false,
-  verbosefid = stdout,
-  delaycliqs::Vector{Symbol} = Symbol[],
-  recordcliqs::Vector{Symbol} = Symbol[],
-  limititercliqs::Vector{Pair{Symbol, Int}} = Pair{Symbol, Int}[],
-  injectDelayBefore::Union{Nothing, Vector{<:Pair{Int, <:Pair{<:Function, <:Real}}}} = nothing,
-  skipcliqids::Vector{Symbol} = Symbol[],
+  solverparams = getSolverParams(dfg),
+  # tree options
   eliminationOrder::Union{Nothing, Vector{Symbol}} = nothing,
   eliminationConstraints::Vector{Symbol} = Symbol[],
-  smtasks::Vector{Task} = Task[],
-  dotreedraw = Int[1;],
-  runtaskmonitor::Bool = true,
+  # execution options
+  timeout::Union{Nothing, <:Real} = nothing,
+  multithread::Bool = false,
+  #
   algorithm::Symbol = :default,
   solveKey::Symbol = algorithm,
-  multithread::Bool = false,
+  # maybe debug?
+  delaycliqs::Vector{Symbol} = Symbol[],
+  # debug options
+  storeOld::Bool = false,
+  limititercliqs::Vector{Pair{Symbol, Int}} = Pair{Symbol, Int}[],
+  skipcliqids::Vector{Symbol} = Symbol[],
+  recordcliqs::Vector{Symbol} = Symbol[],
+  smtasks::Vector{Task} = Task[],
+  dotreedraw = Int[1;],
+  verbose::Bool = false,
+  verbosefid = stdout,
+  #dead TODO check if called anywhere
+  injectDelayBefore::Union{Nothing, Vector{<:Pair{Int, <:Pair{<:Function, <:Real}}}} = nothing,
+  runtaskmonitor::Bool = true,
 )
   #
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
-  opt = getSolverParams(dfgl)
+  opt = solverparams
 
   # showtree should force drawtree
   if opt.showtree && !opt.drawtree
@@ -426,6 +434,7 @@ function solveTree!(
   algorithm != :parametric ? nothing : @error("Under development, do not use, see #539")
   !storeOld ? nothing : @error("parametric storeOld keyword not wired up yet.")
 
+  #TODO consider solveGraph! vs solveGraphAsync! 
   if opt.async
     @async smtasks, hist = taskSolveTree!(
       dfgl,

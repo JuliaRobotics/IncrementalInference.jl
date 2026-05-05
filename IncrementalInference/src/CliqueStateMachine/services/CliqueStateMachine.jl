@@ -180,7 +180,7 @@ function presolveChecklist_StateMachine(csmc::CliqStateMachineContainer)
       setDefaultNodeData!(
         var,
         0,
-        getSolverParams(csmc.cliqSubFg).N;
+        getCliqueSolverParams(csmc).N;
         solveKey = csmc.solveKey,
         initialized = false,
         varType = varType,
@@ -301,7 +301,7 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   )
 
   #try to skip upsolve 
-  if !getSolverParams(csmc.dfg).upsolve
+  if !getCliqueSolverParams(csmc).upsolve
     return tryDownSolveOnly_StateMachine
   end
 
@@ -318,7 +318,7 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   # if all(all_child_status .== UPSOLVED) 
   if all_child_finished_up
     return solveUp_StateMachine
-  elseif !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey)
+  elseif !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey; N = getCliqueSolverParams(csmc).N)
     return initUp_StateMachine
   else
     setCliqueDrawColor!(csmc.cliq, "brown")
@@ -382,6 +382,7 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
     varorder;
     solveKey = csmc.solveKey,
     logger = csmc.logger,
+    N = getCliqueSolverParams(csmc).N,
   )
   # is clique fully upsolved or only partially?
   # print out the partial init status of all vars in clique
@@ -427,7 +428,7 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
   setCliqueDrawColor!(csmc.cliq, "red")
 
   #Make sure all are initialized
-  if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey)
+  if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey; N = getCliqueSolverParams(csmc).N)
     logCSM(
       csmc,
       "CSM-2c All children upsolved, not init, try init then upsolve";
@@ -439,10 +440,11 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
       varorder;
       solveKey = csmc.solveKey,
       logger = csmc.logger,
+      N = getCliqueSolverParams(csmc).N,
     )
   end
 
-  isinit = areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey)
+  isinit = areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey; N = getCliqueSolverParams(csmc).N)
   logCSM(csmc, "CSM-2c midway, isinit=$isinit")
   # Check again  
   if isinit
@@ -554,7 +556,7 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   # Done with solve delete factors
   # remove msg factors that were added to the subfg
-  tags_ = if getSolverParams(csmc.cliqSubFg).useMsgLikelihoods
+  tags_ = if getCliqueSolverParams(csmc).useMsgLikelihoods
     [:__UPWARD_COMMON__;]
   else
     [:__LIKELIHOODMESSAGE__;]
@@ -569,7 +571,7 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   _dbgCSMSaveSubFG(csmc, "fg_afterupsolve")
 
   # warn and clean exit on stalled tree init
-  if csmc.init_iter > getSolverParams(csmc.cliqSubFg).limittreeinit_iters
+  if csmc.init_iter > getCliqueSolverParams(csmc).limittreeinit_iters
     logCSM(
       csmc,
       "CSM-2e Clique $(csmc.cliqId) tree init failed, max init retries reached.";
@@ -591,7 +593,7 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
     putBeliefMessageUp!(csmc.tree, e, beliefMsg)
   end
 
-  if getSolverParams(csmc.dfg).downsolve
+  if getCliqueSolverParams(csmc).downsolve
     return waitForDown_StateMachine
   else
     return updateFromSubgraph_StateMachine
@@ -698,8 +700,6 @@ Notes
 function preDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   logCSM(csmc, "CSM-4a Preparing for down init/solve")
 
-  opts = getSolverParams(csmc.dfg)
-
   # get down msg from Rx buffer (saved in take!)
   dwnmsgs = getMessageBuffer(csmc.cliq).downRx
 
@@ -771,6 +771,7 @@ function tryDownInit_StateMachine(csmc::CliqStateMachineContainer)
     initorder;
     solveKey = csmc.solveKey,
     logger = csmc.logger,
+    N = getCliqueSolverParams(csmc).N,
   )
   # is clique fully upsolved or only partially?
   # print out the partial init status of all vars in clique
@@ -816,7 +817,7 @@ function solveDown_StateMachine(csmc::CliqStateMachineContainer)
   # force separator variables in cliqSubFg to adopt down message values
   # updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
 
-  opts = getSolverParams(csmc.dfg)
+  opts = getCliqueSolverParams(csmc)
   #XXX test with and without
   # add required all frontal connected factors
   if !opts.useMsgLikelihoods

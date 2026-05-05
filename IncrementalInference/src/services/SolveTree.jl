@@ -166,7 +166,7 @@ function upGibbsCliqueDensity(
   cliq::TreeClique,
   solveKey::Symbol,
   inmsgs,
-  N::Int = getSolverParams(dfg).N,
+  N::Int = 100,
   dbg::Bool = false,
   iters::Int = 3,
   logger = ConsoleLogger(),
@@ -265,6 +265,7 @@ function cycleInitByVarOrder!(
   varorder::Vector{Symbol};
   solveKey::Symbol = :default,
   logger = ConsoleLogger(),
+  N::Int = 100,
 )
   #
   with_logger(logger) do
@@ -280,7 +281,7 @@ function cycleInitByVarOrder!(
       with_logger(logger) do
         @info "var.label=$(var.label) is initialized=$(isinit)"
       end
-      doautoinit!(subfg, [var;]; solveKey = solveKey, logger = logger)
+      doautoinit!(subfg, [var;]; N, solveKey, logger)
       if isinit != isInitialized(var, solveKey)
         count += 1
         retval = true

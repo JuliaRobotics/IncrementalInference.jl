@@ -695,9 +695,9 @@ DevNotes
 Example:
 
 ```julia
-import IncrementalInference: preableCache
+import IncrementalInference: preambleCache
 
-preableCache(dfg::AbstractDFG, vars::AbstractVector{<:VariableCompute}, usrfnc::MyFactor) = MyFactorCache(randn(10))
+preambleCache(dfg::AbstractDFG, vars::AbstractVector{<:VariableCompute}, usrfnc::MyFactor) = MyFactorCache(randn(10))
 
 # continue regular use, e.g.
 mfc = MyFactor(...)
@@ -826,11 +826,12 @@ function DFG.addFactor!(
   solvable::Int = 1,
   tags::Vector{Symbol} = Symbol[],
   timestamp::Union{DateTime, ZonedDateTime} = now(localzone()),
+  namestring::Symbol = assembleFactorName(dfg, Xi),
+  #TODO  solver parameters/options follows  
   graphinit::Bool = getSolverParams(dfg).graphinit,
   # threadmodel = SingleThreaded,
   suppressChecks::Bool = false,
   inflation::Real = getSolverParams(dfg).inflation,
-  namestring::Symbol = assembleFactorName(dfg, Xi),
   _blockRecursion::Bool = !getSolverParams(dfg).attemptGradients,
   keepCalcFactor::Bool = false,
 )
