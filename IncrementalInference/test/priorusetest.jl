@@ -19,9 +19,9 @@ graphinit = true
 for  graphinit = graphinits
 
 fg = initfg()
-fg.solverParams.N = N
-fg.solverParams.graphinit = graphinit
-fg.solverParams.treeinit = !graphinit
+getSolverParams(fg).N = N
+getSolverParams(fg).graphinit = graphinit
+getSolverParams(fg).treeinit = !graphinit
 
 addVariable!(fg, :x0, ContinuousScalar, N=N)
 addFactor!(fg, [:x0], Prior(Normal(-1.0, 1.0)))
@@ -63,9 +63,9 @@ end
 for  graphinit = graphinits
 
 fg = initfg()
-fg.solverParams.N = N
-fg.solverParams.graphinit = graphinit
-fg.solverParams.treeinit = !graphinit
+getSolverParams(fg).N = N
+getSolverParams(fg).graphinit = graphinit
+getSolverParams(fg).treeinit = !graphinit
 
 addVariable!(fg, :x0, ContinuousScalar, N=N)
 addFactor!(fg, [:x0], Prior(Normal(-1.0, 1.0)))

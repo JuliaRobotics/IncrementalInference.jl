@@ -250,8 +250,8 @@ function generateGraph_EuclidDistance(
   #
   dims = length(points[1])
   fg = initfg()
-  fg.solverParams.N = N
-  fg.solverParams.graphinit = graphinit
+  getSolverParams(fg).N = N
+  getSolverParams(fg).graphinit = graphinit
 
   for (i, p) in enumerate(points)
     xlbl = Symbol("x", i)

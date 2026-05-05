@@ -36,10 +36,9 @@ graphinit = false
 ##
 
 fg = initfg()
-# fg.solverParams.graphinit = graphinit
-fg.solverParams.N = n_samples
-fg.solverParams.gibbsIters = 6
-fg.solverParams.spreadNH = 0.3
+getSolverParams(fg).N = n_samples
+getSolverParams(fg).gibbsIters = 6
+getSolverParams(fg).spreadNH = 0.3
 
 # lp landmark prior information
 # lm landmark measurement

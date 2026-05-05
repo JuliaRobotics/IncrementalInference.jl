@@ -743,7 +743,7 @@ function DFG.solveGraphParametric!(
 )
   # make sure variables has solverData, see #1637
   makeSolverData!(fg; solveKey)
-  if !(:parametric in fg.solverParams.algorithms)
+  if !(:parametric in getSolverParams(fg).algorithms)
     addParametricSolver!(fg; init = init)
   elseif init
     error("TODO: not implemented")

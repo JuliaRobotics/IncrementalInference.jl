@@ -853,7 +853,7 @@ function solveGraphParametricOptim!(
 )
   # make sure variables has solverData, see #1637
   makeSolverData!(fg; solveKey)
-  if !(:parametric in fg.solverParams.algorithms)
+  if !(:parametric in getSolverParams(fg).algorithms)
     addParametricSolver!(fg; init = init)
   elseif init
     initParametricFrom!(fg, initSolveKey; parkey=solveKey)
@@ -903,8 +903,8 @@ end
 Add the parametric solveKey to all the variables in fg if it doesn't exists.
 """
 function addParametricSolver!(fg; init = true)
-  if !(:parametric in fg.solverParams.algorithms)
-    push!(fg.solverParams.algorithms, :parametric)
+  if !(:parametric in getSolverParams(fg).algorithms)
+    push!(getSolverParams(fg).algorithms, :parametric)
     foreach(
       v -> IIF.setDefaultNodeDataParametric!(v, getStateKind(v); initialized = false),
       getVariables(fg),

@@ -29,7 +29,7 @@ deleteFactor!(fg, :x0f1)
 prpo = Prior(Normal(0, 0.01))
 addFactor!(fg, [:x0], prpo)
 
-fg.solverParams.useMsgLikelihoods = true
+getSolverParams(fg).useMsgLikelihoods = true
 
 smtasks = Task[]
 tree = solveTree!(fg; smtasks=smtasks, verbose=true, timeout=30);

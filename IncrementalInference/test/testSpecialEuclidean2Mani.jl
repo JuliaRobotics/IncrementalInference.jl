@@ -180,7 +180,6 @@ end
 
 M = getManifold(SpecialEuclidean2)
 fg = initfg()
-# fg.solverParams.graphinit = false
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 
 mp = ManifoldPrior(SE2, ArrayPartition(Vector([10.0,10.0]), Matrix([-1.0 0.0; 0.0 -1.0])), MvNormal(diagm([0.05, 0.05, 0.005].^2)))
@@ -247,7 +246,7 @@ end
 ## Special test for manifold based messages
 
 #FIXME this may show some bug in propagateBelief caused by empty factors
-fg.solverParams.useMsgLikelihoods = true
+getSolverParams(fg).useMsgLikelihoods = true
 smtasks = Task[]
 result = solveTree!(fg; smtasks); #, recordcliqs=ls(fg))
 @test result isa AbstractBayesTree
@@ -579,7 +578,6 @@ end
 ##
 
 fg = initfg()
-# fg.solverParams.attemptGradients=false
 
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 
@@ -611,7 +609,7 @@ pnt = getPoints(fg, :x1b)
 ## other way around
 
 fg = initfg()
-fg.solverParams.attemptGradients=false
+getSolverParams(fg).attemptGradients=false
 
 addVariable!(fg, :x0, SpecialEuclidean2)
 addVariable!(fg, :x1a, TranslationGroup2)
@@ -650,7 +648,6 @@ end
 ##
 
 fg = initfg()
-# fg.solverParams.attemptGradients=false
 
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 

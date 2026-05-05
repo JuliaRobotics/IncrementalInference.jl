@@ -157,7 +157,7 @@ end
 fg = LocalDFG( solverParams=SolverParams(algorithms=[:default, :parametric]))
 # fg = LocalDFG{SolverParams}( solverParams=SolverParams())
 N = 100
-fg.solverParams.N = N
+getSolverParams(fg).N = N
 graphinit = false
 
 addVariable!(fg, :x0, ContinuousScalar, N=N) # autoinit = graphinit
@@ -188,11 +188,6 @@ foreach(println, d)
 ##
 
 foreach(x->DFG.refMeans(DFG.getState(getVariable(fg,x.first),:parametric))[1] = x.second, pairs(d))
-
-# fg.solverParams.showtree = true
-# fg.solverParams.drawtree = true
-# fg.solverParams.dbg = true
-# fg.solverParams.graphinit = false
 
 # task = @async begin
   #   global tree2
@@ -231,9 +226,6 @@ end
 
 foreach(x->DFG.refMeans(DFG.getState(getVariable(fg,x.first),:parametric))[1] = x.second, pairs(d))
 
-# fg.solverParams.showtree = true
-# fg.solverParams.drawtree = true
-# fg.solverParams.dbg = false
 getSolverParams(fg).graphinit = false
 tree2 = IIF.solveTree!(fg; algorithm=:parametric)
 

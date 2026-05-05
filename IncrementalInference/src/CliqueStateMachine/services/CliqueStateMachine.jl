@@ -71,7 +71,7 @@ function initStartCliqStateMachine!(
     StateMachine{CliqStateMachineContainer}(; next = nxt, name = "cliq$(getId(cliq))")
 
   # store statemachine and csmc in task
-  if dfg.solverParams.dbg || recordhistory
+  if getSolverParams(dfg).dbg || recordhistory
     task_local_storage(:statemachine, statemachine)
     task_local_storage(:csmc, csmc)
   end

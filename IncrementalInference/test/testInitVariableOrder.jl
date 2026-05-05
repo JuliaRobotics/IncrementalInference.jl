@@ -10,7 +10,7 @@ fg = generateGraph_LineStep(3;
                             landmarkPriorsAt=[0,2], 
                             sightDistance=3)                                  
 
-fg.solverParams.useMsgLikelihoods = true
+getSolverParams(fg).useMsgLikelihoods = true
 # addVariable!(subfg, :x0, Con)
 
 cliqInitOrder = getCliqVarInitOrderUp(fg) 
@@ -57,7 +57,7 @@ doorPrior = Mixture(Prior,
 
                             
 fg = initfg()
-fg.solverParams.graphinit = false
+getSolverParams(fg).graphinit = false
 addVariable!(fg, :x0, ContinuousScalar)
 
 addFactor!(fg, [:x0], doorPrior)

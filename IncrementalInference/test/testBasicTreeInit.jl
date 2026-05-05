@@ -84,8 +84,6 @@ end
 fg = generateGraph_LineStep(3; poseEvery=1)
 
 good_vars = sortDFG(ls(fg))
-# fg.solverParams.showtree = true
-# fg.solverParams.drawtree = true
 
 # part of fg that cannot init
 addVariable!(fg, :s0, ContinuousScalar)

@@ -141,7 +141,7 @@ end
 N=100
 points = [[100.0;0.0],[0.0;100.0]]
 fg = IIF.generateGraph_EuclidDistance(points)
-fg.solverParams.graphinit = false
+getSolverParams(fg).graphinit = false
 
 M = getManifold(fg, :l1)
 TP = false

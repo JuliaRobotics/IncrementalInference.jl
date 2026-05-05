@@ -60,7 +60,6 @@ addFactor!(fg, [:x1; :l2; :l1], p2p, multihypo = [1, pRight, pWrong])
 
 # prescribe an elimination order to get a single clique
 eo = [:l2,:x1,:x0,:l1]
-# fg.solverParams.graphinit=true
 smtasks = Task[]
 tree = solveTree!(fg, eliminationOrder=eo) #, smtasks=smtasks, recordcliqs=ls(fg));
 
