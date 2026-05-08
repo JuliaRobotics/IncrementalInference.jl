@@ -250,20 +250,18 @@ function generateGraph_EuclidDistance(
   #
   dims = length(points[1])
   fg = initfg()
-  getSolverParams(fg).N = N
-  getSolverParams(fg).graphinit = graphinit
 
   for (i, p) in enumerate(points)
     xlbl = Symbol("x", i)
-    addVariable!(fg, xlbl, ContinuousEuclid{dims})
-    addFactor!(fg, [xlbl], Prior(MvNormal(p, σ_prior * ones(dims))))
+    addVariable!(fg, xlbl, ContinuousEuclid{dims}; N) #TODO solver params in DFG operations
+    addFactor!(fg, [xlbl], Prior(MvNormal(p, σ_prior * ones(dims))); graphinit) #TODO solver params in DFG operations
   end
 
-  addVariable!(fg, :l1, ContinuousEuclid{dims})
+  addVariable!(fg, :l1, ContinuousEuclid{dims}; N) #TODO solver params in DFG operations
 
   for i = 1:length(points)
     xlbl = Symbol("x", i)
-    addFactor!(fg, [xlbl; :l1], EuclidDistance(Normal(dist, σ_dist)))
+    addFactor!(fg, [xlbl; :l1], EuclidDistance(Normal(dist, σ_dist)); graphinit) #TODO solver params in DFG operations
   end
 
   return fg

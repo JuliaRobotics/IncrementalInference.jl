@@ -12,6 +12,7 @@ function initStartCliqStateMachine!(
   tree::AbstractBayesTree,
   cliq::TreeClique,
   timeout::Union{Nothing, <:Real} = nothing;
+  solverparams::SolverParams,
   oldcliqdata::BayesTreeNodeData = BayesTreeNodeData(),
   verbose::Bool = false,
   verbosefid = stdout,
@@ -38,14 +39,14 @@ function initStartCliqStateMachine!(
 
   csmc = CliqStateMachineContainer(
     dfg,
-    initfg(destType; solverParams = getSolverParams(dfg)),
+    initfg(destType; solverParams = solverparams),
     tree,
     cliq,
     incremental,
     drawtree,
     downsolve,
     delay,
-    getSolverParams(dfg),
+    solverparams,
     Dict{Symbol, String}(),
     oldcliqdata,
     logger,
@@ -61,7 +62,7 @@ function initStartCliqStateMachine!(
   # nxt = buildCliqSubgraph_StateMachine
   nxt = setCliqueRecycling_StateMachine
 
-  csmiter_cb = if getSolverParams(dfg).drawCSMIters
+  csmiter_cb = if solverparams.drawCSMIters
     ((st::StateMachine) -> (cliq.attributes["xlabel"] = st.iter; csmc._csm_iter = st.iter))
   else
     ((st) -> (csmc._csm_iter = st.iter))
@@ -71,7 +72,7 @@ function initStartCliqStateMachine!(
     StateMachine{CliqStateMachineContainer}(; next = nxt, name = "cliq$(getId(cliq))")
 
   # store statemachine and csmc in task
-  if getSolverParams(dfg).dbg || recordhistory
+  if solverparams.dbg || recordhistory
     task_local_storage(:statemachine, statemachine)
     task_local_storage(:csmc, csmc)
   end
@@ -480,7 +481,7 @@ end
 """
   $SIGNATURES
 
-CSM function only called when `getSolverParams(dfg).upsolve == false` that tries to skip upsolve.
+CSM function only called when `SolverParams.upsolve == false` that tries to skip upsolve.
 Notes
 - Cliques are uprecycled to add differential messages. 
 - State machine function 2d

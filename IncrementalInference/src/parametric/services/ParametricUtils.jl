@@ -1,3 +1,8 @@
+#WIP towards algorithm dispatch
+struct NLLSSolver
+  # ? 
+end
+
 # ================================================================================================
 # FlatVariables - used for packing variables for optimization
 # ================================================================================================
@@ -852,12 +857,9 @@ function solveGraphParametricOptim!(
   kwargs...
 )
   # make sure variables has solverData, see #1637
-  makeSolverData!(fg; solveKey)
-  if !(:parametric in getSolverParams(fg).algorithms)
-    addParametricSolver!(fg; init = init)
-  elseif init
-    initParametricFrom!(fg, initSolveKey; parkey=solveKey)
-  end
+  prepare!(fg, NLLSSolver(), solveKey; init)
+
+  init && initParametricFrom!(fg, initSolveKey; parkey=solveKey)  
 
   vardict, result, varIds, Σ = solveGraphParametricOptim(fg; verbose, kwargs...)
 
@@ -902,19 +904,18 @@ end
     $SIGNATURES
 Add the parametric solveKey to all the variables in fg if it doesn't exists.
 """
-function addParametricSolver!(fg; init = true)
-  if !(:parametric in getSolverParams(fg).algorithms)
-    push!(getSolverParams(fg).algorithms, :parametric)
-    foreach(
-      v -> IIF.setDefaultNodeDataParametric!(v, getStateKind(v); initialized = false),
-      getVariables(fg),
-    )
-    if init
-      initParametricFrom!(fg)
+function prepare!(fg, ::NLLSSolver, statelabel; init = true)
+  foreach(getVariables(fg)) do v
+    if !hasState(v, statelabel)
+      IIF.setDefaultNodeDataParametric!(
+        v,
+        getStateKind(v);
+        initialized = false,
+        solveKey = statelabel,
+      )
     end
-  else
-    error("parametric solvekey already exists")
   end
+  init && autoinitParametric!(fg, statelabel; solveKey = statelabel)
   return nothing
 end
 

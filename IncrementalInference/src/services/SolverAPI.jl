@@ -149,6 +149,7 @@ function tryCliqStateMachineSolve!(
       treel,
       cliq,
       timeout;
+      solverparams,
       oldcliqdata = oldcliqdata,
       drawtree = drawtree,
       verbose = verbose,
