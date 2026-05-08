@@ -400,7 +400,7 @@ function DefaultNodeDataParametric(
       DFG.RootsOnlyTopology(),
       variableType;
       principal_elements = [ϵ],
-      principal_details = [zeros(dims, dims)],
+      principal_forms = [zeros(dims, dims)],
     )
     return State(solveKey, variableType; belief)
   end
@@ -472,7 +472,7 @@ function setDefaultNodeData!(
     DFG.LeavesOnlyTopology(),
     varType;
     points = val,
-    trailing_details = Dict(1 => bw),
+    trailing_forms = Dict(1 => bw),
   )
   # make and set the new solverData
   mergeState!(
