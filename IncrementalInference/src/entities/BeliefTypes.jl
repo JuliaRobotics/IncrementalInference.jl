@@ -1,6 +1,31 @@
 
 import DistributedFactorGraphs: getStateKind
 
+# ==============================================================================
+#  Topology types that specialize AbstractHomotopyTopology (defined in DFG)
+# ==============================================================================
+# L1 structural nodes only. No L2 samples. (Schema: `means`, `weights`, `forms` populated. `points` empty.)
+struct RootsOnlyTopology <: DFG.AbstractHomotopyTopology end
+# L2 raw samples only. No L1 structure. (Schema: `points`, `bandwidths` populated. `means` empty.)
+struct LeavesOnlyTopology <: DFG.AbstractHomotopyTopology end
+
+# Convenience constructors for HomotopyDensityDFG with topology dispatch
+function DFG.HomotopyDensityDFG(::LeavesOnlyTopology, T::DFG.AbstractStateType; kwargs...)
+    dim = DFG.getDimension(T)
+    return DFG.HomotopyDensityDFG{typeof(T), DFG.getPointType(T)}(;
+        topologykind = LeavesOnlyTopology(),
+        trailing_forms = sparsevec(Dict(1 => zeros(dim, dim))),
+        kwargs...,
+    )
+end
+
+function DFG.HomotopyDensityDFG(::RootsOnlyTopology, T::DFG.AbstractStateType; kwargs...)
+    return DFG.HomotopyDensityDFG{typeof(T), DFG.getPointType(T)}(;
+        topologykind = RootsOnlyTopology(),
+        kwargs...,
+    )
+end
+
 """
     CliqStatus
 Clique status message enumerated type with status.
@@ -81,7 +106,7 @@ function TreeBelief(vnd::State, solvDim::Real = 0)
   TreeBelief(DFG.getTopologyKind(vnd), vnd, solvDim)
 end
 
-function TreeBelief(::DFG.RootsOnlyTopology, vnd::State, solvDim::Real = 0)
+function TreeBelief(::RootsOnlyTopology, vnd::State, solvDim::Real = 0)
   return TreeBelief(
     DFG.refMeans(vnd),
     DFG.refCovariances(vnd)[1],
@@ -92,7 +117,7 @@ function TreeBelief(::DFG.RootsOnlyTopology, vnd::State, solvDim::Real = 0)
   )
 end
 
-function TreeBelief(::DFG.LeavesOnlyTopology, vnd::State, solvDim::Real = 0)
+function TreeBelief(::LeavesOnlyTopology, vnd::State, solvDim::Real = 0)
   return TreeBelief(
     DFG.refPoints(vnd),
     DFG.refBandwidth(vnd),

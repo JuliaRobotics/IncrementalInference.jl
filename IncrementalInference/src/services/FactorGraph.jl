@@ -397,7 +397,7 @@ function DefaultNodeDataParametric(
   else
     ϵ = getPointIdentity(variableType)
     belief = DFG.HomotopyDensityDFG(
-      DFG.RootsOnlyTopology(),
+      RootsOnlyTopology(),
       variableType;
       principal_elements = [ϵ],
       principal_forms = [zeros(dims, dims)],
@@ -469,10 +469,10 @@ function setDefaultNodeData!(
   end
 
   belief = DFG.HomotopyDensityDFG(
-    DFG.LeavesOnlyTopology(),
+    LeavesOnlyTopology(),
     varType;
     points = val,
-    trailing_forms = Dict(1 => bw),
+    trailing_forms = sparsevec(Dict(1 => bw)),
   )
   # make and set the new solverData
   mergeState!(
