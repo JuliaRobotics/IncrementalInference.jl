@@ -90,26 +90,36 @@ function setBW!(v::VariableCompute, bw::Array{Float64, 2}; solveKey::Symbol = :d
   return nothing
 end
 
-function setVal!(vd::State, val::AbstractVector{P}) where {P}
+function setVal!(
+  vd::State, 
+  val::AbstractVector{P}; 
+  observability::AbstractVector{<:Real} = [0.0;]
+) where {P}
   points = DFG.refPoints(vd)
   resize!(points, length(val))
   points .= val
+
+  observability = DFG.refObservability(vd)
+  resize!(observability, length(observability))
+  observability .= observability
   return nothing
 end
 function setVal!(
   v::VariableCompute,
   val::AbstractVector{P};
   solveKey::Symbol = :default,
+  observability::AbstractVector{<:Real} = [0.0;],
 ) where {P}
-  setVal!(getState(v, solveKey), val)
+  setVal!(getState(v, solveKey), val; observability)
   return nothing
 end
 function setVal!(
   vd::State,
   val::AbstractVector{P},
-  bw::AbstractMatrix{Float64},
+  bw::AbstractMatrix{Float64};
+  observability::AbstractVector{<:Real} = [0.0;],
 ) where {P}
-  setVal!(vd, val)
+  setVal!(vd, val; observability)
   setBW!(vd, bw)
   return nothing
 end
@@ -118,17 +128,19 @@ function setVal!(
   val::AbstractVector{P},
   bw::AbstractMatrix{Float64};
   solveKey::Symbol = :default,
+  observability::AbstractVector{<:Real} = [0.0;],
 ) where {P}
-  setVal!(v, val; solveKey = solveKey)
-  setBW!(v, bw; solveKey = solveKey)
+  setVal!(v, val; solveKey, observability)
+  setBW!(v, bw; solveKey)
   return nothing
 end
 function setVal!(
   vd::State,
   val::AbstractVector{P},
-  bw::AbstractVector{Float64},
+  bw::AbstractVector{Float64};
+  observability::AbstractVector{<:Real} = [0.0;],
 ) where {P}
-  setVal!(vd, val, reshape(bw, length(bw), 1))
+  setVal!(vd, val, reshape(bw, length(bw), 1); observability)
   return nothing
 end
 function setVal!(
@@ -136,8 +148,9 @@ function setVal!(
   val::AbstractVector{P},
   bw::AbstractVector{Float64};
   solveKey::Symbol = :default,
+  observability::AbstractVector{<:Real} = [0.0;],
 ) where {P}
-  setVal!(getState(v, solveKey), val, bw)
+  setVal!(getState(v, solveKey), val, bw; observability)
   return nothing
 end
 function setVal!(
@@ -145,8 +158,9 @@ function setVal!(
   sym::Symbol,
   val::AbstractVector{P};
   solveKey::Symbol = :default,
+  observability::AbstractVector{<:Real} = [0.0;],
 ) where {P}
-  return setVal!(getVariable(dfg, sym), val; solveKey = solveKey)
+  return setVal!(getVariable(dfg, sym), val; solveKey, observability)
 end
 
 """
@@ -167,9 +181,9 @@ function setValKDE!(
 ) where {P}
   #
 
-  setVal!(vd, pts, bws) # BUG ...al!(., val, . ) ## TODO -- this can be a little faster
+  setVal!(vd, pts, bws; observability = ipc) # BUG ...al!(., val, . ) ## TODO -- this can be a little faster
   setinit ? (vd.initialized = true) : nothing
-  vd.observability = ipc
+  # vd.observability = ipc # TODO, state.belief.observability = ipc instead
   return nothing
 end
 
