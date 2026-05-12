@@ -13,7 +13,7 @@ struct LeavesOnlyTopology <: DFG.AbstractHomotopyTopology end
 function DFG.HomotopyDensityDFG(::LeavesOnlyTopology, T::DFG.AbstractStateType; kwargs...)
     dim = DFG.getDimension(T)
     return DFG.HomotopyDensityDFG{typeof(T), DFG.getPointType(T)}(;
-        topologykind = LeavesOnlyTopology(),
+        reprkind = DFG.HomotopyReprDFG(LeavesOnlyTopology(), DFG.DefaultFormKind(), T, nothing),
         trailing_forms = sparsevec(Dict(1 => zeros(dim, dim))),
         kwargs...,
     )
@@ -21,7 +21,7 @@ end
 
 function DFG.HomotopyDensityDFG(::RootsOnlyTopology, T::DFG.AbstractStateType; kwargs...)
     return DFG.HomotopyDensityDFG{typeof(T), DFG.getPointType(T)}(;
-        topologykind = RootsOnlyTopology(),
+        reprkind = DFG.HomotopyReprDFG(RootsOnlyTopology(), DFG.DefaultFormKind(), T, nothing),
         kwargs...,
     )
 end
