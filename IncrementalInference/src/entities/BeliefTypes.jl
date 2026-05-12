@@ -110,7 +110,7 @@ function TreeBelief(::RootsOnlyTopology, vnd::State, solvDim::Real = 0)
   return TreeBelief(
     DFG.refMeans(vnd),
     DFG.refCovariances(vnd)[1],
-    vnd.observability,
+    # vnd.observability,
     getStateKind(vnd),
     getManifold(vnd),
     solvDim,
@@ -121,7 +121,7 @@ function TreeBelief(::LeavesOnlyTopology, vnd::State, solvDim::Real = 0)
   return TreeBelief(
     DFG.refPoints(vnd),
     DFG.refBandwidth(vnd),
-    vnd.observability,
+    # vnd.observability,
     getStateKind(vnd),
     getManifold(vnd),
     solvDim,
