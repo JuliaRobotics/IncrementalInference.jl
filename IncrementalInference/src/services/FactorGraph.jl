@@ -203,7 +203,7 @@ end
 function setValKDE!(
   v::VariableCompute,
   val::AbstractVector{P},
-  bws::Array{<:Real, 2},
+  bws::Array{<:Real, 2}, # obsolete -- from when bw diags were packed as columns in a matrix
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;];
   solveKey::Symbol = :default,
@@ -272,7 +272,9 @@ function setValKDE!(
   # L==Nothing means no partials
   ptsArr = AMP.getPoints(mkd) # , false) # for not partial
   # also set the bandwidth
-  bws = getBW(mkd)[:, 1]
+  _ensurediag(b::AbstractVector) = b
+  _ensurediag(b::AbstractMatrix) = diag(b)
+  bws = getBW(mkd)[1] |> _ensurediag
   setValKDE!(vnd, ptsArr, bws, setinit, ipc)
   return nothing
 end
@@ -346,15 +348,15 @@ end
 
 Get a ManifoldKernelDensity estimate from variable node data.
 """
-function getBelief(vnd::State)
-  return manikde!(getManifold(getStateKind(vnd)), getVal(vnd); bw = getBW(vnd)[:, 1])
+function getBelief(vnd::State; newbw::Bool = true)
+  return manikde!(getManifold(getStateKind(vnd)), getVal(vnd); bw = getBW(vnd)[:, 1], newbw)
 end
 
-function getBelief(v::VariableCompute, solvekey::Symbol = :default)
-  return getBelief(getState(v, solvekey))
+function getBelief(v::VariableCompute, solvekey::Symbol = :default; newbw::Bool = true)
+  return getBelief(getState(v, solvekey); newbw)
 end
-function getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol = :default)
-  return getBelief(getVariable(dfg, lbl), solvekey)
+function getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol = :default; newbw::Bool = true)
+  return getBelief(getVariable(dfg, lbl), solvekey; newbw)
 end
 
 """

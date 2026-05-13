@@ -3,7 +3,7 @@
 # of convert in their namespace
 
 # FIXME, upgrade to AMP instead
-KDE.getPoints(dfg::AbstractDFG, lbl::Symbol) = getBelief(dfg, lbl) |> getPoints
+KDE.getPoints(dfg::AbstractDFG, lbl::Symbol) = getBelief(dfg, lbl; newbw = false) |> getPoints
 
 clampStringLength(st::AbstractString, len::Int = 5) = st[1:minimum([len; length(st)])]
 

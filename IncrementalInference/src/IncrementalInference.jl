@@ -281,10 +281,10 @@ include("Deprecated.jl")
 @compile_workload begin
   # In here put "toy workloads" that exercise the code you want to precompile
   fg = generateGraph_Kaess()
-  initAll!(fg)
-  solveGraph!(fg)
-  initParametricFrom!(fg, :default)
-  solveGraphParametric!(fg)
+#   initAll!(fg) # FIXME
+#   solveGraph!(fg)
+#   initParametricFrom!(fg, :default)
+#   solveGraphParametric!(fg)
 end
 
 export setSerializationNamespace!, getSerializationModule, getSerializationModules

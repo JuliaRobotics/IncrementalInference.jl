@@ -34,7 +34,7 @@ function propagateBelief(
   # @show dens[1].manifold
 
   # make sure oldPoints vector has right length
-  oldBel = getBelief(dfg, destlbl, solveKey)
+  oldBel = getBelief(dfg, destlbl, solveKey; newbw = false)
   _pts = getPoints(oldBel, false)
   oldPoints = if Npts(oldBel) < N
     nn = N - length(_pts) # should be larger than 0
