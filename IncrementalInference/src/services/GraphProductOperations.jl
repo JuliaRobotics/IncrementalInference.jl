@@ -18,7 +18,7 @@ function propagateBelief(
   destvar::VariableCompute,
   factors::AbstractVector; #{<:FactorCompute};
   solveKey::Symbol = :default,
-  dens::AbstractVector{<:ManifoldKernelDensity} = Vector{ManifoldKernelDensity}(), # TODO, abstract requires dynamic dispatch (slow)
+  dens::AbstractVector{<:ApproxManifoldProducts.HomotopyDensity} = Vector{HomotopyDensityLive}(), # TODO, abstract requires dynamic dispatch (slow)
   N::Integer = getSolverParams(dfg).N,
   needFreshMeasurements::Bool = true,
   dbg::Bool = false,

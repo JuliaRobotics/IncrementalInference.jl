@@ -285,7 +285,7 @@ DevNotes
 """
 function initVariable!(
   variable::VariableCompute,
-  ptsArr::ManifoldKernelDensity,
+  ptsArr::ApproxManifoldProducts.HomotopyDensity,
   solveKey::Symbol = :default;
   # dontmargin::Bool = false,
   N::Int = length(getPoints(ptsArr)),
@@ -311,7 +311,7 @@ end
 function initVariable!(
   dfg::AbstractDFG,
   label::Symbol,
-  belief::ManifoldKernelDensity,
+  belief::ApproxManifoldProducts.HomotopyDensity,
   solveKey::Symbol = :default;
   # dontmargin::Bool = false,
   N::Int = getSolverParams(dfg).N,

@@ -82,9 +82,9 @@ end
 ## TODO Can code below be deprecated?
 ## =================================================================
 
-function convert(::Type{Tuple{ManifoldKernelDensity, Float64}}, p::TreeBelief)
+function convert(::Type{Tuple{ApproxManifoldProducts.HomotopyDensity, Float64}}, p::TreeBelief)
   # 
-  return (convert(ManifoldKernelDensity, p), p.infoPerCoord)
+  return (convert(ApproxManifoldProducts.HomotopyDensity, p), p.infoPerCoord)
 end
 
 #

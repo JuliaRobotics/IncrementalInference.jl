@@ -6,7 +6,7 @@ const MsgRelativeType = Vector{
   NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol}, <:DFG.AbstractRelativeObservation}},
 }
 
-const MsgPriorType = Dict{Symbol, MsgPrior{<:ManifoldKernelDensity}}
+const MsgPriorType = Dict{Symbol, MsgPrior{<:ApproxManifoldProducts.HomotopyDensity}}
 
 """
     $TYPEDEF

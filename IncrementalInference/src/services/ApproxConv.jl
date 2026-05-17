@@ -236,7 +236,7 @@ function proposalbeliefs!(
   dfg::AbstractDFG,
   destlbl::Symbol,
   factors::AbstractVector, #{<:FactorCompute},
-  dens::AbstractVector{<:ManifoldKernelDensity},
+  dens::AbstractVector{<:ApproxManifoldProducts.HomotopyDensity}, # TODO, convert promote to avoid union-abstract vector
   measurement::AbstractVector = Tuple[];
   solveKey::Symbol = :default,
   N::Int = getSolverParams(dfg).N, #maximum([length(getPoints(getBelief(dfg, destlbl, solveKey))); getSolverParams(dfg).N]),

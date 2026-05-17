@@ -192,7 +192,7 @@ getManifold(cf::CalcFactor) = getManifold(cf.factor)
 
 function _resizePointsVector!(
   vecP::AbstractVector{P},
-  mkd::ManifoldKernelDensity,
+  mkd::ApproxManifoldProducts.HomotopyDensity,
   N::Int,
 ) where {P}
   #

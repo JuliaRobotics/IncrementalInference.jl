@@ -35,8 +35,8 @@ function mmd(
 end
 
 function mmd(
-  p1::ManifoldKernelDensity,
-  p2::ManifoldKernelDensity,
+  p1::ApproxManifoldProducts.HomotopyDensity,
+  p2::ApproxManifoldProducts.HomotopyDensity,
   nodeType::Union{InstanceType{<:StateType}, InstanceType{<:AbstractObservation}},
   threads::Bool = true;
   bw::AbstractVector{<:Real} = SA[0.001;],

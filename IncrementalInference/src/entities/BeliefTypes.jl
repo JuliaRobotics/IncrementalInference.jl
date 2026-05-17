@@ -46,8 +46,7 @@ using DistributedFactorGraphs: PackedBelief
 #TODO deprecate SamplableBelief
 const SamplableBelief = Union{
   <:Distributions.Distribution,
-  <:KDE.BallTreeDensity, # FIXME deprecate
-  <:AMP.ManifoldKernelDensity,
+  <:ApproxManifoldProducts.HomotopyDensity,
   <:AliasingScalarSampler,
   <:FluxModelsDistribution,
   <:HeatmapGridDensity,
@@ -82,7 +81,7 @@ struct TreeBelief{T <: StateType, P, M <: MB.AbstractManifold}
 end
 
 function TreeBelief(
-  p::ManifoldKernelDensity,
+  p::ApproxManifoldProducts.HomotopyDensity,
   ipc::AbstractVector{<:Real} = [0.0;],
   variableType::T = ContinuousScalar(),
   manifold = getManifold(variableType),

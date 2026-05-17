@@ -24,12 +24,12 @@ end
 
 #TODO check these for manifolds, may need updating to samplePoint
 # MKD already returns a vector of points
-function getSample(cf::CalcFactor{<:MsgPrior{<:ManifoldKernelDensity}})
+function getSample(cf::CalcFactor{<:MsgPrior{<:ApproxManifoldProducts.HomotopyDensity}})
   mkd = cf.factor.Z
   return samplePoint(mkd.manifold, mkd)
 end
 
-getManifold(mp::MsgPrior{<:ManifoldKernelDensity}) = mp.Z.manifold
+getManifold(mp::MsgPrior{<:ApproxManifoldProducts.HomotopyDensity}) = mp.Z.manifold
 getManifold(mp::MsgPrior) = mp.M
 
 #FIXME this will not work on manifolds

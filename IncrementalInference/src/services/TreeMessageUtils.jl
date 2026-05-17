@@ -4,11 +4,11 @@
 # short preamble funcions
 ## =============================================================================
 
-function convert(::Type{<:ManifoldKernelDensity}, src::TreeBelief)
-  return manikde!(getManifold(src.variableType), src.val; bw = src.bw[:, 1])
+function convert(::Type{<:ApproxManifoldProducts.HomotopyDensity}, src::TreeBelief)
+  return manikde!(getStateKind(src.variableType), src.val; bw = src.bw[:, 1])
 end
 
-manikde!(em::TreeBelief) = convert(ManifoldKernelDensity, em)
+manikde!(em::TreeBelief) = convert(ApproxManifoldProducts.HomotopyDensity, em)
 
 ## =============================================================================
 # helper functions for tree message channels

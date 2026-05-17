@@ -48,7 +48,7 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int, length(ve
 
 function setBelief!(
   vari::VariableCompute, 
-  bel::ManifoldKernelDensity, 
+  bel::ApproxManifoldProducts.HomotopyDensity, 
   setinit::Bool=true, 
   ipc::AbstractVector{<:Real}=[0.0;];
   solveKey::Symbol = :default
@@ -90,7 +90,7 @@ end
 """
     $(SIGNATURES)
 
-Get a ManifoldKernelDensity estimate from variable node data.
+Get a ApproxManifoldProducts.HomotopyDensity estimate from variable node data.
 """
 function getBelief(vnd::State; newbw::Bool = true)
   return manikde!(getManifold(getStateKind(vnd)), getVal(vnd); bw = getBW(vnd)[:, 1], newbw)
