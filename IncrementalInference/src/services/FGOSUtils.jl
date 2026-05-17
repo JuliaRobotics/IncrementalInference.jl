@@ -2,9 +2,6 @@
 #  IIF methods should direclty detect extended types from user import
 # of convert in their namespace
 
-# FIXME, upgrade to AMP instead
-KDE.getPoints(dfg::AbstractDFG, lbl::Symbol) = getBelief(dfg, lbl; newbw = false) |> getPoints
-
 clampStringLength(st::AbstractString, len::Int = 5) = st[1:minimum([len; length(st)])]
 
 function clampBufferString(
@@ -75,26 +72,7 @@ _getZDim(fct::FactorCompute) = _getCCW(fct) |> _getZDim
 
 DFG.getDimension(fct::FactorCompute) = _getZDim(fct)
 
-"""
-    $SIGNATURES
 
-Return the manifold on which this ManifoldKernelDensity is defined.
-
-DevNotes
-- TODO currently ignores the .partial aspect (captured in parameter `L`)
-"""
-function getManifold(
-  mkd::ManifoldKernelDensity{M, B, Nothing},
-  asPartial::Bool = false,
-) where {M, B}
-  return mkd.manifold
-end
-function getManifold(
-  mkd::ManifoldKernelDensity{M, B, L},
-  asPartial::Bool = false,
-) where {M, B, L <: AbstractVector}
-  return asPartial ? mkd.manifold : getManifoldPartial(mkd.manifold, mkd._partial)
-end
 
 """
     $TYPEDSIGNATURES
