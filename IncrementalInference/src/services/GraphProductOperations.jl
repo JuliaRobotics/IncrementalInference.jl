@@ -34,15 +34,19 @@ function propagateBelief(
   # @show dens[1].manifold
 
   # make sure oldPoints vector has right length
-  oldBel = getBelief(dfg, destlbl, solveKey; newbw = false)
-  _pts = getPoints(oldBel, false)
-  oldPoints = if Npts(oldBel) < N
-    nn = N - length(_pts) # should be larger than 0
-    _pts_, = sample(oldBel, nn)
-    vcat(_pts, _pts_)
-  else
-    _pts[1:N]
+    # oldBel = getBelief(dfg, destlbl, solveKey; newbw = false)
+    # _pts = getPoints(oldBel, false)
+  oldpts = DistributedFactorGraphs.refPoints(DistributedFactorGraphs.getState(destvar, solveKey))
+  if N != length(oldpts)
+    resize!(oldpts, N)
   end
+  # oldPoints = if Npts(oldBel) < N
+  #   nn = N - length(_pts) # should be larger than 0
+  #   _pts_, = sample(oldBel, nn)
+  #   vcat(_pts, _pts_)
+  # else
+  #   _pts[1:N]
+  # end
 
   # few more data requirements
   varType = getStateKind(destvar)
@@ -54,7 +58,7 @@ function propagateBelief(
     dens,
     M;
     Niter = 1,
-    oldPoints,
+    oldPoints = oldpts,
     N,
     u0 = getPointDefault(varType),
   )

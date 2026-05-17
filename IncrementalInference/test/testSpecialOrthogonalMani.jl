@@ -49,6 +49,12 @@ f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
 
+X1 = getBelief(fg, :x1)
+
+##
+
+sample(X1)
+
 ##
 # smtasks = Task[]
 solveTree!(fg) #; smtasks, verbose=true, recordcliqs=ls(fg))
@@ -56,6 +62,7 @@ solveTree!(fg) #; smtasks, verbose=true, recordcliqs=ls(fg))
 # SArray 0.763317 seconds (2.36 M allocations: 160.488 MiB, 4.16% gc time)
 # Vector 0.786390 seconds (2.41 M allocations: 174.334 MiB, 3.97% gc time)
 # Vector 0.858993 seconds (2.42 M allocations: 176.613 MiB, 3.43% gc time) sample not tuple  
+
 ##
 
 end
@@ -69,7 +76,7 @@ end
 # Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{3}})  =  (:Euclid, :Euclid, :Euclid)
 
 # @defStateType SO3 SpecialOrthogonalGroup(3) @MMatrix([1.0 0.0; 0.0 1.0])
-@defStateType SO3 SpecialOrthogonalGroup(3) SMatrix{3,3}(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0)
+@defStateType SO3 SpecialOrthogonalGroup(3) SMatrix{3,3}(diagm(ones(3)))
 
 M = getManifold(SO3)
 @test M == SpecialOrthogonalGroup(3)
@@ -88,8 +95,11 @@ v0 = addVariable!(fg, :x0, SO3)
 mp = ManifoldPrior(SpecialOrthogonalGroup(3), SA[1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0], MvNormal(diagm([0.01, 0.01, 0.01].^2)))
 p = addFactor!(fg, [:x0], mp)
 
+
+##
 doautoinit!(fg, :x0)
 
+##
 vnd = getState(fg, :x0, :default)
 @test all(isapprox.( mean(SpecialOrthogonalGroup(3),DFG.refPoints(vnd)), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
 @test all(is_point.(Ref(M), DFG.refPoints(vnd)))
