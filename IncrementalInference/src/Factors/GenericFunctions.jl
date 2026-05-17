@@ -17,9 +17,6 @@ function DFG.getDimension(Z::FluxModelsDistribution)
     )
   end
 end
-DFG.getDimension(Z::ManifoldKernelDensity) = getManifold(Z) |> getDimension
-# TODO deprecate
-DFG.getDimension(Z::BallTreeDensity) = Ndim(Z)
 
 ## ======================================================================================
 ## Generic manifold cost functions

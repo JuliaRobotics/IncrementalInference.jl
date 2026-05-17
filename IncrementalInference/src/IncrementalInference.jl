@@ -8,7 +8,6 @@ using Distributed
 using Reexport
 
 @reexport using Distributions
-@reexport using KernelDensityEstimate
 @reexport using ApproxManifoldProducts
 # @reexport using Graphs
 @reexport using LinearAlgebra
@@ -101,18 +100,15 @@ using PrecompileTools
 import Base: convert, ==, getproperty
 import Distributions: sample
 import Random: rand, rand!
-import KernelDensityEstimate: getBW
-import KernelDensityEstimate: getPoints
-import ApproxManifoldProducts: kde!, manikde!
+import ApproxManifoldProducts: manikde!
 import ApproxManifoldProducts: getBW
 import ApproxManifoldProducts: mmd
 import ApproxManifoldProducts: isPartial
-import ApproxManifoldProducts: _update!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare
 import DistributedFactorGraphs: getDimension, getManifold, getPointType, getPointIdentity
 import DistributedFactorGraphs: getPoint, getCoordinates
-import DistributedFactorGraphs: getStateKind
+import DistributedFactorGraphs: getStateKind, getManifold
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 import DistributedFactorGraphs: getObservation
 import DistributedFactorGraphs: solveGraph!, solveGraphParametric!
@@ -125,7 +121,6 @@ import DistributedFactorGraphs: isSolvable
 DFG.@usingDFG true
 
 # must be moved to their own repos
-const KDE = KernelDensityEstimate
 const MB = ManifoldsBase
 const AMP = ApproxManifoldProducts
 const FSM = FunctionalStateMachine
@@ -140,13 +135,11 @@ const BeliefArray{T} = Union{<:AbstractMatrix{<:T}, <:Adjoint{<:T, AbstractMatri
 
 # Package aliases
 # FIXME, remove this and let the user do either import or const definitions
-export KDE, AMP, DFG, FSM, IIF
+export AMP, DFG, FSM, IIF
 
 # include("../IncrementalInferenceTypes/src/IncrementalInferenceTypes.jl")
 @reexport using IncrementalInferenceTypes
 
-# TODO temporary for initial version of on-manifold products
-KDE.setForceEvalDirect!(true)
 
 include("ExportAPI.jl")
 

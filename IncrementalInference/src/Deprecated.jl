@@ -1,4 +1,55 @@
 
+# Provided by ApproxManifoldProducts v0.15 instead
+# KDE.getPoints(dfg::AbstractDFG, lbl::Symbol) = getBelief(dfg, lbl; newbw = false) |> getPoints
+
+# DFG.getDimension(Z::ManifoldKernelDensity) = getManifold(Z) |> getDimension
+# # TODO deprecate
+# DFG.getDimension(Z::BallTreeDensity) = Ndim(Z)
+
+# should have been in ApproxManifoldProducts
+# function compare(
+#   p1::Union{<:BallTreeDensity, <:ManifoldKernelDensity},
+#   p2::Union{<:BallTreeDensity, <:ManifoldKernelDensity},
+# )
+#   #
+#   return compareAll(p1.bt, p2.bt; skip = [:calcStatsHandle; :data]) &&
+#          compareAll(p1, p2; skip = [:calcStatsHandle; :bt])
+# end
+
+# now provided by ApproxManifoldProducts
+# """
+#     $SIGNATURES
+
+# Return the manifold on which this ManifoldKernelDensity is defined.
+
+# DevNotes
+# - TODO currently ignores the .partial aspect (captured in parameter `L`)
+# """
+# function getManifold(
+#   mkd::ApproxManifoldProducts.HomotopyDensity,
+#   asPartial::Bool = false,
+# ) where {M, B}
+#   return mkd.manifold
+# end
+# function getManifold(
+#   mkd::ManifoldKernelDensity{M, B, L},
+#   asPartial::Bool = false,
+# ) where {M, B, L <: AbstractVector}
+#   return asPartial ? mkd.manifold : getManifoldPartial(mkd.manifold, mkd._partial)
+# end
+
+# # Type converters for MKD
+# function Base.convert(::Type{<:SamplableBelief}, ::Type{<:PackedManifoldKernelDensity})
+#   error("convert to SamplableBelief from PackedManifoldKernelDensity")
+#   return ManifoldKernelDensity
+# end
+# function Base.convert(::Type{<:PackedBelief}, ::Type{<:ManifoldKernelDensity})
+#   error("convert to PackedBelief from ManifoldKernelDensity")
+#   return PackedManifoldKernelDensity
+# end
+
+
+
 # moved here from DistributedFactorGraphs.jl, replace with new way.
 function typeModuleName(variableType::StateType)
     Base.depwarn("typeModuleName is obsolete", :typeModuleName)
@@ -195,9 +246,9 @@ end
 # _getZDim(fcd::DFG.GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
 # DFG.getDimension(fct::DFG.GenericFunctionNodeData) = _getZDim(fct)
 
-function sampleTangent(x::ManifoldKernelDensity, p = mean(x))
-  error("sampleTangent(x::ManifoldKernelDensity, p) should be replaced by sampleTangent(M<:AbstractManifold, x::ManifoldKernelDensity, p)")
-end
+# function sampleTangent(x::ManifoldKernelDensity, p = mean(x))
+#   error("sampleTangent(x::ManifoldKernelDensity, p) should be replaced by sampleTangent(M<:AbstractManifold, x::ManifoldKernelDensity, p)")
+# end
 
 export setPPE!, setVariablePosteriorEstimates!
 setPPE!(args...; kw...) = error("PPEs are obsolete (use `calcMeanMaxSuggested` provisionally), see DFG #1133")
