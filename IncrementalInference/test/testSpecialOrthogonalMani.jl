@@ -15,6 +15,7 @@ using Test
 # @defStateType SpecialOrthogonal2 SpecialOrthogonal(2) @MMatrix([1.0 0.0; 0.0 1.0])
 @defStateType SpecialOrthogonal2 SpecialOrthogonalGroup(2) SMatrix{2,2}(1.0, 0.0, 0.0, 1.0)
 
+##
 M = getManifold(SpecialOrthogonal2)
 @test M == SpecialOrthogonalGroup(2)
 pT = getPointType(SpecialOrthogonal2)
@@ -34,11 +35,16 @@ p = addFactor!(fg, [:x0], mp)
 
 ##
 
+fc = getFactor(fg, :x0f1)
+proposal = approxConvBelief(fg, fc, :x0)
+@test getStateKind(proposal) isa SpecialOrthogonal2
+
 doautoinit!(fg, :x0)
 
-vnd = getState(fg, :x0, :default)
-@test all(isapprox.(mean(DFG.refPoints(vnd)), [1 0; 0 1], atol=0.1))
-@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
+state = getState(fg, :x0, :default)
+
+@test all(isapprox.(mean(state.belief), [1 0; 0 1], atol=0.1))
+@test all(is_point.(Ref(M), DFG.refPoints(state)))
 
 
 ##
@@ -100,9 +106,9 @@ p = addFactor!(fg, [:x0], mp)
 doautoinit!(fg, :x0)
 
 ##
-vnd = getState(fg, :x0, :default)
-@test all(isapprox.( mean(SpecialOrthogonalGroup(3),DFG.refPoints(vnd)), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
-@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
+state = getState(fg, :x0, :default)
+@test all(isapprox.( mean(SpecialOrthogonalGroup(3),DFG.refPoints(state)), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
+@test all(is_point.(Ref(M), DFG.refPoints(state)))
 
 points = sampleFactor(fg, :x0f1, 100)
 _M = SpecialOrthogonalGroup(3)
@@ -116,21 +122,21 @@ f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
 
-vnd = getState(fg, :x1, :default)
-@test all(isapprox.( mean(SpecialOrthogonalGroup(3),DFG.refPoints(vnd)), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
-@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
+state = getState(fg, :x1, :default)
+@test all(isapprox.( mean(SpecialOrthogonalGroup(3),DFG.refPoints(state)), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
+@test all(is_point.(Ref(M), DFG.refPoints(state)))
 
 # smtasks = Task[]
 solveTree!(fg) # ; smtasks, verbose=true, recordcliqs=ls(fg))
 
 # test them again after solve
-vnd = getState(fg, :x0, :default)
-@test all(isapprox.( mean(SpecialOrthogonalGroup(3),DFG.refPoints(vnd)), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
-@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
+state = getState(fg, :x0, :default)
+@test all(isapprox.( mean(SpecialOrthogonalGroup(3),DFG.refPoints(state)), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
+@test all(is_point.(Ref(M), DFG.refPoints(state)))
 
-vnd = getState(fg, :x1, :default)
-@test all(isapprox.( mean(SpecialOrthogonalGroup(3),DFG.refPoints(vnd)), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
-@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
+state = getState(fg, :x1, :default)
+@test all(isapprox.( mean(SpecialOrthogonalGroup(3),DFG.refPoints(state)), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
+@test all(is_point.(Ref(M), DFG.refPoints(state)))
 
 # 23Q2 default HagerZhang fails with `AssertionError: isfinite(phi_c) && isfinite(dphi_c)`, using alternate LineSearch
 IIF.solveGraphParametric!(
