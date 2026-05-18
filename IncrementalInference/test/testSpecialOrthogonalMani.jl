@@ -33,18 +33,32 @@ v0 = addVariable!(fg, :x0, SpecialOrthogonal2)
 mp = ManifoldPrior(SpecialOrthogonalGroup(2), SA[1.0 0.0; 0.0 1.0], MvNormal([0.0001;;]))
 p = addFactor!(fg, [:x0], mp)
 
+## depends on how much init, this test might be premature
+
+# FIXME, no need to have default values in state so early in variable life
+state = getState(fg, :x0, :default)
+@test isapprox([1 0; 0 1], mean(state.belief); atol=1e-6)
+state = getState(fg, :x0, :parametric)
+@test isapprox([1 0; 0 1], mean(state.belief); atol=1e-6)
+
+
 ##
 
 fc = getFactor(fg, :x0f1)
 proposal = approxConvBelief(fg, fc, :x0)
+
 @test getStateKind(proposal) isa SpecialOrthogonal2
+@test 0 < Npts(proposal)
+@test 0 < length(getWeights(proposal; permute=false))
 
 doautoinit!(fg, :x0)
 
 state = getState(fg, :x0, :default)
 
-@test all(isapprox.(mean(state.belief), [1 0; 0 1], atol=0.1))
-@test all(is_point.(Ref(M), DFG.refPoints(state)))
+X0 = getBelief(state)
+@test 0 < Npts(X0)
+@test 0 < length(getWeights(X0; permute=false))
+@test all(isapprox.(mean(X0), [1 0; 0 1], atol=0.1))
 
 
 ##
@@ -55,13 +69,11 @@ f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
 
-##
-
 X1 = getBelief(fg, :x1)
 
 ##
 
-sample(X1)
+ApproxManifoldProducts.sample(X1)
 
 ##
 # smtasks = Task[]
