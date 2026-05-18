@@ -30,17 +30,22 @@ function approxConvBelief(
     keepCalcFactor
   )
 
+  ## FIXME, bad way to find partial info!!!!
+  # Not sufficient to use only observability to determine partial, but is necessary
+  # original need is if observability on some coords are zero after a convolution
   len = length(ipc)
   mask = 1e-14 .< abs.(ipc)
-  partl = collect(1:len)[mask]
-
+  partl = collect(1:len)[mask] 
+  
   # is the convolution infoPerCoord full or partial
-  res = if sum(mask) == len
+  statekind = getStateKind(v_trg)
+  # FIXME, this if induces type instability via partial
+  res = if sum(mask) == getDimension(v_trg)
     # not partial
-    manikde!(getManifold(getVariable(dfg, target)), pts; partial = nothing)
+    HomotopyDensity_legacy(statekind, pts; partial = nothing)
   else
     # is partial
-    manikde!(getManifold(getVariable(dfg, target)), pts; partial = partl)
+    HomotopyDensity_legacy(statekind, pts; partial = partl)
   end
     
   return res
@@ -144,6 +149,7 @@ function approxConvBelief(
     getPoints(pts1Bel)
   end
   # didn't return early so shift focus to using `tfg` more intensely
+  # FIXME, since AMP v0.15, cannot just set the points, must set HomotopyDensity
   initVariable!(tfg, varLbls[1], pts)
 
   # do chain of convolutions

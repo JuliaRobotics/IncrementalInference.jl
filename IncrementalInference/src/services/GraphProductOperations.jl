@@ -25,46 +25,30 @@ function propagateBelief(
   logger = ConsoleLogger(),
   asPartial::Bool=false,
 )
-  #
-
   # get proposal beliefs
   destlbl = getLabel(destvar)
-  ipc = proposalbeliefs!(dfg, destlbl, factors, dens; solveKey, N, dbg)
+  _observability = proposalbeliefs!(dfg, destlbl, factors, dens; solveKey, N, dbg)
 
-  # @show dens[1].manifold
-
-  # make sure oldPoints vector has right length
-    # oldBel = getBelief(dfg, destlbl, solveKey; newbw = false)
-    # _pts = getPoints(oldBel, false)
-  oldpts = DistributedFactorGraphs.refPoints(DistributedFactorGraphs.getState(destvar, solveKey))
-  if N != length(oldpts)
-    resize!(oldpts, N)
-  end
-  # oldPoints = if Npts(oldBel) < N
-  #   nn = N - length(_pts) # should be larger than 0
-  #   _pts_, = sample(oldBel, nn)
-  #   vcat(_pts, _pts_)
-  # else
-  #   _pts[1:N]
+  # # make sure oldPoints vector has right length
+  #   # oldBel = getBelief(dfg, destlbl, solveKey; newbw = false)
+  #   # _pts = getPoints(oldBel, false)
+  # oldpts = DistributedFactorGraphs.refPoints(DistributedFactorGraphs.getState(destvar, solveKey))
+  # if N != length(oldpts)
+  #   resize!(oldpts, N)
   # end
 
-  # few more data requirements
-  varType = getStateKind(destvar)
-  M = getManifold(varType)
-  # @info "BUILDING MKD" varType M isPartial.(dens)
+  # # few more data requirements
+  # varType = getStateKind(destvar)
   
   # take the product
   mkd = AMP.manifoldProduct(
-    dens,
-    M;
-    Niter = 1,
-    oldPoints = oldpts,
+    dens;
+    MC = 1,
     N,
-    u0 = getPointDefault(varType),
   )
 
   # @info "GOT" mkd.manifold
-  return mkd, ipc
+  return mkd, _observability
 end
 
 function propagateBelief(

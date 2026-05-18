@@ -174,8 +174,8 @@ function doautoinit!(
         # while the propagate step might allow large point counts, the graph should stay restricted to N
         bel_ =
           Npts(bel) == getSolverParams(dfg).N ? bel : resample(bel, getSolverParams(dfg).N)
-        # @info "MANIFOLD IS" bel.manifold isPartial(bel) string(bel._partial) string(getPoints(bel, false)[1]) 
-        setValKDE!(xi, bel_, true, ipc; solveKey) # getPoints(bel, false)
+        setBelief!(xi, bel_; solveKey) # TODO, update to stateLabel
+
         # Update the data in the event that it's not local
         # TODO perhaps use merge, but keeping to deepcopy as update variant used was set to copy.
         DFG.copytoState!(dfg, xi.label, solveKey, getState(xi, solveKey))
