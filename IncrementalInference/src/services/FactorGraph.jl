@@ -206,7 +206,7 @@ function setDefaultNodeData!(
     for i = 1:length(val)
       val[i] = getPointIdentity(varType)
     end
-    bw = zeros(dims, 1)
+    bw = diagm(ones(dims))
     #
     (val, bw)
   end
