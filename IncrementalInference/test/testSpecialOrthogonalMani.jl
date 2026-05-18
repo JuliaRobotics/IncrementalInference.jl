@@ -55,6 +55,8 @@ f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
 
+##
+
 X1 = getBelief(fg, :x1)
 
 ##

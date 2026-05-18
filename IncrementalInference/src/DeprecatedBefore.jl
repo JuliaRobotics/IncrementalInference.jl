@@ -1,9 +1,36 @@
 
-
+# ==============================================================================
+#  A few methods to upstream
 # FIXME UPSTREAM TO DFG
+# ==============================================================================
+
 DistributedFactorGraphs.getStateKind(kind::StateType) = kind
 
+"""
+    $(SIGNATURES)
 
+Get the state belief estimate, which is of type ::HomotopyDensity.
+"""
+function getBelief(state::State; newbw::Bool = true)
+  state.belief
+  # return manikde!(getManifold(getStateKind(vnd)), getVal(vnd); bw = getBW(vnd)[:, 1], newbw)
+end
+function getBelief(v::VariableCompute, solvekey::Symbol = :default; newbw::Bool = true)
+  return getBelief(getState(v, solvekey); newbw)
+end
+function getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol = :default; newbw::Bool = true)
+  return getBelief(getVariable(dfg, lbl), solvekey; newbw)
+end
+
+
+
+
+
+
+
+
+
+## DEPRECATE BELOW
 
 # ==============================================================================
 #  Topology types that specialize AbstractHomotopyTopology (defined in DFG)

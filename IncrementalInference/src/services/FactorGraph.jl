@@ -88,21 +88,6 @@ end
 ## ==============================================================================================
 ## ==============================================================================================
 
-"""
-    $(SIGNATURES)
-
-Get a ApproxManifoldProducts.HomotopyDensity estimate from variable node data.
-"""
-function getBelief(vnd::State; newbw::Bool = true)
-  return manikde!(getManifold(getStateKind(vnd)), getVal(vnd); bw = getBW(vnd)[:, 1], newbw)
-end
-
-function getBelief(v::VariableCompute, solvekey::Symbol = :default; newbw::Bool = true)
-  return getBelief(getState(v, solvekey); newbw)
-end
-function getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol = :default; newbw::Bool = true)
-  return getBelief(getVariable(dfg, lbl), solvekey; newbw)
-end
 
 """
     $SIGNATURES
