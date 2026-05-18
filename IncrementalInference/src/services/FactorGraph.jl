@@ -94,18 +94,15 @@ end
 
 Reset the solve state of a variable to uninitialized/unsolved state.
 """
-function resetVariable!(varid::State)
+function resetVariable!(state::State)
   #
-  val = getBelief(varid)
-  pts = AMP.getPoints(val)
-  # TODO not all manifolds will initialize to zero
-  for pt in pts
-    fill!(pt, 0.0)
-  end
-  pn = manikde!(getManifold(varid), pts; bw = zeros(Ndim(val)))
-  setValKDE!(varid, pn, false, [0.0;])
-  # setVariableInferDim!(varid, 0)
-  # setVariableInitialized!(vari, false)
+  pts = getPoints(state)
+  statekind = getStateKind(state)
+  # FIXME, wont work for non-group kinds
+  ϵ = getPointIdentity(statekind)
+  pts_ = [ϵ for i in 1:length(pts)]
+  pn = manikde!(statekind, pts_; bw = zeros(Ndim(ϵ)), newbw = false)
+  setBelief!(state, pn)
   return nothing
 end
 
@@ -142,12 +139,13 @@ function DefaultNodeDataParametric(
     #                         dims, false, :_null, Symbol[], variableType, true, 0.0, false, dontmargin)
   else
     ϵ = getPointIdentity(variableType)
-    belief = DFG.HomotopyDensityDFG(
-      RootsOnlyTopology(),
-      variableType;
-      principal_elements = [ϵ],
-      principal_forms = [zeros(dims, dims)],
+    belief = HomotopyDensity_legacy(
+      variableType, 
+      [ϵ,]; 
+      bw = zeros(dims), 
+      newbw = false
     )
+
     return State(solveKey, variableType; belief)
   end
 end
@@ -193,12 +191,11 @@ function setDefaultNodeData!(
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   dims = getDimension(v)
-  data = nothing
   isinit = false
   sp = Int[0;]
   (val, bw) = if initialized
-    pN = resample(getBelief(v))
-    bw = getBW(pN)[:, 1:1]
+    pN = getBelief(v)
+    bw = getBW(pN)[1]
     pNpts = getPoints(pN)
     isinit = true
     (pNpts, bw)
@@ -214,12 +211,8 @@ function setDefaultNodeData!(
     (val, bw)
   end
 
-  belief = DFG.HomotopyDensityDFG(
-    LeavesOnlyTopology(),
-    varType;
-    points = val,
-    trailing_forms = sparsevec(Dict(1 => bw)),
-  )
+  belief = HomotopyDensity_legacy(varType, val; bw, newbw = false)
+
   # make and set the new solverData
   mergeState!(
     v,
@@ -231,16 +224,6 @@ function setDefaultNodeData!(
   )
   return nothing
 end
-# if size(initval,2) < N && size(initval, 1) == dims
-#   @warn "setDefaultNodeData! -- deprecated use of stdev."
-#   p = manikde!(varType.manifold, initval,diag(stdev));
-#   pN = resample(p,N)
-# if size(initval,2) < N && size(initval, 1) != dims
-# @info "Node value memory allocated but not initialized"
-# else
-#   pN = manikde!(varType.manifold, initval)
-# end
-# dims = size(initval,1) # rows indicate dimensions
 
 """
     $SIGNATURES
