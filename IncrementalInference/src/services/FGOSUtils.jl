@@ -86,27 +86,6 @@ DevNotes
 getFactorDim(w...) = getDimension(w...)
 getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid))
 
-# extend convenience function (Matrix or Vector{P})
-function manikde!(
-  variableType::Union{InstanceType{<:StateType}, InstanceType{<:AbstractObservation}},
-  pts::AbstractVector{P};
-  kw...,
-) where {P <: Union{<:AbstractArray, <:Number, <: ArrayPartition}}
-  #
-  M = getManifold(variableType)
-  # @info "pts" P typeof(pts[1]) pts[1]
-  infoPerCoord = ones(AMP.getNumberCoords(M, pts[1]))
-  return AMP.manikde!(M, pts; infoPerCoord, kw...)
-end
-
-function manikde!(
-  varT::InstanceType{<:StateType},
-  pts::AbstractVector{<:Tuple};
-  kw...,
-)
-  #
-  return manikde!(varT, (t -> ArrayPartition(t...)).(pts); kw...)
-end
 
 """
     $SIGNATURES

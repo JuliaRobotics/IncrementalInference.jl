@@ -1,4 +1,83 @@
 
+# # extend convenience function (Matrix or Vector{P})
+# function manikde!(
+#   variableType::Union{InstanceType{<:StateType}, InstanceType{<:AbstractObservation}},
+#   pts::AbstractVector{P};
+#   kw...,
+# ) where {P <: Union{<:AbstractArray, <:Number, <: ArrayPartition}}
+#   #
+#   statekind = getStateKind(variableType)
+#   # TODO, this looks like legacy -- not siure if this ipc is still valid.  Should be in .observability
+#   infoPerCoord = ones(AMP.getNumberCoords(getManifold(statekind), pts[1]))
+#   return AMP.manikde!(statekind, pts; infoPerCoord, kw...)
+# end
+
+function manikde!(
+  varT::InstanceType{<:StateType},
+  pts::AbstractVector{<:Tuple};
+  kw...,
+)
+  #
+  return manikde!(varT, (t -> ArrayPartition(t...)).(pts); kw...)
+end
+
+function setValKDE!_NONPARTL(
+  vnd::State,
+  mkd::ApproxManifoldProducts.HomotopyDensity, # FIXME dispatch without partial?
+  setinit::Bool = true,
+  ipc::AbstractVector{<:Real} = [0.0;],
+)
+  @error("setValKDE@ is obsolete, use setBelief! instead")
+  #
+  # L==Nothing means no partials
+  ptsArr = AMP.getPoints(mkd) # , false) # for not partial
+  # also set the bandwidth
+  _ensurediag(b::AbstractVector) = b
+  _ensurediag(b::AbstractMatrix) = diag(b)
+  bws = getBW(mkd)[1] |> _ensurediag
+  setValKDE!(vnd, ptsArr, bws, setinit, ipc)
+  return nothing
+end
+
+function setValKDE!_HASPARTL(
+  vnd::State,
+  mkd::ApproxManifoldProducts.HomotopyDensity, # 
+  setinit::Bool = true,
+  ipc::AbstractVector{<:Real} = [0.0;],
+)
+  @error("setValKDE@ is obsolete, use setBelief! instead")
+  #
+  oldBel = getBelief(vnd)
+
+  # New infomation might be partial
+  newBel = replace(oldBel, mkd)
+
+  # Set partial dims as Manifold points
+  ptsArr = AMP.getPoints(newBel, false)
+
+  # also get the bandwidth
+  bws = getBandwidth(newBel, false)
+
+  # update values in graph
+  setValKDE!(vnd, ptsArr, bws, setinit, ipc)
+  return nothing
+end
+
+
+function setValKDE!(
+  vnd::State,
+  mkd::ApproxManifoldProducts.HomotopyDensity, # 
+  setinit::Bool = true,
+  ipc::AbstractVector{<:Real} = [0.0;],
+)
+  if isPartial(mkd)
+    setValKDE!_HASPARTL(vnd, mkd, setinit, ipc)
+  else
+    setValKDE!_NONPARTL(vnd, mkd, setinit, ipc)
+  end
+end
+
+
 # Provided by ApproxManifoldProducts v0.15 instead
 # KDE.getPoints(dfg::AbstractDFG, lbl::Symbol) = getBelief(dfg, lbl; newbw = false) |> getPoints
 
