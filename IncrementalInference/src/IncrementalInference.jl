@@ -150,8 +150,10 @@ include("ExportAPI.jl")
 abstract type AbstractRelativeMinimize <: RelativeObservation end
 abstract type AbstractManifoldMinimize <: RelativeObservation end
 
-# regular
+# JL 1.13.0-rc1 is sensitive to order of symbol definitions 
+include("DeprecatedBefore.jl")
 
+# regular functions
 include("entities/HypoRecipe.jl")
 include("entities/CalcFactor.jl")
 include("entities/FactorOperationalMemory.jl")
