@@ -1,3 +1,5 @@
+##
+
 using DistributedFactorGraphs
 using IncrementalInference
 using LineSearches
@@ -78,6 +80,7 @@ X1 = getBelief(fg, :x1)
 ApproxManifoldProducts.sample(X1)
 
 ##
+
 smtasks = Task[]
 solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
 hists = fetchCliqHistoryAll!(smtasks);
