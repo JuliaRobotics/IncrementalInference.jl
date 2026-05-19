@@ -78,9 +78,9 @@ X1 = getBelief(fg, :x1)
 ApproxManifoldProducts.sample(X1)
 
 ##
-# smtasks = Task[]
-solveTree!(fg) #; smtasks, verbose=true, recordcliqs=ls(fg))
-# hists = fetchCliqHistoryAll!(smtasks);
+smtasks = Task[]
+solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
+hists = fetchCliqHistoryAll!(smtasks);
 # SArray 0.763317 seconds (2.36 M allocations: 160.488 MiB, 4.16% gc time)
 # Vector 0.786390 seconds (2.41 M allocations: 174.334 MiB, 3.97% gc time)
 # Vector 0.858993 seconds (2.42 M allocations: 176.613 MiB, 3.43% gc time) sample not tuple  

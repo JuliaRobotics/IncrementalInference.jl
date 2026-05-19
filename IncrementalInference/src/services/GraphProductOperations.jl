@@ -41,14 +41,16 @@ function propagateBelief(
   # varType = getStateKind(destvar)
   
   # take the product
-  mkd = AMP.manifoldProduct(
+  hode = manifoldProduct(
     dens;
     MC = 1,
     N,
   )
 
-  # @info "GOT" mkd.manifold
-  return mkd, _observability
+  _whatP(::HomotopyDensityLive{H, P}) where {H, P} = P
+  @info "propagateBelief" getLabel(destvar) _whatP(hode) string(_whatP.(dens))
+
+  return hode, _observability
 end
 
 function propagateBelief(

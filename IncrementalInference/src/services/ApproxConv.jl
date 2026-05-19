@@ -192,6 +192,9 @@ function calcProposalBelief(
   # assuming it is properly initialized TODO
   proposal = approxConvBelief(dfg, fct, target, measurement; solveKey, N, nullSurplus, keepCalcFactor)
 
+  _whatP(::HomotopyDensityLive{H, P}) where {H, P} = P
+  @info "calcProposalBelief" getLabel(fct) target _whatP(proposal)
+
   # return the proposal belief and inferdim, NOTE likely to be changed
   return proposal
 end

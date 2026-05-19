@@ -56,7 +56,6 @@ function doFMCIteration(
   logger = ConsoleLogger(),
 )
   #
-
   vert = DFG.getVariable(fgl, vsym)
   if !getState(vert, solveKey).marginalized
     # potprod = nothing
@@ -71,8 +70,9 @@ function doFMCIteration(
     )
 
     if 0 < Npts(dens)
+      _whatP(::HomotopyDensityLive{H, P}) where {H, P} = P
+      println("doFMCIteration setBelief! for $(vsym), ", _whatP(dens))
       setBelief!(vert, dens, true, ipc)
-      # setValKDE!(vert, densPts, true, ipc)
       # TODO perhaps more debugging inside `propagateBelief`?
     end
   end
