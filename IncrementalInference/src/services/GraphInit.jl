@@ -175,10 +175,12 @@ function doautoinit!(
         bel_ =
           Npts(bel) == getSolverParams(dfg).N ? bel : resample(bel, getSolverParams(dfg).N)
         setBelief!(xi, bel_; solveKey) # TODO, update to stateLabel
+        state = getState(xi, solveKey)
+        state.initialized = true
 
         # Update the data in the event that it's not local
         # TODO perhaps use merge, but keeping to deepcopy as update variant used was set to copy.
-        DFG.copytoState!(dfg, xi.label, solveKey, getState(xi, solveKey))
+        DFG.copytoState!(dfg, xi.label, solveKey, state)
         # deepcopy graphinit value, see IIF #612
         DFG.copytoState!(
           dfg,
