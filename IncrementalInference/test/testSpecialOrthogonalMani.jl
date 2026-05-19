@@ -59,6 +59,8 @@ X0 = getBelief(state)
 @test 0 < Npts(X0)
 @test 0 < length(getWeights(X0; permute=false))
 @test all(isapprox.(mean(X0), [1 0; 0 1], atol=0.1))
+@test all(is_point.(Ref(M), getPoints(X0, false)))
+@test DistributedFactorGraphs.isInitialized(fg, :x0, :default)
 
 
 ##
