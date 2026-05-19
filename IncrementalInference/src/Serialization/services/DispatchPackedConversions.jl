@@ -14,68 +14,11 @@ Dev Notes:
 function DFG.rebuildFactorCache!(
   dfg::AbstractDFG,
   factor::FactorCompute,
-  neighbors = map(vId -> getVariable(dfg, vId), listNeighbors(dfg, factor));
+  neighbors = collect(getVariable.(dfg, getVariableOrder(factor)));
   _blockRecursionGradients::Bool=false
 )
-  #
-  # Set up the neighbor data
-
-  # Rebuilding the CCW
-  _, _, solvercache = getDefaultFactorData(
-    dfg,
-    neighbors,
-    DFG.getObservation(factor);
-    multihypo = factor.hyper.multihypo,
-    nullhypo = factor.hyper.nullhypo,
-    # special inflation override
-    inflation = factor.hyper.inflation,
-    eliminated = factor.state.eliminated,
-    potentialused = factor.state.potentialused,
-    _blockRecursion=_blockRecursionGradients
-  )
-  #
-  DFG.setCache!(factor, solvercache)
-  return factor
-
-  # factor_ = if typeof(solvercache) != typeof(DFG.getCache(factor)) 
-  #   # must change the type of factor solver data FND{CCW{...}}
-  #   # create a new factor
-  #   factor__ = FactorCompute(
-  #     getLabel(factor),
-  #     Tuple(getVariableOrder(factor)),
-  #     DFG.getObservation(factor),
-  #     state,
-  #     solvercache;
-  #     timestamp = getTimestamp(factor),
-  #     nstime = factor.nstime,
-  #     tags = getTags(factor),
-  #     solvable = getSolvable(factor),
-  #   )
-  #   #
-
-  #   # replace old factor in dfg with a new one
-  #   deleteFactor!(dfg, factor; suppressGetFactor = true)
-  #   addFactor!(dfg, factor__)
-
-  #   factor__
-  # else
-  #   mergeState!(factor, new_solverData)
-  #   DFG.setCache!(factor, solvercache)
-  #   # We're not updating here because we don't want
-  #   # to solve cloud in loop, we want to make sure this flow works:
-  #   # Pull big cloud graph into local -> solve local -> push back into cloud.
-  #   # updateFactor!(dfg, factor)
-  #   factor
-  # end
-
-  #... Copying neighbor data into the factor?
-  # JT TODO it looks like this is already updated in getDefaultFactorData -> _createCCW
-  # factormetadata.variableuserdata is deprecated, remove when removing deprecation
-  # for i in 1:Threads.nthreads()
-  #   ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(neighborUserData)
-  # end
-
-  # return factor_
+  prepareFactorCache!(dfg, factor, neighbors; _blockRecursion = _blockRecursionGradients)
+  return nothing
 end
 
 ## =================================================================

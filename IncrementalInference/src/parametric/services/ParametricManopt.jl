@@ -734,6 +734,7 @@ function autoinitParametric!(
   #
 
   initme = getLabel(xi)
+  prepareState!(xi, NLLSSolver(), solveKey)
   vnd = getState(xi, solveKey)
   # don't initialize a variable more than once
   if reinit || !isInitialized(xi, solveKey)
@@ -743,7 +744,7 @@ function autoinitParametric!(
 
     initfrom = ls2(dfg, initme)
     filter!(initfrom) do vl
-      return isInitialized(dfg, vl, solveKey)
+      return hasState(dfg, vl, solveKey) && isInitialized(dfg, vl, solveKey)
     end
     
     # nothing to initialize if no initialized neighbors or priors
@@ -791,8 +792,6 @@ function autoinitParametric!(
     # updateSolverDataParametric!(vnd, val, Σ)
 
     vnd.initialized = true
-    #fill in ppe as mean
-    Xc::Vector{Float64} = collect(getCoordinates(getStateKind(xi), val))
 
     result = true
 
@@ -814,7 +813,7 @@ solveGraphParametric(args...; kwargs...) = solve_RLM(args...; kwargs...)
 function DFG.solveGraphParametric!(
   fg::AbstractDFG,
   args...; 
-  init::Bool = false, 
+  init::Bool = true, 
   solveKey::Symbol = :parametric,
   is_sparse = true,
   # debug, stopping_criterion, damping_term_min=1e-2, 
@@ -822,8 +821,8 @@ function DFG.solveGraphParametric!(
   kwargs...
 )
   # make sure variables has solverData, see #1637
-  makeSolverData!(fg; solveKey)
-  prepare!(fg, NLLSSolver(), solveKey; init)
+  prepare!(fg, NLLSSolver(), solveKey)
+  init && autoinitParametric!(fg; solveKey)
 
   M, v, r, Λ, tension = solve_RLM(fg, args...; is_sparse, kwargs...)
 

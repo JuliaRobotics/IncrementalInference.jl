@@ -122,7 +122,7 @@ smtasks = Task[]
 result = solveTree!(fg; smtasks, verbose=true)
 @test result isa AbstractBayesTree
 
-IIF.solveGraphParametric!(fg; sparse = false, damping_term_min=1e-12)
+IIF.solveGraphParametric!(fg; is_sparse = false, damping_term_min=1e-12)
 
 vnd = getState(fg, :x0, :parametric)
 @test all(isapprox(M, DFG.refMeans(vnd)[1], p0, atol=1e-6))
@@ -208,7 +208,7 @@ addFactor!(fg, [:x6; :l1], mf)
 smtasks = Task[]
 solveTree!(fg; smtasks);
 IIF.autoinitParametric!(fg)
-IIF.solveGraphParametric!(fg; sparse = false, damping_term_min=1e-12)
+IIF.solveGraphParametric!(fg; is_sparse = false, damping_term_min=1e-12)
 
 vnd = getState(fg, :x0, :default)
 @test isapprox(M, mean(M, DFG.refPoints(vnd)), ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.2)
@@ -316,15 +316,17 @@ end
 DFG.getManifold(::ManiPose2Point2) = TranslationGroup(2)
 
 # define the conditional probability constraint
+# Observe point q in pose p's body frame: q_body = R' * (q - t)
+# function (cfo::CalcFactor{<:ManiPose2Point2})(measX, p, q)
+#     p_R = p.x[2]  # rotation matrix
+#     p_t = p.x[1]  # translation
+#     q_body = p_R' * (q - p_t)
+#     return measX - q_body
+# end
+#FIXME work in world frame until partials are fixed.
+# these test should pass with above residual as well.
 function (cfo::CalcFactor{<:ManiPose2Point2})(measX, p, q)
-    #
-    M = SE2
-    q_SE = ArrayPartition(q, identity_element(SpecialOrthogonalGroup(2), typeof(p.x[2])))
-
-    X_se2 = log(M, p, q_SE)
-    X = X_se2.x[1]
-    # NOTE wrong for what we want X̂ = log(M, p, q_SE)
-    return measX - X 
+    return measX - (q - p.x[1])
 end
 
 ##
@@ -342,13 +344,13 @@ v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 mp = ManifoldPrior(SE2, ArrayPartition(Vector([0.0,0.0]), Matrix([1.0 0.0; 0.0 1.0])), MvNormal([0.01, 0.01, 0.01]))
 p = addFactor!(fg, [:x0], mp)
 
+@test doautoinit!(fg, :x0)
 ##
 v1 = addVariable!(fg, :x1, TranslationGroup2)
 mf = ManiPose2Point2(MvNormal([1,2], [0.01,0.01]), [1;2])
 f = addFactor!(fg, [:x0, :x1], mf)
 
-
-doautoinit!(fg, :x1)
+@test doautoinit!(fg, :x1)
 
 vnd = getState(fg, :x1, :default)
 @test all(isapprox.(mean(DFG.refPoints(vnd)), [1.0,2.0], atol=0.1))
@@ -403,7 +405,7 @@ fac_out = JSON.parse(jstr, FactorDFG; style = DFG.DFGJSONStyle())
 
 ## test without nullhyp
 
-f0 = addFactor!(fg, [:x0], pthru, graphinit=false)
+f0 = addFactor!(fg, [:x0], pthru)
 
 ## test the inference functions
 
@@ -419,7 +421,7 @@ fg = initfg()
 
 v0 = addVariable!(fg, :x0, SpecialEuclidean2)
 # test with nullhypo
-f0 = addFactor!(fg, [:x0], pthru, graphinit=false, nullhypo=0.2)
+f0 = addFactor!(fg, [:x0], pthru; nullhypo = 0.2)
 
 ## test the inference functions
 
@@ -428,7 +430,7 @@ bel, infd = propagateBelief(fg, v0, [f0])
 
 ## 
 
-doautoinit!(fg, :x0)
+@test doautoinit!(fg, :x0)
 
 @test length(getPoints(getBelief(fg, :x0))) == getSolverParams(fg).N # 120
 # @info "PassThrough transfers the full point count to the graph, unless a product is calculated during the propagateBelief step."
@@ -633,13 +635,8 @@ pnts = getPoints(fg, :x0)
 # @cast p[i,j] := c[i][j]
 # scatter(p[:,1], p[:,2])
 
-#FIXME
-@error "Invalid multihypo test"
-if false
-    # FIXME ManiPose2Point2 factor mean [1.,0] cannot go "backwards" from [0,0] to [-1,0] with covariance 0.01 -- wholly inconsistent test design
-    @test 10 < sum(isapprox.(Ref(SE2), pnts, Ref(ArrayPartition([-1.0,0.0], [1.0 0; 0 1])), atol=0.5))
-    @test 10 < sum(isapprox.(Ref(SE2), pnts, Ref(ArrayPartition([1.0,0.0], [1.0 0; 0 1])), atol=0.5))
-end
+@test 10 < sum(isapprox.(Ref(SE2), pnts, Ref(ArrayPartition([-1.0,-1.0], [1.0 0; 0 1])), atol=0.5))
+@test 10 < sum(isapprox.(Ref(SE2), pnts, Ref(ArrayPartition([1.0,-1.0], [1.0 0; 0 1])), atol=0.5))
 
 ##
 end

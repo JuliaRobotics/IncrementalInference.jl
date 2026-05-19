@@ -264,7 +264,6 @@ function proposalbeliefs!(
   vardim = getDimension(getVariable(dfg, destlbl))
   # get a proposal belief from each factor connected to destlbl
   for (count, fct) in enumerate(factors)
-    ccwl = _getCCW(fct)
     # need way to convey partial information
     # determine if evaluation is "dimension-deficient" solvable dimension
     # FIXME, update to infoPerCoord
@@ -281,10 +280,9 @@ function proposalbeliefs!(
       nullSurplus = nullSrp[count],
     )
     # partial density
-    propBel = if isPartial(ccwl)
-      pardims = _getDimensionsPartial(ccwl)
-      @assert [getObservation(fct).partial...] == [pardims...] "partial dims error $(getObservation(fct).partial) vs $pardims"
-      AMP.marginal(propBel_, Int[pardims...])
+    obs = DFG.getObservation(fct)
+    propBel = if isPartial(obs)
+      AMP.marginal(propBel_, Int[obs.partial...])
     else
       propBel_
     end

@@ -385,48 +385,15 @@ function resetVariable!(dfg::AbstractDFG, sym::Symbol, solveKey::Symbol = :defau
   return resetVariable!(getState(dfg, sym, solveKey))
 end
 
-# return State
-function DefaultNodeDataParametric(
-  dodims::Int,
-  dims::Int,
-  variableType::StateType;
-  initialized::Bool = true,
-  # dontmargin::Bool = false,
-  solveKey::Symbol = :parametric
-)
-  # this should be the only function allocating memory for the node points
-  if false && initialized
-    error("not implemented yet")
-    # pN = AMP.manikde!(variableType.manifold, randn(dims, N));
-    #
-    # sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
-    # gbw = getBW(pN)[:,1]
-    # gbw2 = Array{Float64}(undef, length(gbw),1)
-    # gbw2[:,1] = gbw[:]
-    # pNpts = getPoints(pN)
-    # #initval, stdev
-    # return State(pNpts,
-    #                         gbw2, Symbol[], sp,
-    #                         dims, false, :_null, Symbol[], variableType, true, 0.0, false, dontmargin)
-  else
-    ϵ = getPointIdentity(variableType)
-    belief = DFG.HomotopyDensityDFG(
-      RootsOnlyTopology(),
-      variableType;
-      principal_elements = [ϵ],
-      principal_forms = [zeros(dims, dims)],
-    )
-    return State(solveKey, variableType; belief)
-  end
-end
+# DefaultNodeDataParametric is deprecated — logic moved to prepareState!(v, NLLSSolver(), statelabel)
 
 """
     $SIGNATURES
 
 Makes and sets a parametric `State` object (`.solverData`).
 
-DevNotes
-- TODO assumes parametric solves will always just be under the `solveKey=:parametric`, should be generalized.
+!!! warning "Deprecated"
+    Use `prepareState!(v, NLLSSolver(), statelabel)` instead.
 """
 function setDefaultNodeDataParametric!(
   v::VariableCompute,
@@ -434,8 +401,8 @@ function setDefaultNodeDataParametric!(
   solveKey::Symbol = :parametric,
   kwargs...,
 )
-  vnd = DefaultNodeDataParametric(0, variableType |> getDimension, variableType; solveKey, kwargs...)
-  mergeState!(v, vnd)
+  Base.depwarn("`setDefaultNodeDataParametric!` is deprecated, use `prepareState!(v, NLLSSolver(), solveKey)` instead.", :setDefaultNodeDataParametric!)
+  prepareState!(v, NLLSSolver(), solveKey)
   nothing
 end
 
@@ -444,8 +411,8 @@ end
 
 Create new solverData.
 
-Notes
-- Used during creation of new variable, as well as in CSM unique `solveKey`.
+!!! warning "Deprecated"
+    Use `prepareState!(v, NPBPSolver(), statelabel; num_kernels=N)` instead.
 """
 function setDefaultNodeData!(
   v::VariableCompute,
@@ -454,49 +421,10 @@ function setDefaultNodeData!(
   solveKey::Symbol = :default,
   gt = Dict(),
   initialized::Bool = true,
-  # dontmargin::Bool = false,
   varType = nothing,
 )
-  #
-  # TODO review and refactor this function, exists as legacy from pre-v0.3.0
-  # this should be the only function allocating memory for the node points (unless number of points are changed)
-  dims = getDimension(v)
-  data = nothing
-  isinit = false
-  sp = Int[0;]
-  (val, bw) = if initialized
-    pN = resample(getBelief(v))
-    bw = getBW(pN)[:, 1:1]
-    pNpts = getPoints(pN)
-    isinit = true
-    (pNpts, bw)
-  else
-    sp = round.(Int, range(dodims; stop = dodims + dims - 1, length = dims))
-    @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defStateType $varType arguments is correct"
-    val = Vector{getPointType(varType)}(undef, N)
-    for i = 1:length(val)
-      val[i] = getPointIdentity(varType)
-    end
-    bw = zeros(dims, 1)
-    #
-    (val, bw)
-  end
-
-  belief = DFG.HomotopyDensityDFG(
-    LeavesOnlyTopology(),
-    varType;
-    points = val,
-    trailing_forms = sparsevec(Dict(1 => bw)),
-  )
-  # make and set the new solverData
-  mergeState!(
-    v,
-    State(solveKey, varType;
-      belief,
-      initialized=isinit,
-      marginalized=false,
-    )
-  )
+  Base.depwarn("`setDefaultNodeData!` is deprecated, use `prepareState!(v, NPBPSolver(), solveKey; num_kernels=N)` instead.", :setDefaultNodeData!)
+  prepareState!(v, NPBPSolver(), solveKey; num_kernels=N)
   return nothing
 end
 # if size(initval,2) < N && size(initval, 1) == dims
@@ -557,102 +485,64 @@ _variableType(varType::Type{<:StateType}) = varType()
 ## DFG Overloads on addVariable! and addFactor!
 ## ==================================================================================================
 
-"""
-$(SIGNATURES)
-
-Add a variable node `label::Symbol` to `dfg::AbstractDFG`, as `varType<:StateType`.
-
-Example
--------
-
-```julia
-fg = initfg()
-addVariable!(fg, :x0, Pose2)
-```
-"""
+#TODO move to DFG after deprecation of IIF kwargs
 function DFG.addVariable!(
   dfg::AbstractDFG,
   label::Symbol,
   statekind::Union{T, Type{T}};
-  tags::Union{Set{Symbol}, Vector{Symbol}} = Set{Symbol}(),
-  timestamp::Union{TimeDateZone, ZonedDateTime}  = DFG.now_tdz(),
-  solvable::Int = 1,
-  # IIF extras
-  N::Int = getSolverParams(dfg).N,
-  checkduplicates::Bool = true,
-  # dontmargin::Bool = false,
-  initsolvekeys::Vector{Symbol} = getSolverParams(dfg).algorithms,
-
-  #deprecated v0.37
-  smalldata = nothing,
-  nanosecondtime = nothing,
-
-  # default DFG
-  bloblets = DFG.Bloblets(),
-  blobentries = DFG.Blobentries(),
+  # deprecated in v0.37
+  N::Union{Int, Nothing} = nothing,
+  initsolvekeys::Union{Vector{Symbol}, Nothing} = nothing,
+  #
   kwargs...,  
 ) where {T <: StateType}
   
-  if !isnothing(nanosecondtime)
-    error("nanosecondtime kwarg is deprecated, use `timestamp` instead")
+  if !isnothing(N)
+    Base.depwarn(
+      "`addVariable!(dfg, lbl, T; N=$N)` is deprecated. " *
+      "Particle count `N` is now a solver option passed to `solveTree!` or `initAll!`.",
+      :addVariable!,
+    )
+    num_kernels = N
+  else
+    num_kernels = 100 #FIXME 
   end
 
-  if !isnothing(smalldata)
-    error("smalldata kwarg is deprecated, use `bloblets` instead")
+  if !isnothing(initsolvekeys)
+    Base.depwarn(
+      "`addVariable!(dfg, lbl, T; initsolvekeys=...)` is deprecated. " *
+      "Solver data is created by `initAll!`/`solveTree!`. The kwarg is ignored.",
+      :addVariable!,
+    )
   end
 
-  tags = union(Set(tags), [:VARIABLE])
   v = VariableDFG(
     label,
     statekind;
-    tags,
-    bloblets,
-    blobentries,
-    solvable,
-    timestamp,
     kwargs...,
   )
 
-  (:default in initsolvekeys) && setDefaultNodeData!(
-    v,
-    0,
-    N;
-    initialized = false,
-    varType = T(),
-    # dontmargin = dontmargin,
-  ) # dodims
-
-  (:parametric in initsolvekeys) &&
-    setDefaultNodeDataParametric!(
-      v,
-      T();
-      initialized = false,
-      # dontmargin = dontmargin
-    )
+  #FIXME needs better refactoring of spaghetti between addVariable! and prepareState! 
+  #FIXME so hard coding :default state creation here for now. Ideal is complete decoupling of solver options from graph operations.
+  #also num_kernels set above
+  prepareState!(v, NPBPSolver(), :default; num_kernels)
 
   return addVariable!(dfg, v)
 end
 
-function parseusermultihypo(multihypo::Nothing, nullhypo::Float64)
-  verts = Symbol[]
-  mh = nothing
-  return mh, nullhypo
-end
-function parseusermultihypo(multihypo::Vector{Float64}, nullhypo::Float64)
-  mh = nothing
-  if 0 < length(multihypo)
-    multihypo2 = multihypo
-    multihypo2[1 - 1e-10 .< multihypo] .= 0.0
-    # check that terms sum to full probability
-    @assert abs(sum(multihypo2) % 1) < 1e-10 || 1 - 1e-10 < sum(multihypo2) % 1 "ensure multihypo sums to a (or nearly, 1e-10) interger, see #1086"
-    # check that only one variable broken into fractions
-    @assert sum(multihypo2[1e-10 .< multihypo2]) ≈ 1
-    # force normalize something that is now known to be close
-    multihypo2 ./= sum(multihypo2)
-
-    mh = Categorical(Float64[multihypo2...])
+function parseusermultihypo!(multihypo::Vector{Float64})
+  if isempty(multihypo)
+    return nothing
   end
-  return mh, nullhypo
+  multihypo2 = multihypo
+  multihypo2[1 - 1e-10 .< multihypo] .= 0.0
+  # check that terms sum to full probability
+  @assert abs(sum(multihypo2) % 1) < 1e-10 || 1 - 1e-10 < sum(multihypo2) % 1 "ensure multihypo sums to a (or nearly, 1e-10) interger, see #1086"
+  # check that only one variable broken into fractions
+  @assert sum(multihypo2[1e-10 .< multihypo2]) ≈ 1
+  # force normalize something that is now known to be close
+  multihypo2 ./= sum(multihypo2)
+  return Categorical(Float64[multihypo2...])
 end
 
 # return a BitVector masking the fractional portion, assuming converted 0's on 100% confident variables 
@@ -708,7 +598,7 @@ addFactor!(fg, [:a;:b], mfc)
 function preambleCache(
   dfg::AbstractDFG,
   vars::AbstractVector{<:VariableCompute},
-  usrfnc::AbstractObservation,
+  observation::AbstractObservation,
 )
   return nothing
 end
@@ -719,45 +609,30 @@ $SIGNATURES
 
 Generate the default factor data for a new FactorCompute.
 """
-function getDefaultFactorData(
+function prepareFactorCache!(
   dfg::AbstractDFG,
-  Xi::Vector{<:VariableCompute},
-  usrfnc::AbstractObservation;
-  multihypo::Vector{<:Real} = Float64[],
-  nullhypo::Float64 = 0.0,
-  # threadmodel = SingleThreaded,
-  eliminated::Bool = false,
-  potentialused::Bool = false,
-  inflation::Real = getSolverParams(dfg).inflation,
-  _blockRecursion::Bool = false,
+  factor::FactorCompute,
+  neighbors::AbstractVector{<:VariableCompute} = collect(getVariable.(dfg, getVariableOrder(factor)));
+  _blockRecursion::Bool = true,
+  attemptGradients::Bool = false,
   keepCalcFactor::Bool = false,
 )
-  #
-  
-  # prepare multihypo particulars
-  # storeMH::Vector{Float64} = multihypo == nothing ? Float64[] : [multihypo...]
-  mhcat, nh = parseusermultihypo(multihypo, nullhypo)
-  
-  # allocate temporary state for convolutional operations (not stored)
-  userCache = preambleCache(dfg, Xi, usrfnc)
-  ccwl = _createCCW(
-    Xi,
-    usrfnc;
-    multihypo = mhcat,
-    nullhypo = nh,
-    inflation,
-    attemptGradients = getSolverParams(dfg).attemptGradients,
+  obs = DFG.getObservation(factor)
+  multihypo = parseusermultihypo!(factor.hyper.multihypo)
+  userCache = preambleCache(dfg, neighbors, obs)   # TODO prepareCache(...)
+  ccw =  _createCCW(
+    neighbors,
+    obs;
+    multihypo,
+    nullhypo = factor.hyper.nullhypo,
+    inflation = factor.hyper.inflation,
+    attemptGradients,
     _blockRecursion,
     userCache,
     keepCalcFactor,
   )
-
-  state = DFG.Recipestate(; eliminated, potentialused)
-    
-  hyper = DFG.Recipehyper(; nullhypo, multihypo, inflation)
-
-  return hyper, state, ccwl
-
+  DFG.setCache!(factor, ccw)
+  return ccw
 end
 
 """
@@ -779,7 +654,7 @@ function isLeastOneHypoAvailable(
          sfidx in uncertnidx && sum(isinit[certainidx]) == length(certainidx)
 end
 
-function assembleFactorName(dfg::AbstractDFG, Xi::Vector{<:VariableCompute})
+function assembleFactorName(dfg::AbstractDFG, Xi::Vector{<:VariableCompute}; maxincidence::Int = 500)
   #
 
   existingFactorLabels = listFactors(dfg)
@@ -788,18 +663,17 @@ function assembleFactorName(dfg::AbstractDFG, Xi::Vector{<:VariableCompute})
   for vert in Xi #f.Xi
     namestring = string(namestring, vert.label)
   end
-  opt = getSolverParams(dfg)
-  for i = 1:(opt.maxincidence)
+  for i = 1:maxincidence
     tempnm = string(namestring, "f$i")
     if !haskey(existingFactorLabelDict, Symbol(tempnm))
       namestring = tempnm
       break
     end
-    if i != opt.maxincidence
+    if i != maxincidence
       nothing
     else
       error(
-      "Artificial restriction to not connect more than $(opt.maxincidence) factors to a variable (bad for sparsity), try setting getSolverParams(fg).maxincidence=1000 to adjust this restriction.",
+      "Artificial restriction to not connect more than $(maxincidence) factors to a variable (bad for sparsity).",
     )
     end
   end
@@ -809,10 +683,12 @@ end
 """
     $(SIGNATURES)
 
-Add factor with user defined type `<:AbstractObservation`` to the factor graph
-object. Define whether the automatic initialization of variables should be
-performed.  Use order sensitive `multihypo` keyword argument to define if any
-variables are related to data association uncertainty.
+Add factor with user defined type `<:AbstractObservation` to the factor graph object.
+
+Notes
+- This is a graph operation. No automatic variable initialization is performed.
+- Use `initAll!` or `solveTree!` to initialize variables before solving.
+- `graphinit` kwarg is deprecated and ignored. Call `doautoinit!` explicitly if needed.
 
 Experimental
 - `inflation`, to better disperse kernels before convolution solve, see IIF #1051.
@@ -820,87 +696,48 @@ Experimental
 function DFG.addFactor!(
   dfg::AbstractDFG,
   Xi::AbstractVector{<:VariableCompute},
-  usrfnc::AbstractObservation;
-  multihypo::Vector{Float64} = Float64[],
-  nullhypo::Float64 = 0.0,
-  solvable::Int = 1,
-  tags::Vector{Symbol} = Symbol[],
-  timestamp::Union{DateTime, ZonedDateTime} = now(localzone()),
+  observation::AbstractObservation;
   namestring::Symbol = assembleFactorName(dfg, Xi),
-  #TODO  solver parameters/options follows  
-  graphinit::Bool = getSolverParams(dfg).graphinit,
-  # threadmodel = SingleThreaded,
-  suppressChecks::Bool = false,
-  inflation::Real = getSolverParams(dfg).inflation,
-  _blockRecursion::Bool = !getSolverParams(dfg).attemptGradients,
+  #TODO solver parameters/options follows
+  inflation::Real = 5.0,
+  _blockRecursion::Bool = true,
   keepCalcFactor::Bool = false,
+  # Deprecated in v0.37
+  graphinit::Union{Bool, Nothing} = nothing,
+  kwargs...
 )
   #
 
-  @assert (suppressChecks || length(multihypo) === 0 || length(multihypo) == length(Xi)) "When using multihypo=[...], the number of variables and multihypo probabilies must match.  See documentation on how to include fractional data-association uncertainty."
-
-  _zonedtime(s::ZonedDateTime) = s
-  _zonedtime(s::DateTime) = ZonedDateTime(s, localzone())
-
-  varOrderLabels = Symbol[v.label for v in Xi]
-  hyper, state, solvercache = getDefaultFactorData(
-    dfg,
-    Xi,
-    deepcopy(usrfnc);
-    multihypo,
-    nullhypo,
-    # threadmodel,
-    inflation,
-    _blockRecursion,
-    keepCalcFactor,
-  )
-  #
-  newFactor = FactorCompute(
-    Symbol(namestring),
-    varOrderLabels,
-    usrfnc,
-    hyper,
-    state,
-    solvercache;
-    tags = Set(union(tags, [:FACTOR])),
-    solvable,
-    timestamp = _zonedtime(timestamp),
-  )
-  #
-
-  factor = addFactor!(dfg, newFactor)
-
-  # TODO: change this operation to update a conditioning variable
-  graphinit && doautoinit!(dfg, Xi; singles = false)
-
-  return factor
-end
-
-function _checkFactorAdd(usrfnc, xisyms)
-  if length(xisyms) == 1 && !(usrfnc isa AbstractPriorObservation) && !(usrfnc isa Mixture)
-    @warn("Listing only one variable $xisyms for non-unary factor type $(typeof(usrfnc))")
+  if !isnothing(graphinit)
+    Base.depwarn(
+      "`addFactor!(dfg, vars, fct; graphinit=$graphinit)` is deprecated. " *
+      "Variable initialization is no longer done in addFactor!. " *
+      "Use `initAll!(dfg)` or `doautoinit!(dfg, vars)` explicitly.",
+      :addFactor!,
+    )
   end
-  return nothing
+
+  variableorder = Symbol[v.label for v in Xi]
+  #
+  newFactor = FactorDFG(
+    variableorder,
+    observation;
+    label = namestring,
+    inflation,
+    kwargs...
+  )
+
+  return addFactor!(dfg, newFactor)
 end
 
 function DFG.addFactor!(
   dfg::AbstractDFG,
   vlbs::AbstractVector{Symbol},
   usrfnc::AbstractObservation;
-  suppressChecks::Bool = false,
   kw...,
 )
-  #
-
-  # basic sanity check for unary vs n-ary
-  if !suppressChecks
-    _checkFactorAdd(usrfnc, vlbs)
-    @assert length(vlbs) == length(unique(vlbs)) "List of variables should be unique and ordered."
-  end
-
-  # variables = getVariable.(dfg, vlbs)
   variables = map(vid -> getVariable(dfg, vid), vlbs)
-  return addFactor!(dfg, variables, usrfnc; suppressChecks, kw...)
+  return addFactor!(dfg, variables, usrfnc; kw...)
 end
 
 #

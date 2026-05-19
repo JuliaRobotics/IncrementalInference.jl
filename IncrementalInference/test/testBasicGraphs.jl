@@ -27,8 +27,6 @@ addFactor!(fg, [:x0;], Prior(Normal(0.0,1.0)))
 @test getSolvedCount(fg, :x0) == 0
 @test !isSolved(getVariable(fg, :x0))
 
-makeSolverData!(fg)
-
 # run solver once
 tree = solveTree!(fg)
 

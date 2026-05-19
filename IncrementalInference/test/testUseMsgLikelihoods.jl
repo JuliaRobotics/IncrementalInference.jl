@@ -11,6 +11,7 @@ using IncrementalInference
 ##
 
 fg = generateGraph_CaesarRing1D()
+IIF.prepare!(fg, IIF.NPBPSolver(), :default)
 getSolverParams(fg).useMsgLikelihoods = true
 
 ## test getSample
@@ -83,7 +84,7 @@ M = getManifold(fT.Z)
 X = sampleTangent(M, fT.Z)
 @test X isa AbstractVector{<:Real}
 
-z = sampleFactor(fct)[1]
+z = sampleFactor(cfg, fct.label)[1]
 @test z isa AbstractVector{<:Real}
 
 ##

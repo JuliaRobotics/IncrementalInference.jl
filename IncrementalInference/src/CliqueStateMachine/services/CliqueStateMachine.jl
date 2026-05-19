@@ -171,24 +171,12 @@ function presolveChecklist_StateMachine(csmc::CliqStateMachineContainer)
 
   # check if solveKey is available in all variables?
   for var in getVariable.(csmc.cliqSubFg, ls(csmc.cliqSubFg))
-    if !(csmc.solveKey in listStates(var))
+    if prepareState!(var, NPBPSolver(), csmc.solveKey; num_kernels=getCliqueSolverParams(csmc).N) == 1
       logCSM(
         csmc,
         "CSM-0b create empty data for $(getLabel(var)) on solveKey=$(csmc.solveKey)",
       )
-      varType = getStateKind(var)
-      # FIXME check the marginalization requirements
-      setDefaultNodeData!(
-        var,
-        0,
-        getCliqueSolverParams(csmc).N;
-        solveKey = csmc.solveKey,
-        initialized = false,
-        varType = varType,
-        # dontmargin = false,
-      )
-      #
-      @info "create vnd solveKey" csmc.solveKey N
+      @info "create vnd solveKey" csmc.solveKey getCliqueSolverParams(csmc).N
       @info "also" listStates(var)
     end
   end

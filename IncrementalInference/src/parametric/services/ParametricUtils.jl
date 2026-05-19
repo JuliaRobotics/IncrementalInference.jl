@@ -1,7 +1,4 @@
-#WIP towards algorithm dispatch
-struct NLLSSolver
-  # ? 
-end
+# NLLSSolver is now defined in GraphInit.jl
 
 # ================================================================================================
 # FlatVariables - used for packing variables for optimization
@@ -857,9 +854,11 @@ function solveGraphParametricOptim!(
   kwargs...
 )
   # make sure variables has solverData, see #1637
-  prepare!(fg, NLLSSolver(), solveKey; init)
-
-  init && initParametricFrom!(fg, initSolveKey; parkey=solveKey)  
+  prepare!(fg, NLLSSolver(), solveKey)
+  if init
+    autoinitParametric!(fg, solveKey; solveKey)
+    # initParametricFrom!(fg, initSolveKey; parkey=solveKey)
+  end  
 
   vardict, result, varIds, Σ = solveGraphParametricOptim(fg; verbose, kwargs...)
 
@@ -883,6 +882,9 @@ function initParametricFrom!(
   force::Bool = false,
 )
   #
+  # Ensure parametric states exist
+  prepareStates!(fg, NLLSSolver(), parkey)
+
   if onepoint
     for v in getVariables(fg)
       fromvnd = getState(v, fromkey)
@@ -902,21 +904,10 @@ end
 
 """
     $SIGNATURES
-Add the parametric solveKey to all the variables in fg if it doesn't exists.
+Prepare the fg for solving using the Non-linear Least Squares solver for results in state label.
 """
-function prepare!(fg, ::NLLSSolver, statelabel; init = true)
-  foreach(getVariables(fg)) do v
-    if !hasState(v, statelabel)
-      IIF.setDefaultNodeDataParametric!(
-        v,
-        getStateKind(v);
-        initialized = false,
-        solveKey = statelabel,
-      )
-    end
-  end
-  init && autoinitParametric!(fg, statelabel; solveKey = statelabel)
-  return nothing
+function prepare!(fg, ::NLLSSolver, statelabel)
+  return prepareStates!(fg, NLLSSolver(), statelabel; whereSolvable = >=(0))
 end
 
 """

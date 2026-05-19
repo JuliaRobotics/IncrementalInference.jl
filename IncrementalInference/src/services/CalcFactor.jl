@@ -8,8 +8,7 @@ function _getDimensionsPartial(ccw::CommonConvWrapper)
   # @warn "_getDimensionsPartial not ready for use yet"
   return ccw.partialDims
 end
-
-_getDimensionsPartial(fct::FactorCompute) = _getDimensionsPartial(_getCCW(fct))
+_getDimensionsPartial(fct::FactorCompute) = Int[getObservation(fct).partial...]
 function _getDimensionsPartial(fg::AbstractDFG, lbl::Symbol)
   return _getDimensionsPartial(getFactor(fg, lbl))
 end
@@ -113,15 +112,9 @@ Related
 
 [`calcFactorResidualTemporary`](@ref), [`_evalFactorTemporary!`](@ref), [`approxConvBelief`](@ref)
 """
-function calcFactorResidual(
-  dfgfct::FactorCompute,
-  args...;
-  ccw::CommonConvWrapper = IIF._getCCW(dfgfct),
-)
-  return CalcFactorNormSq(ccw)(args...)
-end
 function calcFactorResidual(dfg::AbstractDFG, fctsym::Symbol, args...)
-  return calcFactorResidual(getFactor(dfg, fctsym), args...)
+  ccw = _getCCW(dfg, fctsym)
+  return CalcFactorNormSq(ccw)(args...)
 end
 
 """
@@ -163,20 +156,21 @@ function calcFactorResidualTemporary(
   )
 
   # get a fresh measurement if needed
-  _measurement = if measurement != [] #length(measurement) != 0
-    measurement
-  else
-    # now use the CommonConvWrapper object in `_dfgfct`
-    cfo = CalcFactorNormSq(_getCCW(_dfgfct))
-    sampleFactor(cfo, 1)[1]
-  end
+  _measurement = 
+    if !isempty(measurement)
+      measurement
+    else
+      # now use the CommonConvWrapper object in `_dfgfct`
+      cfo = CalcFactorNormSq(_getCCW(tfg, _dfgfct))
+      sampleFactor(cfo, 1)[1]
+    end
 
   # assume a single sample point is being run
+  flbl = getLabel(_dfgfct)
   res = if doTime
-    @time res = calcFactorResidual(_dfgfct, _measurement, pts...)
-    res
+    @time calcFactorResidual(tfg, flbl, _measurement, pts...)
   else
-    calcFactorResidual(_dfgfct, _measurement, pts...)
+    calcFactorResidual(tfg, flbl, _measurement, pts...)
   end
   return res
 end

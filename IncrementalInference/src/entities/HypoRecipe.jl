@@ -12,7 +12,7 @@ Base.@kwdef struct HypoRecipeCompute{
   HP <: Union{Nothing, <:Distributions.Categorical{Float64, <:AbstractVector{Float64}}},
   CH <: Union{Nothing, <:AbstractVector{<:Integer}},
 }
-  """ multi hypothesis settings #NOTE no need for a parameter as type is known from `parseusermultihypo` """
+  """ multi hypothesis settings #NOTE no need for a parameter as type is known from `parseusermultihypo!` """
   hypotheses::HP = nothing
   """ categorical to select which hypothesis is being considered during convolution operation """
   certainhypo::CH = nothing

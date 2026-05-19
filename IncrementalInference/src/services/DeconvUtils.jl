@@ -186,7 +186,7 @@ function approxDeconv(
   fct = getFactor(dfg, fctsym)
   pts = getPoints(getBelief(dfg, getVariableOrder(fct)[1], solveKey))
   N = length(pts)
-  pts = approxDeconv(fct; N = N)
+  pts = approxDeconv(fct, _getCCW(dfg, fct); N = N)
   return pts
 end
 

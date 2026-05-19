@@ -106,29 +106,15 @@ end
 
 function _isInitializedOrInitSolveKey(
   var::VariableCompute,
-  solveKey::Symbol = :default;
+  statelabel::Symbol = :default;
   N::Int = 100,
 )
-  # TODO, this solveKey existence test should probably be removed?
-  if !(solveKey in listStates(var))
-    varType = getStateKind(var)
-    setDefaultNodeData!(
-      var,
-      0,
-      N;
-      solveKey = solveKey,
-      initialized = false,
-      varType = varType,
-      # dontmargin = false,
-    )
-    #
-    # data = getState(var, solveKey)
-    # if data === nothing
-    # end
+  # prepareState! is idempotent — returns 0 if state already exists
+  if prepareState!(var, NPBPSolver(), statelabel; num_kernels=N) == 1
     return false
   end
   # regular is initialized check, this is fine
-  isinit = isInitialized(var, solveKey)
+  isinit = isInitialized(var, statelabel)
   return isinit
 end
 

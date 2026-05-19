@@ -122,12 +122,7 @@ vnd = getState(fg, :x1, :default)
 @test all(isapprox.( mean(SpecialOrthogonalGroup(3),DFG.refPoints(vnd)), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
 @test all(is_point.(Ref(M), DFG.refPoints(vnd)))
 
-# 23Q2 default HagerZhang fails with `AssertionError: isfinite(phi_c) && isfinite(dphi_c)`, using alternate LineSearch
-IIF.solveGraphParametric!(
-  fg;
-  # algorithmkwargs=(;alphaguess = LineSearches.InitialStatic(), linesearch = LineSearches.MoreThuente()),
-  verbose=true
-)
+IIF.solveGraphParametric!(fg)
 
 ##
 end

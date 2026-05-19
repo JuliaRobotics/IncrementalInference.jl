@@ -7,7 +7,7 @@ using IncrementalInference
 
 @testset "Test consolidation of factors #467" begin
   fg = generateGraph_LineStep(20, poseEvery=1, landmarkEvery=4, posePriorsAt=collect(0:7), sightDistance=2, solverParams=SolverParams(algorithms=[:default, :parametric]))
-
+  IIF.prepare!(fg, IIF.NLLSSolver(), :parametric)
   M, labels, minimizer, Σ = IIF.solveGraphParametric(fg)
   d = Dict(labels.=>minimizer)
   for i in 0:20
@@ -32,6 +32,7 @@ initVariable!(fg, :x0, Normal(0.1,1.1), :parametric)
 addVariable!(fg, :x1, ContinuousScalar)
 addFactor!(fg, [:x0,:x1], LinearRelative(Normal(1.0, 1.2)))
 
+IIF.prepare!(fg, IIF.NLLSSolver(), :parametric)
 vardict, result, flatvars, Σ = IIF.solveConditionalsParametric(fg, [:x1])
 v1 = vardict[:x1]
 @test isapprox(v1.val, [1.1], atol=1e-3)
@@ -44,7 +45,7 @@ addVariable!(fg, :x2, ContinuousScalar)
 addFactor!(fg, [:x0,:x2], LinearRelative(Normal(2.0, 0.5)))
 addFactor!(fg, [:x1,:x2], LinearRelative(Normal(1.1, 0.5)))
 
-
+IIF.prepare!(fg, IIF.NLLSSolver(), :parametric)
 vardict, result, flatvars, Σ = IIF.solveConditionalsParametric(fg, [:x2])
 v2 = vardict[:x2]
 
@@ -62,7 +63,7 @@ end
 
 ##
 fg = generateGraph_LineStep(7, poseEvery=1, landmarkEvery=0, posePriorsAt=collect(0:7), sightDistance=2, solverParams=SolverParams(algorithms=[:default, :parametric]))
-
+IIF.prepare!(fg, IIF.NLLSSolver(), :parametric)
 M, labels, minimizer, Σ = IIF.solveGraphParametric(fg)
 d = Dict(labels.=>minimizer)
 
@@ -88,7 +89,7 @@ v0 = getVariable(fg,:x1)
 @test length(DFG.refMeans(v0.states[:parametric])[1]) === 1
 @test isapprox(DFG.refMeans(v0.states[:parametric])[1][1], 1.0, atol = 1e-4)
 
-
+initAll!(fg)
 IIF.initParametricFrom!(fg)
 
 #
@@ -108,6 +109,7 @@ fg = generateGraph_LineStep(10, vardims=2, poseEvery=1, landmarkEvery=3, posePri
 # foreach(fct->println(fct.label, ": ", getObservation(fct).Z), getFactors(fg))
 
 # @profiler d,st = IIF.solveGraphParametric(fg)
+IIF.prepare!(fg, IIF.NLLSSolver(), :parametric)
 M, labels, minimizer, Σ = IIF.solveGraphParametric(fg)
 d = Dict(labels.=>minimizer)
 
@@ -175,7 +177,7 @@ addFactor!(fg, [:x1; :x2], LinearRelative(Normal(0.0, 1e-1)), graphinit=graphini
 
 
 foreach(fct->println(fct.label, ": ", getObservation(fct).Z), getFactors(fg))
-
+IIF.prepare!(fg, IIF.NLLSSolver(), :parametric)
 M, labels, minimizer, Σ = IIF.solveGraphParametric(fg)
 d = Dict(labels.=>minimizer)
 
@@ -214,6 +216,7 @@ deleteFactor!(fg, :x5x6f1)
 # foreach(fct->println(fct.label, ": ", getObservation(fct).Z), getFactors(fg))
 
 # @profiler d,st = IIF.solveGraphParametric(fg)
+IIF.prepare!(fg, IIF.NLLSSolver(), :parametric)
 M, labels, minimizer, Σ = IIF.solveGraphParametric(fg)
 d = Dict(labels.=>minimizer)
 if false
@@ -253,6 +256,7 @@ end
 
 fg = generateGraph_LineStep(7, poseEvery=1, landmarkEvery=0, posePriorsAt=collect(0:7), sightDistance=2, solverParams=SolverParams(graphinit=false), graphinit=false)
 
+IIF.prepare!(fg, IIF.NLLSSolver(), :parametric)
 @test (l->!isInitialized(fg, l, :parametric)).(ls(fg)) |> all
 
 initAll!(fg, :parametric)

@@ -328,7 +328,7 @@ Related
 function solveTree!(
   dfgl::AbstractDFG,
   oldtree::AbstractBayesTree = BayesTree();
-  solverparams = getSolverParams(dfg),
+  solverparams = getSolverParams(dfgl),
   # tree options
   eliminationOrder::Union{Nothing, Vector{Symbol}} = nothing,
   eliminationConstraints::Vector{Symbol} = Symbol[],

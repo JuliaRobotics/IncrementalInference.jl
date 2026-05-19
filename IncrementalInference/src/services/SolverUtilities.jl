@@ -72,22 +72,15 @@ function sampleFactor(
   _allowThreads::Bool=true,
   keepCalcFactor::Union{Nothing, <:Channel} = nothing,
 )
-  #
   cf = CalcFactorNormSq(ccwl; _allowThreads) 
   smpls = sampleFactor(cf, N)
   isnothing(keepCalcFactor) ? nothing : put!(keepCalcFactor, cf)
   return smpls 
 end
 
-sampleFactor(
-  fct::FactorCompute, 
-  N::Int = 1; 
-  _allowThreads::Bool=true
-) = sampleFactor(
-  _getCCW(fct), 
-  N; 
-  _allowThreads
-)
+function sampleFactor(fct::FactorCompute, N::Int = 1; _allowThreads::Bool=true)
+  sampleFactor(_getCCW(fct), N; _allowThreads)
+end
 
 function sampleFactor(
   dfg::AbstractDFG, 
@@ -95,8 +88,7 @@ function sampleFactor(
   N::Int = 1; 
   _allowThreads::Bool=true
 )
-  #
-  return sampleFactor(getFactor(dfg, sym), N; _allowThreads)
+  return sampleFactor(_getCCW(dfg, sym), N; _allowThreads)
 end
 
 """

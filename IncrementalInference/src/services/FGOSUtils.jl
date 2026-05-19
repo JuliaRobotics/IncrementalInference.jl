@@ -61,9 +61,21 @@ function incrSuffix(lbl::Symbol, val::Integer = +1; pattern::Regex = r"\d+")
   return Symbol(prefix, nint)
 end
 
+function _getCCW(fct::FactorCompute)
+  ccw = DFG.getCache(fct)
+  isnothing(ccw) && error("TODO _getCCW wip, no CCW available for factor $(fct.label).")
+  return ccw
+end
 
-_getCCW(fct::FactorCompute) = DFG.getCache(fct) #getState(fct) |> _getCCW
-_getCCW(dfg::AbstractDFG, lbl::Symbol) = DFG.getCache(getFactor(dfg, lbl)) #getFactor(dfg, lbl) |> _getCCW
+function _getCCW(dfg::AbstractDFG, fct::FactorCompute)
+  ccw = DFG.getCache(fct)
+  if isnothing(ccw)
+    ccw = prepareFactorCache!(dfg, fct)
+  end
+  return ccw
+end
+
+_getCCW(dfg::AbstractDFG, lbl::Symbol) = _getCCW(dfg, getFactor(dfg, lbl))
 
 DFG.getObservation(ccw::CommonConvWrapper) = ccw.usrfnc!
 
@@ -71,7 +83,9 @@ _getZDim(ccw::CommonConvWrapper) = getManifold(ccw) |> manifold_dimension # ccw.
 # TODO is MsgPrior piggy backing zdim on inferdim???
 _getZDim(ccw::CommonConvWrapper{<:MsgPrior}) = length(ccw.usrfnc!.infoPerCoord) # ccw.usrfnc!.inferdim
 
-_getZDim(fct::FactorCompute) = _getCCW(fct) |> _getZDim
+_getZDim(obs::AbstractObservation) = getManifold(obs) |> manifold_dimension
+_getZDim(obs::MsgPrior) = length(obs.infoPerCoord)
+_getZDim(fct::FactorCompute) = DFG.getObservation(fct) |> _getZDim
 
 DFG.getDimension(fct::FactorCompute) = _getZDim(fct)
 
@@ -121,11 +135,7 @@ function manikde!(
   return AMP.manikde!(M, pts; infoPerCoord, kw...)
 end
 
-function manikde!(
-  varT::InstanceType{<:StateType},
-  pts::AbstractVector{<:Tuple};
-  kw...,
-)
+function manikde!(varT::InstanceType{<:StateType}, pts::AbstractVector{<:Tuple}; kw...)
   #
   return manikde!(varT, (t -> ArrayPartition(t...)).(pts); kw...)
 end
@@ -214,10 +224,7 @@ DevNotes
 - TODO update for manifold subgroups.
 - TODO standardize after AMP3D
 """
-function calcMeanMaxSuggested(
-  vari::VariableCompute,
-  solveKey::Symbol = :default
-)
+function calcMeanMaxSuggested(vari::VariableCompute, solveKey::Symbol = :default)
   varType = getStateKind(vari)
   P = getBelief(vari, solveKey)
   maniDef = convert(MB.AbstractManifold, varType)
@@ -232,19 +239,11 @@ function calcMeanMaxSuggested(
   ## TODO use getCoordinates for now (IIF v0.25)
   Pme_ = getCoordinates(varType, Pme)
   # Pma_ = getCoordinates(M,Pme)
- 
-  return (
-    mean=Pme_, 
-    max=Pma, 
-    suggested=Pme_, 
-  )
+
+  return (mean = Pme_, max = Pma, suggested = Pme_)
 end
 
-function calcMeanMaxSuggested(
-  dfg::AbstractDFG,
-  label::Symbol,
-  solveKey::Symbol = :default,
-)
+function calcMeanMaxSuggested(dfg::AbstractDFG, label::Symbol, solveKey::Symbol = :default)
   return calcMeanMaxSuggested(getVariable(dfg, label), solveKey)
 end
 
@@ -257,7 +256,7 @@ Related
 
 [`getMultihypoDistribution`](@ref)
 """
-isMultihypo(fct::FactorCompute) = isa(_getCCW(fct).hyporecipe.hypotheses, Distribution)
+isMultihypo(fct::FactorCompute) = !isempty(fct.hyper.multihypo)
 
 """
     $SIGNATURES
@@ -268,7 +267,14 @@ Related
 
 isMultihypo
 """
-getMultihypoDistribution(fct::FactorCompute) = _getCCW(fct).hyporecipe.hypotheses
+function getMultihypoDistribution(fct::FactorCompute)
+  ccw = DFG.getCache(fct)
+  if !isnothing(ccw)
+    return ccw.hyporecipe.hypotheses
+  else
+    return parseusermultihypo!(fct.hyper.multihypo)
+  end
+end
 
 """
     $SIGNATURES
