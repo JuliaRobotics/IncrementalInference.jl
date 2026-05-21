@@ -1,6 +1,6 @@
 name = "IncrementalInferenceTypes"
 uuid = "9808408f-4dbc-47e4-913c-6068b950e289"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["NavAbility(TM) Contributors <info@wherewhen.ai>"]
 
 [deps]
@@ -17,15 +17,15 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 StructTypes = "856f2bd8-1eba-4b0a-8007-ebc267875bd4"
 
 [compat]
-Dates = "1.10.0"
-Distributed = "1.10.0"
+Dates = "1.10"
+Distributed = "1.10"
 DistributedFactorGraphs = "0.29"
 Distributions = "0.25.120"
 DocStringExtensions = "0.9.5"
 LieGroups = "0.1.2"
-LinearAlgebra = "1.10.0"
+LinearAlgebra = "1.10"
 Manifolds = "0.10.16, 0.11"
-RecursiveArrayTools = "3.33.0"
+RecursiveArrayTools = "3.33, 4"
 StaticArrays = "1.9.13"
-StructTypes = "1.11.0"
+StructTypes = "1.11"
 julia = "1.10"
