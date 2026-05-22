@@ -167,7 +167,7 @@ state = getState(fg, :x1, :default)
 IIF.solveGraphParametric!(
   fg;
   # algorithmkwargs=(;alphaguess = LineSearches.InitialStatic(), linesearch = LineSearches.MoreThuente()),
-  verbose=true
+  # verbose=true
 )
 
 ##

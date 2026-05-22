@@ -1,4 +1,30 @@
 
+
+
+# function TreeBelief(::RootsOnlyTopology, vnd::State, solvDim::Real = 0)
+#   return TreeBelief(
+#     DFG.refMeans(vnd),
+#     DFG.refCovariances(vnd)[1],
+#     DFG.refObservability(vnd),
+#     getStateKind(vnd),
+#     getManifold(vnd),
+#     solvDim,
+#   )
+# end
+
+# function TreeBelief(::LeavesOnlyTopology, vnd::State, solvDim::Real = 0)
+#   return TreeBelief(
+#     DFG.refPoints(vnd),
+#     DFG.refBandwidth(vnd),
+#     DFG.refObservability(vnd),
+#     getStateKind(vnd),
+#     getManifold(vnd),
+#     solvDim,
+#   )
+# end
+
+
+
 # # extend convenience function (Matrix or Vector{P})
 # function manikde!(
 #   variableType::Union{InstanceType{<:StateType}, InstanceType{<:AbstractObservation}},

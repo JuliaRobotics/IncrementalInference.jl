@@ -1,3 +1,5 @@
+##
+
 using Test
 
 # TODO remove, forcing conflict to use LieGroups
@@ -6,6 +8,9 @@ using DistributedFactorGraphs
 DFG.@usingDFG true
 
 TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
+
+##
+
 @testset "IncrementalInference Tests" begin
 # temporarily moved to start (for debugging)
 #...

@@ -82,7 +82,7 @@ function TreeBelief(state::State, solvDim::Real = 0)
   obsv = DFG.refObservability(state)
   statekind = getStateKind(state)
 
-  @info "TreeBelief" string(pts[1]) string(cv) string(obsv)
+  # @info "TreeBelief" string(pts[1]) string(cv) string(obsv)
 
   return TreeBelief(
     pts,
@@ -94,28 +94,6 @@ function TreeBelief(state::State, solvDim::Real = 0)
   )
   # TreeBelief(DFG.getTopologyKind(state), state, solvDim)
 end
-
-# function TreeBelief(::RootsOnlyTopology, vnd::State, solvDim::Real = 0)
-#   return TreeBelief(
-#     DFG.refMeans(vnd),
-#     DFG.refCovariances(vnd)[1],
-#     DFG.refObservability(vnd),
-#     getStateKind(vnd),
-#     getManifold(vnd),
-#     solvDim,
-#   )
-# end
-
-# function TreeBelief(::LeavesOnlyTopology, vnd::State, solvDim::Real = 0)
-#   return TreeBelief(
-#     DFG.refPoints(vnd),
-#     DFG.refBandwidth(vnd),
-#     DFG.refObservability(vnd),
-#     getStateKind(vnd),
-#     getManifold(vnd),
-#     solvDim,
-#   )
-# end
 
 function TreeBelief(vari::VariableCompute, solveKey::Symbol = :default; solvableDim::Real = 0)
   return TreeBelief(getState(vari, solveKey), solvableDim)
