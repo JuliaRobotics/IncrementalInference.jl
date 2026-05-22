@@ -817,15 +817,13 @@ Update the parametric solver data value and covariance.
 function updateSolverDataParametric! end
 
 function updateSolverDataParametric!(
-  vnd::State,
+  state::State,
   val::AbstractArray,
   cov::AbstractMatrix,
 )
-  # fill in the variable node data value
-  DFG.refMeans(vnd)[1] = val
-  #calculate and fill in covariance
-  DFG.refCovariances(vnd)[1] .= cov
-  return vnd
+  statekind = getStateKind(state)
+  state.belief = HomotopyDensity_legacy(statekind, [val,]; bw=cov, newbw=false)
+  return state
 end
 
 function updateSolverDataParametric!(

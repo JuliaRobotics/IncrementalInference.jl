@@ -94,7 +94,6 @@ end
 
 
 @testset "Test SpecialOrthogonalGroup(3) prior" begin
-
 ##
 
 # Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{3}) = (:Euclid, :Euclid, :Euclid)
@@ -146,13 +145,13 @@ f = addFactor!(fg, [:x0, :x1], mf)
 doautoinit!(fg, :x1)
 
 state = getState(fg, :x1, :default)
-@test_broken all(isapprox.( mean(state.belief), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
+@test all(isapprox.( mean(state.belief), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
 @test all(is_point.(Ref(M), getPoints(state.belief)))
 
 ##
 
-# smtasks = Task[]
-solveTree!(fg) # ; smtasks, verbose=true, recordcliqs=ls(fg))
+smtasks = Task[]
+solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
 
 # test them again after solve
 state = getState(fg, :x0, :default)
@@ -160,7 +159,7 @@ state = getState(fg, :x0, :default)
 @test all(is_point.(Ref(M), getPoints(state.belief)))
 
 state = getState(fg, :x1, :default)
-@test_broken all(isapprox.( mean(state.belief), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
+@test all(isapprox.( mean(state.belief), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
 @test all(is_point.(Ref(M), getPoints(state.belief)))
 
 ##

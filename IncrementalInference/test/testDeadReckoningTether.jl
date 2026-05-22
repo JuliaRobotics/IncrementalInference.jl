@@ -18,7 +18,7 @@ end
 MutableLinearRelative(n::Int=1) = MutableLinearRelative{n}()
 MutableLinearRelative(nm::Distributions.ContinuousUnivariateDistribution) = MutableLinearRelative{1, typeof(nm)}(nm)
 MutableLinearRelative(nm::MvNormal) = MutableLinearRelative{length(nm.μ), typeof(nm)}(nm)
-MutableLinearRelative(nm::ManifoldKernelDensity) = MutableLinearRelative{Ndim(nm), typeof(nm)}(nm)
+MutableLinearRelative(nm::HomotopyDensity) = MutableLinearRelative{Ndim(nm), typeof(nm)}(nm)
 
 DFG.getDimension(::Type{MutableLinearRelative{N,<:SamplableBelief}}) where {N} = N
 DFG.getManifold(::MutableLinearRelative{N}) where N = TranslationGroup(N)
@@ -81,7 +81,9 @@ addFactor!(fg, [:x0; :deadreckon_x0], drec, solvable=0)
 @test length(map( x->x.label, getVariables(fg, whereSolvable = >=(1)))) == 8
 @test length(map( x->x.label, getVariables(fg, whereSolvable = >=(0)))) == 9
 #
-# # make sure
+
+## make sure
+
 @test length(getEliminationOrder(fg, solvable=1)) == 8
 # check default
 @test length(getEliminationOrder(fg)) == 8
@@ -92,7 +94,12 @@ vo = getEliminationOrder(fg)
 
 tree = buildTreeFromOrdering!(fg,vo)
 
-tree2 = solveTree!(fg);
+##
+
+smtasks = Task[]
+tree2 = solveTree!(fg; smtasks);
+
+##
 
 @test !isInitialized(fg, :deadreckon_x0)
 

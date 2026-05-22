@@ -76,31 +76,46 @@ function TreeBelief(
   return TreeBelief{T, P, M}(val, bw, ipc, variableType, manifold, solvableDim)
 end
 
-function TreeBelief(vnd::State, solvDim::Real = 0)
-  TreeBelief(DFG.getTopologyKind(vnd), vnd, solvDim)
-end
+function TreeBelief(state::State, solvDim::Real = 0)
+  pts = getPoints(state.belief; permute=false) # TODO likely want to go back to sorted order here, DX debugging with permute=false
+  cv = getBW(state.belief)[1]
+  obsv = DFG.refObservability(state)
+  statekind = getStateKind(state)
 
-function TreeBelief(::RootsOnlyTopology, vnd::State, solvDim::Real = 0)
+  @info "TreeBelief" string(pts[1]) string(cv) string(obsv)
+
   return TreeBelief(
-    DFG.refMeans(vnd),
-    DFG.refCovariances(vnd)[1],
-    DFG.refObservability(vnd),
-    getStateKind(vnd),
-    getManifold(vnd),
+    pts,
+    cv,
+    obsv,
+    statekind,
+    getManifold(statekind),
     solvDim,
   )
+  # TreeBelief(DFG.getTopologyKind(state), state, solvDim)
 end
 
-function TreeBelief(::LeavesOnlyTopology, vnd::State, solvDim::Real = 0)
-  return TreeBelief(
-    DFG.refPoints(vnd),
-    DFG.refBandwidth(vnd),
-    DFG.refObservability(vnd),
-    getStateKind(vnd),
-    getManifold(vnd),
-    solvDim,
-  )
-end
+# function TreeBelief(::RootsOnlyTopology, vnd::State, solvDim::Real = 0)
+#   return TreeBelief(
+#     DFG.refMeans(vnd),
+#     DFG.refCovariances(vnd)[1],
+#     DFG.refObservability(vnd),
+#     getStateKind(vnd),
+#     getManifold(vnd),
+#     solvDim,
+#   )
+# end
+
+# function TreeBelief(::LeavesOnlyTopology, vnd::State, solvDim::Real = 0)
+#   return TreeBelief(
+#     DFG.refPoints(vnd),
+#     DFG.refBandwidth(vnd),
+#     DFG.refObservability(vnd),
+#     getStateKind(vnd),
+#     getManifold(vnd),
+#     solvDim,
+#   )
+# end
 
 function TreeBelief(vari::VariableCompute, solveKey::Symbol = :default; solvableDim::Real = 0)
   return TreeBelief(getState(vari, solveKey), solvableDim)

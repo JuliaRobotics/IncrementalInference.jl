@@ -145,6 +145,8 @@ function _solveLambdaNumeric(
     return r
   end
 
+  # @info "_solveLambdaNumeric" string(X0c) typeof(X0c)
+
   r = Optim.optimize(
     x->hypoCalcFactor(M, x),
     X0c,

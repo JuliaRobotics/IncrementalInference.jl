@@ -55,7 +55,7 @@ function setBelief!(
 )
   @assert getStateKind(vari) == getStateKind(hode) "statekind (i.e. lazy manifold serde) mismatch between variable and incoming belief $(getStateKind(vari)) vs $(getStateKind(hode))"
   state = getState(vari, solveKey)
-  state.belief = hode
+  state.belief = convert(typeof(state.belief), hode)
 end
 
 """
