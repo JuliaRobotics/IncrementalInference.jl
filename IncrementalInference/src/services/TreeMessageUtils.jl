@@ -75,8 +75,15 @@ function updateSubFgFromDownMsgs!(
   # update specific variables in sfg from msgs
   for (key, beldim) in dwnmsgs.belief
     if key in seps
-      newBel = manikde!(getManifold(beldim.variableType), beldim.val; bw = beldim.bw[:, 1])
-      setValKDE!(sfg, key, newBel, false, beldim.infoPerCoord)
+      statekind = getStateKind(beldim.variableType)
+      newBel = HomotopyDensity_legacy(
+        statekind, 
+        beldim.val; 
+        bw = beldim.bw[:, 1],
+        observability = beldim.infoPerCoord
+      )
+      setBelief!(getVariable(sfg, key), newBel)
+      # setValKDE!(sfg, key, newBel, false, beldim.infoPerCoord)
     end
   end
 

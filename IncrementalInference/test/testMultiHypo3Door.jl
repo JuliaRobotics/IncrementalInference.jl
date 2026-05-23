@@ -71,14 +71,15 @@ doautoinit!(fg ,:l3)
 
 # make sure approxConv is as expected
 @test isInitialized.(fg, [:l0;:l1;:l2;:l3]) |> all
-x0_beforeConv = getVal(fg, :x0) |> deepcopy
+x0_beforeConv = getPoints(getBelief(fg, :x0); permute=false) |> deepcopy
 
 # do the computation
 X0 = approxConvBelief(fg, getLabel(f1), :x0)
 # smpls = sampleFactor(fg, f1.label,10)
 
 # check that the x0 variable memory has not be changed
-@test all(norm.(x0_beforeConv - getVal(fg, :x0)) .< 1e-10)
+pts = getPoints(getBelief(fg, :x0); permute=false)
+@test all(norm.(x0_beforeConv - pts) .< 1e-10)
 
 # specifically after approxConv to :x0
 a_,b_ = IIF._checkVarValPointers(fg, getLabel(f1))

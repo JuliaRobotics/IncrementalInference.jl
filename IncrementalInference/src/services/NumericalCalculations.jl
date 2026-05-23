@@ -101,8 +101,12 @@ function (hypoCalcFactor::CalcFactorNormSq)(M::AbstractManifold, Xc::AbstractVec
   # hypoCalcFactor.manifold is the factor's manifold, not the variable's manifold that is needed here
   ϵ = getPointIdentity(M)
   # X = get_vector(M, ϵ, SVector(Xc), DefaultOrthogonalBasis())
-  X = hat(LieAlgebra(M), SVector(Xc), typeof(ϵ))
-  p = exp(M, ϵ, X)
+  _Exp(M::AbstractManifold, u, X) = exp(M, u, hat(M, u, X))
+  _Exp(M::AbstractLieGroup, u, X) = exp(M, u, hat(LieAlgebra(M), X, typeof(u)))
+
+  p = _Exp(M, ϵ, Xc)
+  # X = hat(LieAlgebra(M), Xc, typeof(ϵ))
+  # p = exp(M, ϵ, X)
   return hypoCalcFactor(CalcConv, p)
 end
 
@@ -121,6 +125,9 @@ function _solveLambdaNumeric(
   variableType::StateType,
   islen1::Bool = false,
 )
+  _Exp(manif::AbstractManifold, μ, X) = exp(manif, μ, hat(manif, μ, X))
+  _Exp(manif::AbstractLieGroup, μ, X) = exp(manif, μ, hat(LieAlgebra(manif), X, typeof(μ)))
+
   #
   M = getManifold(variableType)
   # the variable is a manifold point, we are working on the tangent plane in optim for now.
@@ -128,10 +135,15 @@ function _solveLambdaNumeric(
   #TODO this is not general to all manifolds, should work for lie groups.
   ϵ = getPointIdentity(variableType)
 
-  X0c = zero(MVector{getDimension(M),Float64})
+  X0c = zeros(getDimension(M))
   X0c .= vee(LieAlgebra(M), log(M, ϵ, u0))
 
-  alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
+  alg = if islen1
+    # Optim.BFGS()
+    Optim.Adam()
+  else
+    Optim.NelderMead()
+  end
 
   #WIP extremely slow, but runs, mean in manopt is bottleneck
   # just to show how we can now swop to manopt
@@ -145,7 +157,7 @@ function _solveLambdaNumeric(
     return r
   end
 
-  # @info "_solveLambdaNumeric" string(X0c) typeof(X0c)
+  # @info string(X0c)
 
   r = Optim.optimize(
     x->hypoCalcFactor(M, x),
@@ -158,8 +170,9 @@ function _solveLambdaNumeric(
     @warn "Optim did not converge (maxlog=10):" r maxlog=10
   end
 
-  # FIXME, how to use this exp when either Manifolds or LieGroups is used?
-  return exp(M, ϵ, hat(M, ϵ, r.minimizer))
+  return _Exp(M, ϵ, r.minimizer)
+    # # how to use this exp when either Manifolds or LieGroups is used?
+    # return exp(M, ϵ, hat(M, ϵ, r.minimizer))
 end
 
 ## deconvolution with calcfactor wip

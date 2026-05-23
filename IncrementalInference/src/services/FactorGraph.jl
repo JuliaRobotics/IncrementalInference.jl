@@ -46,18 +46,6 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int, length(ve
 
 
 
-function setBelief!(
-  vari::VariableCompute, 
-  hode::ApproxManifoldProducts.HomotopyDensity, 
-  setinit::Bool=true, 
-  ipc::AbstractVector{<:Real}=[0.0;]; # TODO, remove, use hode.observability, drop separate ipc here
-  solveKey::Symbol = :default
-)
-  @assert getStateKind(vari) == getStateKind(hode) "statekind (i.e. lazy manifold serde) mismatch between variable and incoming belief $(getStateKind(vari)) vs $(getStateKind(hode))"
-  state = getState(vari, solveKey)
-  state.belief = convert(typeof(state.belief), hode)
-end
-
 """
     $SIGNATURES
 

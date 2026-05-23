@@ -93,7 +93,7 @@ function localProduct(
   lb = listNeighbors(dfg, sym)
 
   # store proposal beliefs, TODO replace Abstract with concrete type
-  dens = Vector{ManifoldKernelDensity}()
+  dens = Vector{HomotopyDensity}()
 
   fcts = map(x -> getFactor(dfg, x), lb)
   mkd, sinfd = propagateBelief(

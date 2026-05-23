@@ -36,20 +36,16 @@ addFactor!(fg, [:x1; :x2], LinearRelative(Normal(0.0, 0.01)))
 
 #solve
 tree = solveTree!(fg)
-x0_m = getKDEMean(getBelief(getVariable(fg, :x0)))[1]
-x1_m = getKDEMean(getBelief(getVariable(fg, :x1)))[1]
-x2_m = getKDEMean(getBelief(getVariable(fg, :x2)))[1]
+x0_m = mean(getBelief(getState(fg, :x0, :default)))
+x1_m = mean(getBelief(getState(fg, :x1, :default)))
+x2_m = mean(getBelief(getState(fg, :x2, :default)))
 
 @info ("Testing means = 0 with 2 priors:\ngraphinit=$graphinit\nMeans: x0: $(x0_m), x1: $x1_m, x2: $x2_m")
 
-@test_skip isapprox(x0_m, 0.0, atol = 0.1)
-@test_skip isapprox(x1_m, 0.0, atol = 0.1)
-@test_skip isapprox(x2_m, 0.0, atol = 0.1)
+@test isapprox(x0_m[1], 0.0, atol = 0.1)
+@test isapprox(x1_m[1], 0.0, atol = 0.1)
+@test isapprox(x2_m[1], 0.0, atol = 0.1)
 
-@warn "priorusetest.jl is testing with large tolerances"
-@test isapprox(x0_m, 0.0, atol = 1.0)
-@test isapprox(x1_m, 0.0, atol = 1.0)
-@test isapprox(x2_m, 0.0, atol = 1.0)
 
 #testing if values are close to one another
 testvals = [x0_m, x1_m, x2_m]
@@ -90,11 +86,11 @@ addFactor!(fg, [:x2; :l1], LinearRelative(Normal(0, 0.01)))
 #solve
 tree = solveTree!(fg)
 
-x0_m = getKDEMean(getBelief(getVariable(fg, :x0)))[1]
-x1_m = getKDEMean(getBelief(getVariable(fg, :x1)))[1]
-x2_m = getKDEMean(getBelief(getVariable(fg, :x2)))[1]
-l0_m = getKDEMean(getBelief(getVariable(fg, :l0)))[1]
-l1_m = getKDEMean(getBelief(getVariable(fg, :l1)))[1]
+x0_m = mean(getBelief(getState(fg, :x0, :default)))
+x1_m = mean(getBelief(getState(fg, :x1, :default)))
+x2_m = mean(getBelief(getState(fg, :x2, :default)))
+l0_m = mean(getBelief(getState(fg, :l0, :default)))
+l1_m = mean(getBelief(getState(fg, :l1, :default)))
 
 @info ("Testing means = 0 with 2 priors:\ngraphinit=$graphinit\nMeans: x0: $(x0_m), x1: $x1_m, x2: $x2_m, l0: $l0_m, l1: $l1_m")
 
