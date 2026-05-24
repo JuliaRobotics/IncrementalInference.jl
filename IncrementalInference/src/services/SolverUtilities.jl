@@ -126,8 +126,8 @@ function updateFGBT!(
     with_logger(logger) do
       @info "updateFGBT! up -- update $id, infoPerCoord=$(dat.infoPerCoord)"
     end
-    updvert = DFG.getVariable(fg, id)
-    setValKDE!(updvert, deepcopy(dat), true) ## TODO -- not sure if deepcopy is required
+    vrb = getVariable(fg, id)
+    setValKDE!(vrb, deepcopy(dat), true) ## TODO -- not sure if deepcopy is required
   end
   with_logger(logger) do
     @info "updateFGBT! up -- updated $(getLabel(cliq))"

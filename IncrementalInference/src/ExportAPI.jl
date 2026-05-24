@@ -122,9 +122,6 @@ export CSMHistory,
   initVariableManual!,
   resetInitialValues!,
   resetInitValues!,
-  # asyncTreeInferUp!,
-  # initInferTreeUp!,
-  solveCliqWithStateMachine!,
   resetData!,
   resetTreeCliquesForUpSolve!,
   resetFactorGraphNewTree!,
@@ -362,5 +359,6 @@ export listTypeTree
 # weakdeps on Gadfly.jl
 export exportimg, spyCliqMat
 
+export getState
 
 #

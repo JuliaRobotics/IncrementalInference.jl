@@ -1,3 +1,4 @@
+##
 
 using Test
 using IncrementalInference
@@ -26,12 +27,13 @@ hist = fetchCliqHistoryAll!(smtasks)
 
 @test hist[1] |> length == 12
 
+##
 end
 
 
 
 @testset "test endless cycle case, issue #754" begin
-
+##
 
 fg = generateGraph_LineStep(5; 
                             poseEvery=1, 
@@ -46,6 +48,7 @@ getSolverParams(fg).limititers = 50
 smtasks = Task[]
 tree = solveTree!(fg; smtasks=smtasks, verbose=true, timeout=50, recordcliqs=ls(fg));
 
+##
 end
 
 

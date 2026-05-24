@@ -25,8 +25,8 @@ end
 if TEST_GROUP in ["all", "basic_functional_group"]
 @testset "Basic Functional Group" begin
 # more frequent stochasic failures from numerics
-include("testSpecialEuclidean2Mani.jl")
 include("testEuclidDistance.jl")
+include("testSpecialEuclidean2Mani.jl")
 # gradient / jacobian tests
 #include("manifolds/manifolddiff.jl")
 #include("manifolds/factordiff.jl")
@@ -117,10 +117,10 @@ include("testAnalysisTools.jl")
 include("testBasicParametric.jl")
 # include("testMixtureParametric.jl") #FIXME parametric mixtures #1787
 
-# # dont run test on ARM, as per issue #527
-# if Base.Sys.ARCH in [:x86_64;]
-#   include("testTexTreeIllustration.jl")
-# end
+# dont run test on ARM, as per issue #527
+if Base.Sys.ARCH in [:x86_64;]
+  include("testTexTreeIllustration.jl")
+end
 
 # include("testMultiprocess.jl")
 include("testDeadReckoningTether.jl")

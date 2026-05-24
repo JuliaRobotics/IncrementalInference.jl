@@ -5,7 +5,7 @@ function setBelief!(
   hode::ApproxManifoldProducts.HomotopyDensity, 
   setinit::Bool=true, 
   # ipc::AbstractVector{<:Real}=[0.0;]; # TODO, remove, use hode.observability, drop separate ipc here
-  solveKey::Symbol = :default
+  # solveKey::Symbol = :default
 )
   @assert getStateKind(state) == getStateKind(hode) "statekind (i.e. lazy manifold serde) mismatch between variable and incoming belief $(getStateKind(vari)) vs $(getStateKind(hode))"
   state.belief = convert(typeof(state.belief), hode)
@@ -155,36 +155,35 @@ Notes
 - `inferdim` is used to identify if the initialized was only partial.
 """
 function setValKDE!(
-  vd::State,
+  state::State,
   pts::AbstractVector{P},
   bws::Vector{Float64},
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;],
 ) where {P}
   #
+  @info "setValKDE!" string(bws)
   hode = HomotopyDensity_legacy(
-    getStateKind(vd),
+    getStateKind(state),
     pts;
     bw = diagm(bws),
     Observability = ipc
   )
-  setBelief!(vd, hode)
-  # setVal!(vd, pts, bws; observability = ipc) # BUG ...al!(., val, . ) ## TODO -- this can be a little faster
-  setinit ? (vd.initialized = true) : nothing
-  # vd.observability = ipc # TODO, state.belief.observability = ipc instead
+  setBelief!(state, hode, setinit)
   return nothing
 end
 
 function setValKDE!(
-  vd::State,
+  state::State,
   val::AbstractVector{P},
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;],
 ) where {P}
   # recover variableType information
-  varType = getStateKind(vd)
-  p = AMP.manikde!(varType, val)
-  setValKDE!(vd, p, setinit, ipc)
+  varType = getStateKind(state)
+  hode = HomotopyDensity_legacy(varType, val; observability=ipc)
+  # p = AMP.manikde!(varType, val)
+  setValKDE!(state, hode, setinit, ipc)
   return nothing
 end
 

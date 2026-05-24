@@ -70,8 +70,8 @@ function doFMCIteration(
     )
 
     if 0 < Npts(dens)
-      _whatP(::HomotopyDensityLive{H, P}) where {H, P} = P
-      println("doFMCIteration setBelief! for $(vsym), ", _whatP(dens))
+      # _whatP(::HomotopyDensityLive{H, P}) where {H, P} = P
+      # println("doFMCIteration setBelief! for $(vsym), ", _whatP(dens))
       setBelief!(vert, dens, true, ipc)
       # TODO perhaps more debugging inside `propagateBelief`?
     end

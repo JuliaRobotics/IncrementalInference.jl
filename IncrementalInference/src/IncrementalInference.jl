@@ -9,8 +9,8 @@ using Reexport
 
 @reexport using Distributions
 @reexport using ApproxManifoldProducts
-# @reexport using Graphs
-@reexport using LinearAlgebra
+using LinearAlgebra
+# export LinearAlgebra.I, LinearAlgebra.diag, LinearAlgebra.diagm
 
 import Manifolds
 using Manifolds:
@@ -90,20 +90,15 @@ using MetaGraphs
 using Logging
 using PrecompileTools
 
-# JL 1.10 transition to IncrInfrApproxMinDegreeExt instead
-# # bringing in BSD 3-clause ccolamd
-# include("services/ccolamd.jl")
-# using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
-# using .Ccolamd
-
 # likely overloads or not exported by the upstream packages
 import Base: convert, ==, getproperty
 import Distributions: sample
 import Random: rand, rand!
-import ApproxManifoldProducts: manikde!
 import ApproxManifoldProducts: getBW
 import ApproxManifoldProducts: mmd
 import ApproxManifoldProducts: isPartial
+import ApproxManifoldProducts: HomotopyDensity, HomotopyDensity_legacy
+# import DistributedFactorGraphs: HomotopyDensityDFG
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare
 import DistributedFactorGraphs: getDimension, getManifold, getPointType, getPointIdentity

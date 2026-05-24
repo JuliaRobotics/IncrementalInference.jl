@@ -57,7 +57,7 @@ function taskSolveTree!(
           limiter = 0 < length(limthiscsm) ? limthiscsm[1][2] : limititers
 
           if multithread
-            smtasks[i] = Threads.@spawn tryCliqStateMachineSolve!(
+            smtasks[i] = Threads.@spawn solveClique!(
               dfg,
               treel,
               i,
@@ -76,7 +76,7 @@ function taskSolveTree!(
               solve_progressbar = solve_progressbar,
             )
           else
-            smtasks[i] = @async tryCliqStateMachineSolve!(
+            smtasks[i] = @async solveClique!(
               dfg,
               treel,
               i,
@@ -108,7 +108,7 @@ function taskSolveTree!(
   return smtasks, cliqHistories
 end
 
-function tryCliqStateMachineSolve!(
+function solveClique!(
   dfg::G,
   treel::AbstractBayesTree,
   cliqKey::Union{Int, CliqueId},
@@ -203,64 +203,7 @@ function tryCliqStateMachineSolve!(
   return history
 end
 
-"""
-    $SIGNATURES
 
-Standalone state machine solution for a single clique.
-
-Related:
-
-initInferTreeUp!
-"""
-function solveCliqWithStateMachine!(
-  dfg::G,
-  tree::AbstractBayesTree,
-  frontal::Symbol;
-  iters::Int = 200,
-  downsolve::Bool = true,
-  recordhistory::Bool = false,
-  verbose::Bool = false,
-  nextfnc::Function = canCliqMargRecycle_StateMachine,
-  prevcsmc::Union{Nothing, CliqStateMachineContainer} = nothing,
-) where {G <: AbstractDFG}
-  #
-  cliq = getClique(tree, frontal)
-
-  children = getChildren(tree, cliq)#Graphs.out_neighbors(cliq, tree.bt)
-
-  prnt = getParent(tree, cliq)
-
-  destType = (G <: InMemoryDFGTypes) ? G : LocalDFG
-
-  csmc = if isa(prevcsmc, Nothing)
-    CliqStateMachineContainer(
-    dfg,
-    initfg(destType; solverParams = getSolverParams(dfg)),
-    tree,
-    cliq,
-    prnt,
-    children,
-    false,
-    true,
-    true,
-    downsolve,
-    false,
-    getSolverParams(dfg),
-  )
-  else
-    prevcsmc
-  end
-  statemachine =
-    StateMachine{CliqStateMachineContainer}(; next = nextfnc, name = "cliq$(cliq.id)")
-  while statemachine(
-    csmc;
-    verbose = verbose,
-    iterlimit = iters,
-    recordhistory = recordhistory,
-  )
-  end
-  return statemachine, csmc
-end
 
 ## ==============================================================================================
 # Prepare CSM (based on FSM) entry points
@@ -594,7 +537,7 @@ function solveCliqUp!(
 
   recordcliqs = recordcliq ? [getFrontals(cliq)[1]] : Symbol[]
 
-  hist = tryCliqStateMachineSolve!(
+  hist = solveClique!(
     fg,
     tree,
     cliq.id;
@@ -689,7 +632,7 @@ function solveCliqDown!(
 
   recordcliqs = recordcliq ? [getFrontals(cliq)[1]] : Symbol[]
 
-  hist = tryCliqStateMachineSolve!(
+  hist = solveClique!(
     fg,
     tree,
     cliq.id;

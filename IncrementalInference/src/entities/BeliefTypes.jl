@@ -39,9 +39,10 @@ INTERMEDIATE DATA STRUCTURE DURING REFACTORING.
 
 Representation of the belief of a single variable.
 
-Notes:
+DevNotes:
 - we want to send the joint, this is just to resolve consolidation #459 first.
 - Long term objective is single joint definition, likely called `LikelihoodMessage`.
+- See 1929; wholesale replacement w `HomotopyDensity` over all clique dimensions.
 """
 struct TreeBelief{T <: StateType, P, M <: MB.AbstractManifold}
   val::Vector{P}
@@ -63,6 +64,19 @@ function TreeBelief(
   solvableDim::Real = 0,
 ) where {T <: StateType}
   return TreeBelief(getPoints(p), getBW(p), ipc, variableType, manifold, solvableDim)
+end
+
+function HomotopyDensity_legacy(
+  treeb::TreeBelief,
+)
+  # FIXME, partials still need to be dealt with here
+  return ApproxManifoldProducts.HomotopyDensity_legacy(
+    treeb.variableType,
+    treeb.val;
+    bw = treeb.bw,
+    newbw = false,
+    observability = treeb.infoPerCoord,
+  )
 end
 
 function TreeBelief(
@@ -113,5 +127,6 @@ function compare(t1::TreeBelief, t2::TreeBelief)
   TP = TP && abs(t1.solvableDim - t2.solvableDim) < 1e-5
   return TP
 end
+
 
 #

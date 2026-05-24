@@ -1,6 +1,65 @@
 
 
 
+# """
+#     $SIGNATURES
+
+# Standalone state machine solution for a single clique.
+
+# Related:
+
+# initInferTreeUp!
+# """
+# function solveCliqWithStateMachine!(
+#   dfg::G,
+#   tree::AbstractBayesTree,
+#   frontal::Symbol;
+#   iters::Int = 200,
+#   downsolve::Bool = true,
+#   recordhistory::Bool = false,
+#   verbose::Bool = false,
+#   nextfnc::Function = canCliqMargRecycle_StateMachine,
+#   prevcsmc::Union{Nothing, CliqStateMachineContainer} = nothing,
+# ) where {G <: AbstractDFG}
+#   #
+#   cliq = getClique(tree, frontal)
+
+#   children = getChildren(tree, cliq)#Graphs.out_neighbors(cliq, tree.bt)
+
+#   prnt = getParent(tree, cliq)
+
+#   destType = (G <: InMemoryDFGTypes) ? G : LocalDFG
+
+#   csmc = if isa(prevcsmc, Nothing)
+#     CliqStateMachineContainer(
+#     dfg,
+#     initfg(destType; solverParams = getSolverParams(dfg)),
+#     tree,
+#     cliq,
+#     prnt,
+#     children,
+#     false,
+#     true,
+#     true,
+#     downsolve,
+#     false,
+#     getSolverParams(dfg),
+#   )
+#   else
+#     prevcsmc
+#   end
+#   statemachine =
+#     StateMachine{CliqStateMachineContainer}(; next = nextfnc, name = "cliq$(cliq.id)")
+#   while statemachine(
+#     csmc;
+#     verbose = verbose,
+#     iterlimit = iters,
+#     recordhistory = recordhistory,
+#   )
+#   end
+#   return statemachine, csmc
+# end
+
 # function TreeBelief(::RootsOnlyTopology, vnd::State, solvDim::Real = 0)
 #   return TreeBelief(
 #     DFG.refMeans(vnd),
@@ -53,14 +112,14 @@ function setValKDE!_NONPARTL(
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;],
 )
-  @error("setValKDE@ is obsolete, use setBelief! instead")
+  @warn("setValKDE! is obsolete, use setBelief! instead")
   #
   # L==Nothing means no partials
   ptsArr = AMP.getPoints(mkd) # , false) # for not partial
   # also set the bandwidth
   _ensurediag(b::AbstractVector) = b
   _ensurediag(b::AbstractMatrix) = diag(b)
-  bws = getBW(mkd)[1] |> _ensurediag
+  bws = getBW(mkd)[1] |> _ensurediag |> collect
   setValKDE!(vnd, ptsArr, bws, setinit, ipc)
   return nothing
 end
@@ -92,14 +151,14 @@ end
 
 function setValKDE!(
   vnd::State,
-  mkd::ApproxManifoldProducts.HomotopyDensity, # 
+  hode::ApproxManifoldProducts.HomotopyDensity, # 
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;],
 )
-  if isPartial(mkd)
-    setValKDE!_HASPARTL(vnd, mkd, setinit, ipc)
+  if isPartial(hode)
+    setValKDE!_HASPARTL(vnd, hode, setinit, ipc)
   else
-    setValKDE!_NONPARTL(vnd, mkd, setinit, ipc)
+    setValKDE!_NONPARTL(vnd, hode, setinit, ipc)
   end
 end
 
