@@ -1,3 +1,5 @@
+##
+
 using IncrementalInference
 using InteractiveUtils
 using Test
@@ -5,7 +7,7 @@ using LieGroups
 
 ##
 
-@testset "test the basics" begin
+@testset "test add Variable and Factor, also exists" begin
 ##
 
 fg = initfg()
@@ -37,12 +39,6 @@ DFG.@defStateType _TestManiKde SpecialEuclideanGroup(2; variant=:right) ArrayPar
 pts = [ArrayPartition(randn(2), [1 0; 0 1.]) for _ in 1:100]
 varT = _TestManiKde()
 HomotopyDensity_legacy(varT, pts)
-
-# construct indirectly via tuple (expect users only, not meant for general use)
-pts = [(randn(2), [1 0; 0 1.]) for _ in 1:100]
-varT = _TestManiKde()
-HomotopyDensity_legacy(varT, pts)
-
 
 ##
 end

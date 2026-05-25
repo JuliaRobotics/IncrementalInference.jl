@@ -127,6 +127,7 @@ function updateFGBT!(
       @info "updateFGBT! up -- update $id, infoPerCoord=$(dat.infoPerCoord)"
     end
     vrb = getVariable(fg, id)
+    # @info "DAT" dat
     setValKDE!(vrb, deepcopy(dat), true) ## TODO -- not sure if deepcopy is required
   end
   with_logger(logger) do

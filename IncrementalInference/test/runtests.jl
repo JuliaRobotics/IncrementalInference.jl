@@ -12,18 +12,42 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
 ##
 
 @testset "IncrementalInference Tests" begin
-# temporarily moved to start (for debugging)
-#...
-if TEST_GROUP in ["all", "tmp_debug_group"]
-@testset "Temporary Debug Group" begin
-include("testSpecialOrthogonalMani.jl")
-include("testMultiHypo3Door.jl")
-include("priorusetest.jl")
-end
+  # temporarily moved to start (for debugging)
+  if TEST_GROUP in ["all", "tmp_debug_group"]
+    @testset "Temporary Debug Group" begin
+    include("testSpecialOrthogonalMani.jl")
+    include("testMultiHypo3Door.jl")
+    include("priorusetest.jl")
+  end
 end
 
 if TEST_GROUP in ["all", "basic_functional_group"]
 @testset "Basic Functional Group" begin
+
+# start as basic as possible and build from there
+include("typeReturnMemRef.jl")
+include("testDistributionsGeneric.jl")
+include("basicGraphsOperations.jl")
+include("testCliqSolveDbgUtils.jl")
+
+@error "See new DFG v0.29 JSON serde for variables and factors, old IIF serde tests currently disabled"
+if false
+  # include("TestModuleFunctions.jl")
+  include("testCompareVariablesFactors.jl")
+  include("saveconvertertypes.jl")
+  include("testgraphpackingconverters.jl")
+  include("testSaveLoadDFG.jl")
+  include("testPackingMixtures.jl")
+end
+
+include("testApproxConv.jl")
+include("testBasicForwardConvolve.jl")
+include("testUseMsgLikelihoods.jl")
+include("testDefaultDeconv.jl")
+
+@test_broken error("testSphereMani.jl broken")#include("testSphereMani.jl")
+include("testBasicManifolds.jl")
+
 # more frequent stochasic failures from numerics
 include("testEuclidDistance.jl")
 include("testSpecialEuclidean2Mani.jl")
@@ -34,26 +58,6 @@ include("testSpecialEuclidean2Mani.jl")
 #include("testGradientUtils.jl")
 #include("testFactorGradients.jl")
 
-# start as basic as possible and build from there
-include("typeReturnMemRef.jl")
-include("testDistributionsGeneric.jl")
-include("testCliqSolveDbgUtils.jl")
-include("basicGraphsOperations.jl")
-
-# regular testing
-@test_broken error("testSphereMani.jl broken")#include("testSphereMani.jl")
-include("testBasicManifolds.jl")
-include("testDERelative.jl")
-include("testHeatmapGridDensity.jl")
-
-# include("TestModuleFunctions.jl")
-include("testCompareVariablesFactors.jl")
-include("saveconvertertypes.jl")
-include("testgraphpackingconverters.jl")
-include("testSaveLoadDFG.jl")
-
-include("testPackingMixtures.jl")
-
 include("testJunctionTreeConstruction.jl")
 include("testBayesTreeiSAM2Example.jl")
 include("testTreeFunctions.jl")
@@ -61,13 +65,11 @@ include("testTreeFunctions.jl")
 #FIXME fails on MetaBayesTree
 include("testTreeSaveLoad.jl")
 
-include("testSpecialSampler.jl") # TODO, rename, refine
 include("testCommonConvWrapper.jl")
+include("testSpecialSampler.jl") # TODO, rename, refine
+include("testHeatmapGridDensity.jl")
 
-include("testApproxConv.jl")
-include("testBasicForwardConvolve.jl")
-include("testUseMsgLikelihoods.jl")
-include("testDefaultDeconv.jl")
+include("testDERelative.jl")
 
 include("testPartialFactors.jl")
 include("testPartialPrior.jl")

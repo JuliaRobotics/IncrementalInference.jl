@@ -162,7 +162,7 @@ function setValKDE!(
   ipc::AbstractVector{<:Real} = [0.0;],
 ) where {P}
   #
-  @info "setValKDE!" string(bws)
+  # @info "setValKDE!" string(bws)
   hode = HomotopyDensity_legacy(
     getStateKind(state),
     pts;
@@ -190,13 +190,13 @@ end
 function setValKDE!(
   v::VariableCompute,
   val::AbstractVector{P},
-  bws::Array{<:Real, 2}, # obsolete -- from when bw diags were packed as columns in a matrix
+  bws::AbstractMatrix, # obsolete -- from when bw diags were packed as columns in a matrix
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;];
   solveKey::Symbol = :default,
 ) where {P}
-  # recover variableType information
-  setValKDE!(getState(v, solveKey), val, bws[:, 1], setinit, ipc)
+  # FIXME, use HomotopyDensity directly here instead
+  setValKDE!(getState(v, solveKey), val, diag(bws), setinit, ipc)
 
   return nothing
 end

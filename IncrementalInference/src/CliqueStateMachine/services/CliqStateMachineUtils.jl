@@ -400,6 +400,11 @@ function approxCliqMarginalUp!(
     end
     retdict =
       upGibbsCliqueDensity(fg_, cliq, csmc.solveKey, childmsgs, N, dbg, iters, logger)
+
+    # DEBUG ON THE FLY
+    Bs = [HomotopyDensity_legacy(b) for (l,b) in retdict]
+    # @info "DX bw" string.(getBandwidth.(Bs))
+
   end
 
   with_logger(logger) do

@@ -4,11 +4,11 @@
 # short preamble funcions
 ## =============================================================================
 
-function convert(::Type{<:ApproxManifoldProducts.HomotopyDensity}, src::TreeBelief)
-  return manikde!(getStateKind(src.variableType), src.val; bw = src.bw[:, 1])
-end
+convert(
+  ::Type{<:ApproxManifoldProducts.HomotopyDensity}, 
+  src::TreeBelief,
+) = HomotpyDensity_legacy(src)
 
-manikde!(em::TreeBelief) = convert(ApproxManifoldProducts.HomotopyDensity, em)
 
 ## =============================================================================
 # helper functions for tree message channels
@@ -91,8 +91,9 @@ function updateSubFgFromDownMsgs!(
 end
 
 function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
-  kdePr = manikde!(getManifold(belief_.variableType), belief_.val; bw = belief_.bw[:, 1])
-  return MsgPrior(kdePr, belief_.infoPerCoord, getManifold(belief_))
+  # kdePr = manikde!(getManifold(belief_.variableType), belief_.val; bw = belief_.bw[:, 1])
+  hode = HomotopyDensity_legacy(belief_)
+  return MsgPrior(hode, belief_.infoPerCoord, getManifold(belief_))
 end
 
 function generateMsgPrior(belief_::TreeBelief, ::ParametricMessage)
@@ -324,7 +325,7 @@ function addLikelihoodsDifferentialCHILD!(
           M = getManifold(_sft)
           e0 = getPointIdentity(M)
           pts = exp.(Ref(M), Ref(e0), pred_X)
-          newBel = manikde!(sft, pts)
+          newBel = manikde!(sft, pts) # FIXME HoDe for factors?
           # replace dummy factor with real deconv factor using manikde approx belief measurement
           fullFct = _sft(newBel)
           deleteFactor!(tfg, afc.label)

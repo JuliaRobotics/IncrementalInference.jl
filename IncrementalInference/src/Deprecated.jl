@@ -1,5 +1,13 @@
 
 
+@deprecate manikde!(tb::TreeBelief) HomotopyDensity_legacy(tb)
+
+@deprecate manikde!(
+  varT::InstanceType{<:StateType},
+  pts::AbstractVector{<:Tuple};
+  kw...,
+) HomotopyDensity_legacy(varT, (t -> ArrayPartition(t...)).(pts); kw...)
+
 
 # """
 #     $SIGNATURES
@@ -97,14 +105,6 @@
 #   return AMP.manikde!(statekind, pts; infoPerCoord, kw...)
 # end
 
-function manikde!(
-  varT::InstanceType{<:StateType},
-  pts::AbstractVector{<:Tuple};
-  kw...,
-)
-  #
-  return manikde!(varT, (t -> ArrayPartition(t...)).(pts); kw...)
-end
 
 function setValKDE!_NONPARTL(
   vnd::State,
