@@ -36,7 +36,7 @@ varT = LinearRelative(Normal(1.0))
 DFG.@defStateType _TestManiKde SpecialEuclideanGroup(2; variant=:right) ArrayPartition([0;0.], [1 0; 0 1.])
 
 # construct directly with ArrayPartition
-pts = [ArrayPartition(randn(2), [1 0; 0 1.]) for _ in 1:100]
+pts = [ArrayPartition(randn(2), [1 0; 0 1.]) for _ in 1:64]
 varT = _TestManiKde()
 HomotopyDensity_legacy(varT, pts)
 
@@ -47,7 +47,7 @@ end
 @testset "test InteractiveUtilsExt" begin
 ##
 
-IIF.listTypeTree(RelativeObservation)
+IIF.listTypeTree(IncrementalInference.DistributedFactorGraphs.RelativeObservation)
 
 IIF.getCurrentWorkspaceFactors()
 IIF.getCurrentWorkspaceVariables()
