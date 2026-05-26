@@ -139,8 +139,9 @@ function _solveLambdaNumeric(
   X0c .= vee(LieAlgebra(M), log(M, ϵ, u0))
 
   alg = if islen1
+    Optim.BFGS(;linesearch=Optim.BackTracking(order=3))
     # Optim.BFGS()
-    Optim.Adam()
+    # Optim.Adam() # default options usually fall far short and tests fail
   else
     Optim.NelderMead()
   end

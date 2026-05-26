@@ -2,6 +2,7 @@
 
 
 # reexport
+export RelativeObservation, PriorObservation
 export ℝ, AbstractManifold
 export Identity, hat , vee, ArrayPartition, exp!, exp, log!, log
 # common groups -- preferred defaults at this time.

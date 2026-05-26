@@ -39,8 +39,10 @@ if false
   include("testPackingMixtures.jl")
 end
 
+# test convolution functions
 include("testApproxConv.jl")
 include("testBasicForwardConvolve.jl")
+
 include("testDefaultDeconv.jl")
 include("testCliqSolveDbgUtils.jl")
 include("testUseMsgLikelihoods.jl")

@@ -6,6 +6,15 @@ using Test
 using IncrementalInference
 using Statistics
 using TensorCast
+using Random
+
+# FIXME, BFGS fails HagerZhang B > A, on x1 value [-2.3077797502414588] solving for :x2
+# Random.seed!(42)
+# but does seem to pass on linesearch=BackTracking(order=3), need to profile and learn more...
+
+##
+
+
 
 ##
 
@@ -33,6 +42,8 @@ f = addFactor!(fg, [:x0;:x1], statemodel)
 
 X1_ = approxConv(fg, getLabel(f), :x1)
 
+##
+
 @test 10 < Statistics.mean(getindex.(X1_, 1)) < 12
 @test 0.5 < Statistics.std(getindex.(X1_, 1)) < 1.5
 
@@ -50,7 +61,7 @@ X1 = getPoints(posterioriX1)
 
 ## predict, 1->2 seconds
 
-initVariable!(fg, :x2, X1)  # NOTE, manual init without adding a prior to fg
+initVariable!(fg, :x1, X1)  # NOTE, manual init without adding a prior to fg
 addVariable!(fg, :x2, ContinuousScalar)
 
 
@@ -59,10 +70,9 @@ statemodel = LinearRelative( z4 )
 f = addFactor!(fg, [:x1;:x2], statemodel)
 X2_ = approxConv(fg, getLabel(f), :x2)
 
-@cast X2_[i,j] := X2__[j][i]
 
-@test size(X2_) == (1,100)
-@test 15 < Statistics.mean(X2_) < 25
+@test 100 == length(X2_)
+@test 15 < Statistics.mean(getindex.(X2_,1)) < 25
 
 ##
 
