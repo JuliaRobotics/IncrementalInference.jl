@@ -307,7 +307,7 @@ function initVariable!(
       # dontmargin = dontmargin,
     )
   end
-  setValKDE!(variable, ptsArr, true; solveKey = solveKey)
+  setValKDE!(variable, ptsArr, true; solveKey)
   return nothing
 end
 function initVariable!(
@@ -392,8 +392,8 @@ function initVariable!(
   # _prodrepr(pt::Tuple) = Manifolds.ProductRepr(pt...)
   _prodrepr(pt::Tuple) = ArrayPartition(pt...)
 
-  M = getManifold(vari)
-  pp = manikde!(M, _prodrepr.(pts); bw)
+  M = getStateKind(vari)
+  pp = HomotopyDensity_legacy(M, _prodrepr.(pts); bw)
   return initVariable!(vari, pp, solveKey)
 end
 

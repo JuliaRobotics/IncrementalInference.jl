@@ -107,20 +107,19 @@
 
 
 function setValKDE!_NONPARTL(
-  vnd::State,
-  mkd::ApproxManifoldProducts.HomotopyDensity, # FIXME dispatch without partial?
+  state::State,
+  hode::ApproxManifoldProducts.HomotopyDensity, # FIXME dispatch without partial?
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;],
 )
   @warn("setValKDE! is obsolete, use setBelief! instead")
+  setBelief!(state, hode, setinit)
   #
-  # L==Nothing means no partials
-  ptsArr = AMP.getPoints(mkd) # , false) # for not partial
-  # also set the bandwidth
-  _ensurediag(b::AbstractVector) = b
-  _ensurediag(b::AbstractMatrix) = diag(b)
-  bws = getBW(mkd)[1] |> _ensurediag |> collect
-  setValKDE!(vnd, ptsArr, bws, setinit, ipc)
+  # ptsArr = AMP.getPoints(hode) # , false) # for not partial
+  # _ensurediag(b::AbstractVector) = b
+  # _ensurediag(b::AbstractMatrix) = diag(b)
+  # bws = getBW(hode)[1] |> _ensurediag |> collect
+  # setValKDE!(state, ptsArr, bws, setinit, ipc)
   return nothing
 end
 
@@ -131,20 +130,17 @@ function setValKDE!_HASPARTL(
   ipc::AbstractVector{<:Real} = [0.0;],
 )
   @error("setValKDE@ is obsolete, use setBelief! instead")
-  #
-  oldBel = getBelief(vnd)
-
-  # New infomation might be partial
-  newBel = replace(oldBel, mkd)
-
-  # Set partial dims as Manifold points
-  ptsArr = AMP.getPoints(newBel, false)
-
-  # also get the bandwidth
-  bws = getBandwidth(newBel, false)
-
-  # update values in graph
-  setValKDE!(vnd, ptsArr, bws, setinit, ipc)
+  
+  # setBelief(vnd, mkd, setinit)
+    oldBel = getBelief(vnd)
+    # New infomation might be partial
+    newBel = replace(oldBel, mkd)
+    # Set partial dims as Manifold points
+    ptsArr = AMP.getPoints(newBel, false)
+    # also get the bandwidth
+    bws = getBandwidth(newBel, false)
+    # update values in graph
+    setValKDE!(vnd, ptsArr, bws, setinit, ipc)
   return nothing
 end
 

@@ -7,7 +7,7 @@ function setBelief!(
   # ipc::AbstractVector{<:Real}=[0.0;]; # TODO, remove, use hode.observability, drop separate ipc here
   # solveKey::Symbol = :default
 )
-  @assert getStateKind(state) == getStateKind(hode) "statekind (i.e. lazy manifold serde) mismatch between variable and incoming belief $(getStateKind(vari)) vs $(getStateKind(hode))"
+  @assert getStateKind(state) == getStateKind(hode) "statekind (i.e. lazy manifold serde) mismatch between variable and incoming belief $(getStateKind(state)) vs $(getStateKind(hode))"
   state.belief = convert(typeof(state.belief), hode)
   setinit ? (state.initialized = true) : nothing
   nothing

@@ -28,7 +28,6 @@ if TEST_GROUP in ["all", "basic_functional_group"]
 include("typeReturnMemRef.jl")
 include("testDistributionsGeneric.jl")
 include("basicGraphsOperations.jl")
-include("testCliqSolveDbgUtils.jl")
 
 @error "See new DFG v0.29 JSON serde for variables and factors, old IIF serde tests currently disabled"
 if false
@@ -42,14 +41,13 @@ end
 
 include("testApproxConv.jl")
 include("testBasicForwardConvolve.jl")
-include("testUseMsgLikelihoods.jl")
 include("testDefaultDeconv.jl")
+include("testCliqSolveDbgUtils.jl")
+include("testUseMsgLikelihoods.jl")
 
+include("testEuclidDistance.jl")
 @test_broken error("testSphereMani.jl broken")#include("testSphereMani.jl")
 include("testBasicManifolds.jl")
-
-# more frequent stochasic failures from numerics
-include("testEuclidDistance.jl")
 include("testSpecialEuclidean2Mani.jl")
 # gradient / jacobian tests
 #include("manifolds/manifolddiff.jl")
