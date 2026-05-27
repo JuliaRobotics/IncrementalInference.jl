@@ -169,12 +169,14 @@ fg = IIF.generateGraph_EuclidDistance(points)
 
 eo = [:x2; :x1; :l1]
 
-##
-
 fg_ = deepcopy(fg)
 tree = buildTreeReset!(fg_, eo)
 
+##
+
 hist,upMessage = solveCliqUp!(fg_, tree, :x2; recordcliq=true);
+
+##
 
 sfg = hist[end].csmc.cliqSubFg
 L1__ = getBelief(sfg, :l1) |> getPoints
@@ -200,7 +202,7 @@ fg = IIF.generateGraph_EuclidDistance(points)
 
 # initVariable!(fg, :l1, [1000.0.*randn(2) for _ in 1:100])
 
-# check regular full solution produces two modes
+## check regular full solution produces two modes
 
 
 # similar test in RoME
@@ -265,7 +267,7 @@ points = [[100.0],]
 fg = IIF.generateGraph_EuclidDistance(points)
 solveGraph!(fg)
 
-@test isapprox(calcMeanMaxSuggested(fg, :x1, :default).suggested[1], 100, atol=1)
+@test isapprox(mean(getBelief(fg, :x1, :default))[1], 100, atol=1)
 
 pts_ = getBelief(fg, :l1) |> getPoints
 @cast pts[i,j] := pts_[j][i]

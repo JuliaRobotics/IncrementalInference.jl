@@ -76,10 +76,11 @@ function updateSubFgFromDownMsgs!(
   for (key, beldim) in dwnmsgs.belief
     if key in seps
       statekind = getStateKind(beldim.variableType)
+      # @info "WHAT" beldim.bw[:, 1] beldim.bw[1]
       newBel = HomotopyDensity_legacy(
         statekind, 
         beldim.val; 
-        bw = beldim.bw[:, 1],
+        bw = beldim.bw,
         observability = beldim.infoPerCoord
       )
       setBelief!(getVariable(sfg, key), newBel)
@@ -91,7 +92,6 @@ function updateSubFgFromDownMsgs!(
 end
 
 function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
-  # kdePr = manikde!(getManifold(belief_.variableType), belief_.val; bw = belief_.bw[:, 1])
   hode = HomotopyDensity_legacy(belief_)
   return MsgPrior(hode, belief_.infoPerCoord, getManifold(belief_))
 end

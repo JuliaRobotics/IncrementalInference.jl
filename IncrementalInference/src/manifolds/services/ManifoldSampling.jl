@@ -23,7 +23,11 @@ function sampleTangent(
 end
 
 function sampleTangent(M::AbstractLieGroup, z, p = getPointIdentity(M))
-  return hat(LieAlgebra(M), SVector{manifold_dimension(M)}(rand(z)), typeof(p))
+  # @info "DIM 2 or 1" manifold_dimension(M) rand(z) typeof(p)
+  _splat(s::AbstractVector) = SVector{manifold_dimension(M)}(s...)
+  _splat(s::Number) = SVector{manifold_dimension(M)}(s)
+  # _splat(s::Number) = s
+  return hat(LieAlgebra(M), _splat(rand(z)), typeof(p))
 end
 
 function sampleTangent(M::typeof(LieGroups.CircleGroup()), z::Distribution, p = getPointIdentity(M))

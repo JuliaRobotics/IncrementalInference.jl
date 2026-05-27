@@ -38,6 +38,8 @@ if false
   include("testSaveLoadDFG.jl")
   include("testPackingMixtures.jl")
 end
+#FIXME fails on MetaBayesTree
+include("testTreeSaveLoad.jl")
 
 # test convolution functions
 include("testApproxConv.jl")
@@ -48,7 +50,7 @@ include("testCliqSolveDbgUtils.jl")
 include("testUseMsgLikelihoods.jl")
 
 include("testEuclidDistance.jl")
-@test_broken error("testSphereMani.jl broken")#include("testSphereMani.jl")
+@test_broken error("testSphereMani.jl broken") # include("testSphereMani.jl") # FIXME
 include("testBasicManifolds.jl")
 include("testSpecialEuclidean2Mani.jl")
 # gradient / jacobian tests
@@ -62,20 +64,9 @@ include("testJunctionTreeConstruction.jl")
 include("testBayesTreeiSAM2Example.jl")
 include("testTreeFunctions.jl")
 
-#FIXME fails on MetaBayesTree
-include("testTreeSaveLoad.jl")
-
 include("testCommonConvWrapper.jl")
 include("testSpecialSampler.jl") # TODO, rename, refine
 include("testHeatmapGridDensity.jl")
-
-include("testDERelative.jl")
-
-include("testPartialFactors.jl")
-include("testPartialPrior.jl")
-include("testpartialconstraint.jl")
-include("testPartialNH.jl")
-include("testMixturePrior.jl")
 
 include("testStateMachine.jl")
 include("testBasicCSM.jl")
@@ -96,6 +87,15 @@ include("testManualInit.jl")
 include("testBasicTreeInit.jl")
 include("testSolveOrphanedFG.jl")
 include("testSolveKey.jl")
+
+include("testPartialFactors.jl")
+include("testPartialPrior.jl")
+include("testpartialconstraint.jl")
+include("testPartialNH.jl")
+include("testMixturePrior.jl")
+
+include("testDERelative.jl")
+
 end
 end
 

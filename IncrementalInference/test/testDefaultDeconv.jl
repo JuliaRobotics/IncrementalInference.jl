@@ -146,8 +146,8 @@ X1_ = getBelief(fg, :x1) |> getPoints
 TensorCast.@cast X1[i,j] := X1_[j][i]
 
 N = size(X1,2)
-@test_broken sum(-5 .< X1 .< 5) < 0.1*N
-@test_broken sum(X1 .< -15) < 0.1*N
+@test sum(-5 .< X1 .< 5) < 0.1*N
+@test sum(X1 .< -15) < 0.1*N
 @test sum(15 .< X1) < 0.1*N
 @test 0.2*N .< sum(-15 .< X1 .< -5)
 @test 0.2*N .< sum(5 .< X1 .< 15)
