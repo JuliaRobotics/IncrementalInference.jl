@@ -10,9 +10,9 @@ N=100
 fg = initfg()
 
 doors = [[0.0;],]
-pd = manikde!(ContinuousScalar, doors; bw=[3.0;])
+pd = HomotopyDensity_legacy(ContinuousScalar(), doors; bw=[3.0;])
 pd = resample(pd, N);
-bws = getBW(pd)[:,1]
+bws = getBW(pd)[1]
 doors2 = getPoints(pd);
 
 ##
@@ -39,7 +39,7 @@ pts_ = approxConv(fg, :x1x2f1, :x2)
 
 tree = solveTree!(fg)
 
-pts_ = getVal(fg, :x2)
+pts_ = getBelief(fg, :x2, :default) |> getPoints
 @cast pts[i,j] := pts_[j][i]
 @test norm(Statistics.mean(pts,dims=2)-[50.0]) < 15.0
 

@@ -16,8 +16,8 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
   if TEST_GROUP in ["all", "tmp_debug_group"]
     @testset "Temporary Debug Group" begin
     include("testSpecialOrthogonalMani.jl")
-    include("testMultiHypo3Door.jl")
-    include("priorusetest.jl")
+    include("testMultiHypo3Door.jl") # FIX
+    include("priorusetest.jl") # MANY SKIPS
   end
 end
 
@@ -49,10 +49,10 @@ include("testDefaultDeconv.jl")
 include("testCliqSolveDbgUtils.jl")
 include("testUseMsgLikelihoods.jl")
 
-include("testEuclidDistance.jl")
+include("testEuclidDistance.jl") # FIX
 @test_broken error("testSphereMani.jl broken") # include("testSphereMani.jl") # FIXME
 include("testBasicManifolds.jl")
-include("testSpecialEuclidean2Mani.jl")
+include("testSpecialEuclidean2Mani.jl") # TBD
 # gradient / jacobian tests
 #include("manifolds/manifolddiff.jl")
 #include("manifolds/factordiff.jl")
@@ -64,37 +64,37 @@ include("testJunctionTreeConstruction.jl")
 include("testBayesTreeiSAM2Example.jl")
 include("testTreeFunctions.jl")
 
-include("testCommonConvWrapper.jl")
+include("testCommonConvWrapper.jl") # FIX
 include("testSpecialSampler.jl") # TODO, rename, refine
-include("testHeatmapGridDensity.jl")
+include("testHeatmapGridDensity.jl") # FIX
 
 include("testStateMachine.jl")
 include("testBasicCSM.jl")
 include("testCliqueFactors.jl")
 include("testCcolamdOrdering.jl")
 include("testCliqueTreesOrderings.jl")
-include("testBasicGraphs.jl")
-include("testJointEnforcement.jl")
-include("testHasPriors913.jl")
+include("testBasicGraphs.jl") # NUMERICAL, TBD
+include("testJointEnforcement.jl") # FIX
+include("testHasPriors913.jl") # FIX
 include("testInitVariableOrder.jl")
 include("testTreeMessageUtils.jl")
 include("testCSMMonitor.jl")
-include("testExpXstroke.jl")
-include("testBasicRecycling.jl")
-include("testSkipUpDown.jl")
+include("testExpXstroke.jl") # FIX
+include("testBasicRecycling.jl") # FIX
+include("testSkipUpDown.jl") # FIX
 include("testlocalconstraintexamples.jl")
-include("testManualInit.jl")
-include("testBasicTreeInit.jl")
+include("testManualInit.jl") # FIX
+include("testBasicTreeInit.jl") # FIX
 include("testSolveOrphanedFG.jl")
 include("testSolveKey.jl")
 
 include("testPartialFactors.jl")
-include("testPartialPrior.jl")
-include("testpartialconstraint.jl")
-include("testPartialNH.jl")
-include("testMixturePrior.jl")
+include("testPartialPrior.jl") # FIX
+include("testpartialconstraint.jl") # FIX
+include("testPartialNH.jl") # FIX
+include("testMixturePrior.jl") # FIX
 
-include("testDERelative.jl")
+include("testDERelative.jl") # FIX obsolete build mani callbacks
 
 end
 end
@@ -106,17 +106,17 @@ include("testVariousNSolveSize.jl")
 include("testExplicitMultihypo.jl")
 include("TestCSMMultihypo.jl")
 include("testCalcFactorHypos.jl")
-include("testMultimodal1D.jl")
+include("testMultimodal1D.jl") # FIX
 include("testMultihypoAndChain.jl")
 include("testMultithreaded.jl")
-include("testmultihypothesisapi.jl")
+include("testmultihypothesisapi.jl") # FIX
 include("fourdoortest.jl")
-include("testCircular.jl")
-include("testMixtureLinearConditional.jl")
+include("testCircular.jl") # FIX
+include("testMixtureLinearConditional.jl") # FIX
 include("testFluxModelsDistribution.jl")
 include("testAnalysisTools.jl")
 
-include("testBasicParametric.jl")
+include("testBasicParametric.jl") # FIX
 # include("testMixtureParametric.jl") #FIXME parametric mixtures #1787
 
 # dont run test on ARM, as per issue #527
@@ -125,7 +125,7 @@ if Base.Sys.ARCH in [:x86_64;]
 end
 
 # include("testMultiprocess.jl")
-include("testDeadReckoningTether.jl")
+include("testDeadReckoningTether.jl") # FIX
 end
 end
 end

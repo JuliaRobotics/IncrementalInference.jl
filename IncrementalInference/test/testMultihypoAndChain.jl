@@ -71,14 +71,14 @@ tree = solveTree!(fg, eliminationOrder=eo) #, smtasks=smtasks, recordcliqs=ls(fg
 
 ##
 
-@test isapprox(calcMeanMaxSuggested(fg, :x0, :default).suggested[], 0, atol = 0.2) 
-@test isapprox(calcMeanMaxSuggested(fg, :x1, :default).suggested[], 1, atol = 0.2) 
-@test isapprox(calcMeanMaxSuggested(fg, :l1, :default).suggested[], 1, atol = 0.2) 
+@test isapprox(mean(getBelief(fg, :x0, :default)), 0, atol = 0.2)
+@test isapprox(mean(getBelief(fg, :x1, :default)), 1, atol = 0.2)
+@test isapprox(mean(getBelief(fg, :l1, :default)), 1, atol = 0.2)
 
 L2 = getBelief(fg, :l2)
 npts = length(getPoints(L2))
 pts = [2.0.+0.1*randn(1) for _ in 1:npts]
-L2_ = manikde!(ContinuousScalar, pts)
+L2_ = HomotopyDensity_legacy(ContinuousScalar(), pts)
 
 # test that there is at least a mode present
 @test mmd(L2_, L2, ContinuousScalar) < 1e-3

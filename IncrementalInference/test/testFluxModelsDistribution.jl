@@ -3,6 +3,7 @@
 using Test
 using BSON, Flux, IncrementalInference
 using TensorCast
+using LinearAlgebra
 
 ##
 
