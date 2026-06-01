@@ -122,7 +122,7 @@ smtasks = Task[]
 result = solveTree!(fg; smtasks, verbose=true)
 @test result isa AbstractBayesTree
 
-IIF.solveGraphParametric!(fg; sparse = false, damping_term_min=1e-12)
+IIF.solveGraphParametric!(fg; is_sparse = false, damping_term_min=1e-12)
 
 vnd = getState(fg, :x0, :parametric)
 @test all(isapprox(M, DFG.refMeans(vnd)[1], p0, atol=1e-6))
@@ -209,7 +209,7 @@ addFactor!(fg, [:x6; :l1], mf)
 smtasks = Task[]
 solveTree!(fg; smtasks);
 IIF.autoinitParametric!(fg)
-IIF.solveGraphParametric!(fg; sparse = false, damping_term_min=1e-12)
+IIF.solveGraphParametric!(fg; is_sparse = false, damping_term_min=1e-12)
 
 vnd = getState(fg, :x0, :default)
 @test isapprox(M, mean(M, DFG.refPoints(vnd)), ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.2)
