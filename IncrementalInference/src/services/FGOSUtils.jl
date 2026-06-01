@@ -169,50 +169,6 @@ end
 # WIP
 # _getMeasurementRepresentation(::AbstractPriorObservation, coord::AbstractVector{<:Number}) = 
 
-"""
-    $SIGNATURES
-
-Get the ParametricPointEstimates---based on full marginal belief estimates---of a variable in the distributed factor graph.
-Calculate new Parametric Point Estimates for a given variable.
-
-
-DevNotes
-- TODO update for manifold subgroups.
-- TODO standardize after AMP3D
-"""
-function calcMeanMaxSuggested(
-  vari::VariableCompute,
-  solveKey::Symbol = :default
-)
-  varType = getStateKind(vari)
-  P = getBelief(vari, solveKey)
-  maniDef = convert(MB.AbstractManifold, varType)
-  manis = AMP._manifoldtuple(maniDef) # LEGACY, TODO REMOVE
-  ops = buildHybridManifoldCallbacks(manis)
-  Pme = calcMean(P)  # getKDEMean(P) #, addop=ops[1], diffop=ops[2]
-
-  # returns coordinates at identify
-  Pma = getKDEMax(P; addop = ops[1], diffop = ops[2])
-  # calculate point
-
-  ## TODO use getCoordinates for now (IIF v0.25)
-  Pme_ = getCoordinates(varType, Pme)
-  # Pma_ = getCoordinates(M,Pme)
- 
-  return (
-    mean=Pme_, 
-    max=Pma, 
-    suggested=Pme_, 
-  )
-end
-
-function calcMeanMaxSuggested(
-  dfg::AbstractDFG,
-  label::Symbol,
-  solveKey::Symbol = :default,
-)
-  return calcMeanMaxSuggested(getVariable(dfg, label), solveKey)
-end
 
 """
     $SIGNATURES

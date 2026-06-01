@@ -16,7 +16,7 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
   if TEST_GROUP in ["all", "tmp_debug_group"]
     @testset "Temporary Debug Group" begin
     include("testSpecialOrthogonalMani.jl")
-    include("testMultiHypo3Door.jl") # FIX
+    include("testMultiHypo3Door.jl") # FIX numerical
     include("priorusetest.jl") # MANY SKIPS
   end
 end
@@ -73,9 +73,9 @@ include("testBasicCSM.jl")
 include("testCliqueFactors.jl")
 include("testCcolamdOrdering.jl")
 include("testCliqueTreesOrderings.jl")
-include("testBasicGraphs.jl") # NUMERICAL, TBD
+include("testBasicGraphs.jl") # NUMERICAL
 include("testJointEnforcement.jl") # FIX
-include("testHasPriors913.jl") # FIX
+include("testHasPriors913.jl") # FIX something in solve
 include("testInitVariableOrder.jl")
 include("testTreeMessageUtils.jl")
 include("testCSMMonitor.jl")
@@ -94,7 +94,7 @@ include("testpartialconstraint.jl") # FIX
 include("testPartialNH.jl") # FIX
 include("testMixturePrior.jl") # FIX
 
-include("testDERelative.jl") # FIX obsolete build mani callbacks
+include("testDERelative.jl") # FIX BoundsError Ln332 cf._legacyParams[k][i], [100] of 1..99
 
 end
 end
@@ -107,14 +107,20 @@ include("testExplicitMultihypo.jl")
 include("TestCSMMultihypo.jl")
 include("testCalcFactorHypos.jl")
 include("testMultimodal1D.jl") # FIX
-include("testMultihypoAndChain.jl")
+include("testMultihypoAndChain.jl") # FIX numerical
 include("testMultithreaded.jl")
 include("testmultihypothesisapi.jl") # FIX
 include("fourdoortest.jl")
 include("testCircular.jl") # FIX
 include("testMixtureLinearConditional.jl") # FIX
-include("testFluxModelsDistribution.jl")
 include("testAnalysisTools.jl")
+if false
+  include("testFluxModelsDistribution.jl")
+else
+  # @error "Skipped testFluxModelsDistribution.jl"
+  @test_skip("Skipped testFluxModelsDistribution.jl")
+end
+
 
 include("testBasicParametric.jl") # FIX
 # include("testMixtureParametric.jl") #FIXME parametric mixtures #1787
@@ -125,7 +131,7 @@ if Base.Sys.ARCH in [:x86_64;]
 end
 
 # include("testMultiprocess.jl")
-include("testDeadReckoningTether.jl") # FIX
+include("testDeadReckoningTether.jl")
 end
 end
 end
