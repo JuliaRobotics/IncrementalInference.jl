@@ -931,7 +931,7 @@ function updateFromSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   if !isParametricSolve
     for sym in getCliqFrontalVarIds(csmc.cliq)
       # set solved flag
-      vari = getVariable(csmc.cliqSubFg, sym, csmc.solveKey)
+      vari = getVariable(csmc.cliqSubFg, sym)
       setSolvedCount!(vari, getSolvedCount(vari, csmc.solveKey) + 1, csmc.solveKey)
     end
   end

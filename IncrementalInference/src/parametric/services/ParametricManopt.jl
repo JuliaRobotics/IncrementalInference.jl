@@ -1,4 +1,5 @@
 using Manopt
+using Manopt.Printf
 using FiniteDiff
 using SparseDiffTools
 using SparseArrays
@@ -389,6 +390,44 @@ function qr_linear_subsolver!(sk, JJ, grad_f_c)
   return sk
 end
 
+function pinv_subsolver!(sk, JJ, grad_f_c)
+  sk .= pinv(JJ) * grad_f_c
+  return sk
+end
+
+"""
+    DebugTension(dof; io=stdout)
+
+Manopt `DebugAction` that prints the tension (reduced chi-squared) at each iteration.
+Tension = 2*cost / dof, where `dof = N - M` (residual dimension minus state dimension).
+
+Usage in `solve_RLM`:
+```julia
+dof = num_components - manifold_dimension(M)
+solve_RLM(fg; debug = [:Iteration, " | ", DebugTension(dof), "\n", 1])
+```
+"""
+mutable struct DebugTension <: Manopt.DebugAction
+  dof::Int
+  io::IO
+  format::String
+end
+DebugTension(dof::Int; io::IO=stdout, format="tension: %.2f") = DebugTension(dof, io, format)
+
+function (d::DebugTension)(p::Manopt.AbstractManoptProblem, st::Manopt.AbstractManoptSolverState, k::Int)
+  if d.dof <= 0
+    s = NaN
+  else
+    cost = Manopt.get_cost(p, Manopt.get_iterate(st))
+    s = sqrt(2 * cost / d.dof)
+  end
+  Printf.format(d.io, Printf.Format(d.format), s)
+  return nothing
+end
+
+# replace :tension symbol with DebugTension(dof) in a debug vector
+_inject_tension(debug, dof) = map(x -> x === :tension ? DebugTension(dof) : x, debug)
+
 function solve_RLM(
   fg,
   varlabels = ls(fg),
@@ -440,6 +479,12 @@ function solve_RLM(
     zeros(num_components, manifold_dimension(M))
   end
 
+  # inject DebugTension for :tension symbol in debug kwarg
+  dof = num_components - manifold_dimension(M)
+  if haskey(kwargs, :debug)
+    kwargs = (; kwargs..., debug = _inject_tension(kwargs[:debug], dof))
+  end
+
   lm_r = Manopt.LevenbergMarquardt!(
     M,
     costF!,
@@ -463,7 +508,13 @@ function solve_RLM(
     Λ = Symmetric(J'J) # approx Hessian = precision matrix
   end
 
-  return M, varlabelsAP, lm_r, Λ
+  # tension (reduced chi-squared): ||r||^2 / (N-M) = 2*cost / (N-M)
+  dof = num_components - manifold_dimension(M)
+  final_res = zeros(num_components)
+  costF!(M, final_res, lm_r)
+  tension = dof > 0 ? sum(abs2, final_res) / dof : NaN
+
+  return M, varlabelsAP, lm_r, Λ, tension
 end
 
   # nlso = NonlinearLeastSquaresObjective(
@@ -524,6 +575,7 @@ function solve_RLM_conditional(
   finiteDiffCovariance=true,
   jacobian_method::Symbol = :finitediff,
   solveKey::Symbol = :parametric,
+  linear_subsolver! = qr_linear_subsolver!,
   kwargs...
 )
   is_sparse && error("Sparse solve_RLM_conditional not supported yet")
@@ -551,7 +603,7 @@ function solve_RLM_conditional(
     separator_varlabelsAP = ArrayPartition{Symbol,Tuple}(())
   else
     _, _, separator_vartypeslist = getVariableTypesCount(getVariable.(fg,separators))
-    seperator_varIntLabel, separator_varlabelsAP = getVarIntLabelMap(separator_vartypeslist)
+    separator_varIntLabel, separator_varlabelsAP = getVarIntLabelMap(separator_vartypeslist)
   end
 
   all_varlabelsAP = ArrayPartition((frontal_varlabelsAP.x..., separator_varlabelsAP.x...))
@@ -599,6 +651,12 @@ function solve_RLM_conditional(
     zeros(num_components, manifold_dimension(M))
   end
 
+  # inject DebugTension for :tension symbol in debug kwarg
+  dof = num_components - manifold_dimension(M)
+  if haskey(kwargs, :debug)
+    kwargs = (; kwargs..., debug = _inject_tension(kwargs[:debug], dof))
+  end
+
   lm_r = LevenbergMarquardt(
     M,
     costF!,
@@ -608,6 +666,7 @@ function solve_RLM_conditional(
     evaluation=InplaceEvaluation(),
     initial_residual_values,
     initial_jacobian_f,
+    linear_subsolver!,
     kwargs...
   )
 
@@ -617,8 +676,13 @@ function solve_RLM_conditional(
     jacF!(M, initial_jacobian_f, lm_r)
     Λ = Symmetric(initial_jacobian_f' * initial_jacobian_f)
   end
+
+  # tension (reduced chi-squared): ||r||^2 / (N-M) = 2*cost / (N-M)
+  final_res = zeros(num_components)
+  costF!(M, final_res, lm_r)
+  tension = sum(abs2, final_res) / dof
   
-  return M, frontal_varlabelsAP, lm_r, Λ
+  return M, frontal_varlabelsAP, lm_r, Λ, tension
 end
 
 function extractMarginalsAP(M, labelsAP::ArrayPartition{Symbol}, Σ::AbstractArray{<:Real})
@@ -642,12 +706,12 @@ end
   
 function autoinitParametric!(
   fg,
-  varorderIds = getInitOrderParametric(fg);
+  clique_order = getInitOrderParametric(fg);
   reinit = false,
   kwargs...
 )
-  init_labels = @showprogress map(varorderIds) do vIdx
-    autoinitParametric!(fg, vIdx; reinit, kwargs...)
+  init_labels = @showprogress map(clique_order) do cliq
+    autoinitParametric!(fg, cliq.frontals, cliq.separators; reinit, kwargs...)
   end
   filter!(!isnothing, init_labels)
   return init_labels
@@ -657,70 +721,93 @@ function autoinitParametric!(dfg::AbstractDFG, initme::Symbol; kwargs...)
   return autoinitParametric!(dfg, getVariable(dfg, initme); kwargs...)
 end
 
+function autoinitParametric!(dfg::AbstractDFG, xi::VariableCompute; solveKey = :parametric, kwargs...)
+  initme = getLabel(xi)
+  separators = ls2(dfg, initme)
+  filter!(separators) do vl
+    return hasState(dfg, vl, solveKey) && isInitialized(dfg, vl, solveKey)
+  end
+  return autoinitParametric!(dfg, [initme], separators; solveKey, kwargs...)
+end
+
 function autoinitParametric!(
   dfg::AbstractDFG,
-  xi::VariableCompute;
+  frontals::Vector{Symbol},
+  separators::Vector{Symbol} = Symbol[];
   solveKey = :parametric,
   reinit::Bool = false,
-  perturb_point::Bool=false,
+  linear_subsolver! = pinv_subsolver!,
   kwargs...,
 )
-  #
-
-  initme = getLabel(xi)
-  vnd = getState(xi, solveKey)
-  # don't initialize a variable more than once
-  if reinit || !isInitialized(xi, solveKey)
-
-    # frontals - initme
-    # separators - inifrom
-
-    initfrom = ls2(dfg, initme)
-    filter!(initfrom) do vl
-      return isInitialized(dfg, vl, solveKey)
-    end
-    
-    # nothing to initialize if no initialized neighbors or priors
-    if isempty(initfrom) && !any(isPrior.(dfg, listNeighbors(dfg, initme)))
-      return false
-    end
-
-    if perturb_point
-      _M = getManifold(xi)
-      p = DFG.refMeans(vnd)[1]
-      DFG.refMeans(vnd)[1] = exp(
-        _M,
-        p, 
-        get_vector(
-          _M,
-          p,
-          randn(manifold_dimension(_M))*10^-6,
-          LieGroups.DefaultLieAlgebraOrthogonalBasis()
-        )
-      )
-    end
-    M, vartypeslist, lm_r, Λ = solve_RLM_conditional(dfg, [initme], initfrom; solveKey, kwargs...)
-    
-    val = lm_r[1]
-    DFG.refMeans(vnd)[1] = val
-
-    if !isnothing(Λ)
-      DFG.refCovariances(vnd)[1] .= inv(Matrix(Λ))
-    end
-  
-    # updateSolverDataParametric!(vnd, val, Σ)
-
-    vnd.initialized = true
-    #fill in ppe as mean
-    Xc::Vector{Float64} = collect(getCoordinates(getStateKind(xi), val))
-
-    result = true
-
+  # Filter to only uninitialized variables (unless reinit)
+  to_init = if reinit
+    frontals
   else
-    result = false
+    filter(v -> !isInitialized(dfg, v, solveKey), frontals)
+  end
+  isempty(to_init) && return false
+
+  # Filter separators to only those already initialized
+  active_separators = filter(separators) do vl
+    hasState(dfg, vl, solveKey) && isInitialized(dfg, vl, solveKey)
   end
 
-  return result#isInitialized(xi, solveKey)
+  # Nothing to initialize if no separators and no priors on any frontal
+  if isempty(active_separators)
+    has_any_prior = any(to_init) do v
+      any(isPrior.(dfg, listNeighbors(dfg, v)))
+    end
+    has_any_prior || return false
+  end
+
+  # Check that we have usable factors
+  varlabels = union(to_init, active_separators)
+  _, faclabels = listNeighborhood(dfg, varlabels, 1)
+  filter!(fl -> issubset(getVariableOrder(dfg, fl), varlabels), faclabels)
+  isempty(faclabels) && return false
+
+  # Seed each frontal from an initialized separator of the same type
+  for v in to_init
+    xi = getVariable(dfg, v)
+    vnd = getState(xi, solveKey)
+    has_prior = any(isPrior.(dfg, listNeighbors(dfg, v)))
+    if !has_prior && !isempty(active_separators)
+      my_kind = getStateKind(xi)
+      same_kind = filter(active_separators) do vl
+        getStateKind(getVariable(dfg, vl)) === my_kind
+      end
+      if !isempty(same_kind)
+        DFG.refMeans(vnd)[1] = DFG.refMeans(getState(dfg, same_kind[1], solveKey))[1]
+      end
+    end
+  end
+
+  # Solve
+  M, varlabelsAP, lm_r, Λ, _ = solve_RLM_conditional(dfg, to_init, active_separators; solveKey, linear_subsolver!, kwargs...)
+
+  # Update each frontal variable with result
+  for (i, v) in enumerate(varlabelsAP)
+    vnd = getState(dfg, v, solveKey)
+    DFG.refMeans(vnd)[1] = lm_r[i]
+    vnd.initialized = true
+  end
+
+  # Update covariances from joint precision if positive definite
+  if !isnothing(Λ)
+    F = cholesky!(Λ; check = false)
+    if issuccess(F)
+      Σ = F \ I(size(Λ, 1))
+      offset = 0
+      for (i, v) in enumerate(varlabelsAP)
+        dim = manifold_dimension(getManifold(getVariable(dfg, v)))
+        r = (offset + 1):(offset + dim)
+        DFG.refCovariances(getState(dfg, v, solveKey))[1] .= Σ[r, r]
+        offset += dim
+      end
+    end
+  end
+
+  return true
 end
 
 
@@ -734,7 +821,7 @@ solveGraphParametric(args...; kwargs...) = solve_RLM(args...; kwargs...)
 function DFG.solveGraphParametric!(
   fg::AbstractDFG,
   args...; 
-  init::Bool = false, 
+  init::Bool = true, 
   solveKey::Symbol = :parametric,
   is_sparse = true,
   # debug, stopping_criterion, damping_term_min=1e-2, 
@@ -743,17 +830,13 @@ function DFG.solveGraphParametric!(
 )
   # make sure variables has solverData, see #1637
   makeSolverData!(fg; solveKey)
-  if !(:parametric in fg.solverParams.algorithms)
-    addParametricSolver!(fg; init = init)
-  elseif init
-    error("TODO: not implemented")
-  end
+  init && autoinitParametric!(fg; solveKey)
 
-  M, v, r, Λ = solve_RLM(fg, args...; is_sparse, kwargs...)
+  M, v, r, Λ, tension = solve_RLM(fg, args...; is_sparse, kwargs...)
 
   updateParametricSolution!(fg, M, v, r, Λ)
 
-  return M, v, r, Λ 
+  return M, v, r, Λ
 end
 
 
@@ -803,4 +886,3 @@ function (cost::CostF_RLM_WRAP2!)(M::AbstractManifold, x::Vector{T}, p::Abstract
   return x
 end
 =#
-
