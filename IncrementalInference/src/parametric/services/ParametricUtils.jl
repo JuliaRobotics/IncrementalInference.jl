@@ -983,24 +983,52 @@ function createMvNormal(v::VariableCompute, key = :parametric)
 end
 
 #TODO this is still experimental and a POC
-function getInitOrderParametric(fg; startIdx::Symbol = lsfPriors(fg)[1])
-  order = DFG.traverseGraphTopologicalSort(fg, startIdx)
-  filter!(order) do l
-    return isVariable(fg, l)
+"""
+    $SIGNATURES
+
+Build the Bayes tree for `fg` and return a vector of `(frontals, separators)` tuples
+ordered root-to-leaves (BFS).
+"""
+function getInitOrderParametric(fg; ordering::Symbol = :qr)
+  tree = buildTreeReset!(fg; ordering)
+
+  # BFS root-to-leaves: parents are processed before children
+  clique_order = Vector{NamedTuple{(:frontals, :separators), Tuple{Vector{Symbol}, Vector{Symbol}}}}()
+  
+  # Find root cliques
+  queue = TreeClique[]
+  for cliqId in getCliqueIds(tree)
+    if isRoot(tree, cliqId)
+      push!(queue, getClique(tree, cliqId))
+    end
   end
-  return order
+
+  while !isempty(queue)
+    cliq = popfirst!(queue)
+    frontals = getCliqFrontalVarIds(cliq)
+    separators = getCliqSeparatorVarIds(cliq)
+    push!(clique_order, (; frontals, separators))
+    # Enqueue children
+    for child in getChildren(tree, cliq)
+      push!(queue, child)
+    end
+  end
+
+  return clique_order
 end
 
 function autoinitParametricOptim!(
   fg,
-  varorderIds = getInitOrderParametric(fg);
+  clique_order = getInitOrderParametric(fg);
   reinit = false,
   algorithm = Optim.NelderMead,
   algorithmkwargs = (initial_simplex = Optim.AffineSimplexer(0.025, 0.1),),
   kwargs...
 )
-  @showprogress for vIdx in varorderIds
-    autoinitParametricOptim!(fg, vIdx; reinit, algorithm, algorithmkwargs, kwargs...)
+  @showprogress for cliq in clique_order
+    for vIdx in cliq.frontals
+      autoinitParametricOptim!(fg, vIdx; reinit, algorithm, algorithmkwargs, kwargs...)
+    end
   end
   return nothing
 end
