@@ -83,8 +83,8 @@ include("testExpXstroke.jl") # FIX
 include("testBasicRecycling.jl") # FIX
 include("testSkipUpDown.jl") # FIX
 include("testlocalconstraintexamples.jl")
-include("testManualInit.jl") # FIX
-include("testBasicTreeInit.jl") # FIX
+include("testManualInit.jl")
+include("testBasicTreeInit.jl")
 include("testSolveOrphanedFG.jl")
 include("testSolveKey.jl")
 

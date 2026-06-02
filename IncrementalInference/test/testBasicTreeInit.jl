@@ -31,7 +31,6 @@ hist = fetchCliqHistoryAll!(smtasks)
 end
 
 
-
 @testset "test endless cycle case, issue #754" begin
 ##
 
@@ -46,14 +45,14 @@ getSolverParams(fg).graphinit = false
 getSolverParams(fg).treeinit = true
 getSolverParams(fg).limititers = 50
 smtasks = Task[]
-tree = solveTree!(fg; smtasks=smtasks, verbose=true, timeout=50, recordcliqs=ls(fg));
+tree = solveTree!(fg; smtasks=smtasks, verbose=true, recordcliqs=ls(fg)); #, timeout=50);
 
 ##
 end
 
 
-
 @testset "basic test for tree initialization functionality" begin
+##
 
 # small canonical factor graph, without graphinit
 fg = generateGraph_CaesarRing1D(graphinit=false)
@@ -70,7 +69,7 @@ getSolverParams(fg).treeinit = true
 # mkpath(getLogPath(fg))
 # verbosefid = open(joinLogPath(fg, "csmVerbose.log"),"w")
 
-tree = solveTree!(fg, timeout=70) # , verbose=true, verbosefid=verbosefid)
+tree = solveTree!(fg) #, timeout=70) # , verbose=true, verbosefid=verbosefid)
 
 # flush(verbosefid)
 # close(verbosefid)
@@ -78,10 +77,11 @@ tree = solveTree!(fg, timeout=70) # , verbose=true, verbosefid=verbosefid)
 #   IIF.reconstructCSMHistoryLogical(getLogPath(fg), fid=io)
 # end
 
-
+##
 end
 
 @testset "basic tree initialization limittreeinit_iters" begin
+##
 
 # part of fg that can init
 fg = generateGraph_LineStep(3; poseEvery=1)
