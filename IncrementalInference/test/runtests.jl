@@ -49,7 +49,7 @@ include("testDefaultDeconv.jl")
 include("testCliqSolveDbgUtils.jl")
 include("testUseMsgLikelihoods.jl")
 
-include("testEuclidDistance.jl") # FIX
+include("testEuclidDistance.jl") # test_broken
 @test_broken error("testSphereMani.jl broken") # include("testSphereMani.jl") # FIXME
 include("testBasicManifolds.jl")
 include("testSpecialEuclidean2Mani.jl") # TBD
@@ -64,7 +64,7 @@ include("testJunctionTreeConstruction.jl")
 include("testBayesTreeiSAM2Example.jl")
 include("testTreeFunctions.jl")
 
-include("testCommonConvWrapper.jl") # FIX
+include("testCommonConvWrapper.jl") # skipped test with just ::Float point type 
 include("testSpecialSampler.jl") # TODO, rename, refine
 include("testHeatmapGridDensity.jl") # FIX
 

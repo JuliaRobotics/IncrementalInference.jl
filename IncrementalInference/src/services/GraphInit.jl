@@ -391,9 +391,9 @@ function initVariable!(
   _prodrepr(pt) = pt
   # _prodrepr(pt::Tuple) = Manifolds.ProductRepr(pt...)
   _prodrepr(pt::Tuple) = ArrayPartition(pt...)
-
+  _bw = bw === nothing ? zeros(getDimension(vari)) : bw
   M = getStateKind(vari)
-  pp = HomotopyDensity_legacy(M, _prodrepr.(pts); bw)
+  pp = HomotopyDensity_legacy(M, _prodrepr.(pts); bw=_bw, newbw=false)
   return initVariable!(vari, pp, solveKey)
 end
 
