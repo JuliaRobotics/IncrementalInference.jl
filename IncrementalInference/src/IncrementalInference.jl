@@ -92,9 +92,9 @@ using PrecompileTools
 
 # likely overloads or not exported by the upstream packages
 import Base: convert, ==, getproperty
-import Distributions: sample
+# import Distributions: sample
 import Random: rand, rand!
-import ApproxManifoldProducts: getBW
+import ApproxManifoldProducts: getBW, sample
 import ApproxManifoldProducts: mmd
 import ApproxManifoldProducts: isPartial
 import ApproxManifoldProducts: HomotopyDensity, HomotopyDensity_legacy

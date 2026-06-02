@@ -66,7 +66,7 @@ include("testTreeFunctions.jl")
 
 include("testCommonConvWrapper.jl") # skipped test with just ::Float point type 
 include("testSpecialSampler.jl") # TODO, rename, refine
-include("testHeatmapGridDensity.jl") # FIX
+include("testHeatmapGridDensity.jl") # numerical test broken
 
 include("testStateMachine.jl")
 include("testBasicCSM.jl")
@@ -74,7 +74,7 @@ include("testCliqueFactors.jl")
 include("testCcolamdOrdering.jl")
 include("testCliqueTreesOrderings.jl")
 include("testBasicGraphs.jl") # NUMERICAL
-include("testJointEnforcement.jl") # FIX
+include("testJointEnforcement.jl")
 include("testHasPriors913.jl") # FIX something in solve
 include("testInitVariableOrder.jl")
 include("testTreeMessageUtils.jl")
