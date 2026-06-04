@@ -11,6 +11,12 @@ Alternatively, either use the Github Blame, or the Github `/compare/v0.18.0...v0
 
 The list below highlights breaking changes according to normal semver workflow -- i.e. breaking changes go through at least one deprecatation (via warnings) on the dominant number in the version number.  E.g. v0.18 -> v0.19 (warnings) -> v0.20 (breaking).  Note that ongoing efforts are made to properly deprecate old code/APIs
 
+# v0.38
+
+- Major change to transition to ApproxManifoldProducts v0.15, switching to `HomotopyDensity` #1922. (breaking change)
+- Major change to transition to independent `SolverParams` per solve #1924. (breaking change)
+- Improvements to parametric solve #1932.
+
 # v0.37
 
 - Requires IIFTypes-v0.1.1.
