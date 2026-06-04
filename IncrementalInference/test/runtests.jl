@@ -17,6 +17,7 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
   if TEST_GROUP in ["all", "tmp_debug_group"]
     @testset "Temporary Debug Group (where most development work is happening)" begin
       include("testBasicGraphs.jl") # NUMERICAL
+      
       include("testEuclidDistance.jl") # test_broken
       include("testSpecialSampler.jl") # FIX, bounds error
       include("testDERelative.jl") # FIX BoundsError Ln332 cf._legacyParams[k][i], [100] of 1..99
@@ -63,10 +64,10 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testTreeSaveLoad.jl")
 
       # test convolution functions
-
+      include("testApproxConv.jl")
       include("testBasicForwardConvolve.jl")
-
       include("testDefaultDeconv.jl")
+
       include("priorusetest.jl") # slow, many skips
 
       include("testCliqSolveDbgUtils.jl")
@@ -81,6 +82,7 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testCommonConvWrapper.jl") # skipped test with just ::Float point type 
 
       include("testStateMachine.jl")
+      include("testBasicCSM.jl") # ??, NLLsolver options has no field .defaultNumKernels
       include("testCliqueFactors.jl")
       include("testCcolamdOrdering.jl")
       include("testCliqueTreesOrderings.jl")
@@ -96,15 +98,22 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testSolveOrphanedFG.jl")
       include("testSolveKey.jl")
 
+      include("testJointEnforcement.jl")
+      include("testPartialFactors.jl")
+      include("testCalcFactorHypos.jl")
+
       include("testnullhypothesis.jl")
       include("testExplicitMultihypo.jl")
       include("TestCSMMultihypo.jl")
 
+      include("testPartialPrior.jl")
       include("testMultithreaded.jl")
       include("testmultihypothesisapi.jl")
       include("testAnalysisTools.jl")
       include("testVariousNSolveSize.jl")
       include("fourdoortest.jl")
+
+      include("testDeadReckoningTether.jl") # FIX convert vector to set, VariableDFG
 
       # dont run test on ARM, as per issue #527
       if Base.Sys.ARCH in [:x86_64;]
@@ -117,23 +126,17 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
   if TEST_GROUP in ["all", "test_cases_group"]
     @testset "Test Cases Group (offload concurrent CI of slow running jobs)" begin
       ## WORK IN PROGRESS
-      include("testApproxConv.jl") # FIX
-      include("testBasicCSM.jl") # FIX, NLLsolver options has no field .defaultNumKernels
+
       include("testCSMMonitor.jl") # slow, FieldError: type IncrementalInference.NLLSSolver has no field `defaultNumKernels`; IncrementalInference.NLLSSolver has no fields at all. GraphInit.jlLn14 prepareState!
-      include("testJointEnforcement.jl") # FIX
       include("testSpecialOrthogonalMani.jl") # FIX
-      include("testPartialFactors.jl") # FIX
-      include("testPartialPrior.jl") # FIX
+
       include("testSpecialEuclidean2Mani.jl") # TBD
       include("testpartialconstraint.jl") # FIX
       include("testPartialNH.jl") # FIX
       include("testBasicParametric.jl") # FIX
 
-      include("testCalcFactorHypos.jl") # FIX
       include("testMultimodal1D.jl") # FIX numerics, skipped a test
-
       # include("testMultiprocess.jl")
-      include("testDeadReckoningTether.jl") # FIX convert vector to set, VariableDFG
     end
   end # test_cases_group
 
