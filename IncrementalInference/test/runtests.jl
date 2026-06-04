@@ -23,10 +23,11 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
     include("testMultiHypo3Door.jl") # FIX numerical
     include("testExpXstroke.jl") # FIX, init bw issue, addLikelihoodsDifferentialCHILD! LN327
     include("testCircular.jl") # FIX
+    include("testMultihypoAndChain.jl") # numerical issues
     include("testFluxModelsDistribution.jl")
     include("testMixturePrior.jl") # FIX, serde structutils issue with BinarTruckFixedDepth?
     include("testMixtureLinearConditional.jl") # FIX, use HomotopyDensity as replacement for Mixture
-    include("testMultihypoAndChain.jl") # numerical issues
+    include("testMixtureParametric.jl") #FIXME parametric mixtures #1787
 
     @error "See new DFG v0.29 JSON serde for variables and factors, old IIF serde tests currently disabled"
     if false
@@ -52,7 +53,7 @@ include("basicGraphsOperations.jl")
 include("testTreeSaveLoad.jl")
 
 # test convolution functions
-include("testApproxConv.jl")
+include("testApproxConv.jl") # FIX
 include("testBasicForwardConvolve.jl")
 
 include("testDefaultDeconv.jl")
@@ -63,7 +64,7 @@ include("testUseMsgLikelihoods.jl")
 
 @test_broken error("testSphereMani.jl broken") # include("testSphereMani.jl") # FIXME
 include("testBasicManifolds.jl")
-include("testSpecialOrthogonalMani.jl")
+include("testSpecialOrthogonalMani.jl") # FIX
 
 # gradient / jacobian tests
 #include("manifolds/manifolddiff.jl")
@@ -79,15 +80,15 @@ include("testTreeFunctions.jl")
 include("testCommonConvWrapper.jl") # skipped test with just ::Float point type 
 
 include("testStateMachine.jl")
-include("testBasicCSM.jl")
+include("testBasicCSM.jl") # FIX
 include("testCliqueFactors.jl")
 include("testCcolamdOrdering.jl")
 include("testCliqueTreesOrderings.jl")
-include("testJointEnforcement.jl")
+include("testJointEnforcement.jl") # FIX
 include("testHasPriors913.jl")
 include("testInitVariableOrder.jl")
 include("testTreeMessageUtils.jl")
-include("testCSMMonitor.jl")
+include("testCSMMonitor.jl") # FieldError: type IncrementalInference.NLLSSolver has no field `defaultNumKernels`; IncrementalInference.NLLSSolver has no fields at all. GraphInit.jlLn14 prepareState!
 include("testBasicRecycling.jl")
 include("testSkipUpDown.jl")
 include("testlocalconstraintexamples.jl")
@@ -97,8 +98,8 @@ include("testBasicTreeInit.jl")
 include("testSolveOrphanedFG.jl")
 include("testSolveKey.jl")
 
-include("testPartialFactors.jl")
-include("testPartialPrior.jl")
+include("testPartialFactors.jl") # FIX
+include("testPartialPrior.jl") # FIX
 
 ## WORK IN PROGRESS
 include("testSpecialEuclidean2Mani.jl") # TBD
@@ -113,18 +114,15 @@ if TEST_GROUP in ["all", "test_cases_group"]
 @testset "Test Cases Group" begin
 
 include("testnullhypothesis.jl") 
-include("testVariousNSolveSize.jl")
 include("testExplicitMultihypo.jl")
 include("TestCSMMultihypo.jl")
-include("testCalcFactorHypos.jl")
-include("testMultimodal1D.jl") # skipped a test
+include("testCalcFactorHypos.jl") # FIX
+include("testMultimodal1D.jl") # FIX numerics, skipped a test
 include("testMultithreaded.jl")
 include("testmultihypothesisapi.jl")
-include("fourdoortest.jl")
 include("testAnalysisTools.jl")
-
-
-# include("testMixtureParametric.jl") #FIXME parametric mixtures #1787
+include("testVariousNSolveSize.jl")
+include("fourdoortest.jl")
 
 # dont run test on ARM, as per issue #527
 if Base.Sys.ARCH in [:x86_64;]
@@ -132,7 +130,7 @@ if Base.Sys.ARCH in [:x86_64;]
 end
 
 # include("testMultiprocess.jl")
-include("testDeadReckoningTether.jl")
+include("testDeadReckoningTether.jl") # FIX convert vector to set, VariableDFG
 
 end
 end
