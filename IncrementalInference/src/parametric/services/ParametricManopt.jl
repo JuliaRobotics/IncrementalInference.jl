@@ -723,6 +723,7 @@ end
 
 function autoinitParametric!(dfg::AbstractDFG, xi::VariableCompute; solveKey = :parametric, kwargs...)
   initme = getLabel(xi)
+  prepareState!(xi, NLLSSolver(), solveKey)
   separators = ls2(dfg, initme)
   filter!(separators) do vl
     return hasState(dfg, vl, solveKey) && isInitialized(dfg, vl, solveKey)
@@ -742,8 +743,8 @@ function autoinitParametric!(
 )
 
   #
-  # initme = getLabel(xi)
-  prepareState!(xi, NLLSSolver(), solveKey)
+  # # initme = getLabel(xi)
+  # prepareState!(xi, NLLSSolver(), solveKey)
   # vnd = getState(xi, solveKey)
   # don't initialize a variable more than once
 #   if reinit || !isInitialized(xi, solveKey)
@@ -771,7 +772,7 @@ function autoinitParametric!(
 
   # DF kept this trying to resolve two PRs on parametric for IIF v0.38 (refac SolverParams and IIF v0.37.1 backport, during AMP v0.15.4)
   # FIXME, is this still needed?
-  if neighbor_seed
+  if false && neighbor_seed
     has_prior = any(isPrior.(dfg, listNeighbors(dfg, initme)))
     if !has_prior && !isempty(initfrom)
       # seed from the first initialized neighbor of the same variable type
@@ -783,6 +784,8 @@ function autoinitParametric!(
       # else: keep current state as fallback
     end
     # if has_prior: keep current state — prior will drive the solve
+  else
+    @warn "DX WARNING, merge conflict suppressed solve parametric neighbor seeding"
   end
 
 #     if perturb_point
