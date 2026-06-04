@@ -778,7 +778,7 @@ function buildTreeFromOrdering!(
   # copy required for both remote and local graphs
   DFG.deepcopyGraph!(fge, dfg)
 
-  @info "Building Bayes net..."
+  @debug "Building Bayes net..."
   buildBayesNet!(fge, elimOrder; solvable = solvable)
 
   tree = BayesTree()
@@ -793,7 +793,7 @@ function buildTreeFromOrdering!(
     close(fid)
   end
 
-  @info "Find potential functions for each clique"
+  @debug "Find potential functions for each clique"
   for cliqIds in getCliqueIds(tree)
     # start at the root, of which there could be multiple disconnected trees
     if isRoot(tree, cliqIds)
@@ -849,7 +849,7 @@ function prepBatchTreeOLD!(
 
   tree = buildTreeFromOrdering!(dfg, Symbol.(p); drawbayesnet = false) # drawbayesnet
 
-  @info "Bayes Tree Complete"
+  @debug "Bayes Tree Complete"
   if drawpdf
     drawTree(tree; show = show, filepath = filepath, viewerapp = viewerapp, imgs = imgs)
   end

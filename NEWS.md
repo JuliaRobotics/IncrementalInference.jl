@@ -11,7 +11,27 @@ Alternatively, either use the Github Blame, or the Github `/compare/v0.18.0...v0
 
 The list below highlights breaking changes according to normal semver workflow -- i.e. breaking changes go through at least one deprecatation (via warnings) on the dominant number in the version number.  E.g. v0.18 -> v0.19 (warnings) -> v0.20 (breaking).  Note that ongoing efforts are made to properly deprecate old code/APIs
 
-# Changes in v0.36
+# v0.37
+
+- Requires IIFTypes-v0.1.1.
+- Ongoing work towards `HomotopyDensity` and DistributedFactorGraphs v1.0, field name and serde changes #1892, #1900, #1920. (breaking changes)
+- Update `.val/bw` for DFGv1 `State` refactor towards `HomotopyDensityDFG` #1904, #1918. (breaking change)
+- Temporary refactoring `HomotopyDensity` topologies: `LeavesOnly / RootsOnly` -- DO NOT USE THESE, they will be deprecated as fast as possible. (breaking changes)
+- General refactor to support DistributedFactorGraphs v0.29. (breaking changes)
+- Improve filters `whereNoun` #1907 and `use` #1899.
+- Fix test issues #1905, #1898.
+- Deprecate nanosecondtime #1895. (breaking change)
+- Restore ForwardDiff support in parametric #1915.
+- Enhance variable ordering support w CliqueTrees.jl, #1906 / #1926.
+- use `DFG.@packed` macro and update `addVariable!` #1897.
+- `listSolveKeys` becomes `listStates` #8196.
+- `FactorState -> Recipestate + Receipehyper` #1894. (breaking change)
+
+# Types-v0.1.1
+
+- General maintenance and clean towards compat for DistributedFactorGraphs v0.29 (towards DFG v1.0)
+
+# v0.36
 - Split out IIFTypes as a separate module.
 - Update for Abstract types from DFG 1154.
 - Update to LieGroups.
@@ -21,7 +41,7 @@ The list below highlights breaking changes according to normal semver workflow -
 - Remove PPEs - use calcMeanMaxSuggested see #1885.
 
 
-# Changes in v0.35
+# v0.35
 
 - Standardize toward Manopt.jl (currently Riemannian Levenberg-Marquart), still have Optim.jl legacy support (#1784, #1778).
 - Much faster solves, both parametric and nonparametric (#1783, #1782, #1793).
@@ -36,7 +56,7 @@ The list below highlights breaking changes according to normal semver workflow -
 - Improve DERelative factor on-manifold operations (#1775, #1802, #1803).
 - Fixed a typo via deprecation, `solveFactorParametric` replaces `solveFactorParameteric`.
 
-# Changes in v0.34
+# v0.34
 
 - Start transition to Manopt.jl via Riemannian Levenberg-Marquart.
 - Deprecate `AbstractRelativeRoots`.
@@ -45,10 +65,10 @@ The list below highlights breaking changes according to normal semver workflow -
 - Restoring `DERelative` factors, through v0.34.1 and v0.34.2.
 - Switching to weakdep AMD.jl for `ccolmod` dependency, part of Julia 1.10 upgrade.  Dropping `SuiteSparse_long` dependency.  Further fixes necessary to restore full user constrained tree variable order functionality.
 
-# Changes in v0.33
+# v0.33
 
 - Upgrades for DFG using StructTypes.jl (serialization).
-# Changes in v0.32
+# v0.32
 
 - Major internal refactoring of `CommonConvWrapper` to avoid abstract field types, and better standardization; towards cleanup of internal multihypo handling and naming conventions.
 - Internal refactoring removing several legacy fields from `CalcFactor`.
@@ -60,7 +80,7 @@ The list below highlights breaking changes according to normal semver workflow -
 - Refactor interal hard type `HypoRecipe`.
 - Add `MetaPrior` for adding meta data but not influencing the numerical solution.
 
-# Changes in v0.31
+# v0.31
 - `FactorMetaData` is deprecated and replaced by `CalcFactor`.
 - Updated `Base.deepcopy_internal` fix for use with Julia 1.8.1, see #1629.
 - Added a few missing exports incl. `getTags`, `_update!, see #1626 #1628.
@@ -69,7 +89,7 @@ The list below highlights breaking changes according to normal semver workflow -
 - Add `SnoopPrecompile.jl` on a few basic solve features to start, see #1631.
 - Support n-ary parametric solving such as OAS factors.
 
-# Changes in v0.30
+# v0.30
 
 - `ArrayPartition` should be used instead of `ProductRepr`, see issue #1537.
 - Remove old deprecated option keywords in `addVariable` and `addFactor`.
@@ -78,11 +98,11 @@ The list below highlights breaking changes according to normal semver workflow -
 - Upgrade `initAll!(dfg, :parametric)`.
 - Refactor many files to subfolders `src/services` or `src/entities`.
 
-# Changes in v0.29
+# v0.29
 
 - Upgrade to Manifolds.jl v0.8
 - Deprecate `initManual!`, instead use `initVariable!`.
-# Changes in v0.28
+# v0.28
 
 - `HeatmapGridDensity` now only supports `ManifoldKernelDensity` functions.
 - `PackedHeatmapGridDensity` has an expanded fields to support future stash and cache serialization strategies.
@@ -91,7 +111,7 @@ The list below highlights breaking changes according to normal semver workflow -
 - Unpacking of `PackedManifoldKernelDensity` is more versatile with improved `.partial` and `.bw` options.
 - Bugfix on `multihypo=` which now includes `nullSurplus` on sibling relative factors to a variable with a `multihypo` factor, #1518.
 
-# Changes in v0.27
+# v0.27
 
 - InMemDFGType is deprecated in favor of LocalDFG (exported from DistributedFactorGraphs).
 - Factor serialization is now top level JSON only #1476.
@@ -106,13 +126,13 @@ The list below highlights breaking changes according to normal semver workflow -
 - Add distribution serialization for Rayleigh.
 - Add `Position{N}` and `Position1`..`Position4` as new standard and aliases for `ContinuousScalar`, `ContinuousEuclid{N}`.
 
-# Changes in v0.26
+# v0.26
 
 - Standarding (non-binding) easy factor dipatch cases so measurement field is under `.Z` (#1441).
 - `CalcFactor._allowThreads` can now be used as workaround for `Threads` yield blocking issue during first run (#1451).
 - Canonical graph generator API change to `generateGraph_ABC` (#1454).
 
-# Changes in v0.25
+# v0.25
 
 - Changed API to `testFactorResidualBinary(fct, meas::Tuple, (T_i, param_i),...)` to grow beyond binary.
 - PPE methods used keyword `method::AbstractPointParametricType` which is now replaced with the keyword `ppeType`.
@@ -128,23 +148,23 @@ The list below highlights breaking changes according to normal semver workflow -
 - `solveTree!` / `solveGraph!` now returns just one value `tree<:AbstractBayesTree`.  Previous version returned three values, `tree, smt, hist` (#1379).
 - **Note for v0.25.5** Serialization of newly introduced type `PackedHeatmapGridDensity` changed from v0.25.4, unlikely have yet been used publically, therefore emphasizing fastest possible standardization in this case (even though this particular event does not strictly follow semver).  General usage and operation is effectively unchanged,see #1435.
 
-# Changes in v0.24
+# v0.24
 
 - Update compat for ManifoldsBase.jl v0.11 with `AbstractManifold`.
 - Transition to only `getManifold` (instead of `getManifolds`), thereby moving towards exclusively using Manifolds.jl, see #1234.
 - Deprecate use of `getFactorMean`, use `IIF.getParametricMeasurement` instead.
 - Upstreamed `is/set Marginalized` to DFG (#1269).
-# Changes in v0.23
+# v0.23
 
 - New `@defVariable` only uses `ManifoldsBase.Manifold` as base abstraction for variable types.
-# Changes in v0.22
+# v0.22
 
 - Work in progress toward `ManifoldsBase.Manifold` as base abstraction for variable types.
-# Changes in v0.21
+# v0.21
 
 - `CalcResidual` no longer takes a `residual` as input parameter and should return `residual`, see #467 .
 
-# Changes in v0.20
+# v0.20
 
 - The user factor API call strategy has been simplified via `CalcResidual`, see #467 for details.
 - User factor API for `getSample` and `.specialsampler` has been standardized via `CalcResidual` (#927) -- for ongoing work please follow #1099 and #1094 and #1069.
