@@ -4,11 +4,11 @@
 # short preamble funcions
 ## =============================================================================
 
-function convert(::Type{<:ManifoldKernelDensity}, src::TreeBelief)
-  return manikde!(getManifold(src.variableType), src.val; bw = src.bw[:, 1])
-end
+convert(
+  ::Type{<:ApproxManifoldProducts.HomotopyDensity}, 
+  src::TreeBelief,
+) = HomotpyDensity_legacy(src)
 
-manikde!(em::TreeBelief) = convert(ManifoldKernelDensity, em)
 
 ## =============================================================================
 # helper functions for tree message channels
@@ -75,8 +75,16 @@ function updateSubFgFromDownMsgs!(
   # update specific variables in sfg from msgs
   for (key, beldim) in dwnmsgs.belief
     if key in seps
-      newBel = manikde!(getManifold(beldim.variableType), beldim.val; bw = beldim.bw[:, 1])
-      setValKDE!(sfg, key, newBel, false, beldim.infoPerCoord)
+      statekind = getStateKind(beldim.variableType)
+      # @info "WHAT" beldim.bw[:, 1] beldim.bw[1]
+      newBel = HomotopyDensity_legacy(
+        statekind, 
+        beldim.val; 
+        bw = beldim.bw,
+        observability = beldim.infoPerCoord
+      )
+      setBelief!(getVariable(sfg, key), newBel)
+      # setValKDE!(sfg, key, newBel, false, beldim.infoPerCoord)
     end
   end
 
@@ -84,8 +92,8 @@ function updateSubFgFromDownMsgs!(
 end
 
 function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
-  kdePr = manikde!(getManifold(belief_.variableType), belief_.val; bw = belief_.bw[:, 1])
-  return MsgPrior(kdePr, belief_.infoPerCoord, getManifold(belief_))
+  hode = HomotopyDensity_legacy(belief_)
+  return MsgPrior(hode, belief_.infoPerCoord, getManifold(belief_))
 end
 
 function generateMsgPrior(belief_::TreeBelief, ::ParametricMessage)
@@ -316,8 +324,8 @@ function addLikelihoodsDifferentialCHILD!(
           pred_X, = approxDeconv(tfg, afc.label, solveKey)  # solveFactorMeasurements
           M = getManifold(_sft)
           e0 = getPointIdentity(M)
-          pts = exp.(Ref(M), Ref(e0), pred_X)
-          newBel = manikde!(sft, pts)
+          pts = exp.(Ref(M), Ref(e0), pred_X) # FIXME, LieGroups vs Manifolds
+          newBel = HomotopyDensity_legacy(getManifold(_sft), pts) # FIXME HoDe for factors?
           # replace dummy factor with real deconv factor using manikde approx belief measurement
           fullFct = _sft(newBel)
           deleteFactor!(tfg, afc.label)

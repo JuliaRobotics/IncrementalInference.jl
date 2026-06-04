@@ -2,9 +2,6 @@
 #  IIF methods should direclty detect extended types from user import
 # of convert in their namespace
 
-# FIXME, upgrade to AMP instead
-KDE.getPoints(dfg::AbstractDFG, lbl::Symbol) = getBelief(dfg, lbl) |> getPoints
-
 clampStringLength(st::AbstractString, len::Int = 5) = st[1:minimum([len; length(st)])]
 
 function clampBufferString(
@@ -89,26 +86,7 @@ _getZDim(fct::FactorCompute) = DFG.getObservation(fct) |> _getZDim
 
 DFG.getDimension(fct::FactorCompute) = _getZDim(fct)
 
-"""
-    $SIGNATURES
 
-Return the manifold on which this ManifoldKernelDensity is defined.
-
-DevNotes
-- TODO currently ignores the .partial aspect (captured in parameter `L`)
-"""
-function getManifold(
-  mkd::ManifoldKernelDensity{M, B, Nothing},
-  asPartial::Bool = false,
-) where {M, B}
-  return mkd.manifold
-end
-function getManifold(
-  mkd::ManifoldKernelDensity{M, B, L},
-  asPartial::Bool = false,
-) where {M, B, L <: AbstractVector}
-  return asPartial ? mkd.manifold : getManifoldPartial(mkd.manifold, mkd._partial)
-end
 
 """
     $TYPEDSIGNATURES
@@ -122,23 +100,6 @@ DevNotes
 getFactorDim(w...) = getDimension(w...)
 getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid))
 
-# extend convenience function (Matrix or Vector{P})
-function manikde!(
-  variableType::Union{InstanceType{<:StateType}, InstanceType{<:AbstractObservation}},
-  pts::AbstractVector{P};
-  kw...,
-) where {P <: Union{<:AbstractArray, <:Number, <: ArrayPartition}}
-  #
-  M = getManifold(variableType)
-  # @info "pts" P typeof(pts[1]) pts[1]
-  infoPerCoord = ones(AMP.getNumberCoords(M, pts[1]))
-  return AMP.manikde!(M, pts; infoPerCoord, kw...)
-end
-
-function manikde!(varT::InstanceType{<:StateType}, pts::AbstractVector{<:Tuple}; kw...)
-  #
-  return manikde!(varT, (t -> ArrayPartition(t...)).(pts); kw...)
-end
 
 """
     $SIGNATURES
@@ -213,39 +174,6 @@ end
 # WIP
 # _getMeasurementRepresentation(::AbstractPriorObservation, coord::AbstractVector{<:Number}) = 
 
-"""
-    $SIGNATURES
-
-Get the ParametricPointEstimates---based on full marginal belief estimates---of a variable in the distributed factor graph.
-Calculate new Parametric Point Estimates for a given variable.
-
-
-DevNotes
-- TODO update for manifold subgroups.
-- TODO standardize after AMP3D
-"""
-function calcMeanMaxSuggested(vari::VariableCompute, solveKey::Symbol = :default)
-  varType = getStateKind(vari)
-  P = getBelief(vari, solveKey)
-  maniDef = convert(MB.AbstractManifold, varType)
-  manis = AMP._manifoldtuple(maniDef) # LEGACY, TODO REMOVE
-  ops = buildHybridManifoldCallbacks(manis)
-  Pme = calcMean(P)  # getKDEMean(P) #, addop=ops[1], diffop=ops[2]
-
-  # returns coordinates at identify
-  Pma = getKDEMax(P; addop = ops[1], diffop = ops[2])
-  # calculate point
-
-  ## TODO use getCoordinates for now (IIF v0.25)
-  Pme_ = getCoordinates(varType, Pme)
-  # Pma_ = getCoordinates(M,Pme)
-
-  return (mean = Pme_, max = Pma, suggested = Pme_)
-end
-
-function calcMeanMaxSuggested(dfg::AbstractDFG, label::Symbol, solveKey::Symbol = :default)
-  return calcMeanMaxSuggested(getVariable(dfg, label), solveKey)
-end
 
 """
     $SIGNATURES

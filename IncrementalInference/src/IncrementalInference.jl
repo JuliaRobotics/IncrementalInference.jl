@@ -8,10 +8,9 @@ using Distributed
 using Reexport
 
 @reexport using Distributions
-@reexport using KernelDensityEstimate
 @reexport using ApproxManifoldProducts
-# @reexport using Graphs
-@reexport using LinearAlgebra
+using LinearAlgebra
+# export LinearAlgebra.I, LinearAlgebra.diag, LinearAlgebra.diagm
 
 import Manifolds
 using Manifolds:
@@ -91,28 +90,20 @@ using MetaGraphs
 using Logging
 using PrecompileTools
 
-# JL 1.10 transition to IncrInfrApproxMinDegreeExt instead
-# # bringing in BSD 3-clause ccolamd
-# include("services/ccolamd.jl")
-# using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
-# using .Ccolamd
-
 # likely overloads or not exported by the upstream packages
 import Base: convert, ==, getproperty
-import Distributions: sample
+# import Distributions: sample
 import Random: rand, rand!
-import KernelDensityEstimate: getBW
-import KernelDensityEstimate: getPoints
-import ApproxManifoldProducts: kde!, manikde!
-import ApproxManifoldProducts: getBW
+import ApproxManifoldProducts: getBW, sample
 import ApproxManifoldProducts: mmd
 import ApproxManifoldProducts: isPartial
-import ApproxManifoldProducts: _update!
+import ApproxManifoldProducts: HomotopyDensity, HomotopyDensity_legacy
+# import DistributedFactorGraphs: HomotopyDensityDFG
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare
 import DistributedFactorGraphs: getDimension, getManifold, getPointType, getPointIdentity
 import DistributedFactorGraphs: getPoint, getCoordinates
-import DistributedFactorGraphs: getStateKind
+import DistributedFactorGraphs: getStateKind, getManifold
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 import DistributedFactorGraphs: getObservation
 import DistributedFactorGraphs: solveGraph!, solveGraphParametric!
@@ -125,7 +116,6 @@ import DistributedFactorGraphs: isSolvable
 DFG.@usingDFG true
 
 # must be moved to their own repos
-const KDE = KernelDensityEstimate
 const MB = ManifoldsBase
 const AMP = ApproxManifoldProducts
 const FSM = FunctionalStateMachine
@@ -140,13 +130,11 @@ const BeliefArray{T} = Union{<:AbstractMatrix{<:T}, <:Adjoint{<:T, AbstractMatri
 
 # Package aliases
 # FIXME, remove this and let the user do either import or const definitions
-export KDE, AMP, DFG, FSM, IIF
+export AMP, DFG, FSM, IIF
 
 # include("../IncrementalInferenceTypes/src/IncrementalInferenceTypes.jl")
 @reexport using IncrementalInferenceTypes
 
-# TODO temporary for initial version of on-manifold products
-KDE.setForceEvalDirect!(true)
 
 include("ExportAPI.jl")
 
@@ -157,8 +145,10 @@ include("ExportAPI.jl")
 abstract type AbstractRelativeMinimize <: RelativeObservation end
 abstract type AbstractManifoldMinimize <: RelativeObservation end
 
-# regular
+# JL 1.13.0-rc1 is sensitive to order of symbol definitions 
+include("DeprecatedBefore.jl")
 
+# regular functions
 include("entities/HypoRecipe.jl")
 include("entities/CalcFactor.jl")
 include("entities/FactorOperationalMemory.jl")
@@ -190,6 +180,7 @@ include("entities/CliqueTypes.jl")
 include("entities/JunctionTreeTypes.jl")
 
 include("services/JunctionTree.jl")
+include("services/HomotopyDensityInterface.jl")
 include("services/GraphInit.jl")
 include("services/FactorGraph.jl")
 include("services/BayesNet.jl")
@@ -281,10 +272,10 @@ include("Deprecated.jl")
 @compile_workload begin
   # In here put "toy workloads" that exercise the code you want to precompile
   fg = generateGraph_Kaess()
-  initAll!(fg)
-  solveGraph!(fg)
-  initParametricFrom!(fg, :default)
-  solveGraphParametric!(fg)
+#   initAll!(fg) # FIXME
+#   solveGraph!(fg)
+#   initParametricFrom!(fg, :default)
+#   solveGraphParametric!(fg)
 end
 
 export setSerializationNamespace!, getSerializationModule, getSerializationModules

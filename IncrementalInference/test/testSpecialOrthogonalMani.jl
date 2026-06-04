@@ -1,3 +1,5 @@
+##
+
 using DistributedFactorGraphs
 using IncrementalInference
 using LineSearches
@@ -15,6 +17,7 @@ using Test
 # @defStateType SpecialOrthogonal2 SpecialOrthogonal(2) @MMatrix([1.0 0.0; 0.0 1.0])
 @defStateType SpecialOrthogonal2 SpecialOrthogonalGroup(2) SMatrix{2,2}(1.0, 0.0, 0.0, 1.0)
 
+##
 M = getManifold(SpecialOrthogonal2)
 @test M == SpecialOrthogonalGroup(2)
 pT = getPointType(SpecialOrthogonal2)
@@ -32,13 +35,34 @@ v0 = addVariable!(fg, :x0, SpecialOrthogonal2)
 mp = ManifoldPrior(SpecialOrthogonalGroup(2), SA[1.0 0.0; 0.0 1.0], MvNormal([0.0001;;]))
 p = addFactor!(fg, [:x0], mp)
 
+## depends on how much init, this test might be premature
+
+# FIXME, no need to have default values in state so early in variable life
+state = getState(fg, :x0, :default)
+@test isapprox([1 0; 0 1], mean(state.belief); atol=1e-6)
+state = getState(fg, :x0, :parametric)
+@test isapprox([1 0; 0 1], mean(state.belief); atol=1e-6)
+
+
 ##
+
+fc = getFactor(fg, :x0f1)
+proposal = approxConvBelief(fg, fc, :x0)
+
+@test getStateKind(proposal) isa SpecialOrthogonal2
+@test 0 < Npts(proposal)
+@test 0 < length(getWeights(proposal; permute=false))
 
 doautoinit!(fg, :x0)
 
-vnd = getState(fg, :x0, :default)
-@test all(isapprox.(mean(DFG.refPoints(vnd)), [1 0; 0 1], atol=0.1))
-@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
+state = getState(fg, :x0, :default)
+
+X0 = getBelief(state)
+@test 0 < Npts(X0)
+@test 0 < length(getWeights(X0; permute=false))
+@test all(isapprox.(mean(X0), [1 0; 0 1], atol=0.1))
+@test all(is_point.(Ref(M), getPoints(X0, false)))
+@test DistributedFactorGraphs.isInitialized(fg, :x0, :default)
 
 
 ##
@@ -49,27 +73,36 @@ f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
 
+X1 = getBelief(fg, :x1)
+
 ##
-# smtasks = Task[]
-solveTree!(fg) #; smtasks, verbose=true, recordcliqs=ls(fg))
-# hists = fetchCliqHistoryAll!(smtasks);
+
+ApproxManifoldProducts.sample(X1)
+
+##
+
+smtasks = Task[]
+solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
+hists = fetchCliqHistoryAll!(smtasks);
 # SArray 0.763317 seconds (2.36 M allocations: 160.488 MiB, 4.16% gc time)
 # Vector 0.786390 seconds (2.41 M allocations: 174.334 MiB, 3.97% gc time)
 # Vector 0.858993 seconds (2.42 M allocations: 176.613 MiB, 3.43% gc time) sample not tuple  
+
 ##
 
 end
 
 
 @testset "Test SpecialOrthogonalGroup(3) prior" begin
-
 ##
 
 # Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{3}) = (:Euclid, :Euclid, :Euclid)
 # Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{SpecialOrthogonal{3}})  =  (:Euclid, :Euclid, :Euclid)
 
 # @defStateType SO3 SpecialOrthogonalGroup(3) @MMatrix([1.0 0.0; 0.0 1.0])
-@defStateType SO3 SpecialOrthogonalGroup(3) SMatrix{3,3}(1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0)
+@defStateType SO3 SpecialOrthogonalGroup(3) SMatrix{3,3}(diagm(ones(3)))
+
+##
 
 M = getManifold(SO3)
 @test M == SpecialOrthogonalGroup(3)
@@ -83,16 +116,21 @@ pϵ = getPointIdentity(SO3)
 
 fg = initfg()
 
+##
+
 v0 = addVariable!(fg, :x0, SO3)
 
 mp = ManifoldPrior(SpecialOrthogonalGroup(3), SA[1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0], MvNormal(diagm([0.01, 0.01, 0.01].^2)))
 p = addFactor!(fg, [:x0], mp)
 
+
+##
 doautoinit!(fg, :x0)
 
-vnd = getState(fg, :x0, :default)
-@test all(isapprox.( mean(SpecialOrthogonalGroup(3),DFG.refPoints(vnd)), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
-@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
+##
+state = getState(fg, :x0, :default)
+@test all(isapprox.( mean(state.belief), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
+@test all(is_point.(Ref(M), getPoints(state.belief)))
 
 points = sampleFactor(fg, :x0f1, 100)
 _M = SpecialOrthogonalGroup(3)
@@ -106,23 +144,31 @@ f = addFactor!(fg, [:x0, :x1], mf)
 
 doautoinit!(fg, :x1)
 
-vnd = getState(fg, :x1, :default)
-@test all(isapprox.( mean(SpecialOrthogonalGroup(3),DFG.refPoints(vnd)), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
-@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
+state = getState(fg, :x1, :default)
+@test all(isapprox.( mean(state.belief), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
+@test all(is_point.(Ref(M), getPoints(state.belief)))
 
-# smtasks = Task[]
-solveTree!(fg) # ; smtasks, verbose=true, recordcliqs=ls(fg))
+##
+
+smtasks = Task[]
+solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
 
 # test them again after solve
-vnd = getState(fg, :x0, :default)
-@test all(isapprox.( mean(SpecialOrthogonalGroup(3),DFG.refPoints(vnd)), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
-@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
+state = getState(fg, :x0, :default)
+@test all(isapprox.( mean(state.belief), [1 0 0; 0 1 0; 0 0 1], atol=0.01))
+@test all(is_point.(Ref(M), getPoints(state.belief)))
 
-vnd = getState(fg, :x1, :default)
-@test all(isapprox.( mean(SpecialOrthogonalGroup(3),DFG.refPoints(vnd)), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
-@test all(is_point.(Ref(M), DFG.refPoints(vnd)))
+state = getState(fg, :x1, :default)
+@test all(isapprox.( mean(state.belief), [0.9999 -0.00995 0.01005; 0.01005 0.9999 -0.00995; -0.00995 0.01005 0.9999], atol=0.01))
+@test all(is_point.(Ref(M), getPoints(state.belief)))
 
-IIF.solveGraphParametric!(fg)
+##
+# 23Q2 default HagerZhang fails with `AssertionError: isfinite(phi_c) && isfinite(dphi_c)`, using alternate LineSearch
+IIF.solveGraphParametric!(
+  fg;
+  # algorithmkwargs=(;alphaguess = LineSearches.InitialStatic(), linesearch = LineSearches.MoreThuente()),
+  # verbose=true
+)
 
 ##
 end

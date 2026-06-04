@@ -29,7 +29,7 @@ function LinearRelative(nm::Distributions.ContinuousUnivariateDistribution)
   return LinearRelative{1, typeof(nm)}(nm)
 end
 LinearRelative(nm::MvNormal) = LinearRelative{length(nm.μ), typeof(nm)}(nm)
-function LinearRelative(nm::Union{<:BallTreeDensity, <:ManifoldKernelDensity})
+function LinearRelative(nm::ApproxManifoldProducts.HomotopyDensity)
   return LinearRelative{Ndim(nm), typeof(nm)}(nm)
 end
 LinearRelative(z) = LinearRelative{length(z)}(z)

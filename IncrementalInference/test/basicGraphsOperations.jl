@@ -1,10 +1,13 @@
+##
+
 using IncrementalInference
 using InteractiveUtils
 using Test
+using LieGroups
 
 ##
 
-@testset "test the basics" begin
+@testset "test add Variable and Factor, also exists" begin
 ##
 
 fg = initfg()
@@ -22,26 +25,20 @@ addFactor!(fg, [:x2], Prior(Normal()), graphinit=false)
 end
 
 
-@testset "test manikde! constructions on variableType" begin
+@testset "test HomotopyDensity_legacy constructions on variableType" begin
 ##
 
 pts = [randn(1) for _ in 1:100]
 varT = LinearRelative(Normal(1.0))
-manikde!(varT, pts)
+# HomotopyDensity_legacy(varT, pts)
 
 
 DFG.@defStateType _TestManiKde SpecialEuclideanGroup(2; variant=:right) ArrayPartition([0;0.], [1 0; 0 1.])
 
 # construct directly with ArrayPartition
-pts = [ArrayPartition(randn(2), [1 0; 0 1.]) for _ in 1:100]
-varT = _TestManiKde
-manikde!(varT, pts)
-
-# construct indirectly via tuple (expect users only, not meant for general use)
-pts = [(randn(2), [1 0; 0 1.]) for _ in 1:100]
-varT = _TestManiKde
-manikde!(varT, pts)
-
+pts = [ArrayPartition(randn(2), [1 0; 0 1.]) for _ in 1:64]
+varT = _TestManiKde()
+HomotopyDensity_legacy(varT, pts)
 
 ##
 end
@@ -50,7 +47,7 @@ end
 @testset "test InteractiveUtilsExt" begin
 ##
 
-IIF.listTypeTree(RelativeObservation)
+IIF.listTypeTree(IncrementalInference.DistributedFactorGraphs.RelativeObservation)
 
 IIF.getCurrentWorkspaceFactors()
 IIF.getCurrentWorkspaceVariables()

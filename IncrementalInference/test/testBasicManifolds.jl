@@ -1,8 +1,9 @@
 
 # test Manifolds
 
-using Manifolds
 using Test
+using Manifolds
+using LieGroups
 
 ##
 

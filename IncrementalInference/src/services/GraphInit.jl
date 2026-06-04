@@ -7,27 +7,29 @@ end
 """
     $SIGNATURES
 
-Create an uninitialized nonparametric `State` on variable `v` with `num_kernels` identity-element particles.
+Create an uninitialized `State` on variable `v` with `num_kernels` identity-element particles.
 
 See also: [`prepare!`](@ref), [`initAll!`](@ref)
 """
 function prepareState!(
   v::VariableCompute,
-  solver::NPBPSolver,
+  solver::Union{<:NPBPSolver, <:NLLSSolver},
   statelabel::Symbol;
-  num_kernels::Int = solver.defaultNumKernels,
+  num_kernels::Int = solver.defaultNumKernels, # ensure 1 for parametric case
   varType::StateType = DFG.getStateKind(v),
 )
+  # work around during consolidation
+  _nkrs = solver isa NLLSSolver ? 1 : num_kernels
+  
   hasState(v, statelabel) && return 0
   dims = getDimension(v)
   @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defStateType $varType arguments is correct"
-  val = [getPointIdentity(varType) for _ in 1:num_kernels]
-  bw = zeros(dims, 1)
-  belief = DFG.HomotopyDensityDFG(
-    LeavesOnlyTopology(),
-    varType;
-    points = val,
-    trailing_forms = sparsevec(Dict(1 => bw)),
+  ϵ = getPointIdentity(varType)
+  belief = HomotopyDensity_legacy(
+    varType, 
+    [ϵ for _ in 1:_nkrs]; 
+    bw = zeros(dims), 
+    newbw = false
   )
   mergeState!(
     v,
@@ -35,32 +37,25 @@ function prepareState!(
   )
   return 1
 end
-
-"""
-    $SIGNATURES
-
-Create an uninitialized parametric `State` on variable `v` (single mean + covariance).
-
-See also: [`prepare!`](@ref), [`initAll!`](@ref)
-"""
-function prepareState!(
-  v::VariableCompute,
-  ::NLLSSolver,
-  statelabel::Symbol;
-  varType::StateType = DFG.getStateKind(v),
-)
-  hasState(v, statelabel) && return 0
-  dims = getDimension(v)
-  ϵ = getPointIdentity(varType)
-  belief = DFG.HomotopyDensityDFG(
-    RootsOnlyTopology(),
-    varType;
-    principal_elements = [ϵ],
-    principal_forms = [zeros(dims, dims)],
-  )
-  mergeState!(v, State(statelabel, varType; belief))
-  return 1
-end
+  # TODO review and refactor this function, exists as legacy from pre-v0.3.0
+  # this should be the only function allocating memory for the node points (unless number of points are changed)
+  # (val, bw) = if initialized
+  #   pN = getBelief(v)
+  #   bw = getBW(pN)[1]
+  #   pNpts = getPoints(pN)
+  #   isinit = true
+  #   (pNpts, bw)
+  # else
+  #   sp = round.(Int, range(dodims; stop = dodims + dims - 1, length = dims))
+  #   @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defStateType $varType arguments is correct"
+  #   val = Vector{getPointType(varType)}(undef, N)
+  #   for i = 1:length(val)
+  #     val[i] = getPointIdentity(varType)
+  #   end
+  #   bw = diagm(ones(dims))
+  #   #
+  #   (val, bw)
+  # end
 
 """
     $SIGNATURES
@@ -272,11 +267,13 @@ function doautoinit!(
         # while the propagate step might allow large point counts, the graph should stay restricted to N
         bel_ =
           Npts(bel) == getSolverParams(dfg).N ? bel : resample(bel, getSolverParams(dfg).N)
-        # @info "MANIFOLD IS" bel.manifold isPartial(bel) string(bel._partial) string(getPoints(bel, false)[1]) 
-        setValKDE!(xi, bel_, true, ipc; solveKey) # getPoints(bel, false)
+        setBelief!(xi, bel_; solveKey) # TODO, update to stateLabel
+        state = getState(xi, solveKey)
+        state.initialized = true
+
         # Update the data in the event that it's not local
         # TODO perhaps use merge, but keeping to deepcopy as update variant used was set to copy.
-        DFG.copytoState!(dfg, xi.label, solveKey, getState(xi, solveKey))
+        DFG.copytoState!(dfg, xi.label, solveKey, state)
         # deepcopy graphinit value, see IIF #612
         DFG.copytoState!(
           dfg,
@@ -383,7 +380,7 @@ DevNotes
 """
 function initVariable!(
   variable::VariableCompute,
-  ptsArr::ManifoldKernelDensity,
+  ptsArr::ApproxManifoldProducts.HomotopyDensity,
   solveKey::Symbol = :default;
   # dontmargin::Bool = false,
   N::Int = length(getPoints(ptsArr)),
@@ -391,13 +388,13 @@ function initVariable!(
   #
   @debug "initVariable! $(getLabel(variable))"
   prepareState!(variable, NPBPSolver(), solveKey; num_kernels=N)
-  setValKDE!(variable, ptsArr, true; solveKey = solveKey)
+  setValKDE!(variable, ptsArr, true; solveKey)
   return nothing
 end
 function initVariable!(
   dfg::AbstractDFG,
   label::Symbol,
-  belief::ManifoldKernelDensity,
+  belief::ApproxManifoldProducts.HomotopyDensity,
   solveKey::Symbol = :default;
   # dontmargin::Bool = false,
   N::Int = getSolverParams(dfg).N,
@@ -476,9 +473,9 @@ function initVariable!(
   _prodrepr(pt) = pt
   # _prodrepr(pt::Tuple) = Manifolds.ProductRepr(pt...)
   _prodrepr(pt::Tuple) = ArrayPartition(pt...)
-
-  M = getManifold(vari)
-  pp = manikde!(M, _prodrepr.(pts); bw)
+  _bw = bw === nothing ? zeros(getDimension(vari)) : bw
+  M = getStateKind(vari)
+  pp = HomotopyDensity_legacy(M, _prodrepr.(pts); bw=_bw, newbw=false)
   return initVariable!(vari, pp, solveKey)
 end
 

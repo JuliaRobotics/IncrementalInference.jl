@@ -2,6 +2,8 @@ module IncrInfrInterpolationsExt
 
 @info "IncrementalInference.jl is loading extensions related to Interpolations.jl."
 
+using Distributions
+# import Distributions: sample
 using Interpolations
 using Statistics
 using DocStringExtensions

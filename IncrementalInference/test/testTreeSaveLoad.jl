@@ -14,6 +14,7 @@ fg = generateGraph_Kaess(graphinit=false)
 tree = buildTreeReset!(fg)
 
 # save and load tree
+mkpath(joinpath(tempdir(), "caesar"))
 saveTree(tree)
 tree2 = loadTree()
 

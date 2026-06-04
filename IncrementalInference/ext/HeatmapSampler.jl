@@ -110,7 +110,7 @@ Base.show(io::IO, ::MIME"application/prs.juno.inline", x::LevelSetGridNormal) = 
 getManifold(hgd::HeatmapGridDensity) = getManifold(hgd.densityFnc)
 getManifold(lsg::LevelSetGridNormal) = getManifold(lsg.heatmap)
 
-AMP.sample(hgd::HeatmapGridDensity, w...; kw...) = sample(hgd.densityFnc, w...; kw...)
+sample(hgd::HeatmapGridDensity, w...; kw...) = sample(hgd.densityFnc, w...; kw...)
 
 """
     $SIGNATURES
@@ -142,11 +142,12 @@ end
 # TODO make n-dimensional, and later on-manifold
 # TODO better standardize for heatmaps on manifolds w MKD
 function fitKDE(
-  support,
-  weights,
+  support::AbstractVector,
+  weights::AbstractVector{<:Real},
   x_grid::AbstractVector{<:Real},
   y_grid::AbstractVector{<:Real};
   bw_factor::Real = 0.7,
+  manifold = LieGroups.TranslationGroup(2),
 )
   #
   # 1. set the bandwidth 
@@ -155,7 +156,13 @@ function fitKDE(
   kernel_ = bw_factor * 0.5 * (x_spacing + y_spacing) # 70% of the average spacing
   kernel_bw = [kernel_; kernel_]                  # same bw in x and y
   # fit KDE
-  return kde!(support, kernel_bw, weights)
+  return HomotopyDensity_legacy(
+    manifold,
+    support;
+    bw = kernel_bw, 
+    newbw = false,
+    weights,
+  )
 end
 
 # Helper function to construct HGD
@@ -170,15 +177,23 @@ function HeatmapGridDensity(
 )
   #
   pos, weights_ = sampleHeatmap(field_on_grid, domain..., 0)
+  ndims = length(pos[1])
+  M = LieGroups.TranslationGroup(ndims)
   # recast to the appropriate shape
-  @cast support_[i, j] := pos[j][i]
+  # @cast support_[i, j] := pos[j][i]
 
   # constuct a pre-density from which to draw intermediate samples
   # TODO remove extraneous collect()
-  density_ = fitKDE(collect(support_), weights_, domain...; bw_factor = bw_factor)
-  pts_preIS, = sample(density_, N)
-
-  @cast vec_preIS[j][i] := pts_preIS[i, j]
+  density_ = fitKDE(
+    pos, 
+    weights_, 
+    domain...; 
+    bw_factor,
+    manifold=M
+  )
+  vec_preIS, = sample(density_, N)
+  # @info "WHAT" typeof(pts_preIS) size(pts_preIS)
+  # @cast vec_preIS[j][i] := pts_preIS[i, j]
 
   # weight the intermediate samples according to interpolation of raw field_on_grid
   # interpolated heatmap
@@ -200,10 +215,19 @@ function HeatmapGridDensity(
 
   # final samplable density object
   # TODO better standardize for heatmaps on manifolds
-  bw = getBW(density_)[:, 1]
-  @cast pts[i, j] := vec_preIS[j][i]
-  bel = kde!(collect(pts), bw, weights)
-  density = ManifoldKernelDensity(LieGroups.TranslationGroup(Ndim(bel)), bel)
+  bw = getBW(density_)[1]
+  density = HomotopyDensity_legacy(
+    M,
+    vec_preIS;
+    bw,
+    weights
+  )
+  # @cast pts[i, j] := vec_preIS[j][i]
+  # bel = kde!(collect(pts), bw, weights)
+  # density = ManifoldKernelDensity(
+  #   LieGroups.TranslationGroup(Ndim(bel)), 
+  #   bel
+  # )
 
   # return `<:SamplableBelief` object
   return HeatmapGridDensity(field_on_grid, domain, hint_callback, bw_factor, density)

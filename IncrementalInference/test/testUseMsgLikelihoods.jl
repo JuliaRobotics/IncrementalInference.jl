@@ -76,7 +76,7 @@ IIF.addMsgFactors!(cfg, beliefMsg5, IIF.UpwardPass)
 fct = cfg[:x0x6f1]
 fT = getObservation(fct)
 @test fT isa LinearRelative
-@test fT.Z isa MKD
+@test fT.Z isa HomotopyDensity
 
 ##
 

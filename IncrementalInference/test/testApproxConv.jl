@@ -23,11 +23,13 @@ ccw = IIF._getCCW(fg, :x0x1f1)
 
 @test IIF._getZDim(ccw) == 3
 
+##
+
 res = calcFactorResidualTemporary(lr3,
                                   (ContinuousEuclid{3},ContinuousEuclid{3}),
                                   [0;0;0.5],
                                   (zeros(3), [0;0;1.0])  )
-#
+##
 
 @test (sum(abs.(res)) - 0.5) < 1e-10
 
@@ -89,6 +91,8 @@ fg = initfg()
 addVariable!(fg, :x0, ContinuousEuclid{2})
 pp = PartialPrior(ContinuousEuclid{2}, Normal(),(2,))
 addFactor!(fg, [:x0], pp, graphinit=false)
+
+##
 
 approxConvBelief(fg, :x0f1, :x0)
 

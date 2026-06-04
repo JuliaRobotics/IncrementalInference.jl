@@ -35,8 +35,8 @@ function mmd(
 end
 
 function mmd(
-  p1::ManifoldKernelDensity,
-  p2::ManifoldKernelDensity,
+  p1::ApproxManifoldProducts.HomotopyDensity,
+  p2::ApproxManifoldProducts.HomotopyDensity,
   nodeType::Union{InstanceType{<:StateType}, InstanceType{<:AbstractObservation}},
   threads::Bool = true;
   bw::AbstractVector{<:Real} = SA[0.001;],
@@ -118,8 +118,9 @@ function updateFGBT!(
     with_logger(logger) do
       @info "updateFGBT! up -- update $id, infoPerCoord=$(dat.infoPerCoord)"
     end
-    updvert = DFG.getVariable(fg, id)
-    setValKDE!(updvert, deepcopy(dat), true) ## TODO -- not sure if deepcopy is required
+    vrb = getVariable(fg, id)
+    # @info "DAT" dat
+    setValKDE!(vrb, deepcopy(dat), true) ## TODO -- not sure if deepcopy is required
   end
   with_logger(logger) do
     @info "updateFGBT! up -- updated $(getLabel(cliq))"

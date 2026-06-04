@@ -73,6 +73,8 @@ function _dbgCSMSaveSubFG(csmc::CliqStateMachineContainer, filename::String)
     if !ispath(folder)
       mkpath(folder)
     end
+    @warn "_dbgCSMSaveSubFG is disabled as part of the DFG v0.29 and AMP v0.15 reconciliation/refactor/upgrade" maxlog=10
+    return opt.dbg
     # NOTE there was a bug using saveDFG, so used serialize, left for future use  
     # serialize(joinpath(folder, filename), csmc.cliqSubFg)
     DFG.saveDFG(csmc.cliqSubFg, joinpath(folder, filename))
@@ -400,6 +402,11 @@ function approxCliqMarginalUp!(
     end
     retdict =
       upGibbsCliqueDensity(fg_, cliq, csmc.solveKey, childmsgs, N, dbg, iters, logger)
+
+    # DEBUG ON THE FLY
+    Bs = [HomotopyDensity_legacy(b) for (l,b) in retdict]
+    # @info "DX bw" string.(getBandwidth.(Bs))
+
   end
 
   with_logger(logger) do

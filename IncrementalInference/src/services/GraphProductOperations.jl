@@ -18,49 +18,39 @@ function propagateBelief(
   destvar::VariableCompute,
   factors::AbstractVector; #{<:FactorCompute};
   solveKey::Symbol = :default,
-  dens::AbstractVector{<:ManifoldKernelDensity} = Vector{ManifoldKernelDensity}(), # TODO, abstract requires dynamic dispatch (slow)
+  dens::AbstractVector{<:ApproxManifoldProducts.HomotopyDensity} = Vector{HomotopyDensityLive}(), # TODO, abstract requires dynamic dispatch (slow)
   N::Integer = getSolverParams(dfg).N,
   needFreshMeasurements::Bool = true,
   dbg::Bool = false,
   logger = ConsoleLogger(),
   asPartial::Bool=false,
 )
-  #
-
   # get proposal beliefs
   destlbl = getLabel(destvar)
-  ipc = proposalbeliefs!(dfg, destlbl, factors, dens; solveKey, N, dbg)
+  _observability = proposalbeliefs!(dfg, destlbl, factors, dens; solveKey, N, dbg)
 
-  # @show dens[1].manifold
+  # # make sure oldPoints vector has right length
+  #   # oldBel = getBelief(dfg, destlbl, solveKey; newbw = false)
+  #   # _pts = getPoints(oldBel, false)
+  # oldpts = DistributedFactorGraphs.refPoints(DistributedFactorGraphs.getState(destvar, solveKey))
+  # if N != length(oldpts)
+  #   resize!(oldpts, N)
+  # end
 
-  # make sure oldPoints vector has right length
-  oldBel = getBelief(dfg, destlbl, solveKey)
-  _pts = getPoints(oldBel, false)
-  oldPoints = if Npts(oldBel) < N
-    nn = N - length(_pts) # should be larger than 0
-    _pts_, = sample(oldBel, nn)
-    vcat(_pts, _pts_)
-  else
-    _pts[1:N]
-  end
-
-  # few more data requirements
-  varType = getStateKind(destvar)
-  M = getManifold(varType)
-  # @info "BUILDING MKD" varType M isPartial.(dens)
+  # # few more data requirements
+  # varType = getStateKind(destvar)
   
   # take the product
-  mkd = AMP.manifoldProduct(
-    dens,
-    M;
-    Niter = 1,
-    oldPoints,
+  hode = manifoldProduct(
+    dens;
+    MC = 1,
     N,
-    u0 = getPointDefault(varType),
   )
 
-  # @info "GOT" mkd.manifold
-  return mkd, ipc
+  _whatP(::HomotopyDensityLive{H, P}) where {H, P} = P
+  # @info "propagateBelief" getLabel(destvar) _whatP(hode) string(_whatP.(dens))
+
+  return hode, _observability
 end
 
 function propagateBelief(
@@ -103,7 +93,7 @@ function localProduct(
   lb = listNeighbors(dfg, sym)
 
   # store proposal beliefs, TODO replace Abstract with concrete type
-  dens = Vector{ManifoldKernelDensity}()
+  dens = Vector{HomotopyDensity}()
 
   fcts = map(x -> getFactor(dfg, x), lb)
   mkd, sinfd = propagateBelief(

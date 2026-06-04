@@ -2,6 +2,7 @@
 
 
 # reexport
+export RelativeObservation, PriorObservation
 export ℝ, AbstractManifold
 export Identity, hat , vee, ArrayPartition, exp!, exp, log!, log
 # common groups -- preferred defaults at this time.
@@ -122,9 +123,6 @@ export CSMHistory,
   initVariableManual!,
   resetInitialValues!,
   resetInitValues!,
-  # asyncTreeInferUp!,
-  # initInferTreeUp!,
-  solveCliqWithStateMachine!,
   resetData!,
   resetTreeCliquesForUpSolve!,
   resetFactorGraphNewTree!,
@@ -362,5 +360,6 @@ export listTypeTree
 # weakdeps on Gadfly.jl
 export exportimg, spyCliqMat
 
+export getState
 
 #
