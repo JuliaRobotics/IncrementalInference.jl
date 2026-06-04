@@ -1,3 +1,5 @@
+# NLLSSolver is now defined in GraphInit.jl
+
 # ================================================================================================
 # FlatVariables - used for packing variables for optimization
 # ================================================================================================
@@ -817,15 +819,13 @@ Update the parametric solver data value and covariance.
 function updateSolverDataParametric! end
 
 function updateSolverDataParametric!(
-  vnd::State,
+  state::State,
   val::AbstractArray,
   cov::AbstractMatrix,
 )
-  # fill in the variable node data value
-  DFG.refMeans(vnd)[1] = val
-  #calculate and fill in covariance
-  DFG.refCovariances(vnd)[1] .= cov
-  return vnd
+  statekind = getStateKind(state)
+  state.belief = HomotopyDensity_legacy(statekind, [val,]; bw=cov, newbw=false)
+  return state
 end
 
 function updateSolverDataParametric!(
@@ -852,12 +852,11 @@ function solveGraphParametricOptim!(
   kwargs...
 )
   # make sure variables has solverData, see #1637
-  makeSolverData!(fg; solveKey)
-  if !(:parametric in fg.solverParams.algorithms)
-    addParametricSolver!(fg; init = init)
-  elseif init
-    initParametricFrom!(fg, initSolveKey; parkey=solveKey)
-  end
+  prepare!(fg, NLLSSolver(), solveKey)
+  if init
+    autoinitParametric!(fg, solveKey; solveKey)
+    # initParametricFrom!(fg, initSolveKey; parkey=solveKey)
+  end  
 
   vardict, result, varIds, Σ = solveGraphParametricOptim(fg; verbose, kwargs...)
 
@@ -881,6 +880,9 @@ function initParametricFrom!(
   force::Bool = false,
 )
   #
+  # Ensure parametric states exist
+  prepareStates!(fg, NLLSSolver(), parkey)
+
   if onepoint
     for v in getVariables(fg)
       fromvnd = getState(v, fromkey)
@@ -900,22 +902,10 @@ end
 
 """
     $SIGNATURES
-Add the parametric solveKey to all the variables in fg if it doesn't exists.
+Prepare the fg for solving using the Non-linear Least Squares solver for results in state label.
 """
-function addParametricSolver!(fg; init = true)
-  if !(:parametric in fg.solverParams.algorithms)
-    push!(fg.solverParams.algorithms, :parametric)
-    foreach(
-      v -> IIF.setDefaultNodeDataParametric!(v, getStateKind(v); initialized = false),
-      getVariables(fg),
-    )
-    if init
-      initParametricFrom!(fg)
-    end
-  else
-    error("parametric solvekey already exists")
-  end
-  return nothing
+function prepare!(fg, ::NLLSSolver, statelabel)
+  return prepareStates!(fg, NLLSSolver(), statelabel; whereSolvable = >=(0))
 end
 
 """

@@ -860,12 +860,10 @@ end
 """
     $SIGNATURES
 
-Partial reset of basic data fields in `::State` of `::FunctionNode` structures.
+Partial reset of tree data fields in `::State` structures.
 """
-function resetData!(vdata::State)
-  # vdata.eliminated = false #TODO e8d remove? looks unused
-  # vdata.BayesNetOutVertIDs = Symbol[]
-  vdata.separator = Symbol[]
+function resetData!(state::State)
+  empty!(state.separator)
   return nothing
 end
 
@@ -883,6 +881,7 @@ can be constructed.
 """
 function resetFactorGraphNewTree!(dfg::AbstractDFG)
   for v in DFG.getVariables(dfg)
+    DFG.hasState(v, :default) || continue #TODO should reset create the state if it doesn't exist?
     resetData!(getState(v, :default))
   end
   for f in DFG.getFactors(dfg)
@@ -1033,8 +1032,8 @@ end
 Return `::Bool` on whether factor is a partial constraint.
 """
 isPartial(fcf::T) where {T <: AbstractObservation} = :partial in fieldnames(T)
-isPartial(ccw::CommonConvWrapper) = ccw.usrfnc! |> isPartial
-isPartial(fct::FactorCompute) = _getCCW(fct) |> isPartial
+isPartial(ccw::CommonConvWrapper) = DFG.getObservation(ccw) |> isPartial
+isPartial(fct::FactorCompute) = DFG.getObservation(fct) |> isPartial
 
 """
     $SIGNATURES

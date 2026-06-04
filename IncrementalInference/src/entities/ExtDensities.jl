@@ -26,7 +26,7 @@ DevNotes:
 struct HeatmapGridDensity{
   T <: Real,
   H <: Union{<:Function, Nothing},
-  B <: ManifoldKernelDensity,
+  B <: HomotopyDensity,
 }
   """intensity data, on regular grid"""
   data::Matrix{T}

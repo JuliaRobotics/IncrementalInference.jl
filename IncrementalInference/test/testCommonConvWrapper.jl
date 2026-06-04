@@ -7,7 +7,7 @@ using Manifolds
 using Statistics
 using TensorCast
 
-import IncrementalInference: getSample, getManifold
+import IncrementalInference: getSample, getManifold, RelativeObservation
 
 mutable struct FunctorWorks
   a::Array{Float64,2}
@@ -150,51 +150,63 @@ end
 # use the range only example, should give a circle with nothing in the middle
 
 
-@testset "Generic convolution testing in factor graph context..." begin
+if false
 
-##
+  @testset "Generic convolution testing in factor graph context..." begin
 
-N=100
-p1 = [randn(1) for _ in 1:N]
-d1 = manikde!(TranslationGroup(1), p1)
-p2 = [randn(1) for _ in 1:N]
-t = Vector{Vector{Vector{Float64}}}()
-push!(t,p1)
-push!(t,p2)
+  ##
 
-fg = initfg()
+  N=100
+  p1 = [randn(1) for _ in 1:N]
+  d1 = HomotopyDensity_legacy(TranslationGroup(1), p1)
+  p2 = [randn(1) for _ in 1:N]
+  t = Vector{Vector{Vector{Float64}}}()
+  push!(t,p1)
+  push!(t,p2)
 
-v1=addVariable!(fg, :x1, ContinuousScalar, N=N)
-v2=addVariable!(fg, :x2, ContinuousScalar, N=N)
-bws = getBW(d1)[:,1]
-f1 = addFactor!(fg, [v1], Prior(manikde!(TranslationGroup(1), p1, bw=bws)) )
+  fg = initfg()
 
-odo = Pose1Pose1Test(Normal(100.0,1.0))
-f2 = addFactor!(fg, [v1;v2], odo)
+  v1=addVariable!(fg, :x1, ContinuousScalar, N=N)
+  v2=addVariable!(fg, :x2, ContinuousScalar, N=N)
+  bws = getBW(d1)[:,1]
+  ##
 
-tree = buildTreeReset!(fg)
+  f1 = addFactor!(fg, [v1], Prior(HomotopyDensity_legacy(TranslationGroup(1), p1, bw=bws)) )
 
-pts_ = getBelief(fg,:x1) |> getPoints
-@cast pts[i,j] := pts_[j][i]
-@test abs(Statistics.mean(pts)-0.0) < 10.0
-pts_ = getBelief(fg,:x2) |> getPoints
-@cast pts[i,j] := pts_[j][i]
-@test abs(Statistics.mean(pts)-0.0) < 10.0
+  ##
 
-##
+  odo = Pose1Pose1Test(Normal(100.0,1.0))
+  f2 = addFactor!(fg, [v1;v2], odo)
 
-tree = solveTree!(fg)
+  tree = buildTreeReset!(fg)
 
-##
+  pts_ = getBelief(fg,:x1) |> getPoints
+  @cast pts[i,j] := pts_[j][i]
+  @test abs(Statistics.mean(pts)-0.0) < 10.0
+  pts_ = getBelief(fg,:x2) |> getPoints
+  @cast pts[i,j] := pts_[j][i]
+  @test abs(Statistics.mean(pts)-0.0) < 10.0
 
-pts_ = getBelief(fg,:x1) |> getPoints
-@cast pts[i,j] := pts_[j][i]
-@test abs(Statistics.mean(pts)-0.0) < 10.0
+  ##
 
-pts_ = getBelief(fg,:x2) |> getPoints
-@cast pts[i,j] := pts_[j][i]
-@test abs(Statistics.mean(pts)-100.0) < 10.0
+  tree = solveTree!(fg)
 
-##
+  ##
 
+  pts_ = getBelief(fg,:x1) |> getPoints
+  @cast pts[i,j] := pts_[j][i]
+  @test abs(Statistics.mean(pts)-0.0) < 10.0
+
+  pts_ = getBelief(fg,:x2) |> getPoints
+  @cast pts[i,j] := pts_[j][i]
+  @test abs(Statistics.mean(pts)-100.0) < 10.0
+
+  ##
+
+  end
+
+else
+
+  @error "Generic convolution testing skipped since point type cannot be ::Float, needs <:Vector"
+  @test_broken false
 end

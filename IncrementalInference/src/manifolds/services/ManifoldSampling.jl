@@ -1,4 +1,6 @@
 
+## FIXME MOVE UPSTREAM TO APPROXMANIFOLDPRODUCTS or EQ, sampling is a service of HomotopyDensity
+
 """
     $SIGNATURES
 
@@ -21,7 +23,11 @@ function sampleTangent(
 end
 
 function sampleTangent(M::AbstractLieGroup, z, p = getPointIdentity(M))
-  return hat(LieAlgebra(M), SVector{manifold_dimension(M)}(rand(z)), typeof(p))
+  # @info "DIM 2 or 1" manifold_dimension(M) rand(z) typeof(p)
+  _splat(s::AbstractVector) = SVector{manifold_dimension(M)}(s...)
+  _splat(s::Number) = SVector{manifold_dimension(M)}(s)
+  # _splat(s::Number) = s
+  return hat(LieAlgebra(M), _splat(rand(z)), typeof(p))
 end
 
 function sampleTangent(M::typeof(LieGroups.CircleGroup()), z::Distribution, p = getPointIdentity(M))
@@ -69,7 +75,7 @@ end
 
 function samplePoint(
   M::AbstractDecoratorManifold,
-  sbelief::ManifoldKernelDensity,
+  sbelief::ApproxManifoldProducts.HomotopyDensity,
   # p = identity_element(M, mean(sbelief)), # 8.671254 seconds (82.64 M allocations: 3.668 GiB, 7.50% gc time)
   p = getPointIdentity(M), #6.713209 seconds (66.42 M allocations: 3.141 GiB, 7.52% gc time)
   retraction_method::AbstractRetractionMethod = ExponentialRetraction(),
@@ -78,8 +84,8 @@ function samplePoint(
   return retract(M, p, X, retraction_method)
 end
 
-function samplePoint(x::ManifoldKernelDensity, p = mean(x))
-  return samplePoint(x.manifold, x, p)
+function samplePoint(x::ApproxManifoldProducts.HomotopyDensity, p = mean(x))
+  return samplePoint(getManifold(x), x, p)
 end
 
 # FIXME: rather use manifolds

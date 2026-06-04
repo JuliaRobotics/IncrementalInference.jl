@@ -578,7 +578,7 @@ function evalFactor(
   #
   return evalPotentialSpecific(
     variables,
-    _getCCW(fct),
+    _getCCW(dfg, fct),
     solvefor,
     measurement;
     needFreshMeasurements,

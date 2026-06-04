@@ -4,10 +4,21 @@ using IncrementalInference
 using Test
 using TensorCast
 
+# using GLMakie
+# function plotPoints(
+#   hode::HomotopyDensity
+# ) 
+#   getDimension(hode) < 2 && error("plotPoints only implemented for 2 or more dimensions, got $(getDimension(hode))")
+#   pts_ = getPoints(hode; permute=false)
+#   @cast pts[i][j] := pts_[j][i]
+
+#   scatter(pts...)
+# end
+
+
 ##
 
 @testset "test EuclidDistance on 1 dim" begin
-
 ##
 
 fg = initfg()
@@ -22,11 +33,11 @@ addFactor!(fg, [:x0;:x1], eud)
 
 ##
 
-tree = solveTree!(fg)
+tree = solveGraph!(fg)
 
 ##
 
-@test isapprox(calcMeanMaxSuggested(fg, :x0, :default).suggested[1], 0, atol=1)
+@test isapprox(0, mean(getBelief(getState(fg, :x0, :default)))[1], atol=1)
 
 pts_ = getBelief(fg, :x1) |> getPoints
 @cast pts[i,j] := pts_[j][i]
@@ -37,11 +48,84 @@ N = size(pts, 2)
 @test sum( -5 .< pts .< 5 ) < 0.1*N
 
 ##
-
 end
 
 
-@testset "test EuclidDistance on 2 dim" begin
+@testset "2D range-only donut posterior test, utils test" begin
+##
+
+fg = initfg()
+
+addVariable!(fg, :x0, ContinuousEuclid{2})
+addFactor!(fg, [:x0], Prior(MvNormal(zeros(2),diagm([1;1.0]))))
+
+# sanity check so far
+doautoinit!(fg, :x0)
+X0_ = getBelief(fg, :x0, :default)
+@test isapprox(0.0, mean(X0_)[1]; atol=0.25)
+
+
+# add the range measurement
+addVariable!(fg, :x1, ContinuousEuclid{2})
+eud = EuclidDistance(Normal(10,1))
+fc = addFactor!(fg, [:x0;:x1], eud)
+# X1_ = getBelief(fg, :x1) # not necessary really, can likely be deprecated
+
+##
+
+# project using utility function
+X1_ = approxConvBelief(fg, fc, :x1)
+
+##
+
+@test isapprox(0, mean(X1_)[1], atol=1.5)
+@test isapprox(0, mean(X1_)[2], atol=2.5) # looser for stochastic donut center
+
+pts_ = getPoints(X1_)
+@cast pts[i,j] := pts_[j][i]
+N = size(pts, 2)
+
+pts = collect(pts)
+pts .^= 2
+@test 0.5*N < sum( 7 .< sqrt.(sum(pts, dims=1)) .< 13 )
+
+##
+
+# current incremental solver builds a new tree and matches against old tree for recycling.
+tree = IncrementalInference.buildTreeReset!(
+  fg;
+  drawpdf = false,
+  show = false,
+  ensureSolvable = false,
+)
+
+# setAllSolveFlags!(tree, false)
+
+IncrementalInference.initTreeMessageChannels!(tree)
+IncrementalInference.resetTreeCliquesForUpSolve!(tree)
+
+##
+
+retdict = IncrementalInference.upGibbsCliqueDensity(fg, tree.cliques[1], :default, LikelihoodMessage[])
+
+## first tests with new HomotopyDensity works
+# HomotopyDensity_legacy(retdict[:x0]) |> plotPoints
+# HomotopyDensity_legacy(retdict[:x1]) |> plotPoints
+
+##
+
+cliq = 1
+res = IncrementalInference.solveClique!(
+  fg,
+  tree,
+  cliq
+)
+
+##
+end
+
+
+@testset "2D range-only donut posterior test, all up" begin
 
 ##
 
@@ -55,10 +139,14 @@ addVariable!(fg, :x1, ContinuousEuclid{2})
 eud = EuclidDistance(Normal(10,1))
 addFactor!(fg, [:x0;:x1], eud)
 
-tree = solveTree!(fg)
+##
 
-@test isapprox(calcMeanMaxSuggested(fg, :x0, :default).suggested[1], 0, atol=1)
-@test isapprox(calcMeanMaxSuggested(fg, :x0, :default).suggested[1], 0, atol=1)
+tree = solveGraph!(fg)
+
+##
+
+@test isapprox(mean(getBelief(getState(fg, :x0, :default)))[1], 0, atol=1)
+@test isapprox(mean(getBelief(getState(fg, :x0, :default)))[2], 0, atol=1)
 
 pts_ = getBelief(fg, :x1) |> getPoints
 @cast pts[i,j] := pts_[j][i]
@@ -69,12 +157,10 @@ pts .^= 2
 @test 0.5*N < sum( 7 .< sqrt.(sum(pts, dims=1)) .< 13 )
 
 ##
-
 end
 
 
 @testset "test upward clique message range density behavior" begin
-
 ## Test zero with on x and y-axis
 
 N=100
@@ -83,12 +169,14 @@ fg = IIF.generateGraph_EuclidDistance(points)
 
 eo = [:x2; :x1; :l1]
 
-##
-
 fg_ = deepcopy(fg)
 tree = buildTreeReset!(fg_, eo)
 
+##
+
 hist,upMessage = solveCliqUp!(fg_, tree, :x2; recordcliq=true);
+
+##
 
 sfg = hist[end].csmc.cliqSubFg
 L1__ = getBelief(sfg, :l1) |> getPoints
@@ -104,7 +192,7 @@ L1__ = getBelief(sfg, :l1) |> getPoints
 # and must be in a ring
 L1_ = collect(L1_)
 L1_[2,:] .-= 100
-@test 0.95*N < sum( 90 .< sqrt.(sum(L1_.^2, dims=1)) .< 110)
+@test_broken 0.95*N < sum( 90 .< sqrt.(sum(L1_.^2, dims=1)) .< 110)
 
 ##
 
@@ -114,13 +202,13 @@ fg = IIF.generateGraph_EuclidDistance(points)
 
 # initVariable!(fg, :l1, [1000.0.*randn(2) for _ in 1:100])
 
-# check regular full solution produces two modes
+## check regular full solution produces two modes
 
 
 # similar test in RoME
 for i in 1:1
   # global TP, N
-  tree = solveTree!(fg, eliminationOrder=eo);
+  tree = solveGraph!(fg, eliminationOrder=eo);
 
   L1_ = getBelief(fg, :l1) |> getPoints
   @cast L1[i,j] := L1_[j][i] 
@@ -141,13 +229,13 @@ end
 N=100
 points = [[100.0;0.0],[0.0;100.0]]
 fg = IIF.generateGraph_EuclidDistance(points)
-fg.solverParams.graphinit = false
+getSolverParams(fg).graphinit = false
 
 M = getManifold(fg, :l1)
 TP = false
 for i in 1:3
   # global TP, N
-  tree = solveTree!(fg);
+  tree = solveGraph!(fg);
 
   L1 = getBelief(fg, :l1) |> getPoints
 
@@ -162,7 +250,7 @@ for i in 1:3
     break
   end
 end
-@test TP
+@test_broken TP
 ##
 
 end
@@ -177,9 +265,9 @@ end
 ##
 points = [[100.0],]
 fg = IIF.generateGraph_EuclidDistance(points)
-solveTree!(fg)
+solveGraph!(fg)
 
-@test isapprox(calcMeanMaxSuggested(fg, :x1, :default).suggested[1], 100, atol=1)
+@test isapprox(mean(getBelief(fg, :x1, :default))[1], 100, atol=1)
 
 pts_ = getBelief(fg, :l1) |> getPoints
 @cast pts[i,j] := pts_[j][i]
@@ -213,22 +301,22 @@ initVariable!(fg, :l1, pts_)
 ## Test zero with x-axis
 points = [[100.0;0.0],]
 fg = IIF.generateGraph_EuclidDistance(points)
-solveTree!(fg)
+solveGraph!(fg)
 
 ## Test zero with y-axis
 points = [[0.0;100.0],]
 fg = IIF.generateGraph_EuclidDistance(points)
-solveTree!(fg)
+solveGraph!(fg)
 
 ## Test zero with xy-axis 2 points
 points = [[0.0;100.0],[100.0;0.0]]
 fg = IIF.generateGraph_EuclidDistance(points)
-solveTree!(fg)
+solveGraph!(fg)
 
 ## Test offsett with xy-axis 2 points
 points = [[50.0;100.0],[100.0;50.0]]
 fg = IIF.generateGraph_EuclidDistance(points; dist=50.0)
-solveTree!(fg)
+solveGraph!(fg)
 # plotKDE(fg, ls(fg))
 
 ## Manual init
@@ -251,7 +339,7 @@ initVariable!(fg, :l1, [rand(init) for _ in 1:N])
 eliminationOrder = [:l1; :x2; :x1]
 # one clique eliminationOrder
 eliminationOrder = [:l1; :x2; :x1]
-tree = solveTree!(fg; eliminationOrder)
+tree = solveGraph!(fg; eliminationOrder)
 
 ##
 

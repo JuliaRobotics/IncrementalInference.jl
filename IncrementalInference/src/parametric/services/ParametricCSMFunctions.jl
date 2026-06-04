@@ -9,7 +9,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "Par-3, Solving Up")
 
   setCliqueDrawColor!(csmc.cliq, "red")
-  # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+  # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getCliqueSolverParams(csmc).logpath,"bt.pdf")) : nothing
 
   #TODO maybe change to symbols
   msgfcts = FactorCompute[]
@@ -106,7 +106,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "Par-5, Solving down")
 
   setCliqueDrawColor!(csmc.cliq, "red")
-  # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+  # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getCliqueSolverParams(csmc).logpath,"bt.pdf")) : nothing
 
   # TODO create function: 
   # updateMsgSeparators!(csmc.cliqSubFg, downmsg)

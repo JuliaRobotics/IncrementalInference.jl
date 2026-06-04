@@ -6,6 +6,7 @@ using DifferentialEquations
 using IncrementalInference
 using Dates
 using Statistics
+using LinearAlgebra
 using TensorCast
 using DistributedFactorGraphs: @tz_str
 
@@ -198,7 +199,7 @@ X2_ = approxConvBelief(fg, :x1x2f1, :x2)
 # @enter approxConvBelief(fg, :x2x3f1, :x2)
 
 factors = getFactor.(fg, IIF.listNeighbors(fg, :x2))
-dens = ManifoldKernelDensity[]
+dens = HomotopyDensity[]
 ipc = IIF.proposalbeliefs!(fg, :x2, factors, dens)
 
 # 

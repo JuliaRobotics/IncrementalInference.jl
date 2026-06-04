@@ -25,7 +25,7 @@ function __doCliqUpSolveInitialized!(csmc::CliqStateMachineContainer)
 
   setCliqueDrawColor!(csmc.cliq, "red")
 
-  opt = getSolverParams(csmc.cliqSubFg)
+  opt = getCliqueSolverParams(csmc)
   # get Dict{Symbol, TreeBelief} of all updated variables in csmc.cliqSubFg
   retdict = approxCliqMarginalUp!(csmc; iters = opt.gibbsIters, logger = csmc.logger)
   # retdict = approxCliqMarginalUp!(csmc, LikelihoodMessage[]; iters=4, logger=csmc.logger)
@@ -35,7 +35,7 @@ function __doCliqUpSolveInitialized!(csmc::CliqStateMachineContainer)
     csmc.cliqSubFg,
     csmc.cliq,
     retdict;
-    dbg = getSolverParams(csmc.cliqSubFg).dbg,
+    dbg = getCliqueSolverParams(csmc).dbg,
     logger = csmc.logger,
   ) # urt
 
@@ -66,13 +66,15 @@ Related
 saveDFG, loadDFG!, loadDFG
 """
 function _dbgCSMSaveSubFG(csmc::CliqStateMachineContainer, filename::String)
-  opt = getSolverParams(csmc.cliqSubFg)
+  opt = getCliqueSolverParams(csmc)
 
   if opt.dbg
     folder::String = joinpath(opt.logpath, "logs", "cliq$(getId(csmc.cliq))")
     if !ispath(folder)
       mkpath(folder)
     end
+    @warn "_dbgCSMSaveSubFG is disabled as part of the DFG v0.29 and AMP v0.15 reconciliation/refactor/upgrade" maxlog=10
+    return opt.dbg
     # NOTE there was a bug using saveDFG, so used serialize, left for future use  
     # serialize(joinpath(folder, filename), csmc.cliqSubFg)
     DFG.saveDFG(csmc.cliqSubFg, joinpath(folder, filename))
@@ -349,9 +351,9 @@ Future
 function approxCliqMarginalUp!(
   csmc::CliqStateMachineContainer,
   childmsgs = LikelihoodMessage[];#fetchMsgsUpChildren(csmc, TreeBelief);
-  N::Int = getSolverParams(csmc.cliqSubFg).N,
-  dbg::Bool = getSolverParams(csmc.cliqSubFg).dbg,
-  multiproc::Bool = getSolverParams(csmc.cliqSubFg).multiproc,
+  N::Int = getCliqueSolverParams(csmc).N,
+  dbg::Bool = getCliqueSolverParams(csmc).dbg,
+  multiproc::Bool = getCliqueSolverParams(csmc).multiproc,
   logger = ConsoleLogger(),
   iters::Int = 3,
   drawpdf::Bool = false,
@@ -400,6 +402,11 @@ function approxCliqMarginalUp!(
     end
     retdict =
       upGibbsCliqueDensity(fg_, cliq, csmc.solveKey, childmsgs, N, dbg, iters, logger)
+
+    # DEBUG ON THE FLY
+    Bs = [HomotopyDensity_legacy(b) for (l,b) in retdict]
+    # @info "DX bw" string.(getBandwidth.(Bs))
+
   end
 
   with_logger(logger) do

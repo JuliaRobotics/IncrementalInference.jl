@@ -8,14 +8,7 @@ import DistributedFactorGraphs: compare
 # the functions with IIF-specific parameters.
 # To extend these, import the relevant DFG compareX function and overload it.
 
-function Base.isapprox(
-  p1::Union{<:BallTreeDensity, <:ManifoldKernelDensity},
-  p2::Union{<:BallTreeDensity, <:ManifoldKernelDensity};
-  atol::Real = 1e-6,
-)
-  #
-  return mmd(p1, p2) < atol
-end
+
 
 
 
@@ -36,14 +29,6 @@ function compareAllSpecial(
   return compareAll(A, B; skip = union(skip, [:vartypes]), show = show)
 end
 
-function compare(
-  p1::Union{<:BallTreeDensity, <:ManifoldKernelDensity},
-  p2::Union{<:BallTreeDensity, <:ManifoldKernelDensity},
-)
-  #
-  return compareAll(p1.bt, p2.bt; skip = [:calcStatsHandle; :data]) &&
-         compareAll(p1, p2; skip = [:calcStatsHandle; :bt])
-end
 
 function compare(c1::TreeClique, c2::TreeClique)
   #

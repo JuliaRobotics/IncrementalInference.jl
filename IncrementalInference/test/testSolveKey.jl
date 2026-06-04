@@ -26,8 +26,7 @@ deleteState!(fg, :b, :default)
 
 pts = sampleFactor(fg, :af1, 100)
 
-IIF.setDefaultNodeData!(getVariable(fg, :a), 0, 100; solveKey=:testSolveKey, 
-                        initialized=false, varType=ContinuousScalar())
+IIF.prepareState!(getVariable(fg, :a), IIF.NPBPSolver(), :testSolveKey; num_kernels=100)
 #
 
 initVariable!(fg, :a, pts, :testSolveKey)
@@ -36,8 +35,7 @@ initVariable!(fg, :a, pts, :testSolveKey)
 
 ##
 
-IIF.setDefaultNodeData!(getVariable(fg, :b), 0, 100; solveKey=:testSolveKey, 
-                        initialized=false, varType=ContinuousScalar())
+IIF.prepareState!(getVariable(fg, :b), IIF.NPBPSolver(), :testSolveKey; num_kernels=100)
 #
 
 

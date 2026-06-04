@@ -30,17 +30,22 @@ function approxConvBelief(
     keepCalcFactor
   )
 
+  ## FIXME, bad way to find partial info!!!!
+  # Not sufficient to use only observability to determine partial, but is necessary
+  # original need is if observability on some coords are zero after a convolution
   len = length(ipc)
   mask = 1e-14 .< abs.(ipc)
-  partl = collect(1:len)[mask]
-
+  partl = collect(1:len)[mask] 
+  
   # is the convolution infoPerCoord full or partial
-  res = if sum(mask) == len
+  statekind = getStateKind(v_trg)
+  # FIXME, this if induces type instability via partial
+  res = if sum(mask) == getDimension(v_trg)
     # not partial
-    manikde!(getManifold(getVariable(dfg, target)), pts; partial = nothing)
+    HomotopyDensity_legacy(statekind, pts; partial = nothing)
   else
     # is partial
-    manikde!(getManifold(getVariable(dfg, target)), pts; partial = partl)
+    HomotopyDensity_legacy(statekind, pts; partial = partl)
   end
     
   return res
@@ -144,6 +149,7 @@ function approxConvBelief(
     getPoints(pts1Bel)
   end
   # didn't return early so shift focus to using `tfg` more intensely
+  # FIXME, since AMP v0.15, cannot just set the points, must set HomotopyDensity
   initVariable!(tfg, varLbls[1], pts)
 
   # do chain of convolutions
@@ -185,6 +191,9 @@ function calcProposalBelief(
   #
   # assuming it is properly initialized TODO
   proposal = approxConvBelief(dfg, fct, target, measurement; solveKey, N, nullSurplus, keepCalcFactor)
+
+  # _whatP(::HomotopyDensityLive{H, P}) where {H, P} = P
+  # @info "calcProposalBelief" getLabel(fct) target _whatP(proposal)
 
   # return the proposal belief and inferdim, NOTE likely to be changed
   return proposal
@@ -236,7 +245,7 @@ function proposalbeliefs!(
   dfg::AbstractDFG,
   destlbl::Symbol,
   factors::AbstractVector, #{<:FactorCompute},
-  dens::AbstractVector{<:ManifoldKernelDensity},
+  dens::AbstractVector{<:ApproxManifoldProducts.HomotopyDensity}, # TODO, convert promote to avoid union-abstract vector
   measurement::AbstractVector = Tuple[];
   solveKey::Symbol = :default,
   N::Int = getSolverParams(dfg).N, #maximum([length(getPoints(getBelief(dfg, destlbl, solveKey))); getSolverParams(dfg).N]),
@@ -264,7 +273,6 @@ function proposalbeliefs!(
   vardim = getDimension(getVariable(dfg, destlbl))
   # get a proposal belief from each factor connected to destlbl
   for (count, fct) in enumerate(factors)
-    ccwl = _getCCW(fct)
     # need way to convey partial information
     # determine if evaluation is "dimension-deficient" solvable dimension
     # FIXME, update to infoPerCoord
@@ -281,10 +289,9 @@ function proposalbeliefs!(
       nullSurplus = nullSrp[count],
     )
     # partial density
-    propBel = if isPartial(ccwl)
-      pardims = _getDimensionsPartial(ccwl)
-      @assert [getObservation(fct).partial...] == [pardims...] "partial dims error $(getObservation(fct).partial) vs $pardims"
-      AMP.marginal(propBel_, Int[pardims...])
+    obs = DFG.getObservation(fct)
+    propBel = if isPartial(obs)
+      AMP.marginal(propBel_, Int[obs.partial...])
     else
       propBel_
     end

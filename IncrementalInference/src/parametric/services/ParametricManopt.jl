@@ -723,6 +723,7 @@ end
 
 function autoinitParametric!(dfg::AbstractDFG, xi::VariableCompute; solveKey = :parametric, kwargs...)
   initme = getLabel(xi)
+  prepareState!(xi, NLLSSolver(), solveKey)
   separators = ls2(dfg, initme)
   filter!(separators) do vl
     return hasState(dfg, vl, solveKey) && isInitialized(dfg, vl, solveKey)
@@ -736,9 +737,18 @@ function autoinitParametric!(
   separators::Vector{Symbol} = Symbol[];
   solveKey = :parametric,
   reinit::Bool = false,
+  neighbor_seed::Bool = true,
   linear_subsolver! = pinv_subsolver!,
   kwargs...,
 )
+
+  #
+  # # initme = getLabel(xi)
+  # prepareState!(xi, NLLSSolver(), solveKey)
+  # vnd = getState(xi, solveKey)
+  # don't initialize a variable more than once
+#   if reinit || !isInitialized(xi, solveKey)
+
   # Filter to only uninitialized variables (unless reinit)
   to_init = if reinit
     frontals
@@ -760,6 +770,41 @@ function autoinitParametric!(
     has_any_prior || return false
   end
 
+  # DF kept this trying to resolve two PRs on parametric for IIF v0.38 (refac SolverParams and IIF v0.37.1 backport, during AMP v0.15.4)
+  # FIXME, is this still needed?
+  if false && neighbor_seed
+    has_prior = any(isPrior.(dfg, listNeighbors(dfg, initme)))
+    if !has_prior && !isempty(initfrom)
+      # seed from the first initialized neighbor of the same variable type
+      my_kind = getStateKind(xi)
+      same_kind = filter(vl -> getStateKind(getVariable(dfg, vl)) === my_kind, initfrom)
+      if !isempty(same_kind)
+        DFG.refMeans(vnd)[1] = DFG.refMeans(getState(dfg, same_kind[1], solveKey))[1]
+      end
+      # else: keep current state as fallback
+    end
+    # if has_prior: keep current state — prior will drive the solve
+  else
+    @warn "DX WARNING, merge conflict suppressed solve parametric neighbor seeding"
+  end
+
+#     if perturb_point
+#       _M = getManifold(xi)
+#       p = DFG.refMeans(vnd)[1]
+#       DFG.refMeans(vnd)[1] = exp(
+#         _M,
+#         p, 
+#         get_vector(
+#           _M,
+#           p,
+#           randn(manifold_dimension(_M))*10^-6,
+#           LieGroups.DefaultLieAlgebraOrthogonalBasis()
+#         )
+#       )
+#     end
+#     M, vartypeslist, lm_r, Λ, _ = solve_RLM_conditional(dfg, [initme], initfrom; solveKey, linear_subsolver!,  kwargs...)
+#     val = lm_r[1]
+#     DFG.refMeans(vnd)[1] = val
   # Check that we have usable factors
   varlabels = union(to_init, active_separators)
   _, faclabels = listNeighborhood(dfg, varlabels, 1)
@@ -829,7 +874,7 @@ function DFG.solveGraphParametric!(
   kwargs...
 )
   # make sure variables has solverData, see #1637
-  makeSolverData!(fg; solveKey)
+  prepare!(fg, NLLSSolver(), solveKey)
   init && autoinitParametric!(fg; solveKey)
 
   M, v, r, Λ, tension = solve_RLM(fg, args...; is_sparse, kwargs...)

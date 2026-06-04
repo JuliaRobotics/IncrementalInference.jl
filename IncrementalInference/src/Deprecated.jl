@@ -1,4 +1,267 @@
 
+
+"""
+    $SIGNATURES
+
+Get the ParametricPointEstimates---based on full marginal belief estimates---of a variable in the distributed factor graph.
+Calculate new Parametric Point Estimates for a given variable.
+
+
+DevNotes
+- TODO update for manifold subgroups.
+- TODO standardize after AMP3D
+"""
+function calcMeanMaxSuggested(
+  vari::VariableCompute,
+  solveKey::Symbol = :default
+)
+  @warn("calcMeanMaxSuggested is obsolete, use instead `mean(getBelief(getState(vari, statelabel)))`")
+  meanval = mean(getBelief(getState(vari, solveKey)))
+  return (;
+    mean = meanval,
+    suggested = meanval,
+  )
+  # varType = getStateKind(vari)
+  # P = getBelief(vari, solveKey)
+  # maniDef = convert(MB.AbstractManifold, varType)
+  # manis = AMP._manifoldtuple(maniDef) # LEGACY, TODO REMOVE
+  # ops = buildHybridManifoldCallbacks(manis)
+  # Pme = calcMean(P)  # getKDEMean(P) #, addop=ops[1], diffop=ops[2]
+
+  # # returns coordinates at identify
+  # Pma = getKDEMax(P; addop = ops[1], diffop = ops[2])
+  # # calculate point
+
+  # ## TODO use getCoordinates for now (IIF v0.25)
+  # Pme_ = getCoordinates(varType, Pme)
+  # # Pma_ = getCoordinates(M,Pme)
+ 
+  # return (
+  #   mean=Pme_, 
+  #   max=Pma, 
+  #   suggested=Pme_, 
+  # )
+end
+
+function calcMeanMaxSuggested(
+  dfg::AbstractDFG,
+  label::Symbol,
+  solveKey::Symbol = :default,
+)
+  return calcMeanMaxSuggested(getVariable(dfg, label), solveKey)
+end
+
+
+@deprecate manikde!(tb::TreeBelief) HomotopyDensity_legacy(tb)
+
+@deprecate manikde!(
+  varT::InstanceType{<:StateType},
+  pts::AbstractVector{<:Tuple};
+  kw...,
+) HomotopyDensity_legacy(varT, (t -> ArrayPartition(t...)).(pts); kw...)
+
+
+# """
+#     $SIGNATURES
+
+# Standalone state machine solution for a single clique.
+
+# Related:
+
+# initInferTreeUp!
+# """
+# function solveCliqWithStateMachine!(
+#   dfg::G,
+#   tree::AbstractBayesTree,
+#   frontal::Symbol;
+#   iters::Int = 200,
+#   downsolve::Bool = true,
+#   recordhistory::Bool = false,
+#   verbose::Bool = false,
+#   nextfnc::Function = canCliqMargRecycle_StateMachine,
+#   prevcsmc::Union{Nothing, CliqStateMachineContainer} = nothing,
+# ) where {G <: AbstractDFG}
+#   #
+#   cliq = getClique(tree, frontal)
+
+#   children = getChildren(tree, cliq)#Graphs.out_neighbors(cliq, tree.bt)
+
+#   prnt = getParent(tree, cliq)
+
+#   destType = (G <: InMemoryDFGTypes) ? G : LocalDFG
+
+#   csmc = if isa(prevcsmc, Nothing)
+#     CliqStateMachineContainer(
+#     dfg,
+#     initfg(destType; solverParams = getSolverParams(dfg)),
+#     tree,
+#     cliq,
+#     prnt,
+#     children,
+#     false,
+#     true,
+#     true,
+#     downsolve,
+#     false,
+#     getSolverParams(dfg),
+#   )
+#   else
+#     prevcsmc
+#   end
+#   statemachine =
+#     StateMachine{CliqStateMachineContainer}(; next = nextfnc, name = "cliq$(cliq.id)")
+#   while statemachine(
+#     csmc;
+#     verbose = verbose,
+#     iterlimit = iters,
+#     recordhistory = recordhistory,
+#   )
+#   end
+#   return statemachine, csmc
+# end
+
+# function TreeBelief(::RootsOnlyTopology, vnd::State, solvDim::Real = 0)
+#   return TreeBelief(
+#     DFG.refMeans(vnd),
+#     DFG.refCovariances(vnd)[1],
+#     DFG.refObservability(vnd),
+#     getStateKind(vnd),
+#     getManifold(vnd),
+#     solvDim,
+#   )
+# end
+
+# function TreeBelief(::LeavesOnlyTopology, vnd::State, solvDim::Real = 0)
+#   return TreeBelief(
+#     DFG.refPoints(vnd),
+#     DFG.refBandwidth(vnd),
+#     DFG.refObservability(vnd),
+#     getStateKind(vnd),
+#     getManifold(vnd),
+#     solvDim,
+#   )
+# end
+
+
+
+# # extend convenience function (Matrix or Vector{P})
+# function manikde!(
+#   variableType::Union{InstanceType{<:StateType}, InstanceType{<:AbstractObservation}},
+#   pts::AbstractVector{P};
+#   kw...,
+# ) where {P <: Union{<:AbstractArray, <:Number, <: ArrayPartition}}
+#   #
+#   statekind = getStateKind(variableType)
+#   # TODO, this looks like legacy -- not siure if this ipc is still valid.  Should be in .observability
+#   infoPerCoord = ones(AMP.getNumberCoords(getManifold(statekind), pts[1]))
+#   return AMP.manikde!(statekind, pts; infoPerCoord, kw...)
+# end
+
+
+function setValKDE!_NONPARTL(
+  state::State,
+  hode::ApproxManifoldProducts.HomotopyDensity, # FIXME dispatch without partial?
+  setinit::Bool = true,
+  ipc::AbstractVector{<:Real} = [0.0;],
+)
+  @warn("setValKDE! is obsolete, use setBelief! instead")
+  setBelief!(state, hode, setinit)
+  #
+  # ptsArr = AMP.getPoints(hode) # , false) # for not partial
+  # _ensurediag(b::AbstractVector) = b
+  # _ensurediag(b::AbstractMatrix) = diag(b)
+  # bws = getBW(hode)[1] |> _ensurediag |> collect
+  # setValKDE!(state, ptsArr, bws, setinit, ipc)
+  return nothing
+end
+
+function setValKDE!_HASPARTL(
+  vnd::State,
+  mkd::ApproxManifoldProducts.HomotopyDensity, # 
+  setinit::Bool = true,
+  ipc::AbstractVector{<:Real} = [0.0;],
+)
+  @error("setValKDE@ is obsolete, use setBelief! instead")
+  
+  # setBelief(vnd, mkd, setinit)
+    oldBel = getBelief(vnd)
+    # New infomation might be partial
+    newBel = replace(oldBel, mkd)
+    # Set partial dims as Manifold points
+    ptsArr = AMP.getPoints(newBel, false)
+    # also get the bandwidth
+    bws = getBandwidth(newBel, false)
+    # update values in graph
+    setValKDE!(vnd, ptsArr, bws, setinit, ipc)
+  return nothing
+end
+
+
+function setValKDE!(
+  vnd::State,
+  hode::ApproxManifoldProducts.HomotopyDensity, # 
+  setinit::Bool = true,
+  ipc::AbstractVector{<:Real} = [0.0;],
+)
+  if isPartial(hode)
+    setValKDE!_HASPARTL(vnd, hode, setinit, ipc)
+  else
+    setValKDE!_NONPARTL(vnd, hode, setinit, ipc)
+  end
+end
+
+
+# Provided by ApproxManifoldProducts v0.15 instead
+# KDE.getPoints(dfg::AbstractDFG, lbl::Symbol) = getBelief(dfg, lbl; newbw = false) |> getPoints
+
+# DFG.getDimension(Z::ManifoldKernelDensity) = getManifold(Z) |> getDimension
+# # TODO deprecate
+# DFG.getDimension(Z::BallTreeDensity) = Ndim(Z)
+
+# should have been in ApproxManifoldProducts
+# function compare(
+#   p1::Union{<:BallTreeDensity, <:ManifoldKernelDensity},
+#   p2::Union{<:BallTreeDensity, <:ManifoldKernelDensity},
+# )
+#   #
+#   return compareAll(p1.bt, p2.bt; skip = [:calcStatsHandle; :data]) &&
+#          compareAll(p1, p2; skip = [:calcStatsHandle; :bt])
+# end
+
+# now provided by ApproxManifoldProducts
+# """
+#     $SIGNATURES
+
+# Return the manifold on which this ManifoldKernelDensity is defined.
+
+# DevNotes
+# - TODO currently ignores the .partial aspect (captured in parameter `L`)
+# """
+# function getManifold(
+#   mkd::ApproxManifoldProducts.HomotopyDensity,
+#   asPartial::Bool = false,
+# ) where {M, B}
+#   return mkd.manifold
+# end
+# function getManifold(
+#   mkd::ManifoldKernelDensity{M, B, L},
+#   asPartial::Bool = false,
+# ) where {M, B, L <: AbstractVector}
+#   return asPartial ? mkd.manifold : getManifoldPartial(mkd.manifold, mkd._partial)
+# end
+
+# # Type converters for MKD
+# function Base.convert(::Type{<:SamplableBelief}, ::Type{<:PackedManifoldKernelDensity})
+#   error("convert to SamplableBelief from PackedManifoldKernelDensity")
+#   return ManifoldKernelDensity
+# end
+# function Base.convert(::Type{<:PackedBelief}, ::Type{<:ManifoldKernelDensity})
+#   error("convert to PackedBelief from ManifoldKernelDensity")
+#   return PackedManifoldKernelDensity
+# end
+
+
+
 # moved here from DistributedFactorGraphs.jl, replace with new way.
 function typeModuleName(variableType::StateType)
     Base.depwarn("typeModuleName is obsolete", :typeModuleName)
@@ -45,10 +308,15 @@ function getTypeFromSerializationModule(_typeString::AbstractString)
     return nothing
 end
 
+# ================================================================================================
+# Deprecated in v0.37
+# ================================================================================================
+# getMeasurements is not really in use so deprecating for sampleFactor
+@deprecate getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int = 100) sampleFactor(dfg, fsym, N)
 
-## ================================================================================================
-## Deprecated in v0.36
-## ================================================================================================
+# ================================================================================================
+# Deprecated in v0.36
+# ================================================================================================
 
 #TODO this looks like dead code, should be removed
 # TODO deprecate testshuffle
@@ -195,9 +463,9 @@ end
 # _getZDim(fcd::DFG.GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
 # DFG.getDimension(fct::DFG.GenericFunctionNodeData) = _getZDim(fct)
 
-function sampleTangent(x::ManifoldKernelDensity, p = mean(x))
-  error("sampleTangent(x::ManifoldKernelDensity, p) should be replaced by sampleTangent(M<:AbstractManifold, x::ManifoldKernelDensity, p)")
-end
+# function sampleTangent(x::ManifoldKernelDensity, p = mean(x))
+#   error("sampleTangent(x::ManifoldKernelDensity, p) should be replaced by sampleTangent(M<:AbstractManifold, x::ManifoldKernelDensity, p)")
+# end
 
 export setPPE!, setVariablePosteriorEstimates!
 setPPE!(args...; kw...) = error("PPEs are obsolete (use `calcMeanMaxSuggested` provisionally), see DFG #1133")
@@ -276,10 +544,10 @@ function findVariablesNear(
 end
 
 
-## ================================================================================================
-## Manifolds.jl Consolidation
-## TODO: Still to be completed and tested.
-## ================================================================================================
+# ================================================================================================
+# Manifolds.jl Consolidation
+# TODO: Still to be completed and tested.
+# ================================================================================================
 # struct ManifoldsVector <: Optim.Manifold
 #   manis::Vector{Manifold}
 # end
@@ -309,9 +577,9 @@ end
 # end
 
 
-##==============================================================================
-## Old parametric kept for comparason until code is stabilized
-##==============================================================================
+# ==============================================================================
+#  Old parametric kept for comparason until code is stabilized
+# ==============================================================================
 
 """
     $SIGNATURES
@@ -389,15 +657,15 @@ function solveGraphParametric2(
   return d, result, flatvar.idx, Σ
 end
 
-##==============================================================================
-## Deprecate code below before v0.37
-##==============================================================================
+# ==============================================================================
+#  Deprecate code below before v0.37
+# ==============================================================================
 
 @deprecate solveFactorParameteric(w...;kw...) solveFactorParametric(w...;kw...)
 
-##==============================================================================
-## Deprecate code below before v0.36
-##==============================================================================
+# ==============================================================================
+# Deprecate code below before v0.36
+# ==============================================================================
 
 # function Base.isapprox(a::ProductRepr, b::ProductRepr; atol::Real = 1e-6)
 #   #

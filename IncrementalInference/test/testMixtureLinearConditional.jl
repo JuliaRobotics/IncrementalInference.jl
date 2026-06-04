@@ -89,6 +89,8 @@ f0 = addFactor!(fg, [:x0;], mp)
 mr = Mixture(LinearRelative, (fancy=manikde!(ContinuousEuclid(1), [randn(1) for _ in 1:75]), naive=Normal(0,10)), [0.4;0.6])
 f1 = addFactor!(fg, [:x0;:x1], mr)
 
+initAll!(fg)
+
 saveDFG("/tmp/mixture", fg)
 fg_ = loadDFG("/tmp/mixture")
 

@@ -49,7 +49,7 @@ mf = MyFactor( Normal(10,1) )
 
 ## test #424
 
-@test_throws AssertionError addFactor!(fg, [:x0;:x1_a;:x1_b], mf, multihypo=[1/2;1/2])
+@test_throws ArgumentError addFactor!(fg, [:x0;:x1_a;:x1_b], mf, multihypo=[1/2;1/2])
 
 ##
 

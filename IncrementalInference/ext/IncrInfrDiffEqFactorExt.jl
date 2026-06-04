@@ -300,9 +300,9 @@ function IncrementalInference.sampleFactor(cf::CalcFactor{<:DERelative}, N::Int 
     # backward direction
     prob = oder.backwardProblem
     M_ = getManifold(getStateKind(cf.fullvariables[1]))
-    addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
-      AMP._manifoldtuple(M_),
-    )
+    # addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
+    #   AMP._manifoldtuple(M_),
+    # )
     # getBelief(cf.fullvariables[2]) |> getPoints
     cf._legacyParams[2], M_
   else
@@ -310,9 +310,9 @@ function IncrementalInference.sampleFactor(cf::CalcFactor{<:DERelative}, N::Int 
     prob = oder.forwardProblem
     M_ = getManifold(getStateKind(cf.fullvariables[2]))
     # buffer manifold operations for use during factor evaluation
-    addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
-      AMP._manifoldtuple(M_),
-    )
+    # addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks(
+    #   AMP._manifoldtuple(M_),
+    # )
     # getBelief(cf.fullvariables[1]) |> getPoints
     cf._legacyParams[1], M_
   end

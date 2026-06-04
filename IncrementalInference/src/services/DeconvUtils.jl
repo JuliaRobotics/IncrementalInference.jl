@@ -186,7 +186,7 @@ function approxDeconv(
   fct = getFactor(dfg, fctsym)
   pts = getPoints(getBelief(dfg, getVariableOrder(fct)[1], solveKey))
   N = length(pts)
-  pts = approxDeconv(fct; N = N)
+  pts = approxDeconv(fct, _getCCW(dfg, fct); N = N)
   return pts
 end
 
@@ -226,8 +226,8 @@ end
 #
 
 function approxDeconvBelief(dfg::AbstractDFG, lb::Symbol, w...; kw...)
-  return manikde!(
-    getManifold(getObservation(dfg, lb)),
+  return HomotopyDensity_legacy(
+    getManifold(getObservation(dfg, lb)), # FIXME should be statekind (also for factors??)
     approxDeconv(dfg, lb, w...; kw...)[1],
   )
 end

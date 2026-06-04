@@ -112,6 +112,9 @@ function CliqStateMachineContainer(
   #
 end
 
+#FIXME WIP to remove solverparams
+getCliqueSolverParams(csmc::CliqStateMachineContainer) = csmc.opts
+
 # TODO resolve name conflict
 function DFG.compare(
   cs1::CliqStateMachineContainer{BTND1, T1, InMemG1, BT1},

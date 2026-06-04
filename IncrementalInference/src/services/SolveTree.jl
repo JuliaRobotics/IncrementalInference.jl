@@ -56,7 +56,6 @@ function doFMCIteration(
   logger = ConsoleLogger(),
 )
   #
-
   vert = DFG.getVariable(fgl, vsym)
   if !getState(vert, solveKey).marginalized
     # potprod = nothing
@@ -71,8 +70,9 @@ function doFMCIteration(
     )
 
     if 0 < Npts(dens)
+      # _whatP(::HomotopyDensityLive{H, P}) where {H, P} = P
+      # println("doFMCIteration setBelief! for $(vsym), ", _whatP(dens))
       setBelief!(vert, dens, true, ipc)
-      # setValKDE!(vert, densPts, true, ipc)
       # TODO perhaps more debugging inside `propagateBelief`?
     end
   end
@@ -166,7 +166,7 @@ function upGibbsCliqueDensity(
   cliq::TreeClique,
   solveKey::Symbol,
   inmsgs,
-  N::Int = getSolverParams(dfg).N,
+  N::Int = 100,
   dbg::Bool = false,
   iters::Int = 3,
   logger = ConsoleLogger(),
@@ -265,6 +265,7 @@ function cycleInitByVarOrder!(
   varorder::Vector{Symbol};
   solveKey::Symbol = :default,
   logger = ConsoleLogger(),
+  N::Int = 100,
 )
   #
   with_logger(logger) do
@@ -280,7 +281,7 @@ function cycleInitByVarOrder!(
       with_logger(logger) do
         @info "var.label=$(var.label) is initialized=$(isinit)"
       end
-      doautoinit!(subfg, [var;]; solveKey = solveKey, logger = logger)
+      doautoinit!(subfg, [var;]; N, solveKey, logger)
       if isinit != isInitialized(var, solveKey)
         count += 1
         retval = true

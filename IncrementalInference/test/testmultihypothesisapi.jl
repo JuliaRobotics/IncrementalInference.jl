@@ -70,6 +70,7 @@ v4 = addVariable!(fg, :x4, ContinuousScalar, N=N)
 ppMH = DevelopLikelihood(Normal(90.0,1.0))
 f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=[1.0;0.5;0.5])
 
+initAll!(fg)
 
 # @test IIIF._getCCW(f3).hypoverts == [:x3, :x4]
 @test sum(abs.(IIF._getCCW(f3).hyporecipe.hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience
@@ -212,7 +213,7 @@ v5 = addVariable!(fg, :x5, ContinuousScalar, N=N)
 ppMH = DevelopLikelihood(Normal(90.0,1.0))
 f3 = addFactor!(fg, [:x2;:x3;:x4;:x5], ppMH, multihypo=[1.0,0.333,0.333,0.334])
 
-
+initAll!(fg)
 
 # @test IIF._getCCW(f3).hypoverts == [:x3, :x4]
 @test sum(abs.(IIF._getCCW(f3).hyporecipe.hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience
@@ -277,7 +278,6 @@ addVariable!(fg, :x1a, ContinuousEuclid{1})
 addVariable!(fg, :x1b, ContinuousEuclid{1})
 addFactor!(fg, [:x0;:x1a;:x1b], LinearRelative(Normal()), multihypo=[1; 0.5;0.4999999999999])
 addFactor!(fg, [:x0;:x1a;:x1b], LinearRelative(Normal()), multihypo=[1; 0.5;0.5000000000001])
-
 
 ##
 end

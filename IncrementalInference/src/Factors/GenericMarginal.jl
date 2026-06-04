@@ -3,7 +3,7 @@
 """
 $(TYPEDEF)
 """
-mutable struct GenericMarginal <: RelativeObservation # AbstractRelativeRoots
+mutable struct GenericMarginal <: AbstractObservation # internal BayesNet chain-rule factor
   Zij::Array{Float64, 1}
   Cov::Array{Float64, 1}
   W::Array{Float64, 1}

@@ -1,30 +1,5 @@
 
-import DistributedFactorGraphs: getStateKind
 
-# ==============================================================================
-#  Topology types that specialize AbstractHomotopyTopology (defined in DFG)
-# ==============================================================================
-# L1 structural nodes only. No L2 samples. (Schema: `means`, `weights`, `forms` populated. `points` empty.)
-struct RootsOnlyTopology <: DFG.AbstractHomotopyTopology end
-# L2 raw samples only. No L1 structure. (Schema: `points`, `bandwidths` populated. `means` empty.)
-struct LeavesOnlyTopology <: DFG.AbstractHomotopyTopology end
-
-# Convenience constructors for HomotopyDensityDFG with topology dispatch
-function DFG.HomotopyDensityDFG(::LeavesOnlyTopology, T::DFG.AbstractStateType; kwargs...)
-    dim = DFG.getDimension(T)
-    return DFG.HomotopyDensityDFG{typeof(T), DFG.getPointType(T)}(;
-        reprkind = DFG.HomotopyReprDFG(LeavesOnlyTopology(), DFG.DefaultFormKind(), T, nothing),
-        trailing_forms = sparsevec(Dict(1 => zeros(dim, dim))),
-        kwargs...,
-    )
-end
-
-function DFG.HomotopyDensityDFG(::RootsOnlyTopology, T::DFG.AbstractStateType; kwargs...)
-    return DFG.HomotopyDensityDFG{typeof(T), DFG.getPointType(T)}(;
-        reprkind = DFG.HomotopyReprDFG(RootsOnlyTopology(), DFG.DefaultFormKind(), T, nothing),
-        kwargs...,
-    )
-end
 
 """
     CliqStatus
@@ -46,8 +21,7 @@ using DistributedFactorGraphs: PackedBelief
 #TODO deprecate SamplableBelief
 const SamplableBelief = Union{
   <:Distributions.Distribution,
-  <:KDE.BallTreeDensity, # FIXME deprecate
-  <:AMP.ManifoldKernelDensity,
+  <:ApproxManifoldProducts.HomotopyDensity,
   <:AliasingScalarSampler,
   <:FluxModelsDistribution,
   <:HeatmapGridDensity,
@@ -65,9 +39,10 @@ INTERMEDIATE DATA STRUCTURE DURING REFACTORING.
 
 Representation of the belief of a single variable.
 
-Notes:
+DevNotes:
 - we want to send the joint, this is just to resolve consolidation #459 first.
 - Long term objective is single joint definition, likely called `LikelihoodMessage`.
+- See 1929; wholesale replacement w `HomotopyDensity` over all clique dimensions.
 """
 struct TreeBelief{T <: StateType, P, M <: MB.AbstractManifold}
   val::Vector{P}
@@ -82,13 +57,26 @@ struct TreeBelief{T <: StateType, P, M <: MB.AbstractManifold}
 end
 
 function TreeBelief(
-  p::ManifoldKernelDensity,
+  p::ApproxManifoldProducts.HomotopyDensity,
   ipc::AbstractVector{<:Real} = [0.0;],
   variableType::T = ContinuousScalar(),
   manifold = getManifold(variableType),
   solvableDim::Real = 0,
 ) where {T <: StateType}
   return TreeBelief(getPoints(p), getBW(p), ipc, variableType, manifold, solvableDim)
+end
+
+function HomotopyDensity_legacy(
+  treeb::TreeBelief,
+)
+  # FIXME, partials still need to be dealt with here
+  return ApproxManifoldProducts.HomotopyDensity_legacy(
+    treeb.variableType,
+    treeb.val;
+    bw = treeb.bw,
+    newbw = false,
+    observability = treeb.infoPerCoord,
+  )
 end
 
 function TreeBelief(
@@ -102,30 +90,23 @@ function TreeBelief(
   return TreeBelief{T, P, M}(val, bw, ipc, variableType, manifold, solvableDim)
 end
 
-function TreeBelief(vnd::State, solvDim::Real = 0)
-  TreeBelief(DFG.getTopologyKind(vnd), vnd, solvDim)
-end
+function TreeBelief(state::State, solvDim::Real = 0)
+  pts = getPoints(state.belief; permute=false) # TODO likely want to go back to sorted order here, DX debugging with permute=false
+  cv = getBW(state.belief)[1]
+  obsv = DFG.refObservability(state)
+  statekind = getStateKind(state)
 
-function TreeBelief(::RootsOnlyTopology, vnd::State, solvDim::Real = 0)
+  # @info "TreeBelief" string(pts[1]) string(cv) string(obsv)
+
   return TreeBelief(
-    DFG.refMeans(vnd),
-    DFG.refCovariances(vnd)[1],
-    DFG.refObservability(vnd),
-    getStateKind(vnd),
-    getManifold(vnd),
+    pts,
+    cv,
+    obsv,
+    statekind,
+    getManifold(statekind),
     solvDim,
   )
-end
-
-function TreeBelief(::LeavesOnlyTopology, vnd::State, solvDim::Real = 0)
-  return TreeBelief(
-    DFG.refPoints(vnd),
-    DFG.refBandwidth(vnd),
-    DFG.refObservability(vnd),
-    getStateKind(vnd),
-    getManifold(vnd),
-    solvDim,
-  )
+  # TreeBelief(DFG.getTopologyKind(state), state, solvDim)
 end
 
 function TreeBelief(vari::VariableCompute, solveKey::Symbol = :default; solvableDim::Real = 0)
@@ -146,5 +127,6 @@ function compare(t1::TreeBelief, t2::TreeBelief)
   TP = TP && abs(t1.solvableDim - t2.solvableDim) < 1e-5
   return TP
 end
+
 
 #

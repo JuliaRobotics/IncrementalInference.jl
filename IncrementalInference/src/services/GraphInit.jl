@@ -1,4 +1,98 @@
+# Solver type structs for dispatch
+struct NLLSSolver end
+@kwdef struct NPBPSolver
+  defaultNumKernels::Int = 128
+end
 
+"""
+    $SIGNATURES
+
+Create an uninitialized `State` on variable `v` with `num_kernels` identity-element particles.
+
+See also: [`prepare!`](@ref), [`initAll!`](@ref)
+"""
+function prepareState!(
+  v::VariableCompute,
+  solver::Union{<:NPBPSolver, <:NLLSSolver},
+  statelabel::Symbol;
+  num_kernels::Int = solver.defaultNumKernels, # ensure 1 for parametric case
+  varType::StateType = DFG.getStateKind(v),
+)
+  # work around during consolidation
+  _nkrs = solver isa NLLSSolver ? 1 : num_kernels
+  
+  hasState(v, statelabel) && return 0
+  dims = getDimension(v)
+  @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defStateType $varType arguments is correct"
+  ϵ = getPointIdentity(varType)
+  belief = HomotopyDensity_legacy(
+    varType, 
+    [ϵ for _ in 1:_nkrs]; 
+    bw = zeros(dims), 
+    newbw = false
+  )
+  mergeState!(
+    v,
+    State(statelabel, varType; belief, initialized = false, marginalized = false)
+  )
+  return 1
+end
+  # TODO review and refactor this function, exists as legacy from pre-v0.3.0
+  # this should be the only function allocating memory for the node points (unless number of points are changed)
+  # (val, bw) = if initialized
+  #   pN = getBelief(v)
+  #   bw = getBW(pN)[1]
+  #   pNpts = getPoints(pN)
+  #   isinit = true
+  #   (pNpts, bw)
+  # else
+  #   sp = round.(Int, range(dodims; stop = dodims + dims - 1, length = dims))
+  #   @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defStateType $varType arguments is correct"
+  #   val = Vector{getPointType(varType)}(undef, N)
+  #   for i = 1:length(val)
+  #     val[i] = getPointIdentity(varType)
+  #   end
+  #   bw = diagm(ones(dims))
+  #   #
+  #   (val, bw)
+  # end
+
+"""
+    $SIGNATURES
+
+Ensure all variables in `dfg` (matching `whereSolvable`) have a `State` for `statelabel`.
+Returns the number of states newly created (0 for variables that already had the state).
+
+See also: [`prepareState!`](@ref), [`prepare!`](@ref)
+"""
+function prepareStates!(
+  dfg::AbstractDFG,
+  solver::NPBPSolver,
+  statelabel::Symbol;
+  num_kernels::Int = solver.defaultNumKernels,
+  whereSolvable = >=(1),
+)
+  count = 0
+  for vl in listVariables(dfg; whereSolvable)
+    vari = getVariable(dfg, vl)
+    count += prepareState!(vari, solver, statelabel; num_kernels)
+  end
+  return count
+end
+
+function prepareStates!(
+  dfg::AbstractDFG,
+  solver::NLLSSolver,
+  statelabel::Symbol;
+  whereSolvable = >=(1),
+)
+  count = 0
+  for vl in listVariables(dfg; whereSolvable)
+    vari = getVariable(dfg, vl)
+    count += prepareState!(vari, solver, statelabel)
+  end
+  return count
+end
 
 """
     $SIGNATURES
@@ -22,20 +116,17 @@ function makeSolverData!(
   dfg::AbstractDFG;
   solvable = 1,
   varList::AbstractVector{Symbol} = ls(dfg; whereSolvable = >=(solvable)),
-  solveKey::Symbol=:default
+  solveKey::Symbol=:default,
+  N::Int = getSolverParams(dfg).N,
 )
+  Base.depwarn("`makeSolverData!` is deprecated, use `prepareStates!(dfg, solver, solveKey)` instead.", :makeSolverData!)
   count = 0
   for vl in varList
     v = getVariable(dfg,vl)
-    varType = getStateKind(v) |> IIF._variableType
-    vsolveKeys = listStates(dfg,vl)
-    if solveKey != :parametric && !(solveKey in vsolveKeys)
-        IIF.setDefaultNodeData!(v, 0, getSolverParams(dfg).N; initialized=false, varType, solveKey) # dodims
-        count += 1
-    elseif solveKey == :parametric && !(:parametric in vsolveKeys)
-        # global doinit = true
-        IIF.setDefaultNodeDataParametric!(v, varType; initialized=false, solveKey)
-        count += 1
+    if solveKey != :parametric
+        count += prepareState!(v, NPBPSolver(), solveKey; num_kernels=N)
+    else
+        count += prepareState!(v, NLLSSolver(), solveKey)
     end
   end
 
@@ -78,7 +169,7 @@ function factorCanInitFromOtherVars(
   for vsym in varsyms
     # check each variable one by one
     xi = DFG.getVariable(dfg, vsym)
-    isi = isInitialized(xi, solveKey)
+    isi = hasState(xi, solveKey) && isInitialized(xi, solveKey)
     push!(isinit, isi)
     if !isi
       push!(faillist, vsym)
@@ -139,6 +230,8 @@ function doautoinit!(
 )
   #
   didinit = false
+  # create State if it does not exist yet
+  prepareState!(xi, NPBPSolver(), solveKey; num_kernels=N)
   # don't initialize a variable more than once
   if !isInitialized(xi, solveKey)
     with_logger(logger) do
@@ -174,11 +267,13 @@ function doautoinit!(
         # while the propagate step might allow large point counts, the graph should stay restricted to N
         bel_ =
           Npts(bel) == getSolverParams(dfg).N ? bel : resample(bel, getSolverParams(dfg).N)
-        # @info "MANIFOLD IS" bel.manifold isPartial(bel) string(bel._partial) string(getPoints(bel, false)[1]) 
-        setValKDE!(xi, bel_, true, ipc; solveKey) # getPoints(bel, false)
+        setBelief!(xi, bel_; solveKey) # TODO, update to stateLabel
+        state = getState(xi, solveKey)
+        state.initialized = true
+
         # Update the data in the event that it's not local
         # TODO perhaps use merge, but keeping to deepcopy as update variant used was set to copy.
-        DFG.copytoState!(dfg, xi.label, solveKey, getState(xi, solveKey))
+        DFG.copytoState!(dfg, xi.label, solveKey, state)
         # deepcopy graphinit value, see IIF #612
         DFG.copytoState!(
           dfg,
@@ -285,33 +380,21 @@ DevNotes
 """
 function initVariable!(
   variable::VariableCompute,
-  ptsArr::ManifoldKernelDensity,
+  ptsArr::ApproxManifoldProducts.HomotopyDensity,
   solveKey::Symbol = :default;
   # dontmargin::Bool = false,
   N::Int = length(getPoints(ptsArr)),
 )
   #
   @debug "initVariable! $(getLabel(variable))"
-  if !(solveKey in listStates(variable))
-    @debug "$(getLabel(variable)) needs new VND solveKey=$(solveKey)"
-    varType = getStateKind(variable)
-    setDefaultNodeData!(
-      variable,
-      0,
-      N;
-      solveKey = solveKey,
-      initialized = false,
-      varType = varType,
-      # dontmargin = dontmargin,
-    )
-  end
-  setValKDE!(variable, ptsArr, true; solveKey = solveKey)
+  prepareState!(variable, NPBPSolver(), solveKey; num_kernels=N)
+  setValKDE!(variable, ptsArr, true; solveKey)
   return nothing
 end
 function initVariable!(
   dfg::AbstractDFG,
   label::Symbol,
-  belief::ManifoldKernelDensity,
+  belief::ApproxManifoldProducts.HomotopyDensity,
   solveKey::Symbol = :default;
   # dontmargin::Bool = false,
   N::Int = getSolverParams(dfg).N,
@@ -347,6 +430,7 @@ function initVariable!(
   #
   M = getManifold(variable)
   if solveKey == :parametric
+    prepareState!(variable, NLLSSolver(), solveKey)
     μ, iΣ = getMeasurementParametric(samplable_belief)
     vnd = getState(variable, solveKey)
     DFG.refMeans(vnd)[1] = getPoint(getStateKind(variable), μ)
@@ -368,7 +452,7 @@ function initVariable!(
   kwargs...,
 )
   #
-  pts = propagateBelief(dfg, label, usefcts; solveKey = solveKey)[1]
+  pts = propagateBelief(dfg, label, usefcts; solveKey, N)[1]
   # pts = predictbelief(dfg, label, usefcts; solveKey = solveKey)[1]
   vert = getVariable(dfg, label)
   Xpre = manikde!(getManifold(getStateKind(vert)), pts)
@@ -389,9 +473,9 @@ function initVariable!(
   _prodrepr(pt) = pt
   # _prodrepr(pt::Tuple) = Manifolds.ProductRepr(pt...)
   _prodrepr(pt::Tuple) = ArrayPartition(pt...)
-
-  M = getManifold(vari)
-  pp = manikde!(M, _prodrepr.(pts); bw)
+  _bw = bw === nothing ? zeros(getDimension(vari)) : bw
+  M = getStateKind(vari)
+  pp = HomotopyDensity_legacy(M, _prodrepr.(pts); bw=_bw, newbw=false)
   return initVariable!(vari, pp, solveKey)
 end
 
@@ -490,10 +574,44 @@ end
 """
     $SIGNATURES
 
+Prepare the factor graph for nonparametric belief propagation solving.
+
+Specifically:
+- Ensures every solvable variable has a `State` for `solveKey` with `N` particles (uninitialized).
+- Ensures every solvable factor has a built CCW (`solvercache`).
+
+No variable values are computed — use [`initAll!`](@ref) for that.
+
+See also: [`initAll!`](@ref), [`prepareFactorCache!`](@ref)
+"""
+function prepare!(
+  dfg::AbstractDFG,
+  solver::NPBPSolver,
+  statelabel::Symbol;
+  num_kernels::Int = solver.defaultNumKernels,
+  whereSolvable = >=(1),
+)
+  # Ensure all variables have State for statelabel
+  count = prepareStates!(dfg, solver, statelabel; num_kernels, whereSolvable)
+
+  # Ensure all factor caches (CCW) are built
+  for fl in listFactors(dfg; whereSolvable)
+    fct = getFactor(dfg, fl)
+    if !isassigned(fct.solvercache)
+      prepareFactorCache!(dfg, fct)
+    end
+  end
+
+  return count
+end
+
+"""
+    $SIGNATURES
+
 Perform `graphinit` over all variables with `solvable=1` (default).
 
 
-See also: [`ensureSolvable!`](@ref), (EXPERIMENTAL 'treeinit')
+See also: [`ensureSolvable!`](@ref), [`prepare!`](@ref), (EXPERIMENTAL 'treeinit')
 """
 function initAll!(
   dfg::AbstractDFG,
@@ -503,31 +621,13 @@ function initAll!(
   N::Int = _parametricInit ? 1 : getSolverParams(dfg).N,
 )
   #
-  # allvarnodes = getVariables(dfg)
   syms = intersect(DFG.getAddHistory(dfg), ls(dfg; whereSolvable = >=(solvable)))
-  # syms = ls(dfg, solvable=solvable) # |> sortDFG
 
-  # May have to first add the solveKey VNDs if they are not yet available
-  for sym in syms
-    vari = getVariable(dfg, sym)
-    varType = DFG.getStateKind(vari)
-    # does SolverData exist for this solveKey?
-    vsolveKeys = listStates(vari)
-    # FIXME, likely some consolidation needed with #1637
-    if !_parametricInit && !(solveKey in vsolveKeys)  
-      # accept complete defaults for a novel solveKey
-      setDefaultNodeData!(
-        vari,
-        0,
-        N;
-        solveKey,
-        initialized = false,
-        varType,
-      )
-    end
-    if _parametricInit && !(:parametric in vsolveKeys)
-      setDefaultNodeDataParametric!(vari, varType; initialized = false)
-    end
+  # Prepare all solver caches
+  if _parametricInit
+    prepare!(dfg, NLLSSolver(), solveKey)
+  else
+    prepare!(dfg, NPBPSolver(), solveKey; num_kernels = N, whereSolvable = >=(solvable))
   end
 
   # do the init
@@ -548,7 +648,7 @@ function initAll!(
         if _parametricInit
           autoinitParametric!(dfg, var; solveKey)
         else
-          doautoinit!(dfg, [var;]; solveKey, singles = true)
+          doautoinit!(dfg, [var;]; N, solveKey, singles = true)
         end
         !isInitialized(var, solveKey) ? (repeatFlag = true) : nothing
       end

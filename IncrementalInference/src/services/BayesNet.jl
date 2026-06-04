@@ -84,7 +84,7 @@ function addChainRuleMarginal!(dfg::AbstractDFG, Si::Vector{Symbol})
   # for x in Xi
   #   @info "x.index=",x.index
   # end
-  addFactor!(dfg, Xi, genmarg; graphinit = false, suppressChecks = true)
+  addFactor!(dfg, Xi, genmarg)
   return nothing
 end
 
@@ -104,13 +104,7 @@ function rmVarFromMarg(dfg::AbstractDFG, fromvert::VariableCompute, gm::Vector{F
         DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
           @debug "$(m.label) still has links to other variables, readding it back..."
-          addFactor!(
-            dfg,
-            remvars,
-            _getCCW(m).usrfnc!;
-            graphinit = false,
-            suppressChecks = true,
-          )
+          addFactor!(dfg, remvars, DFG.getObservation(m))
         else
           @debug "$(m.label) doesn't have any other links, not adding it back..."
         end
@@ -127,6 +121,8 @@ end
 
 function buildBayesNet!(dfg::AbstractDFG, elimorder::Vector{Symbol}; solvable::Int = 1)
   #
+  # Ensure all variables have a :default State (tree building stores separator metadata there)
+  prepareStates!(dfg, NPBPSolver(), :default; whereSolvable = >=(solvable))
   # addBayesNetVerts!(dfg, elimorder)
   for v in elimorder
     @debug """ 
@@ -154,7 +150,7 @@ function buildBayesNet!(dfg::AbstractDFG, elimorder::Vector{Symbol}; solvable::I
         fct.state.eliminated = true
       end
 
-      if typeof(_getCCW(fct)) == CommonConvWrapper{GenericMarginal}
+      if DFG.getObservation(fct) isa GenericMarginal
         push!(gm, fct)
       end
     end

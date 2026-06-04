@@ -60,7 +60,6 @@ addFactor!(fg, [:x1; :l2; :l1], p2p, multihypo = [1, pRight, pWrong])
 
 # prescribe an elimination order to get a single clique
 eo = [:l2,:x1,:x0,:l1]
-# fg.solverParams.graphinit=true
 smtasks = Task[]
 tree = solveTree!(fg, eliminationOrder=eo) #, smtasks=smtasks, recordcliqs=ls(fg));
 
@@ -71,14 +70,14 @@ tree = solveTree!(fg, eliminationOrder=eo) #, smtasks=smtasks, recordcliqs=ls(fg
 
 ##
 
-@test isapprox(calcMeanMaxSuggested(fg, :x0, :default).suggested[], 0, atol = 0.2) 
-@test isapprox(calcMeanMaxSuggested(fg, :x1, :default).suggested[], 1, atol = 0.2) 
-@test isapprox(calcMeanMaxSuggested(fg, :l1, :default).suggested[], 1, atol = 0.2) 
+@test isapprox(mean(getBelief(getState(fg, :x0, :default)))[1], 0, atol = 0.2)
+@test isapprox(mean(getBelief(getState(fg, :x1, :default)))[1], 1, atol = 0.2)
+@test isapprox(mean(getBelief(getState(fg, :l1, :default)))[1], 1, atol = 0.2)
 
-L2 = getBelief(fg, :l2)
+L2 = getBelief(getState(fg, :l2, :default))
 npts = length(getPoints(L2))
 pts = [2.0.+0.1*randn(1) for _ in 1:npts]
-L2_ = manikde!(ContinuousScalar, pts)
+L2_ = HomotopyDensity_legacy(ContinuousScalar(), pts)
 
 # test that there is at least a mode present
 @test mmd(L2_, L2, ContinuousScalar) < 1e-3
@@ -122,14 +121,14 @@ tree = solveTree!(fg)
 
 # expect x1 x2 to have at least one mode at 0
 
-@test calcMeanMaxSuggested(fg, :x1, :default).suggested[1] - x1 |> abs < 1.2
-@test calcMeanMaxSuggested(fg, :x2, :default).suggested[1] - x2 |> abs < 1.2
+@test mean(getBelief(getState(fg, :x1, :default)))[1] - x1 |> abs < 1.2
+@test mean(getBelief(getState(fg, :x2, :default)))[1] - x2 |> abs < 1.2
 
-@test calcMeanMaxSuggested(fg, :l1, :default).suggested[1] - l1 |> abs < 1.2
-@test calcMeanMaxSuggested(fg, :l2, :default).suggested[1] - l2 |> abs < 1.2
+@test mean(getBelief(getState(fg, :l1, :default)))[1] - l1 |> abs < 1.2
+@test mean(getBelief(getState(fg, :l2, :default)))[1] - l2 |> abs < 1.2
 
-@test calcMeanMaxSuggested(fg, :l1_0, :default).suggested[1] - l1 |> abs < 10
-@test calcMeanMaxSuggested(fg, :l2_0, :default).suggested[1] - l2 |> abs < 10
+@test mean(getBelief(getState(fg, :l1_0, :default)))[1] - l1 |> abs < 10
+@test mean(getBelief(getState(fg, :l2_0, :default)))[1] - l2 |> abs < 10
 
 ##
 
