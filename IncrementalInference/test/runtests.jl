@@ -21,7 +21,7 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
     include("testDERelative.jl") # FIX BoundsError Ln332 cf._legacyParams[k][i], [100] of 1..99
     include("testHeatmapGridDensity.jl") # numerical test broken
     include("testMultiHypo3Door.jl") # FIX numerical
-    include("testExpXstroke.jl") # FIX, addLikelihoodsDifferentialCHILD! LN327
+    include("testExpXstroke.jl") # FIX, init bw issue, addLikelihoodsDifferentialCHILD! LN327
     include("testCircular.jl") # FIX
     include("testFluxModelsDistribution.jl")
     include("testMixturePrior.jl") # FIX, serde structutils issue with BinarTruckFixedDepth?
@@ -64,7 +64,7 @@ include("testUseMsgLikelihoods.jl")
 @test_broken error("testSphereMani.jl broken") # include("testSphereMani.jl") # FIXME
 include("testBasicManifolds.jl")
 include("testSpecialOrthogonalMani.jl")
-include("testSpecialEuclidean2Mani.jl") # TBD
+
 # gradient / jacobian tests
 #include("manifolds/manifolddiff.jl")
 #include("manifolds/factordiff.jl")
@@ -99,14 +99,19 @@ include("testSolveKey.jl")
 
 include("testPartialFactors.jl")
 include("testPartialPrior.jl")
+
+## WORK IN PROGRESS
+include("testSpecialEuclidean2Mani.jl") # TBD
 include("testpartialconstraint.jl") # FIX
 include("testPartialNH.jl") # FIX
+include("testBasicParametric.jl") # FIX
 
 end
 end
 
 if TEST_GROUP in ["all", "test_cases_group"]
 @testset "Test Cases Group" begin
+
 include("testnullhypothesis.jl") 
 include("testVariousNSolveSize.jl")
 include("testExplicitMultihypo.jl")
@@ -119,7 +124,6 @@ include("fourdoortest.jl")
 include("testAnalysisTools.jl")
 
 
-include("testBasicParametric.jl") # FIX
 # include("testMixtureParametric.jl") #FIXME parametric mixtures #1787
 
 # dont run test on ARM, as per issue #527
@@ -129,7 +133,6 @@ end
 
 # include("testMultiprocess.jl")
 include("testDeadReckoningTether.jl")
-
 
 end
 end

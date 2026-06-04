@@ -207,7 +207,7 @@ function _solveLambdaNumericMeas(
   X0c = zeros(manifold_dimension(M))
   X0c .= vee(LieAlgebra(M), X0)
 
-  alg = islen1 ? Optim.BFGS() : Optim.NelderMead()
+  alg = islen1 ? Optim.BFGS(;linesearch=Optim.BackTracking(order=3)) : Optim.NelderMead()
 
   r = Optim.optimize(
     x->hypoCalcFactor(CalcDeconv, M, x),
