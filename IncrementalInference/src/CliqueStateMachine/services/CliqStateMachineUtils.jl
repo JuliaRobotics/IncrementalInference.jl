@@ -73,6 +73,8 @@ function _dbgCSMSaveSubFG(csmc::CliqStateMachineContainer, filename::String)
     if !ispath(folder)
       mkpath(folder)
     end
+    @warn "_dbgCSMSaveSubFG is disabled as part of the DFG v0.29 and AMP v0.15 reconciliation/refactor/upgrade" maxlog=10
+    return opt.dbg
     # NOTE there was a bug using saveDFG, so used serialize, left for future use  
     # serialize(joinpath(folder, filename), csmc.cliqSubFg)
     DFG.saveDFG(csmc.cliqSubFg, joinpath(folder, filename))

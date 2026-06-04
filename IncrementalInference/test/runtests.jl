@@ -14,10 +14,29 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
 @testset "IncrementalInference Tests" begin
   # temporarily moved to start (for debugging)
   if TEST_GROUP in ["all", "tmp_debug_group"]
-    @testset "Temporary Debug Group" begin
-    include("testSpecialOrthogonalMani.jl")
+    @testset "Temporary Debug Group (incl. frequent numerical issues)" begin
+    include("testBasicGraphs.jl") # NUMERICAL
+    include("testEuclidDistance.jl") # test_broken
+    include("testSpecialSampler.jl") # FIX, bounds error
+    include("testDERelative.jl") # FIX BoundsError Ln332 cf._legacyParams[k][i], [100] of 1..99
+    include("testHeatmapGridDensity.jl") # numerical test broken
     include("testMultiHypo3Door.jl") # FIX numerical
-    include("priorusetest.jl") # MANY SKIPS
+    include("testExpXstroke.jl") # FIX, addLikelihoodsDifferentialCHILD! LN327
+    include("testCircular.jl") # FIX
+    include("testFluxModelsDistribution.jl")
+    include("testMixturePrior.jl") # FIX, serde structutils issue with BinarTruckFixedDepth?
+    include("testMixtureLinearConditional.jl") # FIX, use HomotopyDensity as replacement for Mixture
+    include("testMultihypoAndChain.jl") # numerical issues
+
+    @error "See new DFG v0.29 JSON serde for variables and factors, old IIF serde tests currently disabled"
+    if false
+      # include("TestModuleFunctions.jl")
+      include("testCompareVariablesFactors.jl")
+      include("saveconvertertypes.jl")
+      include("testgraphpackingconverters.jl")
+      include("testSaveLoadDFG.jl")
+      include("testPackingMixtures.jl")
+    end
   end
 end
 
@@ -29,15 +48,6 @@ include("typeReturnMemRef.jl")
 include("testDistributionsGeneric.jl")
 include("basicGraphsOperations.jl")
 
-@error "See new DFG v0.29 JSON serde for variables and factors, old IIF serde tests currently disabled"
-if false
-  # include("TestModuleFunctions.jl")
-  include("testCompareVariablesFactors.jl")
-  include("saveconvertertypes.jl")
-  include("testgraphpackingconverters.jl")
-  include("testSaveLoadDFG.jl")
-  include("testPackingMixtures.jl")
-end
 #FIXME fails on MetaBayesTree
 include("testTreeSaveLoad.jl")
 
@@ -46,12 +56,14 @@ include("testApproxConv.jl")
 include("testBasicForwardConvolve.jl")
 
 include("testDefaultDeconv.jl")
+include("priorusetest.jl") # many skips
+
 include("testCliqSolveDbgUtils.jl")
 include("testUseMsgLikelihoods.jl")
 
-include("testEuclidDistance.jl") # test_broken
 @test_broken error("testSphereMani.jl broken") # include("testSphereMani.jl") # FIXME
 include("testBasicManifolds.jl")
+include("testSpecialOrthogonalMani.jl")
 include("testSpecialEuclidean2Mani.jl") # TBD
 # gradient / jacobian tests
 #include("manifolds/manifolddiff.jl")
@@ -65,36 +77,30 @@ include("testBayesTreeiSAM2Example.jl")
 include("testTreeFunctions.jl")
 
 include("testCommonConvWrapper.jl") # skipped test with just ::Float point type 
-include("testSpecialSampler.jl") # TODO, rename, refine
-include("testHeatmapGridDensity.jl") # numerical test broken
 
 include("testStateMachine.jl")
 include("testBasicCSM.jl")
 include("testCliqueFactors.jl")
 include("testCcolamdOrdering.jl")
 include("testCliqueTreesOrderings.jl")
-include("testBasicGraphs.jl") # NUMERICAL
 include("testJointEnforcement.jl")
-include("testHasPriors913.jl") # FIX something in solve
+include("testHasPriors913.jl")
 include("testInitVariableOrder.jl")
 include("testTreeMessageUtils.jl")
 include("testCSMMonitor.jl")
-include("testExpXstroke.jl") # FIX
-include("testBasicRecycling.jl") # FIX
-include("testSkipUpDown.jl") # FIX
+include("testBasicRecycling.jl")
+include("testSkipUpDown.jl")
 include("testlocalconstraintexamples.jl")
+
 include("testManualInit.jl")
 include("testBasicTreeInit.jl")
 include("testSolveOrphanedFG.jl")
 include("testSolveKey.jl")
 
 include("testPartialFactors.jl")
-include("testPartialPrior.jl") # FIX
+include("testPartialPrior.jl")
 include("testpartialconstraint.jl") # FIX
 include("testPartialNH.jl") # FIX
-include("testMixturePrior.jl") # FIX
-
-include("testDERelative.jl") # FIX BoundsError Ln332 cf._legacyParams[k][i], [100] of 1..99
 
 end
 end
@@ -106,20 +112,11 @@ include("testVariousNSolveSize.jl")
 include("testExplicitMultihypo.jl")
 include("TestCSMMultihypo.jl")
 include("testCalcFactorHypos.jl")
-include("testMultimodal1D.jl") # FIX
-include("testMultihypoAndChain.jl") # FIX numerical
+include("testMultimodal1D.jl") # skipped a test
 include("testMultithreaded.jl")
-include("testmultihypothesisapi.jl") # FIX
+include("testmultihypothesisapi.jl")
 include("fourdoortest.jl")
-include("testCircular.jl") # FIX
-include("testMixtureLinearConditional.jl") # FIX
 include("testAnalysisTools.jl")
-if false
-  include("testFluxModelsDistribution.jl")
-else
-  # @error "Skipped testFluxModelsDistribution.jl"
-  @test_skip("Skipped testFluxModelsDistribution.jl")
-end
 
 
 include("testBasicParametric.jl") # FIX
@@ -132,6 +129,8 @@ end
 
 # include("testMultiprocess.jl")
 include("testDeadReckoningTether.jl")
+
+
 end
 end
 end

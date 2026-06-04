@@ -3,6 +3,7 @@ using IncrementalInference
 using Statistics
 using Test
 using TensorCast
+using LinearAlgebra
 
 ##
 

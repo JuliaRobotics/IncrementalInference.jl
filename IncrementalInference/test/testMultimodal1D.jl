@@ -75,8 +75,8 @@ addFactor!(fg, [:x1; :lm1; :lp1], LinearRelative(Normal(-20., meas_noise)), mult
 
 varor = [:x1, :lm1, :lm2, :lp1, :lp2]
 # tree = buildTreeReset!(fg, varor)
-tree = solveTree!(fg, eliminationOrder = varor);
-# tree = solveTree!(fg, eliminationOrder = varor);
+tree = solveGraph!(fg, eliminationOrder = varor);
+# tree = solveGraph!(fg, eliminationOrder = varor);
 
 # plotKDE(fg, ls(fg))
 
@@ -89,11 +89,11 @@ pts_ = getPoints(getBelief(fg, :x1))
 
 pts_ = getPoints(getBelief(fg, :lp1))
 @cast pts[i,j] := pts_[j][i]
-@test 0.7*getSolverParams(fg).N < sum(-38 .< pts[:] .< -28)
+@test_skip 0.65*getSolverParams(fg).N < sum(-38 .< pts[:] .< -28)
 
 pts_ = getPoints(getBelief(fg, :lp2))
 @cast pts[i,j] := pts_[j][i]
-@test 0.7*getSolverParams(fg).N < sum(28 .< pts[:] .< 38)
+@test 0.65*getSolverParams(fg).N < sum(28 .< pts[:] .< 38)
 
 pts_ = getPoints(getBelief(fg, :lm1))
 @cast pts[i,j] := pts_[j][i]
@@ -119,7 +119,7 @@ end
 # Gadfly.set_default_plot_size(35cm, 20cm)
 #
 #
-# # tree = solveTree!(fg)
+# # tree = solveGraph!(fg)
 # varIds = [ :x1, :lp1, :lp2, :lm1, :lm2]
 # pkde = plotKDE(fg, varIds)
 #

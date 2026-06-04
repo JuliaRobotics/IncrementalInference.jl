@@ -39,7 +39,7 @@ bel, infd = propagateBelief(fg, v0, [f0;])
 
 ##
 
-dens = Vector{ManifoldKernelDensity}()
+dens = Vector{HomotopyDensity}()
 IIF.proposalbeliefs!(fg, :x0, [f0], dens)
 
 pts = getPoints(dens[1], false)
@@ -62,8 +62,8 @@ fg = initfg()
 v0 = addVariable!(fg, :x0, ContinuousEuclid{2})
 
 pts = [randn(1) for _ in 1:1000];
-mkd = manikde!(TranslationGroup(1), pts, bw=[0.1;])
-pp = PartialPrior(ContinuousEuclid{2}, mkd, (2,))
+hode = HomotopyDensity_legacy(TranslationGroup(1), pts, bw=[0.1;])
+pp = PartialPrior(ContinuousEuclid{2}, hode, (2,))
 f0 = addFactor!(fg, [:x0;], pp, graphinit=false)
 
 ##

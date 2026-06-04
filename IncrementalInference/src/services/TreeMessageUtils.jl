@@ -324,7 +324,7 @@ function addLikelihoodsDifferentialCHILD!(
           pred_X, = approxDeconv(tfg, afc.label, solveKey)  # solveFactorMeasurements
           M = getManifold(_sft)
           e0 = getPointIdentity(M)
-          pts = exp.(Ref(M), Ref(e0), pred_X)
+          pts = exp.(Ref(M), Ref(e0), pred_X) # FIXME, LieGroups vs Manifolds
           newBel = HomotopyDensity_legacy(getManifold(_sft), pts) # FIXME HoDe for factors?
           # replace dummy factor with real deconv factor using manikde approx belief measurement
           fullFct = _sft(newBel)

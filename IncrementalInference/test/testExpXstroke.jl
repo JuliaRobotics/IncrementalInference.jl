@@ -7,7 +7,6 @@ using Test
 ##
 
 @testset "test endless cycle case, issue #754" begin
-
 ##
 
 # testgraph from issue #754
@@ -33,7 +32,7 @@ getSolverParams(fg).useMsgLikelihoods = true
 # ENV["JULIA_DEBUG"] = :csm_4
 
 smtasks = Task[]
-hist = IIF.solveTree!(fg; smtasks=smtasks); #, recordcliqs=ls(fg));
+hist = IIF.solveTree!(fg; smtasks=smtasks, multithread=false); #, recordcliqs=ls(fg));
 
 
 ##
@@ -51,7 +50,7 @@ hist = IIF.solveTree!(fg; smtasks=smtasks); #, recordcliqs=ls(fg));
 
 
 for var in sortDFG(ls(fg))
-  sppe = calcMeanMaxSuggested(fg, var, :default).suggested
+  sppe = mean(getState(fg, var, :default))[1]
   println("Testing ", var,": ", sppe)
   @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end

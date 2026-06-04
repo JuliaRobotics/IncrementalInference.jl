@@ -32,7 +32,7 @@ addFactor!(fg, [:x0], prpo)
 fg.solverParams.useMsgLikelihoods = true
 
 smtasks = Task[]
-tree = solveTree!(fg; smtasks=smtasks, verbose=true, timeout=30, multithread=false);
+tree = solveTree!(fg; smtasks=smtasks, verbose=true, multithread=false); # , timeout=30
 
 @warn("hasPriors test needs multiple solves")
 tree = solveTree!(fg; multithread=false);
