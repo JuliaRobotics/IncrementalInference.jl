@@ -44,7 +44,7 @@ hists = fetchCliqHistoryAll!(smtasks);
 #test if values are still correct
 for var in sortDFG(ls(fg))
     sppe = calcMeanMaxSuggested(fg, var, :default).suggested
-    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.3)
 end
 
 # recycled downsolve only

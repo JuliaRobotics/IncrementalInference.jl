@@ -12,128 +12,141 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
 ##
 
 @testset "IncrementalInference Tests" begin
+
   # temporarily moved to start (for debugging)
   if TEST_GROUP in ["all", "tmp_debug_group"]
-    @testset "Temporary Debug Group (incl. frequent numerical issues)" begin
-    include("testBasicGraphs.jl") # NUMERICAL
-    include("testEuclidDistance.jl") # test_broken
-    include("testSpecialSampler.jl") # FIX, bounds error
-    include("testDERelative.jl") # FIX BoundsError Ln332 cf._legacyParams[k][i], [100] of 1..99
-    include("testHeatmapGridDensity.jl") # numerical test broken
-    include("testMultiHypo3Door.jl") # FIX numerical
-    include("testExpXstroke.jl") # FIX, init bw issue, addLikelihoodsDifferentialCHILD! LN327
-    include("testCircular.jl") # FIX
-    include("testMultihypoAndChain.jl") # numerical issues
-    include("testFluxModelsDistribution.jl")
-    include("testMixturePrior.jl") # FIX, serde structutils issue with BinarTruckFixedDepth?
-    include("testMixtureLinearConditional.jl") # FIX, use HomotopyDensity as replacement for Mixture
-    include("testMixtureParametric.jl") #FIXME parametric mixtures #1787
+    @testset "Temporary Debug Group (most development activity, fail fast)" begin
+      
+      include("testEuclidDistance.jl") # test_broken
+      include("testDERelative.jl") # FIX BoundsError Ln332 cf._legacyParams[k][i], [100] of 1..99
+      include("testMultiHypo3Door.jl") # FIX, slow, weak numerics
+      include("testExpXstroke.jl") # FIX, init bw issue, addLikelihoodsDifferentialCHILD! LN327
+      include("testCircular.jl") # FIX
+      include("testFluxModelsDistribution.jl") # FIX
+      include("testMixturePrior.jl") # FIX, serde structutils issue with BinarTruckFixedDepth?
+      include("testMixtureLinearConditional.jl") # FIX, use HomotopyDensity as replacement for Mixture
+      include("testMixtureParametric.jl") #FIXME parametric mixtures #1787
+      @test_broken error("testSphereMani.jl broken") # include("testSphereMani.jl") # FIXME
 
-    @error "See new DFG v0.29 JSON serde for variables and factors, old IIF serde tests currently disabled"
-    if false
-      # include("TestModuleFunctions.jl")
-      include("testCompareVariablesFactors.jl")
-      include("saveconvertertypes.jl")
-      include("testgraphpackingconverters.jl")
-      include("testSaveLoadDFG.jl")
-      include("testPackingMixtures.jl")
+      include("testSpecialOrthogonalMani.jl") # FIX, stateLabel :parametric not found
+
+      include("testSpecialEuclidean2Mani.jl") # FIX, parallel_transport_curvature_2nd_lie not defined for this case
+      include("testpartialconstraint.jl") # FIX, big numerical fail
+      include("testPartialNH.jl") # FIX
+      include("testBasicParametric.jl") # FIX, access undef ref
+
+      include("testMultimodal1D.jl") # FIX numerics, skipped a test
+      include("testSpecialSampler.jl") # sometimes BoundsError, suspect need resample to N step, EvaluFactor.jl:179
+      # include("testMultiprocess.jl")
+
+      # gradient / jacobian tests
+      #include("manifolds/manifolddiff.jl")
+      #include("manifolds/factordiff.jl")
+      @error "Gradient tests must be updated and restored for new ccw.varValsAll[]"
+      #include("testGradientUtils.jl")
+      #include("testFactorGradients.jl")
+
+      @error "See new DFG v0.29 JSON serde for variables and factors, old IIF serde tests currently disabled"
+      if false
+        # include("TestModuleFunctions.jl")
+        include("testCompareVariablesFactors.jl")
+        include("saveconvertertypes.jl")
+        include("testgraphpackingconverters.jl")
+        include("testSaveLoadDFG.jl")
+        include("testPackingMixtures.jl")
+      end
     end
-  end
-end
+  end # tmp_debug_group
 
-if TEST_GROUP in ["all", "basic_functional_group"]
-@testset "Basic Functional Group" begin
 
-# start as basic as possible and build from there
-include("typeReturnMemRef.jl")
-include("testDistributionsGeneric.jl")
-include("basicGraphsOperations.jl")
+  if TEST_GROUP in ["all", "basic_functional_group"]
+    @testset "Basic Functional Group (stable functional tests)" begin
 
-#FIXME fails on MetaBayesTree
-include("testTreeSaveLoad.jl")
+      # start as basic as possible and build from there
+      include("typeReturnMemRef.jl")
+      include("testDistributionsGeneric.jl")
+      include("basicGraphsOperations.jl")
 
-# test convolution functions
-include("testApproxConv.jl") # FIX
-include("testBasicForwardConvolve.jl")
+      #FIXME fails on MetaBayesTree
+      include("testTreeSaveLoad.jl")
 
-include("testDefaultDeconv.jl")
-include("priorusetest.jl") # many skips
+      # test convolution functions
+      include("testApproxConv.jl")
+      include("testBasicForwardConvolve.jl")
+      
+      include("testCliqSolveDbgUtils.jl")
 
-include("testCliqSolveDbgUtils.jl")
-include("testUseMsgLikelihoods.jl")
+      include("testBasicManifolds.jl")
 
-@test_broken error("testSphereMani.jl broken") # include("testSphereMani.jl") # FIXME
-include("testBasicManifolds.jl")
-include("testSpecialOrthogonalMani.jl") # FIX
+      include("testJunctionTreeConstruction.jl")
+      include("testBayesTreeiSAM2Example.jl")
 
-# gradient / jacobian tests
-#include("manifolds/manifolddiff.jl")
-#include("manifolds/factordiff.jl")
-@error "Gradient tests must be updated and restored for new ccw.varValsAll[]"
-#include("testGradientUtils.jl")
-#include("testFactorGradients.jl")
 
-include("testJunctionTreeConstruction.jl")
-include("testBayesTreeiSAM2Example.jl")
-include("testTreeFunctions.jl")
+      include("testCommonConvWrapper.jl") # skipped test with just ::Float point type 
 
-include("testCommonConvWrapper.jl") # skipped test with just ::Float point type 
+      include("testStateMachine.jl")
+      include("testBasicCSM.jl")
+      include("testCliqueFactors.jl")
+      include("testCcolamdOrdering.jl")
+      include("testCliqueTreesOrderings.jl")
+      include("testlocalconstraintexamples.jl")
 
-include("testStateMachine.jl")
-include("testBasicCSM.jl") # FIX
-include("testCliqueFactors.jl")
-include("testCcolamdOrdering.jl")
-include("testCliqueTreesOrderings.jl")
-include("testJointEnforcement.jl") # FIX
-include("testHasPriors913.jl")
-include("testInitVariableOrder.jl")
-include("testTreeMessageUtils.jl")
-include("testCSMMonitor.jl") # FieldError: type IncrementalInference.NLLSSolver has no field `defaultNumKernels`; IncrementalInference.NLLSSolver has no fields at all. GraphInit.jlLn14 prepareState!
-include("testBasicRecycling.jl")
-include("testSkipUpDown.jl")
-include("testlocalconstraintexamples.jl")
+      # dont run test on ARM, as per issue #527
+      if Base.Sys.ARCH in [:x86_64;]
+        include("testTexTreeIllustration.jl")
+      end
 
-include("testManualInit.jl")
-include("testBasicTreeInit.jl")
-include("testSolveOrphanedFG.jl")
-include("testSolveKey.jl")
+      include("testManualInit.jl")
+      include("testSolveOrphanedFG.jl")
+      include("testSolveKey.jl")
 
-include("testPartialFactors.jl") # FIX
-include("testPartialPrior.jl") # FIX
+      include("testJointEnforcement.jl")
+      include("testPartialFactors.jl")
+      include("testCalcFactorHypos.jl")
 
-## WORK IN PROGRESS
-include("testSpecialEuclidean2Mani.jl") # TBD
-include("testpartialconstraint.jl") # FIX
-include("testPartialNH.jl") # FIX
-include("testBasicParametric.jl") # FIX
+      include("testnullhypothesis.jl")
+      include("testExplicitMultihypo.jl")
+      include("TestCSMMultihypo.jl")
 
-end
-end
+      include("testMultithreaded.jl")
+      include("testmultihypothesisapi.jl")
+      include("testAnalysisTools.jl")
+      include("testVariousNSolveSize.jl")
 
-if TEST_GROUP in ["all", "test_cases_group"]
-@testset "Test Cases Group" begin
+      include("testDeadReckoningTether.jl")
 
-include("testnullhypothesis.jl") 
-include("testExplicitMultihypo.jl")
-include("TestCSMMultihypo.jl")
-include("testCalcFactorHypos.jl") # FIX
-include("testMultimodal1D.jl") # FIX numerics, skipped a test
-include("testMultithreaded.jl")
-include("testmultihypothesisapi.jl")
-include("testAnalysisTools.jl")
-include("testVariousNSolveSize.jl")
-include("fourdoortest.jl")
+      include("testHeatmapGridDensity.jl")
 
-# dont run test on ARM, as per issue #527
-if Base.Sys.ARCH in [:x86_64;]
-  include("testTexTreeIllustration.jl")
-end
+      # refac AMP v0.15, these functionals are medium slow
+      include("testPartialPrior.jl") # slowish
+      include("testDefaultDeconv.jl") # slowish
+      include("testUseMsgLikelihoods.jl") # slowish
+      include("testTreeFunctions.jl") # slower
+      include("testInitVariableOrder.jl") # slowish
+      include("testTreeMessageUtils.jl") # slowish
+      include("testMultihypoAndChain.jl") # slower, weak numerics
 
-# include("testMultiprocess.jl")
-include("testDeadReckoningTether.jl") # FIX convert vector to set, VariableDFG
+    end
+  end # basic_functional_group
 
-end
-end
-end
+
+  if TEST_GROUP in ["all", "test_cases_group"]
+    @testset "Test Cases Group (offload concurrent CI, slow running jobs)" begin
+      
+      # refac AMP v0.15, these tests are very slow
+      include("fourdoortest.jl") # slowish
+      include("testBasicGraphs.jl") # slow, weak numerics
+      include("priorusetest.jl") # slow, many skips
+      include("testHasPriors913.jl") # slow
+
+      include("testBasicTreeInit.jl") # slow
+      include("testBasicRecycling.jl") # slow
+      include("testSkipUpDown.jl") # slow
+      include("testCSMMonitor.jl") # slow
+
+    end
+  end # test_cases_group
+
+end # all IIF tests
 
 #
