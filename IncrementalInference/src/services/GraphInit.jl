@@ -15,19 +15,18 @@ function prepareState!(
   v::VariableCompute,
   solver::Union{<:NPBPSolver, <:NLLSSolver},
   statelabel::Symbol;
-  num_kernels::Int = solver.defaultNumKernels, # ensure 1 for parametric case
+  num_kernels::Int = solver isa NLLSSolver ? 1 : solver.defaultNumKernels, # consolidation workaround
   varType::StateType = DFG.getStateKind(v),
 )
-  # work around during consolidation
-  _nkrs = solver isa NLLSSolver ? 1 : num_kernels
-  
+  # check for early return 
   hasState(v, statelabel) && return 0
+
   dims = getDimension(v)
   @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defStateType $varType arguments is correct"
   ϵ = getPointIdentity(varType)
   belief = HomotopyDensity_legacy(
     varType, 
-    [ϵ for _ in 1:_nkrs]; 
+    [ϵ for _ in 1:num_kernels]; 
     bw = zeros(dims), 
     newbw = false
   )
