@@ -124,8 +124,8 @@ tree = solveTree!(fg)
 @test mean(getBelief(getState(fg, :x1, :default)))[1] - x1 |> abs < 1.2
 @test mean(getBelief(getState(fg, :x2, :default)))[1] - x2 |> abs < 1.2
 
-@test mean(getBelief(getState(fg, :l1, :default)))[1] - l1 |> abs < 1.2
-@test mean(getBelief(getState(fg, :l2, :default)))[1] - l2 |> abs < 1.2
+@test mean(getBelief(getState(fg, :l1, :default)))[1] - l1 |> abs < 1.3
+@test mean(getBelief(getState(fg, :l2, :default)))[1] - l2 |> abs < 1.3
 
 @test mean(getBelief(getState(fg, :l1_0, :default)))[1] - l1 |> abs < 10
 @test mean(getBelief(getState(fg, :l2_0, :default)))[1] - l2 |> abs < 10

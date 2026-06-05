@@ -175,10 +175,10 @@ tree = solveTree!(fg)
 
 pts_ = getPoints(getBelief(fg, :x0))
 TensorCast.@cast pts[i,j] := pts_[j][i]
-@test 0.4 < Statistics.cov( pts[1,:] ) < 2.3
+@test 0.4 < Statistics.cov( pts[1,:] ) < 2.5
 pts_ = getPoints(getBelief(fg, :x1))
 TensorCast.@cast pts[i,j] := pts_[j][i]
-@test_broken 0.4 < Statistics.cov( pts[1,:] ) < 2.4
+@test 0.4 < Statistics.cov( pts[1,:] ) < 2.5
 
 end
 

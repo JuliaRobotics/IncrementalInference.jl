@@ -1,6 +1,7 @@
 using DistributedFactorGraphs
 using IncrementalInference
 using Interpolations
+using LinearAlgebra
 using Manifolds
 using StaticArrays
 using Test
