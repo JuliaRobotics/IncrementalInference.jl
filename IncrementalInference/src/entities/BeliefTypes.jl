@@ -92,7 +92,7 @@ end
 
 function TreeBelief(state::State, solvDim::Real = 0)
   pts = getPoints(state.belief; permute=false) # TODO likely want to go back to sorted order here, DX debugging with permute=false
-  cv = getBW(state.belief)[1]
+  cv = getBW(state.belief)[1] # FIXME, bw for nonparametric, cov for parametric -- can reuse bw for parametric during AMP 15 refactor
   obsv = DFG.refObservability(state)
   statekind = getStateKind(state)
 

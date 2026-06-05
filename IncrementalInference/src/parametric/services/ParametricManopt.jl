@@ -793,25 +793,33 @@ function autoinitParametric!(
   # Solve
   M, varlabelsAP, lm_r, Λ, _ = solve_RLM_conditional(dfg, to_init, active_separators; solveKey, linear_subsolver!, kwargs...)
 
-  _Σ = (1.0*I)(size(Λ, 1))
+  _Σ = (I)(size(Λ, 1))
+  _Σ_ = sparse(1.0*I, size(Λ, 1), size(Λ, 1)) # create a sparse identity matrix
+  # _Σ_ = (1.0*I)(size(Λ, 1)) # legacy was Bool, weird refactor forced premature Float64
+
+  offset = 0
+
+  invertonce = true
   # Update each frontal variable with result
   for (i, v) in enumerate(varlabelsAP)
-    vnd = getState(dfg, v, solveKey)
+    vrb = getVariable(dfg, v)
+    state = getState(vrb, solveKey)
 
     # Update covariances from joint precision if positive definite
-    _Σ_ = deepcopy(_Σ)
-    if !isnothing(Λ)
+    if invertonce && !isnothing(Λ)
       F = cholesky!(Λ; check = false)
       if issuccess(F)
-        _Σ_ .= F \ _Σ # recompute because refac AMP v0.15 is taking small steps
-        offset = 0
-          dim = manifold_dimension(getManifold(getVariable(dfg, v)))
-          r = (offset + 1):(offset + dim)
-          offset += dim
+        invertonce = false
+        _Σ_ .= (F \ _Σ) 
       end
     end
-    hode = HomotopyDensity_legacy(getStateKind(vnd),[lm_r[i],]; bw=_Σ_, newbw=false)
-    setBelief!(vnd, hode, true)
+    dim = getDimension(vrb)
+    r = (offset + 1):(offset + dim)
+    offset += dim
+    bw = ApproxManifoldProducts._forcestatic(_Σ_[r,r])
+    # @info "WHAT" string(r) string(lm_r[i]) string(bw)
+    hode = HomotopyDensity_legacy(getStateKind(state),[lm_r[i],]; bw, newbw=false)
+    setBelief!(state, hode, true)
   end
 
   return true
