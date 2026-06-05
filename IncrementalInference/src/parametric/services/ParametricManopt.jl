@@ -766,6 +766,11 @@ function autoinitParametric!(
   filter!(fl -> issubset(getVariableOrder(dfg, fl), varlabels), faclabels)
   isempty(faclabels) && return false
 
+  # Prune stranded frontals
+  connected_vars = unique(Iterators.flatten(getVariableOrder.(dfg, faclabels)))
+  filter!(v -> v in connected_vars, to_init)
+  isempty(to_init) && return false
+
   # Seed each frontal from an initialized separator of the same type
   for v in to_init
     xi = getVariable(dfg, v)
@@ -780,6 +785,12 @@ function autoinitParametric!(
         DFG.refMeans(vnd)[1] = DFG.refMeans(getState(dfg, same_kind[1], solveKey))[1]
       end
     end
+    
+    # perturb point slightly
+    _M = getManifold(xi)
+    tangent_coords = randn(manifold_dimension(_M)) * 1e-3
+    X = get_vector(LieAlgebra(_M), tangent_coords)
+    DFG.refMeans(vnd)[1] = exp(_M, DFG.refMeans(vnd)[1], X)
   end
 
   # Solve
