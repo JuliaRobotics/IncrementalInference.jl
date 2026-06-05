@@ -167,7 +167,7 @@ end
 # Print answers
 if false
 vsds = DFG.getState.(getVariables(fg), :parametric)
-foreach(v->println(v.label, ": ", DFG.refMeans(DFG.getState(v, :parametric))), sort!(getVariables(fg), by=getLabel, lt=natural_lt))
+foreach(v->println(v.label, ": ", mean(getBelief(DFG.getState(v, :parametric)))), sort!(getVariables(fg), by=getLabel, lt=natural_lt))
 end
 
 
@@ -206,7 +206,17 @@ foreach(println, d)
 
 ##
 
-foreach(x->DFG.refMeans(DFG.getState(getVariable(fg,x.first),:parametric))[1] = x.second, pairs(d))
+foreach(
+  x->begin
+    state = DFG.getState(getVariable(fg,x.first),:parametric)
+    belief = getBelief(state)
+    setBelief!(
+      state, 
+      HomotopyDensity_legacy(getStateKind(belief), [x.second,]; bw=cov(belief), newbw=false), 
+    true)
+  end, 
+  pairs(d)
+)
 
 # task = @async begin
   #   global tree2
@@ -215,11 +225,11 @@ foreach(x->DFG.refMeans(DFG.getState(getVariable(fg,x.first),:parametric))[1] = 
 #force message passing with manual variable order
 tree2 = solveTree!(fg; algorithm=:parametric, eliminationOrder=[:x0, :x2, :x1])
 # end
-foreach(v->println(v.label, ": ", DFG.refMeans(DFG.getState(v, :parametric))), getVariables(fg))
+foreach(v->println(v.label, ": ", mean(getBelief(DFG.getState(v, :parametric)))), getVariables(fg))
 
-@test isapprox(DFG.refMeans(getVariable(fg,:x0).states[:parametric])[1][1], -0.01, atol=1e-3)
-@test isapprox(DFG.refMeans(getVariable(fg,:x1).states[:parametric])[1][1], 0.0, atol=1e-3)
-@test isapprox(DFG.refMeans(getVariable(fg,:x2).states[:parametric])[1][1], 0.01, atol=1e-3)
+@test isapprox(mean(getBelief(getVariable(fg,:x0).states[:parametric]))[1], -0.01, atol=1e-3)
+@test isapprox(mean(getBelief(getVariable(fg,:x1).states[:parametric]))[1], 0.0, atol=1e-3)
+@test isapprox(mean(getBelief(getVariable(fg,:x2).states[:parametric]))[1], 0.01, atol=1e-3)
 
 ## ##############################################################################
 ## multiple sections
@@ -244,7 +254,15 @@ for i in 0:10
   @test isapprox(d[sym][1], i, atol=1e-6)
 end
 
-foreach(x->DFG.refMeans(DFG.getState(getVariable(fg,x.first),:parametric))[1] = x.second, pairs(d))
+foreach(
+  x->begin
+    state = DFG.getState(getVariable(fg,x.first),:parametric)
+    belief = getBelief(state)
+    hode = HomotopyDensity_legacy(getStateKind(belief), [x.second,]; bw=cov(belief), newbw=false)
+    setBelief!(state, hode)
+  end, 
+  pairs(d)
+)
 
 getSolverParams(fg).graphinit = false
 tree2 = IIF.solveTree!(fg; algorithm=:parametric)
@@ -258,7 +276,7 @@ end
 for i in 0:10
   sym = Symbol("x",i)
   var = getVariable(fg,sym)
-  val = DFG.refMeans(var.states[:parametric])
+  val = mean(getBelief(var.states[:parametric]))
   #TODO investigate why tolarance degraded (its tree related and not bad enough to worry now)
   @test isapprox(val[1][1], i, atol=5e-4) 
 end
