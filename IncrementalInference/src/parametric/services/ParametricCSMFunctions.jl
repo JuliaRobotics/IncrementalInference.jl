@@ -38,10 +38,8 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
       vnd = getState(getVariable(csmc.cliqSubFg, v), :parametric)
       # fill in the variable node data value
       logCSM(csmc, "$(csmc.cliq.id) up: updating $v : $val")
-      DFG.refMeans(vnd)[1] = val.val
-      #calculate and fill in covariance
-      #TODO rather broadcast than make new memory
-      DFG.refCovariances(vnd)[1] = val.cov
+      # #calculate and fill in covariance
+      setBelief!(vnd, HomotopyDensity_legacy(getStateKind(vnd), [val.val,]; bw=val.cov, newbw=false))
     end
     # elseif length(lsfPriors(csmc.cliqSubFg)) == 0 #FIXME
     #   @error "Par-3, clique $(csmc.cliq.id) failed to converge in upsolve, but ignoring since no priors" result

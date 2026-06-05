@@ -502,7 +502,7 @@ function initPoints!(p, gsc, fg::AbstractDFG, solveKey = :parametric)
   for (i, vartype) in enumerate(gsc.varTypes)
     varIds = gsc.varTypesIds[vartype]
     for (j, vId) in enumerate(varIds)
-      p[gsc.M, i][j] = DFG.refMeans(getState(fg, vId, solveKey))[1]
+      p[gsc.M, i][j] = mean(getBelief(getState(fg, vId, solveKey)))
     end
   end
 end
@@ -663,6 +663,7 @@ DevNotes
 - WIP
 - Relates to: https://github.com/JuliaRobotics/IncrementalInference.jl/issues/466#issuecomment-562556953
 - Consolidation
+  - Related to [`approxConv`](@ref)
   - Definitely with [`solveFactorParametric`](@ref)
   - Maybe with [`solveGraphParametric`](@ref)
     - https://github.com/JuliaRobotics/IncrementalInference.jl/pull/1588#issuecomment-1210406683
@@ -689,7 +690,7 @@ function solveConditionalsParametric(
   flatvar = FlatVariables(fg, varIds)
 
   for vId in varIds
-    p = DFG.refMeans(getState(fg, vId, solvekey))[1]
+    p = mean(getBelief(getState(fg, vId, solvekey)))
     flatvar[vId] = getCoordinates(getStateKind(fg, vId), p)
   end
   initValues = flatvar.X
@@ -824,7 +825,7 @@ function updateSolverDataParametric!(
   cov::AbstractMatrix,
 )
   statekind = getStateKind(state)
-  state.belief = HomotopyDensity_legacy(statekind, [val,]; bw=cov, newbw=false)
+  setBelief!(state, HomotopyDensity_legacy(statekind, [val,]; bw=cov, newbw=false))
   return state
 end
 
@@ -883,21 +884,20 @@ function initParametricFrom!(
   # Ensure parametric states exist
   prepareStates!(fg, NLLSSolver(), parkey)
 
-  if onepoint
-    for v in getVariables(fg)
-      fromvnd = getState(v, fromkey)
-      dims = getDimension(v)
-      DFG.refMeans(getState(v, parkey))[1] = DFG.refMeans(fromvnd)[1]
-      DFG.refCovariances(getState(v, parkey))[1] = LinearAlgebra.I(dims)
-    end
-  else
+  # if onepoint
+  #   for v in getVariables(fg)
+  #     fromvnd = getState(v, fromkey)
+  #     dims = getDimension(v)
+  #     DFG.refMeans(getState(v, parkey))[1] = DFG.refMeans(fromvnd)[1]
+  #     DFG.refCovariances(getState(v, parkey))[1] = LinearAlgebra.I(dims)
+  #   end
+  # else
+    # New HomotopyDensity always provides mean() / cov() for use in single Guassian
     for var in getVariables(fg)
-      dims = getDimension(var)
-      μ, Σ = calcMeanCovar(var, fromkey)
-      DFG.refMeans(getState(var, parkey))[1] = μ
-      DFG.refCovariances(getState(var, parkey))[1] = Σ
+      bel = getBelief(getState(var, fromkey))
+      setBelief!(getState(var, parkey), bel)
     end
-  end
+  # end
 end
 
 """

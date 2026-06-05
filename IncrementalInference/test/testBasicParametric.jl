@@ -5,7 +5,10 @@ using IncrementalInference
 using LieGroups
 using LinearAlgebra
 
+##
+
 @testset "Test consolidation of factors #467" begin
+##
   fg = generateGraph_LineStep(20, poseEvery=1, landmarkEvery=4, posePriorsAt=collect(0:7), sightDistance=2, solverParams=SolverParams(algorithms=[:default, :parametric]))
   IIF.prepare!(fg, IIF.NLLSSolver(), :parametric)
   M, labels, minimizer, Σ = IIF.solveGraphParametric(fg)
@@ -19,11 +22,14 @@ using LinearAlgebra
     sym = Symbol("lm",i)
     @test isapprox(d[sym][1], i, atol=1e-6)
   end
-  
+
+##
 end
 
 ##
 @testset "Parametric Tests" begin
+##
+
 fg = LocalDFG(solverParams=SolverParams(algorithms=[:default, :parametric]))
 
 addVariable!(fg, :x0, ContinuousScalar)
@@ -55,11 +61,16 @@ v2 = vardict[:x2]
 initVariable!(fg, :x2, Normal(v2.val[1], sqrt(v2.cov[1])), :parametric)
 
 addFactor!(fg, [:x0], Prior(Normal(0.1,1.1)))
+
+##
+IIF.prepare!(fg, IIF.NLLSSolver(), :parametric)
 IIF.solveGraphParametric!(fg; is_sparse=false)
 
+##
 end
 
 @testset "Parametric Tests" begin
+##
 
 ##
 fg = generateGraph_LineStep(7, poseEvery=1, landmarkEvery=0, posePriorsAt=collect(0:7), sightDistance=2, solverParams=SolverParams(algorithms=[:default, :parametric]))
@@ -80,24 +91,24 @@ fg = generateGraph_LineStep(2, graphinit=true, vardims=1, poseEvery=1, landmarkE
 @test IIF.autoinitParametric!(fg, :x0)
 
 v0 = getVariable(fg,:x0)
-@test length(DFG.refMeans(v0.states[:parametric])[1]) === 1
-@test isapprox(DFG.refMeans(v0.states[:parametric])[1][1], 0.0, atol = 1e-4)
+@test length(mean(getBelief(v0.states[:parametric]))) === 1
+@test isapprox(mean(getBelief(v0.states[:parametric]))[1], 0.0, atol = 1e-4)
 
 @test IIF.autoinitParametric!(fg, :x1)
 
 v0 = getVariable(fg,:x1)
-@test length(DFG.refMeans(v0.states[:parametric])[1]) === 1
-@test isapprox(DFG.refMeans(v0.states[:parametric])[1][1], 1.0, atol = 1e-4)
+@test length(mean(getBelief(v0.states[:parametric]))) === 1
+@test isapprox(mean(getBelief(v0.states[:parametric]))[1], 1.0, atol = 1e-4)
 
 initAll!(fg)
 IIF.initParametricFrom!(fg)
 
 #
 v0 = getVariable(fg,:x0)
-@test length(DFG.refMeans(v0.states[:parametric])[1]) === 1
-@test isapprox(DFG.refMeans(v0.states[:parametric])[1][1], 0.0, atol = 0.1)
+@test length(mean(getBelief(v0.states[:parametric]))) === 1
+@test isapprox(mean(getBelief(v0.states[:parametric]))[1], 0.0, atol = 0.1)
 v1 = getVariable(fg,:x1)
-@test isapprox(DFG.refMeans(v1.states[:parametric])[1][1], 1.0, atol = 0.1)
+@test isapprox(mean(getBelief(v1.states[:parametric]))[1], 1.0, atol = 0.1)
 
 ##
 
@@ -127,7 +138,13 @@ end
 
 ##
 
-foreach(x->DFG.refMeans(DFG.getState(fg, x.first, :parametric))[1] = x.second, pairs(d))
+foreach(
+  x->begin
+    belief = getBelief(DFG.getState(fg, x.first, :parametric))
+    hode = HomotopyDensity_legacy(getStateKind(belief), [x.second,];bw=cov(belief),newbw=false)
+  end,
+  pairs(d)
+)
 
 
 # getSolverParams(fg).dbg=true
@@ -247,7 +264,6 @@ for i in 0:10
 end
 
 ##
-
 end
 
 
