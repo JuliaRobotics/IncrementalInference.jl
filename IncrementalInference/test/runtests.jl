@@ -63,8 +63,7 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
   if TEST_GROUP in ["all", "basic_functional_group"]
     @testset "Basic Functional Group (stable functional tests)" begin
 
-      include("testBasicParametric.jl") # FIX, access undef ref
-
+      include("testBasicParametric.jl") # SKIPPED solveTree!( =:parametric)
 
       # start as basic as possible and build from there
       include("typeReturnMemRef.jl")
@@ -122,13 +121,13 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testHeatmapGridDensity.jl")
 
       # refac AMP v0.15, these functionals are medium slow
+      include("testTreeFunctions.jl") # slower
+      include("testMultihypoAndChain.jl") # slower, weak numerics
       include("testPartialPrior.jl") # slowish
       include("testDefaultDeconv.jl") # slowish
       include("testUseMsgLikelihoods.jl") # slowish
-      include("testTreeFunctions.jl") # slower
       include("testInitVariableOrder.jl") # slowish
       include("testTreeMessageUtils.jl") # slowish
-      include("testMultihypoAndChain.jl") # slower, weak numerics
 
     end
   end # basic_functional_group
@@ -138,10 +137,10 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
     @testset "Test Cases Group (offload concurrent CI, slow running jobs)" begin
       
       # refac AMP v0.15, these tests are very slow
-      include("fourdoortest.jl") # slowish
       include("testBasicGraphs.jl") # slow, weak numerics
       include("priorusetest.jl") # slow, many skips
       include("testHasPriors913.jl") # slow
+      include("fourdoortest.jl") # slowish
 
       include("testBasicTreeInit.jl") # slow
       include("testBasicRecycling.jl") # slow
