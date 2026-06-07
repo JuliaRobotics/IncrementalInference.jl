@@ -704,17 +704,50 @@ end
   # new2    0.010764 seconds (34.61 k allocations: 3.111 MiB)
   # dense  J 0.022079 seconds (283.54 k allocations: 18.146 MiB)
   
+function getInitOrderWavefront(fg, state_label::Symbol=:parametric; depth::Int=1)
+    cliques = NamedTuple{(:frontals, :separators), Tuple{Vector{Symbol}, Vector{Symbol}}}[]
+    
+    all_vls = listVariables(fg)
+    knowns = filter(vl -> isInitialized(fg, vl, state_label), all_vls)
+    unknowns = setdiff(all_vls, knowns)
+    
+    prior_vls, _ = listNeighborhood(fg, lsfPriors(fg), 1)
+    
+    while !isempty(unknowns)
+        anchors = union(knowns, prior_vls)
+        
+        # Find Frontals
+        neighborhood_vls, _ = isempty(anchors) ? (Symbol[], Symbol[]) : listNeighborhood(fg, anchors, 2 * depth)
+        frontals = intersect(neighborhood_vls, unknowns)
+        
+        # Safety break if graph is completely floating (no priors, no knowns left to expand from)
+        isempty(frontals) && break
+        
+        # Find Separators (Initialized variables touching our new frontals)
+        frontal_neighbors, _ = listNeighborhood(fg, frontals, 2)
+        separators = intersect(frontal_neighbors, knowns)
+        
+        # Record and Advance
+        push!(cliques, (; frontals, separators))
+        union!(knowns, frontals)
+        setdiff!(unknowns, frontals)
+    end
+    
+    return cliques
+end
+
 function autoinitParametric!(
   fg,
-  clique_order = getInitOrderParametric(fg);
+  clique_order = getInitOrderWavefront(fg; depth=3);
   reinit = false,
   kwargs...
 )
-  init_labels = @showprogress map(clique_order) do cliq
-    autoinitParametric!(fg, cliq.frontals, cliq.separators; reinit, kwargs...)
+  did_init = false
+  @showprogress for cliq in clique_order
+    did_init |= autoinitParametric!(fg, cliq.frontals, cliq.separators; reinit, kwargs...)
   end
-  filter!(!isnothing, init_labels)
-  return init_labels
+
+  return did_init
 end
 
 function autoinitParametric!(dfg::AbstractDFG, initme::Symbol; kwargs...)
