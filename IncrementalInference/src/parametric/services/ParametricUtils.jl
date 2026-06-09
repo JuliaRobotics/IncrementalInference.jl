@@ -884,20 +884,12 @@ function initParametricFrom!(
   # Ensure parametric states exist
   prepareStates!(fg, NLLSSolver(), parkey)
 
-  # if onepoint
-  #   for v in getVariables(fg)
-  #     fromvnd = getState(v, fromkey)
-  #     dims = getDimension(v)
-  #     DFG.refMeans(getState(v, parkey))[1] = DFG.refMeans(fromvnd)[1]
-  #     DFG.refCovariances(getState(v, parkey))[1] = LinearAlgebra.I(dims)
-  #   end
-  # else
-    # New HomotopyDensity always provides mean() / cov() for use in single Guassian
-    for var in getVariables(fg)
-      bel = getBelief(getState(var, fromkey))
-      setBelief!(getState(var, parkey), bel)
-    end
-  # end
+  # New HomotopyDensity always provides mean() / cov() for use in single Guassian
+  for var in getVariables(fg)
+    bel = getBelief(getState(var, fromkey))
+    pbel = HomotopyDensity_legacy(getStateKind(var), [mean(bel),], bw=cov(bel), newbw=false)
+    setBelief!(getState(var, parkey), pbel)
+  end
 end
 
 """
@@ -960,15 +952,13 @@ function createMvNormal(val, cov)
 end
 
 function createMvNormal(v::VariableCompute, key = :parametric)
+  state = getState(v, :parametric)
+  bel = getBelief(state)
   if key == :parametric
-    vnd = getState(v, :parametric)
-    dims = getDimension(vnd)
-    val = DFG.refMeans(vnd)[1]
-    cov = DFG.refCovariances(vnd)[1:dims, 1:dims]
-    return createMvNormal(val, cov)
+    return createMvNormal(mean(bel), cov(bel))
   else
     @warn "Trying MvNormal Fit"
-    return fit(MvNormal, DFG.refPoints(getState(v, key)))
+    return fit(MvNormal, getPoints(bel))
   end
 end
 
