@@ -30,14 +30,19 @@ const BayesTree = MetaBayesTree
   downsolve::Bool = false
   upsolve::Bool = true # TODO unchecked consolidation, consolidate from solverparams
   incremental::Bool = false
-  delaycliqs::Vector{Symbol} = Symbol[]
-  recordcliqs::Vector{Symbol} = Symbol[]
   solve_progressbar::Any = nothing
   algorithm::Symbol = :default
   solveKey::Symbol = algorithm
   recordhistory::Bool = false
   delay::Bool = false
+  multithread::Bool = false
+  timeout::Union{Nothing, <:Real} = nothing
+  delaycliqs::Vector{Symbol} = Symbol[]
+  recordcliqs::Vector{Symbol} = Symbol[]
+  skipcliqids::Vector{Symbol} = Symbol[]
+  limititercliqs::Vector{Pair{Symbol, Int}} = Pair{Symbol, Int}[]
 end
+
 
 """
     $TYPEDEF
