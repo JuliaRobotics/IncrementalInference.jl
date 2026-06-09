@@ -12,22 +12,11 @@ function initStartCliqStateMachine!(
   tree::AbstractBayesTree,
   cliq::TreeClique,
   timeout::Union{Nothing, <:Real} = nothing;
-  solverparams::SolverParams,
   oldcliqdata::BayesTreeNodeData = BayesTreeNodeData(),
-  verbose::Bool = false,
-  verbosefid = stdout,
-  drawtree::Bool = false,
-  show::Bool = false,
-  incremental::Bool = true,
-  limititers::Int = 20,
-  upsolve::Bool = true,
-  downsolve::Bool = true,
-  recordhistory::Bool = false,
-  delay::Bool = false,
   logger::SimpleLogger = SimpleLogger(Base.stdout),
-  solve_progressbar = nothing,
-  algorithm::Symbol = :default,
-  solveKey::Symbol = algorithm,
+  csmoptions::CSMOptions = CSMOptions(;
+    solverparams = getSolverParams(dfg)
+  ),
 )
 
   # NOTE use tree and messages for operations involving children and parents
@@ -35,34 +24,31 @@ function initStartCliqStateMachine!(
   # children = TreeClique[]
   # prnt = TreeClique[]
 
-  destType = dfg isa InMemoryDFGTypes ? typeof(dfg) : LocalDFG
+  destType = dfg isa InMemoryDFGTypes ? typeof(dfg) : LocalDFG # TODO, is this type-stable?
 
-  csmc = CliqStateMachineContainer(
+  csmc = CliqStateMachineContainer(;
     dfg,
-    initfg(destType; solverParams = solverparams),
+    cliqSubFg = initfg(destType; solverParams = csmoptions.solverparams),
     tree,
     cliq,
-    incremental,
-    drawtree,
-    downsolve,
-    delay,
-    solverparams,
-    Dict{Symbol, String}(),
+    incremental = csmoptions.incremental,
+    drawtree = csmoptions.drawtree,
+    dodownsolve = csmoptions.downsolve,
+    delay = csmoptions.delay,
+    opts = csmoptions.solverparams,
+    refactoring = Dict{Symbol, String}(),
     oldcliqdata,
     logger,
-    cliq.id,
-    algorithm,
-    0,
-    true,
-    solveKey,
-    0,
+    cliqId = cliq.id,
+    algorithm = csmoptions.algorithm,
+    solveKey = csmoptions.solveKey,
   )
 
-  !upsolve && !downsolve && error("must attempt either up or down solve")
+  !csmoptions.upsolve && !csmoptions.downsolve && error("must attempt either up or down solve")
   # nxt = buildCliqSubgraph_StateMachine
   nxt = setCliqueRecycling_StateMachine
 
-  csmiter_cb = if solverparams.drawCSMIters
+  csmiter_cb = if csmoptions.solverparams.drawCSMIters
     ((st::StateMachine) -> (cliq.attributes["xlabel"] = st.iter; csmc._csm_iter = st.iter))
   else
     ((st) -> (csmc._csm_iter = st.iter))
@@ -72,7 +58,7 @@ function initStartCliqStateMachine!(
     StateMachine{CliqStateMachineContainer}(; next = nxt, name = "cliq$(getId(cliq))")
 
   # store statemachine and csmc in task
-  if solverparams.dbg || recordhistory
+  if csmoptions.solverparams.dbg || csmoptions.recordhistory
     task_local_storage(:statemachine, statemachine)
     task_local_storage(:csmc, csmc)
   end
@@ -84,17 +70,20 @@ function initStartCliqStateMachine!(
   # verbosefid=verbosefid
   # injectDelayBefore=injectDelayBefore
 
+  counter = 0
+
   while statemachine(
     csmc,
     timeout;
-    verbose = verbose,
-    verbosefid = verbosefid,
+    verbose = csmoptions.verbose,
+    verbosefid = csmoptions.verbosefid,
     verboseXtra = getCliqueStatus(csmc.cliq),
-    iterlimit = limititers,
-    recordhistory = recordhistory,
+    iterlimit = csmoptions.limititers,
+    recordhistory = csmoptions.recordhistory,
     housekeeping_cb = csmiter_cb,
   )
-    !isnothing(solve_progressbar) && next!(solve_progressbar)
+    counter += 1
+    !isnothing(csmoptions.solve_progressbar) && next!(csmoptions.solve_progressbar)
   end
 
   return CSMHistoryTuple.(statemachine.history)

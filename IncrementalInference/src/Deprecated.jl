@@ -1,5 +1,53 @@
 
 
+
+
+# function CliqStateMachineContainer(
+#   dfg::G,
+#   cliqSubFg::M,
+#   tree::T,
+#   cliq::TreeClique,
+#   incremental::Bool,
+#   drawtree::Bool,
+#   dodownsolve::Bool,
+#   delay::Bool,
+#   opts::SolverParams,
+#   refactoring::Dict{Symbol, String} = Dict{Symbol, String}(),
+#   oldcliqdata::BTND = BayesTreeNodeData(),
+#   logger::SimpleLogger = SimpleLogger(Base.stdout);
+#   cliqId::CliqueId = cliq.id,
+#   algorithm::Symbol = :default,
+#   init_iter::Int = 0,
+#   enableLogging::Bool = true,
+#   solveKey::Symbol = :default,
+#   _csm_iter::Int = 0,
+# ) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
+#   #
+#   return CliqStateMachineContainer{BTND, G, M, T}(
+#     dfg,
+#     cliqSubFg,
+#     tree,
+#     cliq,
+#     incremental,
+#     drawtree,
+#     dodownsolve,
+#     delay,
+#     opts,
+#     refactoring,
+#     oldcliqdata,
+#     logger,
+#     cliqId,
+#     algorithm,
+#     init_iter,
+#     enableLogging,
+#     solveKey,
+#     _csm_iter,
+#   )
+#   #
+# end
+
+
+
 """
     $SIGNATURES
 
