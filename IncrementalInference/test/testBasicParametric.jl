@@ -4,6 +4,7 @@ using DistributedFactorGraphs
 using IncrementalInference
 using LieGroups
 using LinearAlgebra
+# using Logging
 
 ##
 
@@ -109,6 +110,28 @@ v0 = getVariable(fg,:x0)
 v1 = getVariable(fg,:x1)
 @test isapprox(mean(getBelief(v1.states[:parametric]))[1], 1.0, atol = 0.1)
 
+
+## basic solve crash test (solveGraph is too complicated)
+
+fg = generateGraph_LineStep(1, graphinit=true, vardims=1, poseEvery=1, landmarkEvery=0, posePriorsAt=Int[0], sightDistance=3, solverParams=SolverParams(algorithms=[:default, :parametric]))
+@test IIF.autoinitParametric!(fg, :x0)
+@test IIF.autoinitParametric!(fg, :x1)
+initAll!(fg)
+IIF.initParametricFrom!(fg)
+tree = IIF.buildTreeReset!(fg)
+IIF.initTreeMessageChannels!(tree)
+
+# smtasks, hist = IIF.taskSolveTree!(fg, tree)
+resetTreeCliquesForUpSolve!(tree)
+csmoptions = IIF.CSMOptions(; solverparams = getSolverParams(fg), algorithm = :parametric, recordcliqs=ls(fg))
+# logger = SimpleLogger(open(joinpath(tempdir(), "IIFsolvedbg.txt"), "w+")) # SimpleLogger(stout)
+
+##
+
+res = IIF.solveClique!( fg, tree, 1, 120 ; oldtree=tree, csmoptions, )
+
+
+
 ##
 
 fg = generateGraph_LineStep(10, vardims=2, poseEvery=1, landmarkEvery=3, posePriorsAt=Int[0,5,10], sightDistance=3, solverParams=SolverParams(algorithms=[:default, :parametric]))
@@ -150,12 +173,14 @@ foreach(
 
 ##
 
-if false
+if true
   # getSolverParams(fg).dbg=true
   # getSolverParams(fg).drawtree=true
   # getSolverParams(fg).async = true
   getSolverParams(fg).graphinit = false
-  tree2 = IIF.solveTree!(fg; algorithm = :parametric, multithread = false) #, recordcliqs=ls(fg))
+  smtasks = Task[]
+  tree2 = IIF.solveTree!(fg; algorithm = :parametric, multithread = false, recordcliqs=ls(fg), smtasks )
+  # hists = fetchCliqHistoryAll!(smtasks)
 
   for i in 0:10
     sym = Symbol("x",i)
