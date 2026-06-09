@@ -115,7 +115,10 @@ function solveClique!(
   csmoptions::CSMOptions = CSMOptions(;
     solverparams = getSolverParams(dfg),
   ),
-  logger::Any = SimpleLogger(open(joinpath(csmoptions.solverparams.logpath, "logs/cliq$(cliq.id)/log.txt"), "w+"))
+  logger::Any = begin
+    mkpath(joinpath(csmoptions.solverparams.logpath, "logs"))
+    SimpleLogger(open(joinpath(csmoptions.solverparams.logpath, "logs/cliq_($cliqKey).log"), "w+"))
+  end
 )
   #
   cliq = getClique(treel, cliqKey)
@@ -538,17 +541,29 @@ function solveCliqUp!(
 
   recordcliqs = recordcliq ? [getFrontals(cliq)[1]] : Symbol[]
 
+  csmoptions = CSMOptions(;
+    solverparams = getSolverParams(fg),
+    solveKey,
+    verbose,
+    recordcliqs,
+    downsolve = false,
+    drawtree = opt.drawtree,
+    limititers = opt.limititers,
+    incremental = opt.incremental,
+  )
+
   hist = solveClique!(
     fg,
     tree,
     cliq.id;
-    solveKey = solveKey,
-    verbose = verbose,
-    drawtree = opt.drawtree,
-    limititers = opt.limititers,
-    downsolve = false,
-    recordcliqs = recordcliqs,
-    incremental = opt.incremental,
+    csmoptions,
+    # solveKey = solveKey,
+    # verbose = verbose,
+    # drawtree = opt.drawtree,
+    # limititers = opt.limititers,
+    # downsolve = false,
+    # recordcliqs = recordcliqs,
+    # incremental = opt.incremental,
   )
   #
 
@@ -633,16 +648,27 @@ function solveCliqDown!(
 
   recordcliqs = recordcliq ? [getFrontals(cliq)[1]] : Symbol[]
 
+  csmoptions = CSMOptions(;
+    solverparams = getSolverParams(fg),
+    solveKey,
+    verbose,
+    recordcliqs,
+    drawtree = opt.drawtree,
+    limititers = opt.limititers,
+    incremental = opt.incremental,
+  )
+
   hist = solveClique!(
     fg,
     tree,
     cliq.id;
-    solveKey = solveKey,
-    verbose = verbose,
-    drawtree = opt.drawtree,
-    limititers = opt.limititers,
-    recordcliqs = recordcliqs,
-    incremental = opt.incremental,
+    csmoptions,
+    # solveKey = solveKey,
+    # verbose = verbose,
+    # drawtree = opt.drawtree,
+    # limititers = opt.limititers,
+    # recordcliqs = recordcliqs,
+    # incremental = opt.incremental,
   )
 
   # fetch on down                                  
