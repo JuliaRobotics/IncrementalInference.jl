@@ -45,6 +45,7 @@ function taskSolveTree!(
   solve_progressbar =
     verbose ? nothing : ProgressUnknown(; desc = "Solve Progress: approx max $approx_iters, at iter")
 
+
   # queue all the tasks/threads
   if !isTreeSolved(treel; skipinitialized = true)
     @sync begin
@@ -54,45 +55,40 @@ function taskSolveTree!(
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
           limthiscsm = filter(x -> (x[1] in scsym), limititercliqs)
-          limiter = 0 < length(limthiscsm) ? limthiscsm[1][2] : limititers
+          limititers_ = 0 < length(limthiscsm) ? limthiscsm[1][2] : limititers
 
-          if multithread
-            smtasks[i] = Threads.@spawn solveClique!(
-              dfg,
-              treel,
-              i,
-              timeout;
-              solveKey = solveKey,
-              algorithm = algorithm,
-              oldtree = oldtree,
-              verbose = verbose,
-              verbosefid = verbosefid,
-              drawtree = drawtree,
-              limititers = limititers,
-              downsolve = downsolve,
-              incremental = incremental,
-              delaycliqs = delaycliqs,
-              recordcliqs = recordcliqs,
-              solve_progressbar = solve_progressbar,
+          args = (
+            dfg,
+            treel,
+            i,
+            timeout,
+          )
+          csmoptions = CSMOptions(;
+            solverparams = getSolverParams(dfg),
+            solveKey,
+            algorithm,
+            verbose,
+            verbosefid,
+            drawtree,
+            limititers = limititers_,
+            downsolve,
+            incremental,
+            delaycliqs,
+            recordcliqs,
+            solve_progressbar,
+          )
+
+          smtasks[i] = if multithread
+            Threads.@spawn solveClique!(
+              args...;
+              oldtree,
+              csmoptions,
             )
           else
-            smtasks[i] = @async solveClique!(
-              dfg,
-              treel,
-              i,
-              timeout;
-              solveKey = solveKey,
-              algorithm = algorithm,
-              oldtree = oldtree,
-              verbose = verbose,
-              verbosefid = verbosefid,
-              drawtree = drawtree,
-              limititers = limiter,
-              downsolve = downsolve,
-              incremental = incremental,
-              delaycliqs = delaycliqs,
-              recordcliqs = recordcliqs,
-              solve_progressbar = solve_progressbar,
+            @async solveClique!(
+              args...;
+              oldtree,
+              csmoptions,
             )
           end
         end # if
@@ -108,66 +104,66 @@ function taskSolveTree!(
   return smtasks, cliqHistories
 end
 
+
+
 function solveClique!(
-  dfg::G,
+  dfg::AbstractDFG,
   treel::AbstractBayesTree,
   cliqKey::Union{Int, CliqueId},
   timeout::Union{Nothing, <:Real} = nothing;
-  solverparams = getSolverParams(dfg), #FIXME deprecation step
   oldtree::AbstractBayesTree = BayesTree(),
-  verbose::Bool = false,
-  verbosefid = stdout,
-  drawtree::Bool = false,
-  limititers::Int = -1,
-  downsolve::Bool = false,
-  incremental::Bool = false,
-  delaycliqs::Vector{Symbol} = Symbol[],
-  recordcliqs::Vector{Symbol} = Symbol[],
-  solve_progressbar = nothing,
-  algorithm::Symbol = :default,
-  solveKey::Symbol = algorithm,
-) where {G <: AbstractDFG}
+  csmoptions::CSMOptions = CSMOptions(;
+    solverparams = getSolverParams(dfg),
+  ),
+  logger::Any = begin
+    mkpath(joinpath(csmoptions.solverparams.logpath, "logs"))
+    SimpleLogger(open(joinpath(csmoptions.solverparams.logpath, "logs/cliq_($cliqKey).log"), "w+"))
+  end
+)
   #
-  clst = :na
   cliq = getClique(treel, cliqKey)
   syms = getCliqFrontalVarIds(cliq)
 
   oldcliq = attemptTreeSimilarClique(oldtree, getCliqueData(cliq))
   oldcliqdata = getCliqueData(oldcliq)
 
-  opts = solverparams
+  opts = csmoptions.solverparams
   # Base.rm(joinpath(opts.logpath,"logs/cliq$i"), recursive=true, force=true)
   mkpath(joinpath(opts.logpath, "logs/cliq$(cliq.id)/"))
-  logger = SimpleLogger(open(joinpath(opts.logpath, "logs/cliq$(cliq.id)/log.txt"), "w+")) # NullLogger()
   # global_logger(logger)
   history = Vector{CSMHistoryTuple}()
-  recordthiscliq = length(intersect(recordcliqs, syms)) > 0
-  delaythiscliq = length(intersect(delaycliqs, syms)) > 0
+  csmoptions.recordhistory = length(intersect(csmoptions.recordcliqs, syms)) > 0
+  csmoptions.delay = length(intersect(csmoptions.delaycliqs, syms)) > 0
+
+  # csmoptions = (;
+  #   solveopts.solverparams,
+  #   solveopts.drawtree,
+  #   solveopts.verbose,
+  #   solveopts.verbosefid,
+  #   solveopts.limititers,
+  #   solveopts.downsolve,
+  #   solveopts.incremental,
+  #   solveopts.solve_progressbar,
+  #   solveopts.algorithm,
+  #   solveopts.solveKey,
+  #   solveopts.recordhistory,
+  #   solveopts.delay,
+  # )
+
   try
     history = initStartCliqStateMachine!(
       dfg,
       treel,
       cliq,
       timeout;
-      solverparams,
-      oldcliqdata = oldcliqdata,
-      drawtree = drawtree,
-      verbose = verbose,
-      verbosefid = verbosefid,
-      limititers = limititers,
-      downsolve = downsolve,
-      recordhistory = recordthiscliq,
-      incremental = incremental,
-      delay = delaythiscliq,
-      logger = logger,
-      solve_progressbar = solve_progressbar,
-      algorithm = algorithm,
-      solveKey = solveKey,
+      oldcliqdata,
+      logger,
+      csmoptions,
     )
     #
     # cliqHistories[cliqKey] = history
-    if length(history) >= limititers && limititers != -1
-      # @warn "writing logs/cliq$(cliq.id)/csm.txt"
+    if length(history) >= csmoptions.limititers && csmoptions.limititers != -1
+      @debug "writing $(joinpath(opts.logpath, "logs/cliq$(cliq.id)/csm.txt"))"
       # @save "/tmp/cliqHistories/cliq$(cliq.id).jld2" history
       fid = open(joinpath(opts.logpath, "logs/cliq$(cliq.id)/csm.txt"), "w")
       printCliqHistorySummary(fid, history)
@@ -175,13 +171,11 @@ function solveClique!(
     end
     flush(logger.stream)
     close(logger.stream)
-    # clst = getCliqueStatus(cliq)
-    # clst = cliqInitSolveUp!(dfg, treel, cliq, drawtree=drawtree, limititers=limititers )
   catch err
     bt = catch_backtrace()
     println()
     showerror(stderr, err, bt)
-    # @warn "writing /tmp/caesar/logs/cliq$(cliq.id)/*.txt"
+    @debug "writing $(joinpath(opts.logpath, "logs/cliq$(cliq.id)/stacktrace.txt"))"
     fid = open(joinpath(opts.logpath, "logs/cliq$(cliq.id)/stacktrace.txt"), "w")
     showerror(fid, err, bt)
     close(fid)
@@ -547,17 +541,29 @@ function solveCliqUp!(
 
   recordcliqs = recordcliq ? [getFrontals(cliq)[1]] : Symbol[]
 
+  csmoptions = CSMOptions(;
+    solverparams = getSolverParams(fg),
+    solveKey,
+    verbose,
+    recordcliqs,
+    downsolve = false,
+    drawtree = opt.drawtree,
+    limititers = opt.limititers,
+    incremental = opt.incremental,
+  )
+
   hist = solveClique!(
     fg,
     tree,
     cliq.id;
-    solveKey = solveKey,
-    verbose = verbose,
-    drawtree = opt.drawtree,
-    limititers = opt.limititers,
-    downsolve = false,
-    recordcliqs = recordcliqs,
-    incremental = opt.incremental,
+    csmoptions,
+    # solveKey = solveKey,
+    # verbose = verbose,
+    # drawtree = opt.drawtree,
+    # limititers = opt.limititers,
+    # downsolve = false,
+    # recordcliqs = recordcliqs,
+    # incremental = opt.incremental,
   )
   #
 
@@ -642,16 +648,27 @@ function solveCliqDown!(
 
   recordcliqs = recordcliq ? [getFrontals(cliq)[1]] : Symbol[]
 
+  csmoptions = CSMOptions(;
+    solverparams = getSolverParams(fg),
+    solveKey,
+    verbose,
+    recordcliqs,
+    drawtree = opt.drawtree,
+    limititers = opt.limititers,
+    incremental = opt.incremental,
+  )
+
   hist = solveClique!(
     fg,
     tree,
     cliq.id;
-    solveKey = solveKey,
-    verbose = verbose,
-    drawtree = opt.drawtree,
-    limititers = opt.limititers,
-    recordcliqs = recordcliqs,
-    incremental = opt.incremental,
+    csmoptions,
+    # solveKey = solveKey,
+    # verbose = verbose,
+    # drawtree = opt.drawtree,
+    # limititers = opt.limititers,
+    # recordcliqs = recordcliqs,
+    # incremental = opt.incremental,
   )
 
   # fetch on down                                  

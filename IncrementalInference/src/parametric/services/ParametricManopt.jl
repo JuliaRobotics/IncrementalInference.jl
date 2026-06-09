@@ -450,7 +450,7 @@ function solve_RLM(
 
   #Can use varIntLabel (because its an OrderedDict), but varLabelsAP makes the ArrayPartition.
   p0 = map(varlabelsAP) do label
-    DFG.refMeans(getState(fg, label, solveKey))[1]
+    mean(getBelief(getState(fg, label, solveKey)))
   end
 
   # create an ArrayPartition{CalcFactorResidual} for faclabels
@@ -609,7 +609,7 @@ function solve_RLM_conditional(
   all_varlabelsAP = ArrayPartition((frontal_varlabelsAP.x..., separator_varlabelsAP.x...))
 
   all_points = map(all_varlabelsAP) do label
-    DFG.refMeans(getState(fg, label, solveKey))[1]
+    mean(getBelief(getState(fg, label, solveKey)))
   end
   
   p0 = ArrayPartition(all_points.x[1:length(frontal_varlabelsAP.x)])
@@ -780,7 +780,12 @@ function autoinitParametric!(
         getStateKind(getVariable(dfg, vl)) === my_kind
       end
       if !isempty(same_kind)
-        DFG.refMeans(vnd)[1] = DFG.refMeans(getState(dfg, same_kind[1], solveKey))[1]
+        mn = mean(getBelief(getState(dfg, same_kind[1], solveKey)))
+        _bw = cov(getBelief(vnd))
+        # BW = getBW(getBelief(vnd))
+        # _bw = (0<length(BW)) && isassigned(BW,1) ? BW[1] : nothing
+        _hode = HomotopyDensity_legacy(getStateKind(vnd),[mn,]; bw=_bw, newbw=false)
+        setBelief!(vnd, _hode)
       end
     end
   end
@@ -788,26 +793,33 @@ function autoinitParametric!(
   # Solve
   M, varlabelsAP, lm_r, Λ, _ = solve_RLM_conditional(dfg, to_init, active_separators; solveKey, linear_subsolver!, kwargs...)
 
+  _Σ = (I)(size(Λ, 1))
+  _Σ_ = sparse(1.0*I, size(Λ, 1), size(Λ, 1)) # create a sparse identity matrix
+  # _Σ_ = (1.0*I)(size(Λ, 1)) # legacy was Bool, weird refactor forced premature Float64
+
+  offset = 0
+
+  invertonce = true
   # Update each frontal variable with result
   for (i, v) in enumerate(varlabelsAP)
-    vnd = getState(dfg, v, solveKey)
-    DFG.refMeans(vnd)[1] = lm_r[i]
-    vnd.initialized = true
-  end
+    vrb = getVariable(dfg, v)
+    state = getState(vrb, solveKey)
 
-  # Update covariances from joint precision if positive definite
-  if !isnothing(Λ)
-    F = cholesky!(Λ; check = false)
-    if issuccess(F)
-      Σ = F \ I(size(Λ, 1))
-      offset = 0
-      for (i, v) in enumerate(varlabelsAP)
-        dim = manifold_dimension(getManifold(getVariable(dfg, v)))
-        r = (offset + 1):(offset + dim)
-        DFG.refCovariances(getState(dfg, v, solveKey))[1] .= Σ[r, r]
-        offset += dim
+    # Update covariances from joint precision if positive definite
+    if invertonce && !isnothing(Λ)
+      F = cholesky!(Λ; check = false)
+      if issuccess(F)
+        invertonce = false
+        _Σ_ .= (F \ _Σ) 
       end
     end
+    dim = getDimension(vrb)
+    r = (offset + 1):(offset + dim)
+    offset += dim
+    bw = ApproxManifoldProducts._forcestatic(_Σ_[r,r])
+    # @info "WHAT" string(r) string(lm_r[i]) string(bw)
+    hode = HomotopyDensity_legacy(getStateKind(state),[lm_r[i],]; bw, newbw=false)
+    setBelief!(state, hode, true)
   end
 
   return true
