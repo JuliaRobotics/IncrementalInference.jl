@@ -1,6 +1,33 @@
 
+# """
+#     solveGrapn!
+
+# Just an alias, see documentation for `solveTree!`.
+# """
+# DFG.solveGraph!(dfg::AbstractDFG, w...;kw...) = solveTree!(dfg, w...;kw...)
 
 
+@deprecate solveTree!(
+  dfg::AbstractDFG,
+  oldtree::AbstractBayesTree = BayesTree();
+  # tree options
+  eliminationOrder::Union{Nothing, Vector{Symbol}} = nothing,
+  eliminationConstraints::Vector{Symbol} = Symbol[],
+  smtasks = Task[],
+  # execution options
+  solverparams = getSolverParams(dfg),
+  kwargs...
+) solveGraph!(
+  dfg, 
+  oldtree; 
+  eliminationOrder, 
+  eliminationConstraints, 
+  smtasks,
+  csmoptions = CSMOptions(;
+    solverparams = solverparams,
+    kwargs...,
+  )
+)
 
 # function CliqStateMachineContainer(
 #   dfg::G,

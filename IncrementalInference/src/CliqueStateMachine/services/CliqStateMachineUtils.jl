@@ -379,7 +379,7 @@ function approxCliqMarginalUp!(
         getWorkerPool(),
         fg_,
         cliqc,
-        csmc.solveKey,
+        csmc.csmoptions.solveKey,
         childmsgs,
         N,
         dbg,
@@ -401,7 +401,7 @@ function approxCliqMarginalUp!(
       @info "Single process upsolve clique=$(cliq.id)"
     end
     retdict =
-      upGibbsCliqueDensity(fg_, cliq, csmc.solveKey, childmsgs, N, dbg, iters, logger)
+      upGibbsCliqueDensity(fg_, cliq, csmc.csmoptions.solveKey, childmsgs, N, dbg, iters, logger)
 
     # DEBUG ON THE FLY
     Bs = [HomotopyDensity_legacy(b) for (l,b) in retdict]

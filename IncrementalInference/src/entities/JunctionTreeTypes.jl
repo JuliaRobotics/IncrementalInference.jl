@@ -22,20 +22,24 @@ const BayesTree = MetaBayesTree
 
 
 @kwdef mutable struct CSMOptions
+  solve_progressbar::Any = nothing
+  # execution options
   solverparams::Any #FIXME deprecation step
-  verbose::Bool = false
-  verbosefid::Any = stdout
-  drawtree::Bool = false
-  limititers::Int = -1
   downsolve::Bool = false
   upsolve::Bool = true # TODO unchecked consolidation, consolidate from solverparams
   incremental::Bool = false
-  solve_progressbar::Any = nothing
   algorithm::Symbol = :default
   solveKey::Symbol = algorithm
-  recordhistory::Bool = false
   delay::Bool = false
   multithread::Bool = false
+  # debug options
+  limititers::Int = -1
+  recordhistory::Bool = false
+  storeOld::Bool = false
+  verbose::Bool = false
+  verbosefid::Any = stdout
+  drawtree::Bool = false
+  dotreedraw::Vector{Int} = Int[1;]
   timeout::Union{Nothing, <:Real} = nothing
   delaycliqs::Vector{Symbol} = Symbol[]
   recordcliqs::Vector{Symbol} = Symbol[]
@@ -62,20 +66,16 @@ DevNotes
   cliqSubFg::InMemG
   tree::BT
   cliq::TreeClique
-    incremental::Bool
-    drawtree::Bool
-  dodownsolve::Bool
-    delay::Bool
-  opts::SolverParams
+  dodownsolve::Bool = false
+  opts::SolverParams = getSolverParams(cliqSubFg)
   refactoring::Dict{Symbol, String} = Dict{Symbol, String}()
   oldcliqdata::BTND = BayesTreeNodeData()
   logger::SimpleLogger = SimpleLogger(Base.stdout)
   cliqId::CliqueId = cliq.id # obsolete?
-    algorithm::Symbol = :default
   init_iter::Int = 0
   enableLogging::Bool = true
-    solveKey::Symbol = :default
   _csm_iter::Int = 0
+  csmoptions::CSMOptions = CSMOptions(solverparams = opts)
 end
 
 
