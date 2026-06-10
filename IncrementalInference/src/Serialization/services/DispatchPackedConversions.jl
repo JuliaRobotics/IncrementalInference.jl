@@ -21,13 +21,6 @@ function DFG.rebuildFactorCache!(
   return nothing
 end
 
-## =================================================================
-## TODO Can code below be deprecated?
-## =================================================================
 
-function convert(::Type{Tuple{ApproxManifoldProducts.HomotopyDensity, Float64}}, p::TreeBelief)
-  # 
-  return (convert(ApproxManifoldProducts.HomotopyDensity, p), p.infoPerCoord)
-end
 
 #

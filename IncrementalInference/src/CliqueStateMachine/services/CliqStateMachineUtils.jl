@@ -350,7 +350,7 @@ Future
 """
 function approxCliqMarginalUp!(
   csmc::CliqStateMachineContainer,
-  childmsgs = LikelihoodMessage[];#fetchMsgsUpChildren(csmc, TreeBelief);
+  childmsgs = LikelihoodMessage[];
   N::Int = getCliqueSolverParams(csmc).N,
   dbg::Bool = getCliqueSolverParams(csmc).dbg,
   multiproc::Bool = getCliqueSolverParams(csmc).multiproc,
@@ -404,7 +404,7 @@ function approxCliqMarginalUp!(
       upGibbsCliqueDensity(fg_, cliq, csmc.csmoptions.solveKey, childmsgs, N, dbg, iters, logger)
 
     # DEBUG ON THE FLY
-    Bs = [HomotopyDensity_legacy(b) for (l,b) in retdict]
+    # Bs = [HomotopyDensity_legacy(b) for (l,b) in retdict]
     # @info "DX bw" string.(getBandwidth.(Bs))
 
   end

@@ -255,7 +255,9 @@ if false
     #   global smt
     #   global hist
   #force message passing with manual variable order
-  tree2 = solveGraph!(fg; algorithm=:parametric, eliminationOrder=[:x0, :x2, :x1])
+  tree2 = solveGraph!(fg; eliminationOrder=[:x0, :x2, :x1], 
+    csmoptions=IIF.CSMOptions(; solverparams=getSolverParams(fg), algorithm=:parametric)
+  )
   # end
   foreach(v->println(v.label, ": ", mean(getBelief(DFG.getState(v, :parametric)))), getVariables(fg))
 

@@ -1,4 +1,68 @@
 
+
+# convert(
+#   ::Type{<:ApproxManifoldProducts.HomotopyDensity}, 
+#   src::TreeBelief,
+# ) = HomotpyDensity_legacy(src)
+
+# function setValKDE!(
+#   v::VariableCompute,
+#   em::TreeBelief,
+#   setinit::Bool = true;
+#   # inferdim::Union{Float32, Float64, Int32, Int64}=0;
+#   solveKey::Symbol = :default,
+# )
+#   #
+#   setValKDE!(v, em.val, em.bw, setinit, em.infoPerCoord; solveKey = solveKey)
+#   return nothing
+# end
+
+# function convert(::Type{Tuple{ApproxManifoldProducts.HomotopyDensity, Float64}}, p::TreeBelief)
+#   # 
+#   return (convert(ApproxManifoldProducts.HomotopyDensity, p), p.infoPerCoord)
+# end
+
+# DFG.getStateKind(tb::TreeBelief) = tb.variableType
+
+# DFG.getManifold(treeb::TreeBelief) = getManifold(treeb.variableType)
+
+# function compare(t1::TreeBelief, t2::TreeBelief)
+#   TP = true
+#   TP = TP && norm(t1.val - t2.val) < 1e-5
+#   TP = TP && norm(t1.bw - t2.bw) < 1e-5
+#   TP = TP && isapprox(t1.infoPerCoord, t2.infoPerCoord; atol = 1e-4)
+#   TP = TP && t1.variableType == t2.variableType
+#   TP = TP && abs(t1.solvableDim - t2.solvableDim) < 1e-5
+#   return TP
+# end
+
+# struct TreeBelief{T <: StateType, P, M <: MB.AbstractManifold}
+#   val::Vector{P}
+#   bw::Array{Float64, 2}
+#   infoPerCoord::Vector{Float64}
+#   # see DFG #603, variableType defines the domain and manifold as well as group operations for a variable in the factor graph
+#   variableType::T
+#   # TODO -- DEPRECATE
+#   manifold::M # Tuple{Vararg{Symbol}} # NOTE added during #459 effort
+#   # only populated during up as solvableDims for each variable in clique, #910
+#   solvableDim::Float64
+# end
+
+
+# function HomotopyDensity_legacy(
+#   treeb::TreeBelief,
+# )
+#   # FIXME, partials still need to be dealt with here
+#   return ApproxManifoldProducts.HomotopyDensity_legacy(
+#     treeb.variableType,
+#     treeb.val;
+#     bw = treeb.bw,
+#     newbw = false,
+#     observability = treeb.infoPerCoord,
+#   )
+# end
+
+
 # """
 #     solveGrapn!
 
@@ -127,7 +191,7 @@ function calcMeanMaxSuggested(
 end
 
 
-@deprecate manikde!(tb::TreeBelief) HomotopyDensity_legacy(tb)
+@deprecate manikde!(hode::HomotopyDensity) hode
 
 @deprecate manikde!(
   varT::InstanceType{<:StateType},

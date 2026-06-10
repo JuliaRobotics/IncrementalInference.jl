@@ -215,17 +215,6 @@ function setValKDE!(
 end
 function setValKDE!(
   v::VariableCompute,
-  em::TreeBelief,
-  setinit::Bool = true;
-  # inferdim::Union{Float32, Float64, Int32, Int64}=0;
-  solveKey::Symbol = :default,
-)
-  #
-  setValKDE!(v, em.val, em.bw, setinit, em.infoPerCoord; solveKey = solveKey)
-  return nothing
-end
-function setValKDE!(
-  v::VariableCompute,
   mkd::ApproxManifoldProducts.HomotopyDensity,
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;];

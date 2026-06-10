@@ -4,10 +4,7 @@
 # short preamble funcions
 ## =============================================================================
 
-convert(
-  ::Type{<:ApproxManifoldProducts.HomotopyDensity}, 
-  src::TreeBelief,
-) = HomotpyDensity_legacy(src)
+
 
 
 ## =============================================================================
@@ -75,38 +72,38 @@ function updateSubFgFromDownMsgs!(
   # update specific variables in sfg from msgs
   for (key, beldim) in dwnmsgs.belief
     if key in seps
-      statekind = getStateKind(beldim.variableType)
-      # @info "WHAT" beldim.bw[:, 1] beldim.bw[1]
-      newBel = HomotopyDensity_legacy(
-        statekind, 
-        beldim.val; 
-        bw = beldim.bw,
-        observability = beldim.infoPerCoord
-      )
-      setBelief!(getVariable(sfg, key), newBel)
-      # setValKDE!(sfg, key, newBel, false, beldim.infoPerCoord)
+      setBelief!(getVariable(sfg, key), beldim)
     end
   end
 
   return nothing
 end
 
-function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
-  hode = HomotopyDensity_legacy(belief_)
-  return MsgPrior(hode, belief_.infoPerCoord, getManifold(belief_))
+function generateMsgPrior(hode::HomotopyDensity, ::NonparametricMessage)
+  # hode = HomotopyDensity_legacy(belief_)
+  return MsgPrior(hode, hode.observability, getManifold(hode))
 end
 
-function generateMsgPrior(belief_::TreeBelief, ::ParametricMessage)
-  msgPrior = if length(belief_.val[1]) == 1 #FIXME ? && length(belief_.val) == 1
+function generateMsgPrior(hode::HomotopyDensity, ::ParametricMessage)
+  _Log(m::AbstractManifold, p) = vee(m, Identity(m), log(m, Identity(m), p))
+  _Log(m::AbstractLieGroup, p) = vee(LieAlgebra(m), log(m, Identity(m), p))
+
+  manif = getManifold(hode)
+  Xc = _Log(manif, mean(hode))
+  msgPrior = if getDimension(hode) == 1 # FIXME not type-stable
     MsgPrior(
-      Normal(belief_.val[1][1], sqrt(belief_.bw[1])),
-      belief_.infoPerCoord,
-      getManifold(belief_),
+      Normal(Xc[1], sqrt(cov(hode)[1])),
+      hode.observability,
+      manif,
     )
-  elseif length(belief_.val[1]) > 1 #FIXME ? length(belief_.val) == 1
-    mvnorm = createMvNormal(belief_.val[1], belief_.bw)
+  elseif getDimension(hode) > 1
+    mvnorm = createMvNormal(Xc, cov(hode))
     mvnorm !== nothing ? nothing : (return FactorCompute[])
-    MsgPrior(mvnorm, belief_.infoPerCoord, getManifold(belief_))
+    MsgPrior(
+      mvnorm, 
+      hode.observability, 
+      manif
+    )
   end
   return msgPrior
 end
@@ -360,7 +357,7 @@ function _calcCandidatePriorBest(
     (label in variableList) ? nothing : continue
     # do calculations based on dimension
     i += 1
-    dims[i] = getDimension(val.variableType)
+    dims[i] = getDimension(val)
     syms[i] = label
     biAdj[i] = ls(subfg, label) |> length
   end
@@ -434,7 +431,7 @@ function _generateMsgJointRelativesPriors(
   allClasses = IIF._findSubgraphsFactorType(cfg, jointrelatives, separators)
   hasPriors = 0 < length(intersect(getCliquePotentials(cliq), lsfPriors(cfg)))
 
-  msgbeliefs = Dict{Symbol, TreeBelief}()
+  msgbeliefs = Dict{Symbol, HomotopyDensity}()
   IIF._buildTreeBeliefDict!(msgbeliefs, cfg, cliq)
 
   # @show cliq.id, ls(cfg), keys(msgbeliefs), allClasses
@@ -632,7 +629,7 @@ end
 ## =============================================================================
 
 function _buildTreeBeliefDict!(
-  msgdict::Dict{Symbol, TreeBelief},
+  msgdict::Dict{Symbol, HomotopyDensity},
   subfg::AbstractDFG,
   cliq::TreeClique,
   solveKey::Symbol = :default,
@@ -687,14 +684,6 @@ function prepCliqueMsgUp(
 
   _buildTreeBeliefDict!(msg.belief, subfg, cliq, solveKey; duplicate = duplicate)
 
-  # seps = getCliqSeparatorVarIds(cliq)
-  # for vid in seps
-  #   var = DFG.getVariable(subfg, vid)
-  #   var = duplicate ? deepcopy(var) : var
-  #   if isInitialized(var)
-  #     msg.belief[var.label] = TreeBelief(var, solvableDim=sdims[var.label])
-  #   end
-  # end
 
   if getSolverParams(subfg).useMsgLikelihoods
     msg.jointmsg = IIF._generateMsgJointRelativesPriors(subfg, solveKey, cliq)
@@ -770,9 +759,8 @@ function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)
   return allUpMsgs
 end
 
-# TODO @NamedTuple{cliqId::CliqueId{Int}, depth::Int, belief::TreeBelief}
-const UpMsgPlotting =
-  NamedTuple{(:cliqId, :depth, :belief), Tuple{CliqueId{Int}, Int, TreeBelief}}
+const UpMsgPlotting = @NamedTuple{cliqId::CliqueId{Int}, depth::Int, belief::HomotopyDensity}
+
 
 """
     $SIGNATURES

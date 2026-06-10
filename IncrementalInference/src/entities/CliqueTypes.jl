@@ -43,7 +43,7 @@ $(TYPEDFIELDS)
 mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPriorObservation
   sender::NamedTuple{(:id, :step), Tuple{Int, Int}}
   status::CliqStatus
-  belief::Dict{Symbol, TreeBelief} # TODO, will eventually be deprecated, use joint likelihood instead, also see #1010
+  belief::Dict{Symbol, HomotopyDensity} # TODO, will eventually be deprecated, use joint likelihood instead, also see #1010
   variableOrder::Vector{Symbol}
   cliqueLikelihood::Union{Nothing, SamplableBelief}  # TODO drop the Union
   msgType::T

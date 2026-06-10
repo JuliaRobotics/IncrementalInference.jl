@@ -27,7 +27,7 @@ Base.show(io::IO, ::MIME"text/plain", x::_MsgJointLikelihood) = show(io, x)
 function LikelihoodMessage(;
   sender::NamedTuple{(:id, :step), Tuple{Int, Int}} = (; id = 0, step = 0),
   status::CliqStatus = NULL,
-  beliefDict::Dict = Dict{Symbol, TreeBelief}(),
+  beliefDict::Dict = Dict{Symbol, HomotopyDensity}(),
   variableOrder::Vector{Symbol} = Symbol[],
   cliqueLikelihood = nothing,
   msgType::T = NonparametricMessage(),

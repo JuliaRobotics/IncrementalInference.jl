@@ -44,17 +44,17 @@ DevNotes:
 - Long term objective is single joint definition, likely called `LikelihoodMessage`.
 - See 1929; wholesale replacement w `HomotopyDensity` over all clique dimensions.
 """
-struct TreeBelief{T <: StateType, P, M <: MB.AbstractManifold}
-  val::Vector{P}
-  bw::Array{Float64, 2}
-  infoPerCoord::Vector{Float64}
-  # see DFG #603, variableType defines the domain and manifold as well as group operations for a variable in the factor graph
-  variableType::T
-  # TODO -- DEPRECATE
-  manifold::M # Tuple{Vararg{Symbol}} # NOTE added during #459 effort
-  # only populated during up as solvableDims for each variable in clique, #910
-  solvableDim::Float64
+function TreeBelief(
+  val::AbstractVector{P},
+  bw::AbstractMatrix{Float64},
+  ipc::AbstractVector{<:Real} = [0.0;],
+  variableType::T = ContinuousScalar(),
+  manifold::M = getManifold(variableType),
+  solvableDim::Real = 0,
+) where {P, T <: StateType, M <: MB.AbstractManifold}
+  return HomotopyDensity_legacy(variableType, val; bw, observability = ipc)
 end
+
 
 function TreeBelief(
   p::ApproxManifoldProducts.HomotopyDensity,
@@ -66,29 +66,6 @@ function TreeBelief(
   return TreeBelief(getPoints(p), getBW(p), ipc, variableType, manifold, solvableDim)
 end
 
-function HomotopyDensity_legacy(
-  treeb::TreeBelief,
-)
-  # FIXME, partials still need to be dealt with here
-  return ApproxManifoldProducts.HomotopyDensity_legacy(
-    treeb.variableType,
-    treeb.val;
-    bw = treeb.bw,
-    newbw = false,
-    observability = treeb.infoPerCoord,
-  )
-end
-
-function TreeBelief(
-  val::AbstractVector{P},
-  bw::Array{Float64, 2},
-  ipc::AbstractVector{<:Real} = [0.0;],
-  variableType::T = ContinuousScalar(),
-  manifold::M = getManifold(variableType),
-  solvableDim::Real = 0,
-) where {P, T <: StateType, M <: MB.AbstractManifold}
-  return TreeBelief{T, P, M}(val, bw, ipc, variableType, manifold, solvableDim)
-end
 
 function TreeBelief(state::State, solvDim::Real = 0)
   pts = getPoints(state.belief; permute=false) # TODO likely want to go back to sorted order here, DX debugging with permute=false
@@ -109,8 +86,8 @@ function TreeBelief(state::State, solvDim::Real = 0)
     cv,
     obsv,
     statekind,
-    getManifold(statekind),
-    solvDim,
+    # getManifold(statekind),
+    # solvDim,
   )
   # TreeBelief(DFG.getTopologyKind(state), state, solvDim)
 end
@@ -120,19 +97,6 @@ function TreeBelief(vari::VariableCompute, solveKey::Symbol = :default; solvable
 end
 #
 
-DFG.getStateKind(tb::TreeBelief) = tb.variableType
-
-DFG.getManifold(treeb::TreeBelief) = getManifold(treeb.variableType)
-
-function compare(t1::TreeBelief, t2::TreeBelief)
-  TP = true
-  TP = TP && norm(t1.val - t2.val) < 1e-5
-  TP = TP && norm(t1.bw - t2.bw) < 1e-5
-  TP = TP && isapprox(t1.infoPerCoord, t2.infoPerCoord; atol = 1e-4)
-  TP = TP && t1.variableType == t2.variableType
-  TP = TP && abs(t1.solvableDim - t2.solvableDim) < 1e-5
-  return TP
-end
 
 
 #

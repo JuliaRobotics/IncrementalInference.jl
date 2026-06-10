@@ -36,7 +36,7 @@ function compileFMCMessages(
   logger = ConsoleLogger(),
 )
   #
-  d = Dict{Symbol, TreeBelief}()
+  d = Dict{Symbol, HomotopyDensity}()
   for vsym in lbls
     vari = DFG.getVariable(fgl, vsym)
     d[vsym] = TreeBelief(vari, solveKey)
@@ -177,7 +177,7 @@ function upGibbsCliqueDensity(
   end
   # TODO -- some weirdness with: d,. = d = ., nothing
   # mcmcdbg = Array{CliqGibbsMC,1}()
-  d = Dict{Symbol, TreeBelief}()
+  d = Dict{Symbol, HomotopyDensity}()
 
   # priorprods = Vector{CliqGibbsMC}()
 
