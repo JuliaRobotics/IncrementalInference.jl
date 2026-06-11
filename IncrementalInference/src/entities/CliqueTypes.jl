@@ -35,13 +35,15 @@ DevNotes:
 - Part of the consolidation effort, see #459.
 - Better conditioning for joint structure in the works using deconvolution, see #579, #635.
   - TODO confirm why <: Singleton.
+- Probably need to solve IIF #1010 before this type will stabilize.
+- TBD, store joint dimension names along side a pure density, or inside HomotopyDensity?
 
 $(TYPEDFIELDS)
 """
 mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPriorObservation
   sender::NamedTuple{(:id, :step), Tuple{Int, Int}}
   status::CliqStatus
-  belief::Dict{Symbol, TreeBelief} # will eventually be deprecated
+  belief::Dict{Symbol, HomotopyDensity} # TODO, will eventually be deprecated, use joint likelihood instead, also see #1010
   variableOrder::Vector{Symbol}
   cliqueLikelihood::Union{Nothing, SamplableBelief}  # TODO drop the Union
   msgType::T

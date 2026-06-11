@@ -13,6 +13,8 @@ The list below highlights breaking changes according to normal semver workflow -
 
 # v0.38
 
+- Drop `TreeBelief` and replace with `HomotopyDensity`, #1929.
+- Consolidate CSM solve options into `CSMOptions` and update all related solve via CSM calls.
 - Major change to transition to ApproxManifoldProducts v0.15, switching to `HomotopyDensity` #1922. (breaking change)
 - Major change to transition to independent `SolverParams` per solve #1924. (breaking change)
 - Improvements to parametric solve #1932.

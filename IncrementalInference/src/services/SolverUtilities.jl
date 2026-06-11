@@ -101,7 +101,7 @@ has been completed per clique.
 function updateFGBT!(
   fg::AbstractDFG,
   cliq::TreeClique,
-  IDvals::Dict{Symbol, TreeBelief};
+  IDvals::Dict{Symbol, HomotopyDensity};
   dbg::Bool = false,
   fillcolor::String = "",
   logger = ConsoleLogger(),
@@ -116,7 +116,7 @@ function updateFGBT!(
   end
   for (id, dat) in IDvals
     with_logger(logger) do
-      @info "updateFGBT! up -- update $id, infoPerCoord=$(dat.infoPerCoord)"
+      @info "updateFGBT! up -- update $id, observability=$(dat.observability)"
     end
     vrb = getVariable(fg, id)
     # @info "DAT" dat

@@ -84,7 +84,6 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testJunctionTreeConstruction.jl")
       include("testBayesTreeiSAM2Example.jl")
 
-
       include("testCommonConvWrapper.jl") # skipped test with just ::Float point type 
 
       include("testStateMachine.jl")
@@ -120,7 +119,7 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
 
       include("testHeatmapGridDensity.jl")
 
-      # refac AMP v0.15, these functionals are medium slow
+      # refac AMP v0.15, these are medium slow
       include("testTreeFunctions.jl") # slower
       include("testMultihypoAndChain.jl") # slower, weak numerics
       include("testPartialPrior.jl") # slowish
