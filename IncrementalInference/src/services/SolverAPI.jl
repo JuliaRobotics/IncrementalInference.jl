@@ -16,26 +16,16 @@ function taskSolveTree!(
   treel::AbstractBayesTree,
   timeout::Union{Nothing, <:Real} = nothing;
   oldtree::AbstractBayesTree = BayesTree(),
-  drawtree::Bool = false,
-  verbose::Bool = false,
-  verbosefid = stdout,
-  limititers::Int = -1,
-  limititercliqs::Vector{Pair{Symbol, Int}} = Pair{Symbol, Int}[],
-  downsolve::Bool = false,
-  incremental::Bool = false,
-  multithread::Bool = false,
-  skipcliqids::Vector{Symbol} = Symbol[],
-  recordcliqs::Vector{Symbol} = Symbol[],
-  delaycliqs::Vector{Symbol} = Symbol[],
   smtasks = Task[],
-  algorithm::Symbol = :default,
-  solveKey::Symbol = algorithm,
+  csmoptions::CSMOptions = CSMOptions(;
+    solverparams = getSolverParams(dfg),
+  ),
 )
   #
   # revert DOWNSOLVED status to INITIALIZED in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
 
-  drawtree ? drawTree(treel; show = false, filepath = joinLogPath(dfg, "bt.dot")) : nothing
+  csmoptions.drawtree ? drawTree(treel; show = false, filepath = joinLogPath(dfg, "bt.dot")) : nothing
 
   cliqHistories = Dict{Int, Vector{CSMHistoryTuple}}()
 
@@ -43,56 +33,38 @@ function taskSolveTree!(
 
   approx_iters = getNumCliqs(treel) * 24
   solve_progressbar =
-    verbose ? nothing : ProgressUnknown(; desc = "Solve Progress: approx max $approx_iters, at iter")
+    csmoptions.verbose ? nothing : ProgressUnknown(; desc = "Solve Progress: approx max $approx_iters, at iter")
+
 
   # queue all the tasks/threads
   if !isTreeSolved(treel; skipinitialized = true)
     @sync begin
-      monitortask = monitorCSMs(treel, smtasks)
+      # monitortask = monitorCSMs(treel, smtasks)
       # duplicate int i into async (important for concurrency)
       for i = 1:getNumCliqs(treel) # TODO, this might not always work?
         scsym = getCliqFrontalVarIds(getClique(treel, i))
-        if length(intersect(scsym, skipcliqids)) == 0
-          limthiscsm = filter(x -> (x[1] in scsym), limititercliqs)
-          limiter = 0 < length(limthiscsm) ? limthiscsm[1][2] : limititers
+        if length(intersect(scsym, csmoptions.skipcliqids)) == 0
+          limthiscsm = filter(x -> (x[1] in scsym), csmoptions.limititercliqs)
+          csmoptions.limititers = 0 < length(limthiscsm) ? limthiscsm[1][2] : csmoptions.limititers
 
-          if multithread
-            smtasks[i] = Threads.@spawn solveClique!(
-              dfg,
-              treel,
-              i,
-              timeout;
-              solveKey = solveKey,
-              algorithm = algorithm,
-              oldtree = oldtree,
-              verbose = verbose,
-              verbosefid = verbosefid,
-              drawtree = drawtree,
-              limititers = limititers,
-              downsolve = downsolve,
-              incremental = incremental,
-              delaycliqs = delaycliqs,
-              recordcliqs = recordcliqs,
-              solve_progressbar = solve_progressbar,
+          args = (
+            dfg,
+            treel,
+            i,
+            timeout,
+          )
+
+          smtasks[i] = if csmoptions.multithread
+            Threads.@spawn solveClique!(
+              args...;
+              oldtree,
+              csmoptions,
             )
           else
-            smtasks[i] = @async solveClique!(
-              dfg,
-              treel,
-              i,
-              timeout;
-              solveKey = solveKey,
-              algorithm = algorithm,
-              oldtree = oldtree,
-              verbose = verbose,
-              verbosefid = verbosefid,
-              drawtree = drawtree,
-              limititers = limiter,
-              downsolve = downsolve,
-              incremental = incremental,
-              delaycliqs = delaycliqs,
-              recordcliqs = recordcliqs,
-              solve_progressbar = solve_progressbar,
+            @async solveClique!(
+              args...;
+              oldtree,
+              csmoptions,
             )
           end
         end # if
@@ -101,73 +73,58 @@ function taskSolveTree!(
   end # if
 
   # if record cliques is in use, else skip computational delay
-  0 == length(recordcliqs) ? nothing : fetchCliqHistoryAll!(smtasks, cliqHistories)
+  0 == length(csmoptions.recordcliqs) ? nothing : fetchCliqHistoryAll!(smtasks, cliqHistories)
 
   !isnothing(solve_progressbar) && finish!(solve_progressbar)
 
   return smtasks, cliqHistories
 end
 
+
+
 function solveClique!(
-  dfg::G,
+  dfg::AbstractDFG,
   treel::AbstractBayesTree,
   cliqKey::Union{Int, CliqueId},
   timeout::Union{Nothing, <:Real} = nothing;
-  solverparams = getSolverParams(dfg), #FIXME deprecation step
   oldtree::AbstractBayesTree = BayesTree(),
-  verbose::Bool = false,
-  verbosefid = stdout,
-  drawtree::Bool = false,
-  limititers::Int = -1,
-  downsolve::Bool = false,
-  incremental::Bool = false,
-  delaycliqs::Vector{Symbol} = Symbol[],
-  recordcliqs::Vector{Symbol} = Symbol[],
-  solve_progressbar = nothing,
-  algorithm::Symbol = :default,
-  solveKey::Symbol = algorithm,
-) where {G <: AbstractDFG}
+  csmoptions::CSMOptions = CSMOptions(;
+    solverparams = getSolverParams(dfg),
+  ),
+  logger::Any = begin
+    mkpath(joinpath(csmoptions.solverparams.logpath, "logs"))
+    SimpleLogger(open(joinpath(csmoptions.solverparams.logpath, "logs/cliq_($cliqKey).log"), "w+"))
+  end
+)
   #
-  clst = :na
   cliq = getClique(treel, cliqKey)
   syms = getCliqFrontalVarIds(cliq)
 
   oldcliq = attemptTreeSimilarClique(oldtree, getCliqueData(cliq))
   oldcliqdata = getCliqueData(oldcliq)
 
-  opts = solverparams
+  opts = csmoptions.solverparams
   # Base.rm(joinpath(opts.logpath,"logs/cliq$i"), recursive=true, force=true)
   mkpath(joinpath(opts.logpath, "logs/cliq$(cliq.id)/"))
-  logger = SimpleLogger(open(joinpath(opts.logpath, "logs/cliq$(cliq.id)/log.txt"), "w+")) # NullLogger()
   # global_logger(logger)
   history = Vector{CSMHistoryTuple}()
-  recordthiscliq = length(intersect(recordcliqs, syms)) > 0
-  delaythiscliq = length(intersect(delaycliqs, syms)) > 0
+  csmoptions.recordhistory = length(intersect(csmoptions.recordcliqs, syms)) > 0
+  csmoptions.delay = length(intersect(csmoptions.delaycliqs, syms)) > 0
+
   try
     history = initStartCliqStateMachine!(
       dfg,
       treel,
       cliq,
       timeout;
-      solverparams,
-      oldcliqdata = oldcliqdata,
-      drawtree = drawtree,
-      verbose = verbose,
-      verbosefid = verbosefid,
-      limititers = limititers,
-      downsolve = downsolve,
-      recordhistory = recordthiscliq,
-      incremental = incremental,
-      delay = delaythiscliq,
-      logger = logger,
-      solve_progressbar = solve_progressbar,
-      algorithm = algorithm,
-      solveKey = solveKey,
+      oldcliqdata,
+      logger,
+      csmoptions,
     )
     #
     # cliqHistories[cliqKey] = history
-    if length(history) >= limititers && limititers != -1
-      # @warn "writing logs/cliq$(cliq.id)/csm.txt"
+    if length(history) >= csmoptions.limititers && csmoptions.limititers != -1
+      @debug "writing $(joinpath(opts.logpath, "logs/cliq$(cliq.id)/csm.txt"))"
       # @save "/tmp/cliqHistories/cliq$(cliq.id).jld2" history
       fid = open(joinpath(opts.logpath, "logs/cliq$(cliq.id)/csm.txt"), "w")
       printCliqHistorySummary(fid, history)
@@ -175,13 +132,11 @@ function solveClique!(
     end
     flush(logger.stream)
     close(logger.stream)
-    # clst = getCliqueStatus(cliq)
-    # clst = cliqInitSolveUp!(dfg, treel, cliq, drawtree=drawtree, limititers=limititers )
   catch err
     bt = catch_backtrace()
     println()
     showerror(stderr, err, bt)
-    # @warn "writing /tmp/caesar/logs/cliq$(cliq.id)/*.txt"
+    @debug "writing $(joinpath(opts.logpath, "logs/cliq$(cliq.id)/stacktrace.txt"))"
     fid = open(joinpath(opts.logpath, "logs/cliq$(cliq.id)/stacktrace.txt"), "w")
     showerror(fid, err, bt)
     close(fid)
@@ -268,63 +223,45 @@ Related
 
 `solveGraph!`, [`solveCliqUp!`](@ref), [`solveCliqDown!`](@ref), [`buildTreeReset!`](@ref), [`repeatCSMStep`](@ref), [`printCSMHistoryLogical`](@ref)
 """
-function solveTree!(
+function DistributedFactorGraphs.solveGraph!(
   dfgl::AbstractDFG,
   oldtree::AbstractBayesTree = BayesTree();
-  solverparams = getSolverParams(dfgl),
   # tree options
   eliminationOrder::Union{Nothing, Vector{Symbol}} = nothing,
   eliminationConstraints::Vector{Symbol} = Symbol[],
-  # execution options
-  timeout::Union{Nothing, <:Real} = nothing,
-  multithread::Bool = false,
-  #
-  algorithm::Symbol = :default,
-  solveKey::Symbol = algorithm,
-  # maybe debug?
-  delaycliqs::Vector{Symbol} = Symbol[],
-  # debug options
-  storeOld::Bool = false,
-  limititercliqs::Vector{Pair{Symbol, Int}} = Pair{Symbol, Int}[],
-  skipcliqids::Vector{Symbol} = Symbol[],
-  recordcliqs::Vector{Symbol} = Symbol[],
-  smtasks::Vector{Task} = Task[],
-  dotreedraw = Int[1;],
-  verbose::Bool = false,
-  verbosefid = stdout,
-  #dead TODO check if called anywhere
-  injectDelayBefore::Union{Nothing, Vector{<:Pair{Int, <:Pair{<:Function, <:Real}}}} = nothing,
-  runtaskmonitor::Bool = true,
+  smtasks = Task[],
+  # solve/execution options
+  csmoptions = CSMOptions(;
+    solverparams = getSolverParams(dfgl),
+  ),
 )
-  #
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
-  opt = solverparams
 
   # showtree should force drawtree
-  if opt.showtree && !opt.drawtree
+  if csmoptions.solverparams.showtree && !csmoptions.solverparams.drawtree
     @info("Since .showtree=true, also bumping .drawtree=true")
   else
     nothing
   end
-  opt.drawtree |= opt.showtree
+  csmoptions.solverparams.drawtree |= csmoptions.solverparams.showtree
 
   # depcrecation
   # update worker pool incase there are more or less
   setWorkerPool!()
-  if opt.multiproc && nprocs() == 1
+  if csmoptions.solverparams.multiproc && nprocs() == 1
     @info "Setting `.multiproc=false` since `Distributed.nprocs() == 1`"
-    opt.multiproc = false
+    csmoptions.solverparams.multiproc = false
   end
   
-  if opt.graphinit
+  if csmoptions.solverparams.graphinit
     @info "Ensure variables are all initialized (graphinit)"
-    if algorithm == :parametric
+    if csmoptions.algorithm == :parametric
       @warn "Parametric is using default graphinit (and ignoring solveKey)"
       initAll!(dfgl)
       initParametricFrom!(dfgl)
     else
-      initAll!(dfgl, solveKey)
+      initAll!(dfgl, csmoptions.solveKey)
     end
   end
   # construct tree
@@ -332,13 +269,13 @@ function solveTree!(
 
   hist = Dict{Int, Vector{CSMHistoryTuple}}()
 
-  if opt.isfixedlag
+  if csmoptions.solverparams.isfixedlag
     @info "Quasi fixed-lag is enabled (a feature currently in testing, and ignoring solveKey)!"
     fifoFreeze!(dfgl)
   end
 
   # perhaps duplicate current value
-  if storeOld || opt.dbg
+  if csmoptions.storeOld || csmoptions.solverparams.dbg
     ss = listStates(dfgl) .|> string
     ss_ = ss[occursin.(r"default_", ss)] .|> x -> x[9:end]
     filter!(x -> occursin(r"^\d+$", x), ss_)  # ss_ = ss_[occursin.(r"^\d$",ss_)]
@@ -360,9 +297,9 @@ function solveTree!(
     dfgl,
     eliminationOrder;
     drawpdf = false,
-    show = opt.showtree,
+    show = csmoptions.solverparams.showtree,
     ensureSolvable = false,
-    filepath = joinpath(opt.logpath, "bt.pdf"),
+    filepath = joinpath(csmoptions.solverparams.logpath, "bt.pdf"),
     eliminationConstraints = eliminationConstraints,
     ordering = orderMethod,
   )
@@ -372,54 +309,30 @@ function solveTree!(
   initTreeMessageChannels!(tree)
 
   # if desired, drawtree in a loop
-  treetask, _dotreedraw = drawTreeAsyncLoop(tree, opt; dotreedraw = dotreedraw)
+  treetask, _dotreedraw = drawTreeAsyncLoop(tree, csmoptions.solverparams; dotreedraw = csmoptions.dotreedraw)
 
   @info "Do tree based init-ference"
-  algorithm != :parametric ? nothing : @error("Under development, do not use, see #539")
-  !storeOld ? nothing : @error("parametric storeOld keyword not wired up yet.")
+  csmoptions.algorithm != :parametric ? nothing : @error("Under development, do not use, see #539")
+  !csmoptions.storeOld ? nothing : @error("parametric storeOld keyword not wired up yet.")
 
-  #TODO consider solveGraph! vs solveGraphAsync! 
-  if opt.async
+  #TODO rename solveGraph!
+  if csmoptions.solverparams.async
     @async smtasks, hist = taskSolveTree!(
       dfgl,
       tree,
-      timeout;
-      solveKey = solveKey,
-      algorithm = algorithm,
-      multithread = multithread,
-      smtasks = smtasks,
+      csmoptions.timeout;
       oldtree = oldtree,
-      verbose = verbose,
-      verbosefid = verbosefid,
-      drawtree = opt.drawtree,
-      recordcliqs = recordcliqs,
-      limititers = opt.limititers,
-      downsolve = opt.downsolve,
-      incremental = opt.incremental,
-      skipcliqids = skipcliqids,
-      delaycliqs = delaycliqs,
-      limititercliqs = limititercliqs,
+      smtasks = smtasks,
+      csmoptions,
     )
   else
     smtasks, hist = taskSolveTree!(
       dfgl,
       tree,
-      timeout;
-      solveKey = solveKey,
-      algorithm = algorithm,
-      multithread = multithread,
-      smtasks = smtasks,
+      csmoptions.timeout;
       oldtree = oldtree,
-      verbose = verbose,
-      verbosefid = verbosefid,
-      drawtree = opt.drawtree,
-      recordcliqs = recordcliqs,
-      limititers = opt.limititers,
-      downsolve = opt.downsolve,
-      incremental = opt.incremental,
-      skipcliqids = skipcliqids,
-      delaycliqs = delaycliqs,
-      limititercliqs = limititercliqs,
+      smtasks = smtasks,
+      csmoptions,
     )
     @info "Finished tree based init-ference"
   end
@@ -432,28 +345,22 @@ function solveTree!(
   oldtree.eliminationOrder = tree.eliminationOrder
   oldtree.buildTime = tree.buildTime
 
-  if opt.drawtree && opt.async
+  if csmoptions.solverparams.drawtree && csmoptions.solverparams.async
     @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"
     push!(smtasks, treetask)
   else
-    dotreedraw[1] = 0
+    csmoptions.dotreedraw[1] = 0
   end
 
   # if debugging and not async then also print the CSMHistory
-  if opt.dbg && !opt.async
-    hists = !opt.async ? fetchCliqHistoryAll!(smtasks) : hist
+  if csmoptions.solverparams.dbg && !csmoptions.solverparams.async
+    hists = !csmoptions.solverparams.async ? fetchCliqHistoryAll!(smtasks) : hist
     printCSMHistorySequential(hists, joinLogPath(dfgl, "HistoryCSMAll.txt"))
   end
 
   return oldtree
 end
 
-"""
-    solveGrapn!
-
-Just an alias, see documentation for `solveTree!`.
-"""
-DFG.solveGraph!(dfg::AbstractDFG, w...;kw...) = solveTree!(dfg, w...;kw...)
 
 """
     $SIGNATURES
@@ -547,17 +454,22 @@ function solveCliqUp!(
 
   recordcliqs = recordcliq ? [getFrontals(cliq)[1]] : Symbol[]
 
+  csmoptions = CSMOptions(;
+    solverparams = getSolverParams(fg),
+    solveKey,
+    verbose,
+    recordcliqs,
+    downsolve = false,
+    drawtree = opt.drawtree,
+    limititers = opt.limititers,
+    incremental = opt.incremental,
+  )
+
   hist = solveClique!(
     fg,
     tree,
     cliq.id;
-    solveKey = solveKey,
-    verbose = verbose,
-    drawtree = opt.drawtree,
-    limititers = opt.limititers,
-    downsolve = false,
-    recordcliqs = recordcliqs,
-    incremental = opt.incremental,
+    csmoptions,
   )
   #
 
@@ -642,16 +554,21 @@ function solveCliqDown!(
 
   recordcliqs = recordcliq ? [getFrontals(cliq)[1]] : Symbol[]
 
+  csmoptions = CSMOptions(;
+    solverparams = getSolverParams(fg),
+    solveKey,
+    verbose,
+    recordcliqs,
+    drawtree = opt.drawtree,
+    limititers = opt.limititers,
+    incremental = opt.incremental,
+  )
+
   hist = solveClique!(
     fg,
     tree,
     cliq.id;
-    solveKey = solveKey,
-    verbose = verbose,
-    drawtree = opt.drawtree,
-    limititers = opt.limititers,
-    recordcliqs = recordcliqs,
-    incremental = opt.incremental,
+    csmoptions,
   )
 
   # fetch on down                                  

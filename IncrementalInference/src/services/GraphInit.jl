@@ -432,8 +432,11 @@ function initVariable!(
     prepareState!(variable, NLLSSolver(), solveKey)
     μ, iΣ = getMeasurementParametric(samplable_belief)
     vnd = getState(variable, solveKey)
-    DFG.refMeans(vnd)[1] = getPoint(getStateKind(variable), μ)
-    DFG.refCovariances(vnd)[1] .= inv(iΣ)
+
+    hode = HomotopyDensity_legacy(getStateKind(variable), [μ,]; bw=inv(iΣ), newbw=false)
+    # DFG.refMeans(vnd)[1] = getPoint(getStateKind(variable), μ)
+    # DFG.refCovariances(vnd)[1] .= inv(iΣ)
+    setBelief!(vnd, hode)
     vnd.initialized = true
   else
     points = [samplePoint(M, samplable_belief) for _ = 1:N]

@@ -21,6 +21,33 @@ end
 const BayesTree = MetaBayesTree
 
 
+@kwdef mutable struct CSMOptions
+  solve_progressbar::Any = nothing
+  # execution options
+  solverparams::Any #FIXME deprecation step
+  downsolve::Bool = false
+  upsolve::Bool = true # TODO unchecked consolidation, consolidate from solverparams
+  incremental::Bool = false
+  algorithm::Symbol = :default
+  solveKey::Symbol = algorithm
+  delay::Bool = false
+  multithread::Bool = false
+  # debug options
+  limititers::Int = -1
+  recordhistory::Bool = false
+  storeOld::Bool = false
+  verbose::Bool = false
+  verbosefid::Any = stdout
+  drawtree::Bool = false
+  dotreedraw::Vector{Int} = Int[1;]
+  timeout::Union{Nothing, <:Real} = nothing
+  delaycliqs::Vector{Symbol} = Symbol[]
+  recordcliqs::Vector{Symbol} = Symbol[]
+  skipcliqids::Vector{Symbol} = Symbol[]
+  limititercliqs::Vector{Pair{Symbol, Int}} = Pair{Symbol, Int}[]
+end
+
+
 """
     $TYPEDEF
 
@@ -29,7 +56,7 @@ Container for upward tree solve / initialization.
 DevNotes
 - TODO more direct clique access (cliq, parent, children), for multi-process solves
 """
-mutable struct CliqStateMachineContainer{
+@kwdef mutable struct CliqStateMachineContainer{
   BTND,
   G <: AbstractDFG,
   InMemG <: InMemoryDFGTypes,
@@ -39,21 +66,18 @@ mutable struct CliqStateMachineContainer{
   cliqSubFg::InMemG
   tree::BT
   cliq::TreeClique
-  incremental::Bool
-  drawtree::Bool
-  dodownsolve::Bool
-  delay::Bool
-  opts::SolverParams
-  refactoring::Dict{Symbol, String}
-  oldcliqdata::BTND
-  logger::SimpleLogger
-  cliqId::CliqueId
-  algorithm::Symbol
-  init_iter::Int
-  enableLogging::Bool
-  solveKey::Symbol
-  _csm_iter::Int
+  dodownsolve::Bool = false
+  opts::SolverParams = getSolverParams(cliqSubFg)
+  refactoring::Dict{Symbol, String} = Dict{Symbol, String}()
+  oldcliqdata::BTND = BayesTreeNodeData()
+  logger::SimpleLogger = SimpleLogger(Base.stdout)
+  cliqId::CliqueId = cliq.id # obsolete?
+  init_iter::Int = 0
+  enableLogging::Bool = true
+  _csm_iter::Int = 0
+  csmoptions::CSMOptions = CSMOptions(solverparams = opts)
 end
+
 
 #TODO use @NamedTuple if julia compat > 1.5
 

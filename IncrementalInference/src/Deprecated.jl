@@ -1,5 +1,144 @@
 
 
+# convert(
+#   ::Type{<:ApproxManifoldProducts.HomotopyDensity}, 
+#   src::TreeBelief,
+# ) = HomotpyDensity_legacy(src)
+
+# function setValKDE!(
+#   v::VariableCompute,
+#   em::TreeBelief,
+#   setinit::Bool = true;
+#   # inferdim::Union{Float32, Float64, Int32, Int64}=0;
+#   solveKey::Symbol = :default,
+# )
+#   #
+#   setValKDE!(v, em.val, em.bw, setinit, em.infoPerCoord; solveKey = solveKey)
+#   return nothing
+# end
+
+# function convert(::Type{Tuple{ApproxManifoldProducts.HomotopyDensity, Float64}}, p::TreeBelief)
+#   # 
+#   return (convert(ApproxManifoldProducts.HomotopyDensity, p), p.infoPerCoord)
+# end
+
+# DFG.getStateKind(tb::TreeBelief) = tb.variableType
+
+# DFG.getManifold(treeb::TreeBelief) = getManifold(treeb.variableType)
+
+# function compare(t1::TreeBelief, t2::TreeBelief)
+#   TP = true
+#   TP = TP && norm(t1.val - t2.val) < 1e-5
+#   TP = TP && norm(t1.bw - t2.bw) < 1e-5
+#   TP = TP && isapprox(t1.infoPerCoord, t2.infoPerCoord; atol = 1e-4)
+#   TP = TP && t1.variableType == t2.variableType
+#   TP = TP && abs(t1.solvableDim - t2.solvableDim) < 1e-5
+#   return TP
+# end
+
+# struct TreeBelief{T <: StateType, P, M <: MB.AbstractManifold}
+#   val::Vector{P}
+#   bw::Array{Float64, 2}
+#   infoPerCoord::Vector{Float64}
+#   # see DFG #603, variableType defines the domain and manifold as well as group operations for a variable in the factor graph
+#   variableType::T
+#   # TODO -- DEPRECATE
+#   manifold::M # Tuple{Vararg{Symbol}} # NOTE added during #459 effort
+#   # only populated during up as solvableDims for each variable in clique, #910
+#   solvableDim::Float64
+# end
+
+
+# function HomotopyDensity_legacy(
+#   treeb::TreeBelief,
+# )
+#   # FIXME, partials still need to be dealt with here
+#   return ApproxManifoldProducts.HomotopyDensity_legacy(
+#     treeb.variableType,
+#     treeb.val;
+#     bw = treeb.bw,
+#     newbw = false,
+#     observability = treeb.infoPerCoord,
+#   )
+# end
+
+
+# """
+#     solveGrapn!
+
+# Just an alias, see documentation for `solveTree!`.
+# """
+# DFG.solveGraph!(dfg::AbstractDFG, w...;kw...) = solveTree!(dfg, w...;kw...)
+
+
+@deprecate solveTree!(
+  dfg::AbstractDFG,
+  oldtree::AbstractBayesTree = BayesTree();
+  # tree options
+  eliminationOrder::Union{Nothing, Vector{Symbol}} = nothing,
+  eliminationConstraints::Vector{Symbol} = Symbol[],
+  smtasks = Task[],
+  # execution options
+  solverparams = getSolverParams(dfg),
+  kwargs...
+) solveGraph!(
+  dfg, 
+  oldtree; 
+  eliminationOrder, 
+  eliminationConstraints, 
+  smtasks,
+  csmoptions = CSMOptions(;
+    solverparams = solverparams,
+    kwargs...,
+  )
+)
+
+# function CliqStateMachineContainer(
+#   dfg::G,
+#   cliqSubFg::M,
+#   tree::T,
+#   cliq::TreeClique,
+#   incremental::Bool,
+#   drawtree::Bool,
+#   dodownsolve::Bool,
+#   delay::Bool,
+#   opts::SolverParams,
+#   refactoring::Dict{Symbol, String} = Dict{Symbol, String}(),
+#   oldcliqdata::BTND = BayesTreeNodeData(),
+#   logger::SimpleLogger = SimpleLogger(Base.stdout);
+#   cliqId::CliqueId = cliq.id,
+#   algorithm::Symbol = :default,
+#   init_iter::Int = 0,
+#   enableLogging::Bool = true,
+#   solveKey::Symbol = :default,
+#   _csm_iter::Int = 0,
+# ) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
+#   #
+#   return CliqStateMachineContainer{BTND, G, M, T}(
+#     dfg,
+#     cliqSubFg,
+#     tree,
+#     cliq,
+#     incremental,
+#     drawtree,
+#     dodownsolve,
+#     delay,
+#     opts,
+#     refactoring,
+#     oldcliqdata,
+#     logger,
+#     cliqId,
+#     algorithm,
+#     init_iter,
+#     enableLogging,
+#     solveKey,
+#     _csm_iter,
+#   )
+#   #
+# end
+
+
+
 """
     $SIGNATURES
 
@@ -52,7 +191,7 @@ function calcMeanMaxSuggested(
 end
 
 
-@deprecate manikde!(tb::TreeBelief) HomotopyDensity_legacy(tb)
+@deprecate manikde!(hode::HomotopyDensity) hode
 
 @deprecate manikde!(
   varT::InstanceType{<:StateType},

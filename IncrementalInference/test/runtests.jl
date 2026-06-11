@@ -16,9 +16,11 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
   # temporarily moved to start (for debugging)
   if TEST_GROUP in ["all", "tmp_debug_group"]
     @testset "Temporary Debug Group (most development activity, fail fast)" begin
+            
+      include("testSpecialSampler.jl") # sometimes BoundsError, suspect need resample to N step, EvaluFactor.jl:179
+        include("testDERelative.jl") # FIX BoundsError Ln332 cf._legacyParams[k][i], [100] of 1..99
       
       include("testEuclidDistance.jl") # test_broken
-      include("testDERelative.jl") # FIX BoundsError Ln332 cf._legacyParams[k][i], [100] of 1..99
       include("testMultiHypo3Door.jl") # FIX, slow, weak numerics
       include("testExpXstroke.jl") # FIX, init bw issue, addLikelihoodsDifferentialCHILD! LN327
       include("testCircular.jl") # FIX
@@ -33,10 +35,9 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testSpecialEuclidean2Mani.jl") # FIX, parallel_transport_curvature_2nd_lie not defined for this case
       include("testpartialconstraint.jl") # FIX, big numerical fail
       include("testPartialNH.jl") # FIX
-      include("testBasicParametric.jl") # FIX, access undef ref
+      include("testCcolamdOrdering.jl") # FIX
 
       include("testMultimodal1D.jl") # FIX numerics, skipped a test
-      include("testSpecialSampler.jl") # sometimes BoundsError, suspect need resample to N step, EvaluFactor.jl:179
       # include("testMultiprocess.jl")
 
       # gradient / jacobian tests
@@ -62,6 +63,8 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
   if TEST_GROUP in ["all", "basic_functional_group"]
     @testset "Basic Functional Group (stable functional tests)" begin
 
+      include("testBasicParametric.jl") # SKIPPED solveTree!( =:parametric)
+
       # start as basic as possible and build from there
       include("typeReturnMemRef.jl")
       include("testDistributionsGeneric.jl")
@@ -81,13 +84,12 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testJunctionTreeConstruction.jl")
       include("testBayesTreeiSAM2Example.jl")
 
-
       include("testCommonConvWrapper.jl") # skipped test with just ::Float point type 
 
       include("testStateMachine.jl")
       include("testBasicCSM.jl")
       include("testCliqueFactors.jl")
-      include("testCcolamdOrdering.jl")
+
       include("testCliqueTreesOrderings.jl")
       include("testlocalconstraintexamples.jl")
 
@@ -117,14 +119,14 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
 
       include("testHeatmapGridDensity.jl")
 
-      # refac AMP v0.15, these functionals are medium slow
+      # refac AMP v0.15, these are medium slow
+      include("testTreeFunctions.jl") # slower
+      include("testMultihypoAndChain.jl") # slower, weak numerics
       include("testPartialPrior.jl") # slowish
       include("testDefaultDeconv.jl") # slowish
       include("testUseMsgLikelihoods.jl") # slowish
-      include("testTreeFunctions.jl") # slower
       include("testInitVariableOrder.jl") # slowish
       include("testTreeMessageUtils.jl") # slowish
-      include("testMultihypoAndChain.jl") # slower, weak numerics
 
     end
   end # basic_functional_group
@@ -134,10 +136,10 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
     @testset "Test Cases Group (offload concurrent CI, slow running jobs)" begin
       
       # refac AMP v0.15, these tests are very slow
-      include("fourdoortest.jl") # slowish
       include("testBasicGraphs.jl") # slow, weak numerics
       include("priorusetest.jl") # slow, many skips
       include("testHasPriors913.jl") # slow
+      include("fourdoortest.jl") # slowish
 
       include("testBasicTreeInit.jl") # slow
       include("testBasicRecycling.jl") # slow

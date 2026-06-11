@@ -91,7 +91,7 @@ function treeProductDwn(
   # convert incoming messages to Int indexed format (semi-legacy format)
   cl = parentCliq(tree, cliq)
   msgdict = getDwnMsgs(cl[1])
-  dict = Dict{Int, TreeBelief}()
+  dict = Dict{Int, HomotopyDensity}()
   for (dsy, btd) in msgdict
     dict[fg.IDs[dsy]] =
       TreeBelief(btd.val, btd.bw, btd.infoPerCoord, getStateKind(getVariable(fg, sym)))
