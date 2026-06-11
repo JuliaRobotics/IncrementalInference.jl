@@ -84,7 +84,6 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testJunctionTreeConstruction.jl")
       include("testBayesTreeiSAM2Example.jl")
 
-
       include("testCommonConvWrapper.jl") # skipped test with just ::Float point type 
 
       include("testStateMachine.jl")
