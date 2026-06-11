@@ -831,7 +831,11 @@ function autoinitParametric!(
     _M = getManifold(xi)
     tangent_coords = randn(manifold_dimension(_M)) * 1e-3
     X = get_vector(LieAlgebra(_M), tangent_coords)
-    DFG.refMeans(vnd)[1] = exp(_M, DFG.refMeans(vnd)[1], X)
+    mn = mean(getBelief(vnd))
+    mn_ = exp(_M, mn, X)
+    bw = cov(getBelief(vnd))
+    hode = HomotopyDensity_legacy(getStateKind(vnd), [mn_,]; bw, newbw=false)
+    setBelief!(vnd, hode)
   end
 
   # Solve
