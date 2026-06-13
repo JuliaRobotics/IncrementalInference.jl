@@ -198,8 +198,14 @@ end
 
 Perform inference over the Bayes tree according to `opt::SolverParams` and keyword arguments.
 
+Example
+```julia
+# pass in old `tree` to enable compute recycling -- see online Documentation for more details
+tree = solveGraph!(fg [,tree])
+```
+
 Notes
-- Aliased with `solveGraph!`
+- Aliased with `solveGraph!` (legacy `solveTree!`)
 - Variety of options, including fixed-lag solving -- see `getSolverParams(fg)` for details.
   - See online Documentation for more details: https://juliarobotics.org/Caesar.jl/latest/
 - Latest result always stored in `solvekey=:default`.
@@ -212,12 +218,8 @@ Notes
 
 DevNotes
 - TODO Change keyword arguments to new @parameter `SolverOptions` type.
+- For example debug usage see #443.
 
-Example
-```julia
-# pass in old `tree` to enable compute recycling -- see online Documentation for more details
-tree = solveTree!(fg [,tree])
-```
 
 Related
 
