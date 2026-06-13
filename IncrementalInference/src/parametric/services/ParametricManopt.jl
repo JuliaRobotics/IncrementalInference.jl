@@ -708,7 +708,7 @@ function getInitOrderWavefront(fg, state_label::Symbol=:parametric; depth::Int=1
     cliques = NamedTuple{(:frontals, :separators), Tuple{Vector{Symbol}, Vector{Symbol}}}[]
     
     all_vls = listVariables(fg)
-    knowns = filter(vl -> isInitialized(fg, vl, state_label), all_vls)
+    knowns = filter(vl -> hasState(fg, vl, state_label) && isInitialized(fg, vl, state_label), all_vls)
     unknowns = setdiff(all_vls, knowns)
     
     prior_vls, _ = listNeighborhood(fg, lsfPriors(fg), 1)
