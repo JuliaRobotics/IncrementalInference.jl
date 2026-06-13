@@ -85,8 +85,8 @@ function generateMsgPrior(hode::HomotopyDensity, ::NonparametricMessage)
 end
 
 function generateMsgPrior(hode::HomotopyDensity, ::ParametricMessage)
-  _Log(m::AbstractManifold, p) = vee(m, Identity(m), log(m, Identity(m), p))
-  _Log(m::AbstractLieGroup, p) = vee(LieAlgebra(m), log(m, Identity(m), p))
+  _Log(m::AbstractManifold, p) = vee(m, identity_element(m), log(m, identity_element(m), p))
+  _Log(m::AbstractLieGroup, p) = vee(LieAlgebra(m), log(m, identity_element(m), p))
 
   manif = getManifold(hode)
   Xc = _Log(manif, mean(hode))

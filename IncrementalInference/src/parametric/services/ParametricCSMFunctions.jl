@@ -81,7 +81,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   if length(lsfPriors(csmc.cliqSubFg)) > 0 || length(cliqSeparatorVarIds) > 1
     for si in cliqSeparatorVarIds
       vnd = getState(getVariable(csmc.cliqSubFg, si), :parametric)
-      beliefMsg.belief[si] = TreeBelief(deepcopy(vnd))
+      beliefMsg.belief[si] = deepcopy(getBelief(vnd)) # TreeBelief(deepcopy(vnd))
     end
   end
 
@@ -113,13 +113,9 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   if !isnothing(downmsg)
     for (msym, belief) in downmsg.belief
       if msym in svars
-        #TODO maybe combine variable and factor in new prior?
         vnd = getState(getVariable(csmc.cliqSubFg, msym), :parametric)
-        logCSM(csmc, "$(csmc.cliq.id): Updating separator $msym from message $(belief.val)")
-        bel = HomotopyDensity_legacy(belief) #TODO maybe need to deepcopy here, not sure if its shared data structure
-        setBelief!(vnd, bel)
-        # DFG.refMeans(vnd)[1] = belief.val[1] #FIXME 🦨 shares data structure in belief
-        # DFG.refCovariances(vnd)[1] = belief.bw
+        logCSM(csmc, "$(csmc.cliq.id): Updating separator $msym from message $(mean(belief))")
+        setBelief!(vnd, deepcopy(belief))
       end
     end
   end
@@ -168,7 +164,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   )
   for fi in cliqFrontalVarIds
     vnd = getState(getVariable(csmc.cliqSubFg, fi), :parametric)
-    beliefMsg.belief[fi] = TreeBelief(vnd)
+    beliefMsg.belief[fi] = getBelief(vnd) # TreeBelief(vnd)
     logCSM(csmc, "$(csmc.cliq.id): down message $fi : $beliefMsg"; loglevel = Logging.Info)
   end
 

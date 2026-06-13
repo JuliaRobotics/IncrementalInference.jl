@@ -173,31 +173,36 @@ foreach(
 
 ##
 
-if true
-  # getSolverParams(fg).dbg=true
-  # getSolverParams(fg).drawtree=true
-  # getSolverParams(fg).async = true
-  getSolverParams(fg).graphinit = false
-  smtasks = Task[]
-  tree2 = IIF.solveTree!(fg; algorithm = :parametric, multithread = false, recordcliqs=ls(fg), smtasks )
-  # hists = fetchCliqHistoryAll!(smtasks)
+# getSolverParams(fg).dbg=true
+# getSolverParams(fg).drawtree=true
+# getSolverParams(fg).async = true
+getSolverParams(fg).graphinit = false
+# getSolverParams(fg).dbg = true
+# getSolverParams(fg).async = true
+smtasks = Task[]
+tree2 = solveGraph!(
+  fg; csmoptions=IIF.CSMOptions(; 
+    solverparams=getSolverParams(fg), 
+    algorithm=:parametric, 
+    multithread = false, 
+    recordcliqs=ls(fg) 
+  ),
+  smtasks 
+)
+# hists = fetchCliqHistoryAll!(smtasks)
 
-  for i in 0:10
-    sym = Symbol("x",i)
-    @show val = mean(getBelief(DFG.getState(fg, sym, :parametric)))
-    @test isapprox(val[1], i, atol=1e-3)
-    @test isapprox(val[2], i, atol=1e-3)
-  end
+for i in 0:10
+  sym = Symbol("x",i)
+  @show val = mean(getBelief(DFG.getState(fg, sym, :parametric)))
+  @test isapprox(val[1], i, atol=1e-3)
+  @test isapprox(val[2], i, atol=1e-3)
+end
 
 
-  # Print answers
-  if false
-    vsds = DFG.getState.(getVariables(fg), :parametric)
-    foreach(v->println(v.label, ": ", mean(getBelief(DFG.getState(v, :parametric)))), sort!(getVariables(fg), by=getLabel, lt=natural_lt))
-  end
-else
-  @error "Skipped test, wrapped solve parametric label"
-  @test_skip false
+# Print answers
+if false
+  vsds = DFG.getState.(getVariables(fg), :parametric)
+  foreach(v->println(v.label, ": ", mean(getBelief(DFG.getState(v, :parametric)))), sort!(getVariables(fg), by=getLabel, lt=natural_lt))
 end
 
 
@@ -219,8 +224,6 @@ addFactor!(fg, [:x2], Prior(Normal(+1.0, 1.0)))
 
 addFactor!(fg, [:x0; :x1], LinearRelative(Normal(0.0, 1e-1)), graphinit=graphinit)
 addFactor!(fg, [:x1; :x2], LinearRelative(Normal(0.0, 1e-1)), graphinit=graphinit)
-
-
 
 
 foreach(fct->println(fct.label, ": ", getObservation(fct).Z), getFactors(fg))
@@ -249,7 +252,7 @@ foreach(
 )
 
 
-if false
+@test_skip begin
   # task = @async begin
     #   global tree2
     #   global smt
@@ -265,9 +268,6 @@ if false
   @test isapprox(mean(getBelief(getVariable(fg,:x1).states[:parametric]))[1], 0.0, atol=1e-3)
   @test isapprox(mean(getBelief(getVariable(fg,:x2).states[:parametric]))[1], 0.01, atol=1e-3)
 
-else
-  @error "Skipped test, wrapped solve parametric label"
-  @test_skip false
 end
 
 ## ##############################################################################
@@ -304,14 +304,17 @@ foreach(
 )
 
 
-if false
+@test_skip begin
   getSolverParams(fg).graphinit = false
-  tree2 = IIF.solveTree!(fg; algorithm=:parametric)
+  tree2 = solveGraph!(fg; csmoptions=IIF.CSMOptions(;
+    solverparams=getSolverParams(fg), 
+    algorithm=:parametric)
+  )
 
   # print results
   if false
-  vsds = DFG.getState.(getVariables(fg), :parametric)
-  foreach(v->println(v.label, ": ", mean(getBelief(DFG.getState(v, :parametric)))), getVariables(fg))
+    vsds = DFG.getState.(getVariables(fg), :parametric)
+    foreach(v->println(v.label, ": ", mean(getBelief(DFG.getState(v, :parametric)))), getVariables(fg))
   end
 
   for i in 0:10
@@ -321,9 +324,6 @@ if false
     #TODO investigate why tolarance degraded (its tree related and not bad enough to worry now)
     @test isapprox(val[1][1], i, atol=5e-4) 
   end
-else
-  @error "Skipped test, wrapped solve parametric label"
-  @test_skip false
 end
 
 ##
@@ -397,7 +397,6 @@ end
     @test isapprox(x2[1], 2.5, atol=0.05)
     @test isapprox(b[1], 0.25, atol=0.05)
     @test isapprox(x1[1], x0[1] + 1.0 + b[1], atol=0.05)
-
 ##
 end
 
