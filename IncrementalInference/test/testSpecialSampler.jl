@@ -3,6 +3,7 @@
 #  TAC is to figure out if this functionality is still required and to remove of explain the code and related test like this file.
 
 using Test
+using LinearAlgebra
 using IncrementalInference
 using DistributedFactorGraphs
 
@@ -49,8 +50,8 @@ addFactor!(fg, [:x0;:x1], SpecialLinearOffset(Normal(10,1)))
 
 tree = solveTree!(fg)
 
-@test mean(getBelief(fg, :x0, :default))[1] |> abs < 1.0
-@test mean(getBelief(fg, :x1, :default))[1] - 10 |> abs < 3.0
+@test abs(mean(getBelief(fg, :x0, :default))[1]) < 1.0
+@test abs(mean(getBelief(fg, :x1, :default))[1] - 10) < 3.0
 
 
 
@@ -65,8 +66,8 @@ pts = approxConv(fg, :x0f1, :x1)
 fcm2 = map(x->x[1], IIF._getCCW(fg, :x0f1).measurement)
 fcm3 = map(x->x[1], IIF._getCCW(fg, :x0f1).measurement |> deepcopy)
 
-@test 0.1 < norm(fcm - fcm2)
-@test norm(fcm2 - fcm3) < 1e-5
+@test 0.1 < LinearAlgebra.norm(fcm - fcm2)
+@test LinearAlgebra.norm(fcm2 - fcm3) < 1e-5
 
 ## Pairwise
 
@@ -75,7 +76,7 @@ fcm = map(x->x[1], IIF._getCCW(fg, :x0x1f1).measurement |> deepcopy)
 pts = approxConv(fg, :x0x1f1, :x1)
 fcm2 = map(x->x[1], IIF._getCCW(fg, :x0x1f1).measurement)
 
-@test 0.1 < norm(fcm - fcm2)
+@test 0.1 < LinearAlgebra.norm(fcm - fcm2)
 
 
 # reverse direction
@@ -83,7 +84,7 @@ fcm, = map(x->x[1], IIF._getCCW(fg, :x0x1f1).measurement |> deepcopy)
 pts = approxConv(fg, :x0x1f1, :x0)
 fcm2, = map(x->x[1], IIF._getCCW(fg, :x0x1f1).measurement)
 
-@test 0.04 < norm(fcm - fcm2)
+@test 0.04 < LinearAlgebra.norm(fcm - fcm2)
 
 ##
 

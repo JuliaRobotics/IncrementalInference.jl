@@ -16,11 +16,7 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
   # temporarily moved to start (for debugging)
   if TEST_GROUP in ["all", "tmp_debug_group"]
     @testset "Temporary Debug Group (most development activity, fail fast)" begin
-            
-      include("testSpecialSampler.jl") # sometimes BoundsError, suspect need resample to N step, EvaluFactor.jl:179
-        include("testDERelative.jl") # FIX BoundsError Ln332 cf._legacyParams[k][i], [100] of 1..99
       
-      include("testEuclidDistance.jl") # test_broken
       include("testMultiHypo3Door.jl") # FIX, slow, weak numerics
       include("testExpXstroke.jl") # FIX, init bw issue, addLikelihoodsDifferentialCHILD! LN327
       include("testCircular.jl") # FIX
@@ -35,9 +31,7 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testSpecialEuclidean2Mani.jl") # FIX, parallel_transport_curvature_2nd_lie not defined for this case
       include("testpartialconstraint.jl") # FIX, big numerical fail
       include("testPartialNH.jl") # FIX
-      include("testCcolamdOrdering.jl") # FIX
 
-      include("testMultimodal1D.jl") # FIX numerics, skipped a test
       # include("testMultiprocess.jl")
 
       # gradient / jacobian tests
@@ -69,15 +63,16 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("typeReturnMemRef.jl")
       include("testDistributionsGeneric.jl")
       include("basicGraphsOperations.jl")
-
-      #FIXME fails on MetaBayesTree
-      include("testTreeSaveLoad.jl")
+      include("testSpecialSampler.jl")
 
       # test convolution functions
       include("testApproxConv.jl")
       include("testBasicForwardConvolve.jl")
       
+      #FIXME fails on MetaBayesTree
+      include("testTreeSaveLoad.jl")
       include("testCliqSolveDbgUtils.jl")
+      include("testCcolamdOrdering.jl")
 
       include("testBasicManifolds.jl")
 
@@ -127,6 +122,8 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testUseMsgLikelihoods.jl") # slowish
       include("testInitVariableOrder.jl") # slowish
       include("testTreeMessageUtils.jl") # slowish
+      include("testEuclidDistance.jl") # test_broken
+      include("testDERelative.jl")
 
     end
   end # basic_functional_group
@@ -145,6 +142,8 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testBasicRecycling.jl") # slow
       include("testSkipUpDown.jl") # slow
       include("testCSMMonitor.jl") # slow
+
+      include("testMultimodal1D.jl") # FIX numerics, skipped a test
 
     end
   end # test_cases_group
