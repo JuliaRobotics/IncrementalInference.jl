@@ -26,8 +26,6 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testMixtureParametric.jl") #FIXME parametric mixtures #1787
       @test_broken error("testSphereMani.jl broken") # include("testSphereMani.jl") # FIXME
 
-      include("testSpecialOrthogonalMani.jl") # FIX, stateLabel :parametric not found
-
       include("testSpecialEuclidean2Mani.jl") # FIX, parallel_transport_curvature_2nd_lie not defined for this case
       include("testpartialconstraint.jl") # FIX, big numerical fail
       include("testPartialNH.jl") # FIX
@@ -96,6 +94,8 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testManualInit.jl")
       include("testSolveOrphanedFG.jl")
       include("testSolveKey.jl")
+
+      include("testSpecialOrthogonalMani.jl")
 
       include("testJointEnforcement.jl")
       include("testPartialFactors.jl")
