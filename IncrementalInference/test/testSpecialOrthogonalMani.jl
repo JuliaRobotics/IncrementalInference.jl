@@ -38,9 +38,9 @@ p = addFactor!(fg, [:x0], mp)
 ## depends on how much init, this test might be premature
 
 
-# FIXME, no need to have default values in state so early in variable life
-state = getState(fg, :x0, :default)
-@test isapprox([1 0; 0 1], mean(state.belief); atol=1e-6)
+# # no need to have default values in state so early in variable life
+# state = getState(fg, :x0, :default)
+# @test isapprox([1 0; 0 1], mean(state.belief); atol=1e-6)
 IncrementalInference.prepare!(fg, IIF.NLLSSolver(), :parametric)
 state = getState(fg, :x0, :parametric)
 @test isapprox([1 0; 0 1], mean(state.belief); atol=1e-6)
@@ -84,7 +84,11 @@ ApproxManifoldProducts.sample(X1)
 ##
 
 smtasks = Task[]
-solveGraph!(fg; smtasks, verbose=true, recordcliqs=ls(fg))
+solveGraph!(fg; smtasks, csmoptions=IncrementalInference.CSMOptions(;
+  solverparams = getSolverParams(fg),
+  verbose=true,
+  recordcliqs=ls(fg),
+))
 hists = fetchCliqHistoryAll!(smtasks);
 # SArray 0.763317 seconds (2.36 M allocations: 160.488 MiB, 4.16% gc time)
 # Vector 0.786390 seconds (2.41 M allocations: 174.334 MiB, 3.97% gc time)

@@ -6,7 +6,7 @@ using IncrementalInference
 ##
 
 
-@testset "test n-dimensional partial" begin
+@testset "test 3-dimensional partial on two variable graph w (1,)--(2,3)" begin
 
 ##
 
@@ -27,17 +27,15 @@ initAll!(fg)
 
 destlbl = :x0
 
-dens = Vector{ManifoldKernelDensity}()
+dens = Vector{HomotopyDensity}()
 factors = getFactor.(fg, ls(fg, destlbl))
 inferdim = IIF.proposalbeliefs!(fg, destlbl, factors, dens )
 
 oldBel = getBelief(fg, destlbl)
-oldpts = getPoints(oldBel)
+# oldpts = getPoints(oldBel)
 
 varType = getStateKind(fg, destlbl)
-pGM = getPoints( AMP.manifoldProduct(dens, getManifold(varType), N=100, oldPoints=oldpts), false )
-# pGM = AMP.productbelief(oldpts, getManifold(varType), dens, 100, asPartial=false )
-
+pGM = getPoints( AMP.manifoldProduct(dens, N=100), false )
 
 ##
 

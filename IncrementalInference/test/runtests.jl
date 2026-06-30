@@ -17,10 +17,12 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
   if TEST_GROUP in ["all", "tmp_debug_group"]
     @testset "Temporary Debug Group (most development activity, fail fast)" begin
       
-      include("testMultiHypo3Door.jl") # FIX, slow, weak numerics
-      include("testExpXstroke.jl") # FIX, init bw issue, addLikelihoodsDifferentialCHILD! LN327
       include("testCircular.jl") # FIX
+      include("testExpXstroke.jl") # FIX, init bw issue, addLikelihoodsDifferentialCHILD! LN327
+      include("testMultiHypo3Door.jl") # FIX, slow, weak numerics
+
       include("testFluxModelsDistribution.jl") # FIX
+      
       include("testMixturePrior.jl") # FIX, serde structutils issue with BinarTruckFixedDepth?
       include("testMixtureLinearConditional.jl") # FIX, use HomotopyDensity as replacement for Mixture
       include("testMixtureParametric.jl") #FIXME parametric mixtures #1787
@@ -71,6 +73,8 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testTreeSaveLoad.jl")
       include("testCliqSolveDbgUtils.jl")
       include("testCcolamdOrdering.jl")
+      include("testCliqueTreesOrderings.jl")
+      include("testlocalconstraintexamples.jl")
 
       include("testBasicManifolds.jl")
 
@@ -82,9 +86,6 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testStateMachine.jl")
       include("testBasicCSM.jl")
       include("testCliqueFactors.jl")
-
-      include("testCliqueTreesOrderings.jl")
-      include("testlocalconstraintexamples.jl")
 
       # dont run test on ARM, as per issue #527
       if Base.Sys.ARCH in [:x86_64;]

@@ -229,10 +229,10 @@ function DFG.addVariable!(
     kwargs...,
   )
 
-  #FIXME needs better refactoring of spaghetti between addVariable! and prepareState! 
-  #FIXME so hard coding :default state creation here for now. Ideal is complete decoupling of solver options from graph operations.
-  #also num_kernels set above
-  prepareState!(v, NPBPSolver(), :default; num_kernels)
+  # #FIXME needs better refactoring of spaghetti between addVariable! and prepareState! 
+  # #FIXME so hard coding :default state creation here for now. Ideal is complete decoupling of solver options from graph operations.
+  # #also num_kernels set above
+  # prepareState!(v, NPBPSolver(), :default; num_kernels)
 
   return addVariable!(dfg, v)
 end

@@ -48,18 +48,14 @@ addFactor!(fg, [:x0], SpecialPrior(Normal()))
 addVariable!(fg, :x1, ContinuousScalar)
 addFactor!(fg, [:x0;:x1], SpecialLinearOffset(Normal(10,1)))
 
-tree = solveTree!(fg)
+tree = solveGraph!(fg)
 
 @test abs(mean(getBelief(fg, :x0, :default))[1]) < 1.0
 @test abs(mean(getBelief(fg, :x1, :default))[1] - 10) < 3.0
 
 
 
-
-## special test for IIF #568
-
-
-## Singleton (Prior)
+## special test for IIF #568, # Singleton (Prior)
 
 fcm = map(x->x[1], IIF._getCCW(fg, :x0f1).measurement |> deepcopy)
 pts = approxConv(fg, :x0f1, :x1)

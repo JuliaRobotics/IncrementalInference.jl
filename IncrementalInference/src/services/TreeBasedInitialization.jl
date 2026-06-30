@@ -150,7 +150,7 @@ Return true if all variables in clique are considered marginalized (and initiali
 function areCliqVariablesAllMarginalized(subfg::AbstractDFG, cliq::TreeClique)
   for vsym in getCliqAllVarIds(cliq)
     vert = getVariable(subfg, vsym)
-    if !isMarginalized(vert) || !isInitialized(vert)
+    if !hasState(vert, :default) || !isMarginalized(vert) || !isInitialized(vert)
       return false
     end
   end

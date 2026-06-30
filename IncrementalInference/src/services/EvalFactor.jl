@@ -344,7 +344,7 @@ function evalPotentialSpecific(
   maxlen = _beforeSolveCCW!(ccwl, variables, sfidx, N; solveKey, needFreshMeasurements, measurement, keepCalcFactor)
   
   # Check which variables have been initialized
-  isinit = map(x -> isInitialized(x, solveKey), variables)
+  isinit = map(x -> hasState(x, solveKey) && isInitialized(x, solveKey), variables)
   
   # assemble how hypotheses should be computed
   # nullSurplus see #1517
@@ -417,16 +417,24 @@ function evalPotentialSpecific(
 ) where {T <: AbstractObservation}
   #
   
+  function _consolgetval(v::VariableCompute)
+    return if hasState(v, solveKey) && isInitialized(v, solveKey)
+      getVal(v; solveKey)
+    else
+      getPoints(defaultBelief(v, NPBPSolver(); num_kernels=N); permute=false)
+    end
+  end
+
   # Prep computation variables
   maxlen = _beforeSolveCCW!(ccwl, variables, sfidx, N; solveKey, needFreshMeasurements, measurement, keepCalcFactor)
 
   # # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
-  solveForPts = getVal(variables[sfidx]; solveKey)
+  solveForPts = _consolgetval(variables[sfidx])
 
   # Check which variables have been initialized
   # TODO not sure why forcing to Bool vs BitVector
-  isinit::Vector{Bool} = variables .|> isInitialized .|> Bool
+  isinit::Vector{Bool} = (v->Bool(hasState(v, solveKey) && isInitialized(v, solveKey))).(variables)
   # nullSurplus see #1517
   runnullhypo = maximum((ccwl.nullhypo, nullSurplus))
   hyporecipe =

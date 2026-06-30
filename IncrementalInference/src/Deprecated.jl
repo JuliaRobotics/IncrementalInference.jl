@@ -1,5 +1,111 @@
 
 
+# function AMP.getBW(vnd::State)
+#   return ApproxManifoldProducts.getBW(vnd.belief)
+# end
+
+# # setVal! assumes you will update values to database separate, this used for local graph mods only
+# function getBWVal(v::VariableCompute; solveKey::Symbol = :default)
+#   return getBW(getState(v, solveKey))
+# end
+# function setBW!(vd::State, bw::Array{Float64, 2}; solveKey::Symbol = :default)
+#   DFG.refBandwidth(vd) .= bw # FIXME
+#   return nothing
+# end
+# function setBW!(v::VariableCompute, bw::Array{Float64, 2}; solveKey::Symbol = :default)
+#   setBW!(getState(v, solveKey), bw)
+#   return nothing
+# end
+
+# function setVal!(
+#   vd::State, 
+#   val::AbstractVector{P}; 
+#   observability::AbstractVector{<:Real} = [0.0;]
+# ) where {P}
+#   points = DFG.refPoints(vd)
+#   resize!(points, length(val))
+#   points .= val
+
+#   observability = DFG.refObservability(vd)
+#   resize!(observability, length(observability))
+#   observability .= observability
+#   return nothing
+# end
+# function setVal!(
+#   v::VariableCompute,
+#   val::AbstractVector{P};
+#   solveKey::Symbol = :default,
+#   observability::AbstractVector{<:Real} = [0.0;],
+# ) where {P}
+#   setVal!(getState(v, solveKey), val; observability)
+#   return nothing
+# end
+# function setVal!(
+#   vd::State,
+#   val::AbstractVector{P},
+#   bw::AbstractMatrix{Float64};
+#   observability::AbstractVector{<:Real} = [0.0;],
+# ) where {P}
+#   setVal!(vd, val; observability)
+#   setBW!(vd, bw)
+#   return nothing
+# end
+# function setVal!(
+#   v::VariableCompute,
+#   val::AbstractVector{P},
+#   bw::AbstractMatrix{Float64};
+#   solveKey::Symbol = :default,
+#   observability::AbstractVector{<:Real} = [0.0;],
+# ) where {P}
+#   setVal!(v, val; solveKey, observability)
+#   setBW!(v, bw; solveKey)
+#   return nothing
+# end
+# function setVal!(
+#   vd::State,
+#   val::AbstractVector{P},
+#   bw::AbstractVector{Float64};
+#   observability::AbstractVector{<:Real} = [0.0;],
+# ) where {P}
+#   setVal!(vd, val, reshape(bw, length(bw), 1); observability)
+#   return nothing
+# end
+# function setVal!(
+#   v::VariableCompute,
+#   val::AbstractVector{P},
+#   bw::AbstractVector{Float64};
+#   solveKey::Symbol = :default,
+#   observability::AbstractVector{<:Real} = [0.0;],
+# ) where {P}
+#   setVal!(getState(v, solveKey), val, bw; observability)
+#   return nothing
+# end
+# function setVal!(
+#   dfg::AbstractDFG,
+#   sym::Symbol,
+#   val::AbstractVector{P};
+#   solveKey::Symbol = :default,
+#   observability::AbstractVector{<:Real} = [0.0;],
+# ) where {P}
+#   return setVal!(getVariable(dfg, sym), val; solveKey, observability)
+# end
+
+
+# """
+#     $(SIGNATURES)
+
+# Fetch the variable marginal joint sampled points.  Use [`getBelief`](@ref) to retrieve the full Belief object.
+# """
+getVal(v::VariableCompute; solveKey::Symbol = :default) = getPoints(getState(v, solveKey).belief; permute=false)
+function getVal(v::VariableCompute, idx::Int; solveKey::Symbol = :default)
+  return getPoints(getState(v, solveKey).belief; permute=false)[idx]
+end
+getVal(vnd::State) = getPoints(vnd; permute=false)
+getVal(vnd::State, idx::Int) = getPoints(vnd; permute=false)[idx]
+function getVal(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol = :default)
+  return getVal(getVariable(dfg, lbl); solveKey)
+end
+
 # convert(
 #   ::Type{<:ApproxManifoldProducts.HomotopyDensity}, 
 #   src::TreeBelief,

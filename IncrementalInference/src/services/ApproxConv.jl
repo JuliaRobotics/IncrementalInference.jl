@@ -14,17 +14,23 @@ function approxConvBelief(
 )
   #
   v_trg = getVariable(dfg, target)
-  N = N == 0 ? getNumPts(v_trg; solveKey) : N
-  # approxConv should push its result into duplicate memory destination, NOT the variable.VND.val itself.  ccw.varValsAll always points directly to variable.VND.val
-  # points and infoPerCoord
+  N_ = if N != 0
+    N 
+  elseif hasState(v_trg, solveKey)
+    getNumPts(v_trg; solveKey)
+  else
+    getSolverParams(dfg).N
+  end
+  # N = N == 0 ? getNumPts(v_trg; solveKey) : N
 
+  # NOTE approxConv results happen in  duplicate memory destination,  ccw.varValsAll always points directly to variable.VND.val
   pts, ipc = evalFactor(
     dfg, 
     fc, 
     v_trg.label, 
     measurement; 
     solveKey, 
-    N, 
+    N = N_, 
     skipSolve, 
     nullSurplus,
     keepCalcFactor

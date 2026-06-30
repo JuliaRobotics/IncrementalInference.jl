@@ -11,16 +11,12 @@ Create an uninitialized `State` on variable `v` with `num_kernels` identity-elem
 
 See also: [`prepare!`](@ref), [`initAll!`](@ref)
 """
-function prepareState!(
+function defaultBelief(
   v::VariableCompute,
-  solver::Union{<:NPBPSolver, <:NLLSSolver},
-  statelabel::Symbol;
+  solver::Union{<:NPBPSolver, <:NLLSSolver};
   num_kernels::Int = solver isa NLLSSolver ? 1 : solver.defaultNumKernels, # consolidation workaround
   varType::StateType = DFG.getStateKind(v),
 )
-  # check for early return 
-  hasState(v, statelabel) && return 0
-
   dims = getDimension(v)
   @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defStateType $varType arguments is correct"
   ϵ = getPointIdentity(varType)
@@ -30,11 +26,7 @@ function prepareState!(
     bw = zeros(dims), 
     newbw = false
   )
-  mergeState!(
-    v,
-    State(statelabel, varType; belief, initialized = false, marginalized = false)
-  )
-  return 1
+  return belief
 end
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
@@ -55,6 +47,27 @@ end
   #   #
   #   (val, bw)
   # end
+
+function prepareState!(
+  v::VariableCompute,
+  solver::Union{<:NPBPSolver, <:NLLSSolver},
+  statelabel::Symbol;
+  num_kernels::Int = solver isa NLLSSolver ? 1 : solver.defaultNumKernels, # consolidation workaround
+  varType::StateType = DFG.getStateKind(v),
+)
+  @error "$statelabel -- don't use prepareState!, it breaks all instances of null/multihypo and probably more" maxlog=10
+  # check for early return 
+  hasState(v, statelabel) && return 0
+
+  belief = defaultBelief(v,solver;num_kernels,varType)
+  mergeState!(
+    v,
+    State(statelabel, varType; belief, initialized = false, marginalized = false)
+  )
+  return 1
+end
+
+
 
 """
     $SIGNATURES
@@ -475,9 +488,9 @@ function initVariable!(
   _prodrepr(pt) = pt
   # _prodrepr(pt::Tuple) = Manifolds.ProductRepr(pt...)
   _prodrepr(pt::Tuple) = ArrayPartition(pt...)
-  _bw = bw === nothing ? zeros(getDimension(vari)) : bw
+  # _bw = bw === nothing ? zeros(getDimension(vari)) : bw
   M = getStateKind(vari)
-  pp = HomotopyDensity_legacy(M, _prodrepr.(pts); bw=_bw, newbw=false)
+  pp = HomotopyDensity_legacy(M, _prodrepr.(pts); bw, newbw=false)
   return initVariable!(vari, pp, solveKey)
 end
 
