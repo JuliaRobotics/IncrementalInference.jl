@@ -28,17 +28,6 @@ function propagateBelief(
   # get proposal beliefs
   destlbl = getLabel(destvar)
   _observability = proposalbeliefs!(dfg, destlbl, factors, dens; solveKey, N, dbg)
-
-  # # make sure oldPoints vector has right length
-  #   # oldBel = getBelief(dfg, destlbl, solveKey; newbw = false)
-  #   # _pts = getPoints(oldBel, false)
-  # oldpts = DistributedFactorGraphs.refPoints(DistributedFactorGraphs.getState(destvar, solveKey))
-  # if N != length(oldpts)
-  #   resize!(oldpts, N)
-  # end
-
-  # # few more data requirements
-  # varType = getStateKind(destvar)
   
   # take the product
   hode = manifoldProduct(

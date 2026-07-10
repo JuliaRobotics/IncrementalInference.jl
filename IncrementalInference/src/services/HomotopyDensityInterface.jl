@@ -8,6 +8,7 @@ function setBelief!(
   # solveKey::Symbol = :default
 )
   @assert getStateKind(state) == getStateKind(hode) "statekind (i.e. lazy manifold serde) mismatch between variable and incoming belief $(getStateKind(state)) vs $(getStateKind(hode))"
+  # FIXME this looses partial/marginal information, since it is not stored in density dfg v0.29
   state.belief = convert(typeof(state.belief), hode)
   setinit ? (state.initialized = true) : nothing
   nothing
