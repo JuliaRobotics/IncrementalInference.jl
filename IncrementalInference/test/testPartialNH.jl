@@ -40,6 +40,9 @@ using IncrementalInference
 
 doautoinit!(fg, [:x0;]; singles = true)
 
+@test getBelief(fg, :x0).observability == [0;1;1]
+
+
 ##
 
 initAll!(fg)

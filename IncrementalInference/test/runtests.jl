@@ -124,7 +124,7 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testInitVariableOrder.jl") # slowish
       include("testTreeMessageUtils.jl") # slowish
       include("testEuclidDistance.jl") # test_broken
-      include("testDERelative.jl")
+      include("testDERelative.jl") # FIX, attempt to access [0] at index [1]
 
     end
   end # basic_functional_group

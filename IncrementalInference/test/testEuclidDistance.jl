@@ -106,7 +106,8 @@ IncrementalInference.resetTreeCliquesForUpSolve!(tree)
 
 ##
 
-retdict = IncrementalInference.upGibbsCliqueDensity(fg, tree.cliques[1], :default, LikelihoodMessage[])
+# # skipping during refac of prepareState, no label :default
+# retdict = IncrementalInference.upGibbsCliqueDensity(fg, tree.cliques[1], :default, LikelihoodMessage[])
 
 ## first tests with new HomotopyDensity works
 # HomotopyDensity_legacy(retdict[:x0]) |> plotPoints
