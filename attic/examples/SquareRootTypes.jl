@@ -48,6 +48,6 @@ end
 
 
 mutable struct NumbersPrior <: AbstractPrior
-  z::ManifoldKernelDensity
+  z::HomotopyDensity
 end
-getSample(cf::CalcFactor{<:NumbersPrior}, N::Int=1) = (reshape(rand(cf.factor.z,N),1,:), )
+getSample(cf::CalcFactor{<:NumbersPrior}, N::Int=1) = (reshape(sample(cf.factor.z,N),1,:), )

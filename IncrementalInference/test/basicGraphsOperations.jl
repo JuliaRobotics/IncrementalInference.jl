@@ -1,0 +1,59 @@
+##
+
+using IncrementalInference
+using InteractiveUtils
+using Test
+using LieGroups
+
+##
+
+@testset "test add Variable and Factor, also exists" begin
+##
+
+fg = initfg()
+
+addVariable!(fg, :x1, ContinuousScalar)
+addVariable!(fg, :x2, ContinuousScalar)
+addFactor!(fg, [:x1;:x2], LinearRelative(Normal()), graphinit=false)
+addFactor!(fg, [:x2], Prior(Normal()), graphinit=false)
+
+@test exists(fg, :x1)
+
+@test !exists(fg, :l13)
+
+##
+end
+
+
+@testset "test HomotopyDensity_legacy constructions on variableType" begin
+##
+
+pts = [randn(1) for _ in 1:100]
+varT = LinearRelative(Normal(1.0))
+# HomotopyDensity_legacy(varT, pts)
+
+
+DFG.@defStateType _TestManiKde SpecialEuclideanGroup(2; variant=:right) ArrayPartition([0;0.], [1 0; 0 1.])
+
+# construct directly with ArrayPartition
+pts = [ArrayPartition(randn(2), [1 0; 0 1.]) for _ in 1:64]
+varT = _TestManiKde()
+HomotopyDensity_legacy(varT, pts)
+
+##
+end
+
+
+@testset "test InteractiveUtilsExt" begin
+##
+
+IIF.listTypeTree(IncrementalInference.DistributedFactorGraphs.RelativeObservation)
+
+IIF.getCurrentWorkspaceFactors()
+IIF.getCurrentWorkspaceVariables()
+
+
+##
+end
+
+#

@@ -61,7 +61,7 @@ end
 
 
 
-function tryCliqStateMachineSolve!( dfg::AbstractDFG,
+function solveClique!( dfg::AbstractDFG,
     treel::AbstractBayesTree,
     i::Int,
     timeout::Union{Nothing, <:Real}=nothing;
@@ -200,7 +200,7 @@ function asyncTreeInferUp!( dfg::AbstractDFG,
             idb = filter((x)->x[1]==i,injectDelayBefore)
             length(idb) == 1 ? idb[1][2] : nothing
           end
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, timeout, oldtree=oldtree, verbose=verbose, verbosefid=verbosefid, drawtree=drawtree, limititers=limiter, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, injectDelayBefore=injDelay, incremental=incremental, N=N)
+          alltasks[i] = @async solveClique!(dfg, treel, i, timeout, oldtree=oldtree, verbose=verbose, verbosefid=verbosefid, drawtree=drawtree, limititers=limiter, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, injectDelayBefore=injDelay, incremental=incremental, N=N)
         end # if
       end # for
     # end # sync
@@ -264,7 +264,7 @@ function initInferTreeUp!(dfg::AbstractDFG,
             idb = filter((x)->x[1]==i,injectDelayBefore)
             length(idb) == 1 ? idb[1][2] : nothing
           end
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, timeout, oldtree=oldtree, verbose=verbose, verbosefid=verbosefid, drawtree=drawtree, limititers=limiter, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, injectDelayBefore=injDelay, recordcliqs=recordcliqs,  N=N)
+          alltasks[i] = @async solveClique!(dfg, treel, i, timeout, oldtree=oldtree, verbose=verbose, verbosefid=verbosefid, drawtree=drawtree, limititers=limiter, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, injectDelayBefore=injDelay, recordcliqs=recordcliqs,  N=N)
         end # if
       end # for
     end # sync

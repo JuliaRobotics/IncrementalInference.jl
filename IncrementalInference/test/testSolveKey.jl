@@ -1,0 +1,105 @@
+
+using Test
+using IncrementalInference
+
+
+##
+
+@testset "Basic test of belief prediction on alternate solveKey" begin
+
+##
+
+
+fg = initfg()
+
+addVariable!(fg, :a, ContinuousScalar)
+addVariable!(fg, :b, ContinuousScalar)
+
+addFactor!(fg, [:a], Prior(Normal(10,1)), graphinit=false)
+addFactor!(fg, [:a;:b], LinearRelative(Normal(10,1)), graphinit=false)
+
+
+deleteState!(fg, :a, :default)
+deleteState!(fg, :b, :default)
+
+##
+
+pts = sampleFactor(fg, :af1, 100)
+
+IIF.prepareState!(getVariable(fg, :a), IIF.NPBPSolver(), :testSolveKey; num_kernels=100)
+#
+
+initVariable!(fg, :a, pts, :testSolveKey)
+
+@test isInitialized(fg, :a, :testSolveKey)
+
+##
+
+IIF.prepareState!(getVariable(fg, :b), IIF.NPBPSolver(), :testSolveKey; num_kernels=100)
+#
+
+
+@test !(:default in listStates(getVariable(fg, :a)))
+@test !(:default in listStates(getVariable(fg, :b)))
+
+@test (:testSolveKey in listStates(getVariable(fg, :a)))
+@test (:testSolveKey in listStates(getVariable(fg, :b)))
+
+
+##
+
+doautoinit!(fg, :b, solveKey=:testSolveKey)
+
+
+##
+
+
+@test !(:default in listStates(getVariable(fg, :a)))
+@test !(:default in listStates(getVariable(fg, :b)))
+
+@test (:testSolveKey in listStates(getVariable(fg, :a)))
+@test (:testSolveKey in listStates(getVariable(fg, :b)))
+
+##
+end
+
+
+@testset "test solve with unique solveKey, see #1219" begin
+##
+
+fg = initfg()
+getSolverParams(fg).graphinit=false
+
+addVariable!(fg, :a, ContinuousScalar)
+addVariable!(fg, :b, ContinuousScalar)
+addVariable!(fg, :c, ContinuousScalar)
+addVariable!(fg, :d, ContinuousScalar)
+addVariable!(fg, :e, ContinuousScalar)
+
+addFactor!(fg, [:a], Prior(Normal()))
+addFactor!(fg, [:a;:b], LinearRelative(Normal(10, 1)))
+addFactor!(fg, [:b;:c], LinearRelative(Normal(10, 1)))
+addFactor!(fg, [:c;:d], LinearRelative(Normal(10, 1)))
+addFactor!(fg, [:d;:e], LinearRelative(Normal(10, 1)))
+
+getSolverParams(fg).graphinit=true
+
+
+##
+
+# getSolverParams(fg).limititers=30
+solveTree!(fg, solveKey=:testSolveKey )
+
+##
+# using RoMEPlotting
+# Gadfly.set_default_plot_size(35cm,25cm)
+
+# ##
+
+# plotKDE(fg, ls(fg), solveKey=:testSolveKey)
+
+##
+
+end
+
+#

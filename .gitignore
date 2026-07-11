@@ -9,3 +9,7 @@ Manifest.toml
 *.cov
 lcov.info
 benchmark/results.md
+benchmark/#*
+
+dev_*.jl
+*.tar.gz

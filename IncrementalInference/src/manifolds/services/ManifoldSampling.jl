@@ -1,0 +1,147 @@
+
+## FIXME MOVE UPSTREAM TO APPROXMANIFOLDPRODUCTS or EQ, sampling is a service of HomotopyDensity
+
+"""
+    $SIGNATURES
+
+Return a random sample as a tangent vector from a belief represented by coordinates on a manifold at point p.
+
+Notes
+
+"""
+function sampleTangent end
+
+# Sampling Distributions
+# assumes M is a group and will break for Riemannian, but leaving that enhancement as TODO
+function sampleTangent(
+  M::AbstractManifold,
+  z,
+  p,
+  basis::AbstractBasis = DefaultOrthogonalBasis(),
+)
+  return get_vector(M, p, rand(z), basis)
+end
+
+function sampleTangent(M::AbstractLieGroup, z, p = getPointIdentity(M))
+  # @info "DIM 2 or 1" manifold_dimension(M) rand(z) typeof(p)
+  _splat(s::AbstractVector) = SVector{manifold_dimension(M)}(s...)
+  _splat(s::Number) = SVector{manifold_dimension(M)}(s)
+  # _splat(s::Number) = s
+  return hat(LieAlgebra(M), _splat(rand(z)), typeof(p))
+end
+
+function sampleTangent(M::typeof(LieGroups.CircleGroup()), z::Distribution, p = getPointIdentity(M))
+  return hat(LieAlgebra(M), rand(z))
+end
+
+
+"""
+    $SIGNATURES
+
+Return a random sample point on a manifold from a belief represented by coordinates at point p.
+
+Notes
+
+"""
+function samplePoint(
+  M::AbstractManifold,
+  sbelief,
+  p,
+  basis::AbstractBasis,
+  retraction_method::AbstractRetractionMethod = ExponentialRetraction(),
+)
+  X = sampleTangent(M, sbelief, p, basis)
+  return retract(M, p, X, retraction_method)
+end
+function samplePoint(
+  M::AbstractDecoratorManifold,
+  sbelief,
+  p = getPointIdentity(M),
+  retraction_method::AbstractRetractionMethod = ExponentialRetraction(),
+)
+  X = sampleTangent(M, sbelief, p)
+  return retract(M, p, X, retraction_method)
+end
+
+function samplePoint(
+  M::AbstractLieGroup,
+  sbelief,
+  p = getPointIdentity(M),
+  retraction_method::AbstractRetractionMethod = ExponentialRetraction(),
+)
+  X = sampleTangent(M, sbelief, p)
+  return retract(M, p, X, retraction_method)
+end
+
+function samplePoint(
+  M::AbstractDecoratorManifold,
+  sbelief::ApproxManifoldProducts.HomotopyDensity,
+  # p = identity_element(M, mean(sbelief)), # 8.671254 seconds (82.64 M allocations: 3.668 GiB, 7.50% gc time)
+  p = getPointIdentity(M), #6.713209 seconds (66.42 M allocations: 3.141 GiB, 7.52% gc time)
+  retraction_method::AbstractRetractionMethod = ExponentialRetraction(),
+)
+  X = sampleTangent(M, sbelief, p)
+  return retract(M, p, X, retraction_method)
+end
+
+function samplePoint(x::ApproxManifoldProducts.HomotopyDensity, p = mean(x))
+  return samplePoint(getManifold(x), x, p)
+end
+
+# FIXME: rather use manifolds
+function samplePoint(distr::SamplableBelief)
+  Base.depwarn(
+    "samplePoint(distr::SamplableBelief) should be replaced by samplePoint(M<:AbstractManifold, distr::SamplableBelief, ...)",
+    :samplePoint,
+  )
+  return rand(distr, 1)
+end
+
+## default getSample
+"""
+    $SIGNATURES
+
+Sample the factor in `CalcFactor`. A default `getSample` method is provided that should cover most use cases, 
+if more advanced sampling is required, the `getSample` function should be extended.
+
+The default behavior for `getSample` is as follows:
+- The `SamplableBelief`` shall be in the field `Z` and that shall be enough to fully define the factor, i.e. `Z<:SamplableBelief` should be the only field.
+- Sampling on `<:RelativeObservation` factors defined on Group Manifolds: 
+  - `getSample` normally returns a tangent vector at the identity element, however it should just match the custom factor definition.
+- Sampling on prior (`<:AbstractPriorObservation`) factors : 
+  - `getSample` must return a point on the manifold that matches the point representation of the variable.
+
+Notes
+- Users should overload this method should their factor not only use field `Z` for the `SamplableBelief`.
+- See the Custom Factors section in the Caesar.jl documentation for more examples and details.
+- Also see issue https://github.com/JuliaRobotics/IncrementalInference.jl/issues/1441
+
+See also: [`getMeasurementParametric`](@ref)
+"""
+function getSample end
+
+function getSample(cf::CalcFactor{<:AbstractPriorObservation})
+  M = getManifold(cf)
+  if hasfield(typeof(cf.factor), :Z)
+    X = samplePoint(M, cf.factor.Z)
+  else
+    error(
+      """Factor $(typeof(cf.factor)) does not have a field `Z`, to use the default `getSample` method, use `Z` for the measurement. 
+          Alternatively, provide a `getSample` method. See IIF issue #1441 and Custom Factors in the Caesar documentation.""",
+    )
+  end
+  return X
+end
+
+function getSample(cf::CalcFactor{<:AbstractRelativeObservation})
+  M = getManifold(cf)
+  if hasfield(typeof(cf.factor), :Z)
+    X = sampleTangent(M, cf.factor.Z)
+  else
+    error(
+      """Factor $(typeof(cf.factor)) does not have a field `Z`, to use the default `getSample` method, use `Z` for the measurement. 
+          Alternatively, provide a `getSample` method. See IIF issue #1441 and Custom Factors in the Caesar documentation.""",
+    )
+  end
+  return X
+end
