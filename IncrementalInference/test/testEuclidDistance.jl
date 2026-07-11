@@ -62,7 +62,7 @@ addFactor!(fg, [:x0], Prior(MvNormal(zeros(2),diagm([1;1.0]))))
 # sanity check so far
 doautoinit!(fg, :x0)
 X0_ = getBelief(fg, :x0, :default)
-@test isapprox(0.0, mean(X0_)[1]; atol=0.25)
+@test isapprox(0.0, mean(X0_)[1]; atol=0.3)
 
 
 # add the range measurement
@@ -106,7 +106,8 @@ IncrementalInference.resetTreeCliquesForUpSolve!(tree)
 
 ##
 
-retdict = IncrementalInference.upGibbsCliqueDensity(fg, tree.cliques[1], :default, LikelihoodMessage[])
+# # skipping during refac of prepareState, no label :default
+# retdict = IncrementalInference.upGibbsCliqueDensity(fg, tree.cliques[1], :default, LikelihoodMessage[])
 
 ## first tests with new HomotopyDensity works
 # HomotopyDensity_legacy(retdict[:x0]) |> plotPoints

@@ -181,11 +181,10 @@ function approxDeconv(
   dfg::AbstractDFG,
   fctsym::Symbol,
   solveKey::Symbol = :default;
+  N::Int = 100,
 )
   # which factor
   fct = getFactor(dfg, fctsym)
-  pts = getPoints(getBelief(dfg, getVariableOrder(fct)[1], solveKey))
-  N = length(pts)
   pts = approxDeconv(fct, _getCCW(dfg, fct); N = N)
   return pts
 end

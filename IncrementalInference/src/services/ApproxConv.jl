@@ -14,17 +14,23 @@ function approxConvBelief(
 )
   #
   v_trg = getVariable(dfg, target)
-  N = N == 0 ? getNumPts(v_trg; solveKey) : N
-  # approxConv should push its result into duplicate memory destination, NOT the variable.VND.val itself.  ccw.varValsAll always points directly to variable.VND.val
-  # points and infoPerCoord
+  N_ = if N != 0
+    N 
+  elseif hasState(v_trg, solveKey)
+    getNumPts(v_trg; solveKey)
+  else
+    getSolverParams(dfg).N
+  end
+  # N = N == 0 ? getNumPts(v_trg; solveKey) : N
 
-  pts, ipc = evalFactor(
+  # NOTE approxConv results happen in  duplicate memory destination,  ccw.varValsAll always points directly to variable.VND.val
+  pts, observability = evalFactor(
     dfg, 
     fc, 
     v_trg.label, 
     measurement; 
     solveKey, 
-    N, 
+    N = N_, 
     skipSolve, 
     nullSurplus,
     keepCalcFactor
@@ -33,8 +39,8 @@ function approxConvBelief(
   ## FIXME, bad way to find partial info!!!!
   # Not sufficient to use only observability to determine partial, but is necessary
   # original need is if observability on some coords are zero after a convolution
-  len = length(ipc)
-  mask = 1e-14 .< abs.(ipc)
+  len = length(observability)
+  mask = 1e-14 .< abs.(observability)
   partl = collect(1:len)[mask] 
   
   # is the convolution infoPerCoord full or partial
@@ -42,10 +48,10 @@ function approxConvBelief(
   # FIXME, this if induces type instability via partial
   res = if sum(mask) == getDimension(v_trg)
     # not partial
-    HomotopyDensity_legacy(statekind, pts; partial = nothing)
+    HomotopyDensity_legacy(statekind, pts; observability, partial = nothing)
   else
     # is partial
-    HomotopyDensity_legacy(statekind, pts; partial = partl)
+    HomotopyDensity_legacy(statekind, pts; observability, partial = partl)
   end
     
   return res
@@ -273,10 +279,7 @@ function proposalbeliefs!(
   vardim = getDimension(getVariable(dfg, destlbl))
   # get a proposal belief from each factor connected to destlbl
   for (count, fct) in enumerate(factors)
-    # need way to convey partial information
-    # determine if evaluation is "dimension-deficient" solvable dimension
-    # FIXME, update to infoPerCoord
-    fct_ipc = ones(vardim) # getFactorSolvableDim(dfg, fct, destlbl, solveKey)
+    
     # convolve or passthrough to get a new proposal
     propBel_ = calcProposalBelief(
       dfg,
@@ -288,15 +291,22 @@ function proposalbeliefs!(
       solveKey,
       nullSurplus = nullSrp[count],
     )
-    # partial density
+
+    # need way to convey partial density information
     obs = DFG.getObservation(fct)
+    ipcs[count] = propBel_.observability # TODO, deprecate ipcs duplication, use hode.observability directly
+      # # determine if evaluation is "dimension-deficient" solvable dimension
+      # fct_ipc = zeros(vardim)  
+      # ApproxManifoldProducts._viewprl(fct_ipc, obs.partial) .+= 1
+      # ipcs[count] = fct_ipc
+
     propBel = if isPartial(obs)
+      # @show obs.partial
       AMP.marginal(propBel_, Int[obs.partial...])
     else
       propBel_
     end
     push!(dens, propBel)
-    ipcs[count] = fct_ipc
   end
   # len = maximum(length.(ipcs))
   ipc = zeros(vardim)

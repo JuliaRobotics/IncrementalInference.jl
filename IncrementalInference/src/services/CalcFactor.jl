@@ -523,17 +523,25 @@ function _beforeSolveCCW!(
     @debug("cannot prep ccw.param list with length(variables)==0, see DFG #590")
   end
 
+  function _consolgetval(v::VariableCompute)
+    return if hasState(v, solveKey) && isInitialized(v, solveKey)
+      getVal(v; solveKey)
+    else
+      getPoints(defaultBelief(v, NPBPSolver(); num_kernels=N); permute=false)
+    end
+  end
+
   # in forward solve case, important to set which variable is being solved early in this sequence
   # set the 'solvefor' variable index -- i.e. which connected variable of the factor is being computed in this convolution. 
   ccwl.varidx[] = sfidx
   # ccwl.varidx[] = findfirst(==(solvefor), getLabel.(variables))
   
-  # splice, type stable
+  # splice, TBD type stability
   # make deepcopy of destination variable since multiple approxConv type computations should happen from different factors to the same variable
   tvarv = tuple(
-    map(s->getVal(s; solveKey), variables[1:ccwl.varidx[]-1])..., 
-    deepcopy(getVal(variables[ccwl.varidx[]]; solveKey)), # deepcopy(ccwl.varValsAll[][sfidx]),
-    map(s->getVal(s; solveKey), variables[ccwl.varidx[]+1:end])...,
+    map(s->_consolgetval(s), variables[1:ccwl.varidx[]-1])..., 
+    deepcopy(_consolgetval(variables[ccwl.varidx[]])), # deepcopy(ccwl.varValsAll[][sfidx]),
+    map(s->_consolgetval(s), variables[ccwl.varidx[]+1:end])...,
   )
   ccwl.varValsAll[] = tvarv
   
@@ -590,6 +598,14 @@ function _beforeSolveCCW!(
 ) where {F <: AbstractObservation} # F might be Mixture
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
 
+  function _consolgetval(v::VariableCompute)
+    return if hasState(v, solveKey) && isInitialized(v, solveKey)
+      getVal(v; solveKey)
+    else
+      getPoints(defaultBelief(v, NPBPSolver(); num_kernels=N); permute=false)
+    end
+  end
+
   ccwl.varidx[] = sfidx
   @assert ccwl.varidx[] == 1 "Solving on Prior with CCW should have sfidx=1, priors are unary factors."
 
@@ -597,7 +613,7 @@ function _beforeSolveCCW!(
   # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
   _setCCWDecisionDimsConv!(ccwl, getDimension(getStateKind(variables[ccwl.varidx[]])))
 
-  solveForPts = getVal(variables[ccwl.varidx[]]; solveKey)
+  solveForPts = _consolgetval(variables[ccwl.varidx[]])
   maxlen = maximum([N; length(solveForPts); length(ccwl.varValsAll[][ccwl.varidx[]])])  # calcZDim(ccwl); length(measurement[1])
 
   # FIXME do not divert Mixture for sampling

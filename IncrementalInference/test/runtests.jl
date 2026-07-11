@@ -16,28 +16,22 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
   # temporarily moved to start (for debugging)
   if TEST_GROUP in ["all", "tmp_debug_group"]
     @testset "Temporary Debug Group (most development activity, fail fast)" begin
-            
-      include("testSpecialSampler.jl") # sometimes BoundsError, suspect need resample to N step, EvaluFactor.jl:179
-        include("testDERelative.jl") # FIX BoundsError Ln332 cf._legacyParams[k][i], [100] of 1..99
       
-      include("testEuclidDistance.jl") # test_broken
-      include("testMultiHypo3Door.jl") # FIX, slow, weak numerics
-      include("testExpXstroke.jl") # FIX, init bw issue, addLikelihoodsDifferentialCHILD! LN327
       include("testCircular.jl") # FIX
+      include("testExpXstroke.jl") # FIX, init bw issue, addLikelihoodsDifferentialCHILD! LN327
+      include("testMultiHypo3Door.jl") # FIX, slow, weak numerics
+
       include("testFluxModelsDistribution.jl") # FIX
+      
       include("testMixturePrior.jl") # FIX, serde structutils issue with BinarTruckFixedDepth?
       include("testMixtureLinearConditional.jl") # FIX, use HomotopyDensity as replacement for Mixture
       include("testMixtureParametric.jl") #FIXME parametric mixtures #1787
       @test_broken error("testSphereMani.jl broken") # include("testSphereMani.jl") # FIXME
 
-      include("testSpecialOrthogonalMani.jl") # FIX, stateLabel :parametric not found
-
       include("testSpecialEuclidean2Mani.jl") # FIX, parallel_transport_curvature_2nd_lie not defined for this case
       include("testpartialconstraint.jl") # FIX, big numerical fail
       include("testPartialNH.jl") # FIX
-      include("testCcolamdOrdering.jl") # FIX
 
-      include("testMultimodal1D.jl") # FIX numerics, skipped a test
       # include("testMultiprocess.jl")
 
       # gradient / jacobian tests
@@ -69,15 +63,18 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("typeReturnMemRef.jl")
       include("testDistributionsGeneric.jl")
       include("basicGraphsOperations.jl")
-
-      #FIXME fails on MetaBayesTree
-      include("testTreeSaveLoad.jl")
+      include("testSpecialSampler.jl")
 
       # test convolution functions
       include("testApproxConv.jl")
       include("testBasicForwardConvolve.jl")
       
+      #FIXME fails on MetaBayesTree
+      include("testTreeSaveLoad.jl")
       include("testCliqSolveDbgUtils.jl")
+      include("testCcolamdOrdering.jl")
+      include("testCliqueTreesOrderings.jl")
+      include("testlocalconstraintexamples.jl")
 
       include("testBasicManifolds.jl")
 
@@ -90,9 +87,6 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testBasicCSM.jl")
       include("testCliqueFactors.jl")
 
-      include("testCliqueTreesOrderings.jl")
-      include("testlocalconstraintexamples.jl")
-
       # dont run test on ARM, as per issue #527
       if Base.Sys.ARCH in [:x86_64;]
         include("testTexTreeIllustration.jl")
@@ -101,6 +95,8 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testManualInit.jl")
       include("testSolveOrphanedFG.jl")
       include("testSolveKey.jl")
+
+      include("testSpecialOrthogonalMani.jl")
 
       include("testJointEnforcement.jl")
       include("testPartialFactors.jl")
@@ -127,6 +123,8 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testUseMsgLikelihoods.jl") # slowish
       include("testInitVariableOrder.jl") # slowish
       include("testTreeMessageUtils.jl") # slowish
+      include("testEuclidDistance.jl") # test_broken
+      include("testDERelative.jl") # FIX, attempt to access [0] at index [1]
 
     end
   end # basic_functional_group
@@ -145,6 +143,8 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testBasicRecycling.jl") # slow
       include("testSkipUpDown.jl") # slow
       include("testCSMMonitor.jl") # slow
+
+      include("testMultimodal1D.jl") # FIX numerics, skipped a test
 
     end
   end # test_cases_group

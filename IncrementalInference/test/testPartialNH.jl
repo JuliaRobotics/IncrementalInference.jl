@@ -6,37 +6,46 @@ using IncrementalInference
 ##
 
 
-@testset "test n-dimensional partial" begin
+@testset "test 3-dimensional partial on two variable graph w (1,)--(2,3)" begin
 
 ##
 
-fg = initfg()
-addVariable!(fg, :x0, ContinuousEuclid{3})
+  fg = initfg()
+  addVariable!(fg, :x0, ContinuousEuclid{3})
 
-addFactor!(fg, [:x0;], PartialPrior(ContinuousEuclid{3}, MvNormal(zeros(2), ones(2)), (2,3)) )
+  addFactor!(fg, [:x0;], PartialPrior(ContinuousEuclid{3}, MvNormal(zeros(2), ones(2)), (2,3)) )
 
-addVariable!(fg, :x1, ContinuousEuclid{3})
-addFactor!(fg, [:x1;], PartialPrior(ContinuousEuclid{3}, Normal(10,1),(1,)))
-addFactor!(fg, [:x0; :x1], LinearRelative(MvNormal([10;0;0.0], ones(3))) )
+  addVariable!(fg, :x1, ContinuousEuclid{3})
+  addFactor!(fg, [:x1;], PartialPrior(ContinuousEuclid{3}, Normal(10,1),(1,)))
+  addFactor!(fg, [:x0; :x1], LinearRelative(MvNormal([10;0;0.0], ones(3))) )
+
+## check observability field is properly computed during proposals and product
+  vsym = :x0
+  useinitfct = IncrementalInference.listFactors_Initialized(fg, vsym; _neighbors = lsf(fg, vsym))
+  dens = Vector{HomotopyDensityLive}()
+  _observability = IncrementalInference.proposalbeliefs!(fg, vsym, map(x -> getFactor(fg, x), useinitfct), dens)
+
+  @test dens[1].observability == [0;1;1]
+  @test _observability == [0;1;1]
+
+  # take the product
+  hode = manifoldProduct(
+    dens;
+    MC = 1,
+  )
+
+  @test hode.observability == [0;1;1]
+
+##
+
+doautoinit!(fg, [:x0;]; singles = true)
+
+@test getBelief(fg, :x0).observability == [0;1;1]
+
 
 ##
 
 initAll!(fg)
-
-##
-
-destlbl = :x0
-
-dens = Vector{ManifoldKernelDensity}()
-factors = getFactor.(fg, ls(fg, destlbl))
-inferdim = IIF.proposalbeliefs!(fg, destlbl, factors, dens )
-
-oldBel = getBelief(fg, destlbl)
-oldpts = getPoints(oldBel)
-
-varType = getStateKind(fg, destlbl)
-pGM = getPoints( AMP.manifoldProduct(dens, getManifold(varType), N=100, oldPoints=oldpts), false )
-# pGM = AMP.productbelief(oldpts, getManifold(varType), dens, 100, asPartial=false )
 
 
 ##

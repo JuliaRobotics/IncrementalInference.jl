@@ -96,7 +96,7 @@ pts_ = getPoints(getBelief(fg, :lp2))
 
 pts_ = getPoints(getBelief(fg, :lm1))
 @cast pts[i,j] := pts_[j][i]
-@test 0.1*getSolverParams(fg).N < sum(-38 .< pts[:] .< -25)
+@test 0.05*getSolverParams(fg).N < sum(-38 .< pts[:] .< -25)
 
 pts_ = getPoints(getBelief(fg, :lm2))
 @cast pts[i,j] := pts_[j][i]

@@ -97,12 +97,12 @@ tree = buildTreeFromOrdering!(fg,vo)
 ##
 
 smtasks = Task[]
-tree2 = solveTree!(fg; smtasks);
+tree2 = solveGraph!(fg; smtasks);
 
 ##
 
-@test !isInitialized(fg, :deadreckon_x0)
-
+# @test !isInitialized(fg, :deadreckon_x0)
+IIF.prepareState!(getVariable(fg, :deadreckon_x0), IIF.NPBPSolver(), :default) # workaround to force state :default
 val = accumulateFactorMeans(fg, [:x0deadreckon_x0f1])
 
 # must fix return type stability

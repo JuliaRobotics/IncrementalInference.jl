@@ -11,16 +11,12 @@ Create an uninitialized `State` on variable `v` with `num_kernels` identity-elem
 
 See also: [`prepare!`](@ref), [`initAll!`](@ref)
 """
-function prepareState!(
+function defaultBelief(
   v::VariableCompute,
-  solver::Union{<:NPBPSolver, <:NLLSSolver},
-  statelabel::Symbol;
+  solver::Union{<:NPBPSolver, <:NLLSSolver};
   num_kernels::Int = solver isa NLLSSolver ? 1 : solver.defaultNumKernels, # consolidation workaround
   varType::StateType = DFG.getStateKind(v),
 )
-  # check for early return 
-  hasState(v, statelabel) && return 0
-
   dims = getDimension(v)
   @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defStateType $varType arguments is correct"
   ϵ = getPointIdentity(varType)
@@ -30,11 +26,7 @@ function prepareState!(
     bw = zeros(dims), 
     newbw = false
   )
-  mergeState!(
-    v,
-    State(statelabel, varType; belief, initialized = false, marginalized = false)
-  )
-  return 1
+  return belief
 end
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
@@ -55,6 +47,29 @@ end
   #   #
   #   (val, bw)
   # end
+
+function prepareState!(
+  v::VariableCompute,
+  solver::Union{<:NPBPSolver, <:NLLSSolver},
+  statelabel::Symbol;
+  num_kernels::Int = solver isa NLLSSolver ? 1 : solver.defaultNumKernels, # consolidation workaround
+  varType::StateType = DFG.getStateKind(v),
+  belief::HomotopyDensity = defaultBelief(v,solver;num_kernels,varType),
+  initialized::Bool = false,
+)
+  @error "$statelabel -- don't use prepareState!, it breaks all instances of null/multihypo and probably more" maxlog=10
+  # check for early return 
+  hasState(v, statelabel) && return 0
+
+  mergeState!(
+    v,
+    State(statelabel, varType; belief, initialized, marginalized = false)
+  )
+  # @info "PREP" getPartial(belief) getPartial(getBelief(v, statelabel))
+  return 1
+end
+
+
 
 """
     $SIGNATURES
@@ -203,6 +218,27 @@ function factorCanInitFromOtherVars(
   return (canuse, fctlist, faillist)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}}
 end
 
+function listFactors_Initialized(
+  dfg::AbstractDFG,
+  vsym::Symbol;
+  solveKey::Symbol = :default,
+  _neighbors::Vector{Symbol} = listNeighbors(dfg, vsym)
+)
+  # TODO, sort according in decending observability
+  # Which of the factors can be used for initialization
+  useinitfct = Symbol[]
+  # Consider factors connected to $vsym...
+  for xifct in _neighbors
+    canuse, usefct, notusevars =
+      factorCanInitFromOtherVars(dfg, xifct, vsym; solveKey)
+    if canuse
+      union!(useinitfct, usefct)
+    end
+  end
+  return useinitfct
+end
+
+
 """
     $(SIGNATURES)
 
@@ -229,28 +265,21 @@ function doautoinit!(
 )
   #
   didinit = false
-  # create State if it does not exist yet
-  prepareState!(xi, NPBPSolver(), solveKey; num_kernels=N)
+  # # create State if it does not exist yet
+  # prepareState!(xi, NPBPSolver(), solveKey; num_kernels=N)
   # don't initialize a variable more than once
-  if !isInitialized(xi, solveKey)
+  if !hasState(xi, solveKey) || !isInitialized(xi, solveKey)
     with_logger(logger) do
       @info "try doautoinit! of $(xi.label)"
     end
     # get factors attached to this variable xi
     vsym = xi.label
-    neinodes = listNeighbors(dfg, vsym)
+    _neighbors = listNeighbors(dfg, vsym)
     # proceed if has more than one neighbor OR even if single factor
-    if (singles || length(neinodes) > 1)
+    if (singles || length(_neighbors) > 1)
       # Which of the factors can be used for initialization
-      useinitfct = Symbol[]
-      # Consider factors connected to $vsym...
-      for xifct in neinodes
-        canuse, usefct, notusevars =
-          factorCanInitFromOtherVars(dfg, xifct, vsym; solveKey = solveKey)
-        if canuse
-          union!(useinitfct, usefct)
-        end
-      end
+      useinitfct = listFactors_Initialized(dfg, vsym; solveKey, _neighbors)
+      
       with_logger(logger) do
         @info "init with useinitfct $useinitfct"
       end
@@ -266,20 +295,27 @@ function doautoinit!(
         # while the propagate step might allow large point counts, the graph should stay restricted to N
         bel_ =
           Npts(bel) == getSolverParams(dfg).N ? bel : resample(bel, getSolverParams(dfg).N)
-        setBelief!(xi, bel_; solveKey) # TODO, update to stateLabel
-        state = getState(xi, solveKey)
-        state.initialized = true
+        if !hasState(xi, solveKey)
+          prepareState!(xi, NPBPSolver(), solveKey; belief=bel_, initialized=true)
+        else
+          state = getState(xi, solveKey)
+          setBelief!(state, bel_, true) # TODO, update to stateLabel
+        end
+        # state.initialized = true
 
-        # Update the data in the event that it's not local
-        # TODO perhaps use merge, but keeping to deepcopy as update variant used was set to copy.
-        DFG.copytoState!(dfg, xi.label, solveKey, state)
-        # deepcopy graphinit value, see IIF #612
-        DFG.copytoState!(
-          dfg,
-          xi.label,
-          :graphinit,
-          getState(xi, solveKey),
-        )
+          # NOTE, don't double act -- legacy update the data in the event that it's not local
+          # # perhaps use merge, but keeping to deepcopy as update variant used was set to copy.
+          # DFG.copytoState!(dfg, xi.label, solveKey, state)
+        # TODO, better naming stateLabel convention needed for various initial graph values
+        if getSolverParams(dfg).graphinit
+          # deepcopy graphinit value, see IIF #612
+          DFG.copytoState!(
+            dfg,
+            xi.label,
+            :graphinit,
+            getState(xi, solveKey),
+          )
+        end
         didinit = true
       end
     end
@@ -475,9 +511,9 @@ function initVariable!(
   _prodrepr(pt) = pt
   # _prodrepr(pt::Tuple) = Manifolds.ProductRepr(pt...)
   _prodrepr(pt::Tuple) = ArrayPartition(pt...)
-  _bw = bw === nothing ? zeros(getDimension(vari)) : bw
+  # _bw = bw === nothing ? zeros(getDimension(vari)) : bw
   M = getStateKind(vari)
-  pp = HomotopyDensity_legacy(M, _prodrepr.(pts); bw=_bw, newbw=false)
+  pp = HomotopyDensity_legacy(M, _prodrepr.(pts); bw, newbw=false)
   return initVariable!(vari, pp, solveKey)
 end
 

@@ -9,6 +9,7 @@ using IncrementalInference
 ##
 
 @testset "test basic utility functions" begin
+##
 
 @test incrSuffix(:x45_4) == :x45_5
 
@@ -16,9 +17,11 @@ using IncrementalInference
 
 @test incrSuffix(:x45_4, -1) == :x45_3
 
+##
 end
 
 @testset "Test basic single variable graph with one prior..." begin
+##
 
 fg = initfg()
 
@@ -53,10 +56,12 @@ solveTree!(fg, storeOld=true)
 
 @test getSolvable(fg, :x1) == 0
 
+##
 end
 
 
 @testset "Test basic single variable graph with one prior offset by 1000..." begin
+##
 
 fg = initfg()
 
@@ -71,10 +76,12 @@ pts_ = getPoints(getBelief(fg, :x0))
 TensorCast.@cast pts[i,j] := pts_[j][i]
 @test 0.4 < Statistics.cov( pts[1,:] ) < 1.8
 
+##
 end
 
 
 @testset "Test basic single variable graph with two identical priors..." begin
+##
 
 fg = initfg()
 
@@ -91,10 +98,12 @@ pts_ = getPoints(getBelief(fg, :x0))
 TensorCast.@cast pts[i,j] := pts_[j][i]
 @test 0.3 < Statistics.cov( pts[1,:] ) < 1.0
 
+##
 end
 
 
 @testset "Test basic single variable graph with three identical priors..." begin
+##
 
 fg = initfg()
 
@@ -112,11 +121,13 @@ pts_ = getPoints(getBelief(fg, :x0))
 TensorCast.@cast pts[i,j] := pts_[j][i]
 @test 0.1 < Statistics.cov( pts[1,:] ) < 0.75
 
+##
 end
 
 
 
 @testset "Test basic single variable graph with two priors at + and - 1..." begin
+##
 
 fg = initfg()
 
@@ -133,10 +144,12 @@ pts_ = getPoints(getBelief(fg, :x0))
 TensorCast.@cast pts[i,j] := pts_[j][i]
 @test 0.2 < Statistics.cov( pts[1,:] ) < 1.5
 
+##
 end
 
 
 @testset "Test basic single variable graph with two priors at + and - 1, offset by -1000..." begin
+##
 
 fg = initfg()
 
@@ -153,11 +166,13 @@ pts_ = getPoints(getBelief(fg, :x0))
 TensorCast.@cast pts[i,j] := pts_[j][i]
 @test 0.2 < Statistics.cov( pts[1,:] ) < 1.1
 
+##
 end
 
 
 
 @testset "Test basic two variable graph with two identical priors and weak connection..." begin
+##
 
 fg = initfg()
 
@@ -180,10 +195,12 @@ pts_ = getPoints(getBelief(fg, :x1))
 TensorCast.@cast pts[i,j] := pts_[j][i]
 @test 0.4 < Statistics.cov( pts[1,:] ) < 2.5
 
+##
 end
 
 
 @testset "Test basic two variable graph with two separated priors and weak connection..." begin
+##
 
 fg = initfg()
 
@@ -207,10 +224,12 @@ pts_ = getPoints(getBelief(fg, :x1))
 TensorCast.@cast pts[i,j] := pts_[j][i]
 @test 0.3 < Statistics.cov( pts[1,:] ) < 2.5
 
+##
 end
 
 
 @testset "Test basic two variable graph with two separated priors and strong connection..." begin
+##
 
 fg = initfg()
 
@@ -243,11 +262,13 @@ pts_ = getPoints(getBelief(fg, :x2))
 TensorCast.@cast pts[i,j] := pts_[j][i]
 @test 0.3 < Statistics.cov( pts[1,:] ) < 2.2
 
+##
 end
 
 
 
 @testset "Test basic five variable graph with two separated priors and nominal connection..." begin
+##
 
 fg = initfg()
 
@@ -309,10 +330,12 @@ TensorCast.@cast pts[i,j] := pts_[j][i]
 
 
 @testset "Test localProduct on solveKey" begin
+##
 
 localProduct(fg,:x2)
 localProduct(fg,:x2, solveKey=:graphinit)
 
+##
 end
 
 end
@@ -362,6 +385,7 @@ end
 
 
 @testset "Test graph reset to init..." begin
+##
 
 fg = initfg()
 
@@ -392,7 +416,7 @@ X0reset = pts |> deepcopy
 
 @test norm(X0 - X0reset) < 1e-10
 
-
+##
 end
 
 

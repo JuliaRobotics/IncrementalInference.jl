@@ -144,11 +144,10 @@ DevNotes
 """
 function computeAcrossHypothesis!(
   ccwl::CommonConvWrapper{F},
-  hyporecipe::HypoRecipe, #NamedTuple,
+  hyporecipe::HypoRecipe,
   sfidx::Int,
   maxlen::Int,
-  mani::ManifoldsBase.AbstractManifold; # maniAddOps::Tuple;
-  # destinationVarVals = ccwl.varValsAll[][sfidx], # deepcopy
+  mani::ManifoldsBase.AbstractManifold;
   spreadNH::Real = 5.0,
   inflateCycles::Int = 3,
   skipSolve::Bool = false,
@@ -162,33 +161,34 @@ function computeAcrossHypothesis!(
   activehypo = hyporecipe.activehypo
   certainidx = hyporecipe.certainidx
 
+  # TODO dont use assert, find better code structure
   @assert ccwl.varidx[] == sfidx "duplicate registers for solve for index should be the same in ccw.varidx"
   @assert ccwl.hyporecipe.certainhypo == hyporecipe.certainidx "expected hyporecipe.certainidx to be the same as cached in ccw"
+
+  targetmem_ = ccwl.varValsAll[][ccwl.varidx[]]
+
   for (hypoidx, vars) in activehypo
     count += 1
+
+    # FIXME targetmem_ should be an alternate/duplicate memory from getVal(variable; solveKey)
+    addEntr = view(targetmem_, allelements[count])
 
     # now do hypothesis specific
     if sfidx in certainidx && hypoidx != 0 || hypoidx in certainidx || hypoidx == sfidx
       # hypo case hypoidx, sfidx = $hypoidx, $sfidx
-      # for i = 1:Threads.nthreads()
-        resize!(ccwl.hyporecipe.activehypo, length(vars))
-        ccwl.hyporecipe.activehypo[:] = vars
-      # end
-
-      # ccwl.varValsAll[][ccwl.varidx[]] should be an alternate/duplicate memory from getVal(variable; solveKey)
-      addEntr = view(ccwl.varValsAll[][ccwl.varidx[]], allelements[count]) # destinationVarVals
-
+      resize!(ccwl.hyporecipe.activehypo, length(vars))
+      ccwl.hyporecipe.activehypo[:] = vars
       # do proposal inflation step, see #1051
       # consider duplicate convolution approximations for inflation off-zero
       # ultimately set by dfg.params.inflateCycles
-      for iflc = 1:inflateCycles
+      for _ = 1:inflateCycles
         # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
         spreadDist = calcVariableDistanceExpectedFractional(
           ccwl,
           sfidx,
           certainidx;
           kappa = ccwl.inflation,
-          # readonlyVarVals = ccwl.varValsAll[][ccwl.varidx[]],
+          # readonlyVarVals = targetmem_,
         )
         addEntropyOnManifold!(
           mani,
@@ -202,7 +202,7 @@ function computeAcrossHypothesis!(
         if skipSolve
           @warn("skipping numerical solve operation")
         else
-          approxConvOnElements!(ccwl.varValsAll[][ccwl.varidx[]], ccwl, allelements[count], _slack)
+          approxConvOnElements!(targetmem_, ccwl, allelements[count], _slack)
         end
       end
     elseif hypoidx != sfidx && hypoidx != 0
@@ -211,22 +211,20 @@ function computeAcrossHypothesis!(
       # sfidx=2, hypoidx=3:  2 should take a value from 3
       # sfidx=3, hypoidx=2:  3 should take a value from 2
       # DEBUG sfidx=2, hypoidx=1 -- bad when do something like multihypo=[0.5;0.5] -- issue 424
-      # ccwl.varValsAll[][ccwl.varidx[]][:,allelements[count]] = view(ccwl.varValsAll[hypoidx],:,allelements[count])
+      # targetmem_[:,allelements[count]] = view(ccwl.varValsAll[hypoidx],:,allelements[count])
       # NOTE make alternative case only operate as null hypo
-      addEntr = view(ccwl.varValsAll[][ccwl.varidx[]], allelements[count])
       # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist =
-        calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx; kappa = spreadNH) #,readonlyVarVals = ccwl.varValsAll[][ccwl.varidx[]])
+        calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx; kappa = spreadNH) #,readonlyVarVals = targetmem_)
       addEntropyOnManifold!(mani, addEntr, 1:getDimension(mani), spreadDist)
 
     elseif hypoidx == 0
       # basically do nothing since the factor is not active for these allelements[count]
       # inject more entropy in nullhypo case
       # add noise (entropy) to spread out search in convolution proposals
-      addEntr = view(ccwl.varValsAll[][ccwl.varidx[]], allelements[count])
       # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist =
-        calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx; kappa = spreadNH) #, readonlyVarVals = ccwl.varValsAll[][ccwl.varidx[]])
+        calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx; kappa = spreadNH) #, readonlyVarVals = targetmem_)
       # # make spread (1σ) equal to mean distance of other fractionals
       addEntropyOnManifold!(mani, addEntr, 1:getDimension(mani), spreadDist)
     else
@@ -346,7 +344,7 @@ function evalPotentialSpecific(
   maxlen = _beforeSolveCCW!(ccwl, variables, sfidx, N; solveKey, needFreshMeasurements, measurement, keepCalcFactor)
   
   # Check which variables have been initialized
-  isinit = map(x -> isInitialized(x, solveKey), variables)
+  isinit = map(x -> hasState(x, solveKey) && isInitialized(x, solveKey), variables)
   
   # assemble how hypotheses should be computed
   # nullSurplus see #1517
@@ -419,16 +417,24 @@ function evalPotentialSpecific(
 ) where {T <: AbstractObservation}
   #
   
+  function _consolgetval(v::VariableCompute)
+    return if hasState(v, solveKey) && isInitialized(v, solveKey)
+      getVal(v; solveKey)
+    else
+      getPoints(defaultBelief(v, NPBPSolver(); num_kernels=N); permute=false)
+    end
+  end
+
   # Prep computation variables
   maxlen = _beforeSolveCCW!(ccwl, variables, sfidx, N; solveKey, needFreshMeasurements, measurement, keepCalcFactor)
 
   # # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
-  solveForPts = getVal(variables[sfidx]; solveKey)
+  solveForPts = _consolgetval(variables[sfidx])
 
   # Check which variables have been initialized
   # TODO not sure why forcing to Bool vs BitVector
-  isinit::Vector{Bool} = variables .|> isInitialized .|> Bool
+  isinit::Vector{Bool} = (v->Bool(hasState(v, solveKey) && isInitialized(v, solveKey))).(variables)
   # nullSurplus see #1517
   runnullhypo = maximum((ccwl.nullhypo, nullSurplus))
   hyporecipe =

@@ -60,11 +60,11 @@ doautoinit!(fg, :b, solveKey=:testSolveKey)
 @test (:testSolveKey in listStates(getVariable(fg, :a)))
 @test (:testSolveKey in listStates(getVariable(fg, :b)))
 
+##
 end
 
 
 @testset "test solve with unique solveKey, see #1219" begin
-
 ##
 
 fg = initfg()

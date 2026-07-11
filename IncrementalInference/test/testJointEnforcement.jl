@@ -20,6 +20,9 @@ initVariable!(fg, :x0, [randn(2) for _ in 1:100])
 initVariable!(fg, :x1, [randn(2) .+ 10 for _ in 1:100])
 initVariable!(fg, :x2, [randn(2) .+ 20 for _ in 1:100])
 
+getBW(getBelief(fg, :x2))[1]
+
+
 addFactor!(fg , [:x0; :x1], LinearRelative(MvNormal([10.0;10], diagm([1.0;1]))))
 addFactor!(fg , [:x1; :x2], LinearRelative(MvNormal([10.0;10], diagm([1.0;1]))))
 
@@ -84,6 +87,12 @@ cliq2 = getClique(tree,:x3)
 
 cfg2 = buildCliqSubgraph(fg, cliq2)
 
+##
+
+
+getBW(getBelief(cfg2, :x2))[1]
+
+IIF.TreeBelief(getVariable(cfg2, :x2); solvableDim = 1.0) 
 jointmsg = IIF._generateMsgJointRelativesPriors(cfg2, :default, cliq2)
 
 
