@@ -158,8 +158,6 @@ function presolveChecklist_StateMachine(csmc::CliqStateMachineContainer)
         csmc,
         "CSM-0b create empty data for $(getLabel(var)) on solveKey=$(csmc.csmoptions.solveKey)",
       )
-      @info "create vnd solveKey" csmc.csmoptions.solveKey getCliqueSolverParams(csmc).N
-      @info "also" listStates(var)
     end
   end
 

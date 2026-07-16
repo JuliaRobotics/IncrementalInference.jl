@@ -38,14 +38,22 @@ using IncrementalInference
 
 ##
 
-doautoinit!(fg, [:x0;]; singles = true)
-
+@show doautoinit!(fg, [:x0;]; singles = true)
 @test getBelief(fg, :x0).observability == [0;1;1]
 
 
 ##
 
-initAll!(fg)
+doautoinit!(fg, [:x1;]; singles = true)
+@test_broken getBelief(fg, :x1).observability == [1;1;1] # TODO confirm
+
+
+
+##
+
+# initAll!(fg)
+
+# @test getBelief(fg, :x1).observability == [0;1;1]
 
 
 ##
