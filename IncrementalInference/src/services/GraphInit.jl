@@ -57,13 +57,26 @@ function prepareState!(
   belief::HomotopyDensity = defaultBelief(v,solver;num_kernels,varType),
   initialized::Bool = false,
 )
-  @error "$statelabel -- don't use prepareState!, it breaks all instances of null/multihypo and probably more" maxlog=10
+  @error "$statelabel -- don't use prepareState!, $(hasState(v, statelabel)) it breaks all instances of null/multihypo and probably more" maxlog=10
   # check for early return 
-  hasState(v, statelabel) && return 0
+  if hasState(v, statelabel)
+    return 0
+  end
+
+  _getStateP(::VariableCompute{T,P}) where {T,P} = P
+  _getHoDeTP(p::HomotopyDensityLive{T,P}) where {T,P} = (typeof(getStateKind(p)),P)
+  _getHoDeTP(p::HomotopyDensityDFG{T,P}) where {T,P} = (typeof(getStateKind(p)),P)
+  _consolP() = begin
+    (T,_) = _getHoDeTP(belief)
+    P = _getStateP(v)
+    HomotopyDensityDFG{T,P}
+  end
+
+  belief_ = convert(_consolP(), belief)
 
   mergeState!(
     v,
-    State(statelabel, varType; belief, initialized, marginalized = false)
+    State(statelabel, varType; belief=belief_, marginalized = false, initialized)
   )
   # @info "PREP" getPartial(belief) getPartial(getBelief(v, statelabel))
   return 1
@@ -291,21 +304,19 @@ function doautoinit!(
         end
         # FIXME ensure a product of only partial densities and returned pts are put to proper dimensions
         fcts = map(fx -> getFactor(dfg, fx), useinitfct)
-        bel, ipc = propagateBelief(dfg, getVariable(dfg, vsym), fcts; solveKey, logger, N)
-        # while the propagate step might allow large point counts, the graph should stay restricted to N
-        bel_ =
-          Npts(bel) == getSolverParams(dfg).N ? bel : resample(bel, getSolverParams(dfg).N)
+        belief, ipc = propagateBelief(dfg, getVariable(dfg, vsym), fcts; solveKey, logger, N)
+
+        # WIP testPartialNH.jl
+        # @show ipc, getPartial(belief)
+
+         # TODO, better naming stateLabel convention needed for various initial graph values
         if !hasState(xi, solveKey)
-          prepareState!(xi, NPBPSolver(), solveKey; belief=bel_, initialized=true)
+          prepareState!(xi, NPBPSolver(), solveKey; belief, initialized=true)
         else
           state = getState(xi, solveKey)
-          setBelief!(state, bel_, true) # TODO, update to stateLabel
+          setBelief!(state, belief, true) # TODO, update to stateLabel
         end
-        # state.initialized = true
 
-          # NOTE, don't double act -- legacy update the data in the event that it's not local
-          # # perhaps use merge, but keeping to deepcopy as update variant used was set to copy.
-          # DFG.copytoState!(dfg, xi.label, solveKey, state)
         # TODO, better naming stateLabel convention needed for various initial graph values
         if getSolverParams(dfg).graphinit
           # deepcopy graphinit value, see IIF #612

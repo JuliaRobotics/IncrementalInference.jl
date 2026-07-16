@@ -30,7 +30,6 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
 
       include("testSpecialEuclidean2Mani.jl") # FIX, parallel_transport_curvature_2nd_lie not defined for this case
       include("testpartialconstraint.jl") # FIX, big numerical fail
-      include("testPartialNH.jl") # FIX
 
       # include("testMultiprocess.jl")
 
@@ -102,6 +101,8 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testPartialFactors.jl")
       include("testCalcFactorHypos.jl")
 
+      include("testPartialNH.jl")
+
       include("testnullhypothesis.jl")
       include("testExplicitMultihypo.jl")
       include("TestCSMMultihypo.jl")
@@ -114,6 +115,7 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testDeadReckoningTether.jl")
 
       include("testHeatmapGridDensity.jl")
+
 
       # refac AMP v0.15, these are medium slow
       include("testTreeFunctions.jl") # slower

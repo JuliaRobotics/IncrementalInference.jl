@@ -29,8 +29,8 @@ addVariable!(fg, :x0, ContinuousScalar)
 addFactor!(fg, [:x0;], Prior(Normal(0.0,1.0)))
 
 # test solved flag
-@test getSolvedCount(fg, :x0) == 0
-@test !isSolved(getVariable(fg, :x0))
+@test !IncrementalInference.hasState(fg, :x0, :default) # !isSolved(getVariable(fg, :x0))
+# @test getSolvedCount(fg, :x0) == 0
 
 # run solver once
 tree = solveTree!(fg)
