@@ -116,6 +116,7 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
 
       include("testHeatmapGridDensity.jl")
 
+      include("testSE2Products.jl")
 
       # refac AMP v0.15, these are medium slow
       include("testTreeFunctions.jl") # slower

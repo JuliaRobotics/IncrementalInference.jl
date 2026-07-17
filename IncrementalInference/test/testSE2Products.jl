@@ -90,6 +90,7 @@ function prod_by_fg(statekind, points, covars)
 
     μ = getBelief(fg, :x0, :parametric).points[1]
     Σ_μ = getBelief(fg, :x0, :parametric).trailing_forms[1]
+
     return μ, Σ_μ
 end
 
