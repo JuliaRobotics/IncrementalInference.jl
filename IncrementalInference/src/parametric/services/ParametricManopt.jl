@@ -830,8 +830,8 @@ function autoinitParametric!(
     # perturb point slightly
     _M = getManifold(xi)
     tangent_coords = randn(manifold_dimension(_M)) * 1e-3
-    X = get_vector(LieAlgebra(_M), tangent_coords)
     mn = mean(getBelief(vnd))
+    X = hat(LieAlgebra(_M), tangent_coords, typeof(mn))
     mn_ = exp(_M, mn, X)
     bw = cov(getBelief(vnd))
     hode = HomotopyDensity_legacy(getStateKind(vnd), [mn_,]; bw, newbw=false)
