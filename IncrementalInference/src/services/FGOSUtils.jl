@@ -71,7 +71,7 @@ _getZDim(ccw::CommonConvWrapper) = getManifold(ccw) |> manifold_dimension # ccw.
 # TODO is MsgPrior piggy backing zdim on inferdim???
 _getZDim(ccw::CommonConvWrapper{<:MsgPrior}) = length(ccw.usrfnc!.infoPerCoord) # ccw.usrfnc!.inferdim
 
-_getZDim(fct::FactorCompute) = _getCCW(fct) |> _getZDim
+_getZDim(fct::FactorCompute) = getManifold(fct) |> manifold_dimension
 
 DFG.getDimension(fct::FactorCompute) = _getZDim(fct)
 

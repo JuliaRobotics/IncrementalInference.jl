@@ -400,6 +400,7 @@ end
 
 Manopt `DebugAction` that prints the tension (reduced chi-squared) at each iteration.
 Tension = 2*cost / dof, where `dof = N - M` (residual dimension minus state dimension).
+Ideal value is 1.0, with values >> 1.0 indicating underfitting and < 1.0 indicating overfitting.
 
 Usage in `solve_RLM`:
 ```julia
@@ -436,8 +437,7 @@ function solve_RLM(
   finiteDiffCovariance = false,
   jacobian_method::Symbol = :finitediff,
   solveKey::Symbol = :parametric,
-  # linear_subsolver! = Manopt.default_lm_lin_solve!,
-  linear_subsolver! = qr_linear_subsolver!,
+  linear_subsolver! = Manopt.default_lm_lin_solve!,
   kwargs...
 )
 
@@ -575,7 +575,7 @@ function solve_RLM_conditional(
   finiteDiffCovariance=true,
   jacobian_method::Symbol = :finitediff,
   solveKey::Symbol = :parametric,
-  linear_subsolver! = qr_linear_subsolver!,
+  linear_subsolver! = Manopt.default_lm_lin_solve!,
   kwargs...
 )
   is_sparse && error("Sparse solve_RLM_conditional not supported yet")
@@ -769,7 +769,7 @@ function autoinitParametric!(
   separators::Vector{Symbol} = Symbol[];
   solveKey = :parametric,
   reinit::Bool = false,
-  linear_subsolver! = pinv_subsolver!,
+  linear_subsolver! = Manopt.default_lm_lin_solve!,
   kwargs...,
 )
   # Filter to only uninitialized variables (unless reinit)
@@ -808,8 +808,9 @@ function autoinitParametric!(
   for v in to_init
     xi = getVariable(dfg, v)
     vnd = getState(xi, solveKey)
-    has_prior = any(isPrior.(dfg, listNeighbors(dfg, v)))
-    if !has_prior && !isempty(active_separators)
+    # has_prior = any(isPrior.(dfg, listNeighbors(dfg, v)))
+    # if !has_prior && !isempty(active_separators)
+    if !isempty(active_separators)
       my_kind = getStateKind(xi)
       same_kind = filter(active_separators) do vl
         getStateKind(getVariable(dfg, vl)) === my_kind
@@ -822,8 +823,9 @@ function autoinitParametric!(
     # perturb point slightly
     _M = getManifold(xi)
     tangent_coords = randn(manifold_dimension(_M)) * 1e-3
-    X = get_vector(LieAlgebra(_M), tangent_coords)
-    DFG.refMeans(vnd)[1] = exp(_M, DFG.refMeans(vnd)[1], X)
+    mn = DFG.refMeans(vnd)[1]
+    X = hat(LieAlgebra(_M), tangent_coords, typeof(mn))
+    DFG.refMeans(vnd)[1] = exp(_M, mn, X)
   end
 
   # Solve
