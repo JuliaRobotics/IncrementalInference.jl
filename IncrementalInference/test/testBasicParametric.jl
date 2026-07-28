@@ -143,8 +143,11 @@ fg = generateGraph_LineStep(10, vardims=2, poseEvery=1, landmarkEvery=3, posePri
 
 # @profiler d,st = IIF.solveGraphParametric(fg)
 IIF.prepare!(fg, IIF.NLLSSolver(), :parametric)
+
 M, labels, minimizer, Σ = IIF.solveGraphParametric(fg)
 d = Dict(labels.=>minimizer)
+
+# @test !any(isnan.(cov(getBelief(fg, :x2, :parametric))[:]))
 
 for i in 0:10
   sym = Symbol("x",i)
@@ -170,12 +173,13 @@ foreach(
   pairs(d)
 )
 
+@test !any(isnan.(cov(getBelief(fg, :x2, :parametric))[:]))
 
 ##
 
 # getSolverParams(fg).dbg=true
 # getSolverParams(fg).drawtree=true
-# getSolverParams(fg).async = true
+getSolverParams(fg).async = false
 getSolverParams(fg).graphinit = false
 # getSolverParams(fg).dbg = true
 # getSolverParams(fg).async = true
@@ -190,6 +194,13 @@ tree2 = solveGraph!(
   smtasks 
 )
 # hists = fetchCliqHistoryAll!(smtasks)
+
+##
+
+
+# smtasks[3].storage[:statemachine].next(deepcopy(smtasks[3].storage[:csmc]))
+
+##
 
 for i in 0:10
   sym = Symbol("x",i)

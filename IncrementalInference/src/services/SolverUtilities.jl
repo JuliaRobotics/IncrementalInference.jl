@@ -245,9 +245,12 @@ function _checkVariableByReference(
   prior = if !doRef
     nothing
   else
+    bel = getBelief(fg, srcLabel, refKey)
+    M = getManifold(bel)
+    mu, cv = mean(bel), cov(bel)
     DFG._getPriorType(srcType)(
-    MvNormal(calcMeanMaxSuggested(fg, srcLabel, refKey).suggested, diagm(ones(getDimension(srcType)))),
-  )
+      MvNormal(vee(LieAlgebra(M), log(M,mu)), cv),
+    )
   end,
   atol::Real = 1e-2,
   destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
@@ -271,10 +274,12 @@ function _checkVariableByReference(
     accumulateFactorMeans(tfg, [:x0f1; :x0l0f1])
   end
 
-  varLms = ls(fg, destRegex) |> sortDFG
+  varLms = ls(fg; whereLabel=contains(destRegex)) |> sortDFG
+  M = getManifold(destType)
   already = if doRef
-    ppeLms = calcMeanMaxSuggested.(getVariable.(fg, varLms), refKey) .|> x -> x.suggested
-    errmask = ppeLms .|> (x -> isapprox(x, refVal; atol = atol))
+    ppeLms = getBelief.(getVariable.(fg, varLms), refKey) .|> mean
+    @show refVal M
+    errmask = ppeLms .|> (x -> isapprox(M, x, refVal; atol = atol))
     any(errmask)
   else
     false

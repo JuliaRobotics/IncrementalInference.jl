@@ -5,7 +5,7 @@
 Notes
 - Parametric state machine function nr. 3
 """
-function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
+function solveUpParametric_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "Par-3, Solving Up")
 
   setCliqueDrawColor!(csmc.cliq, "red")
@@ -35,11 +35,11 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   if Optim.g_converged(result) || Optim.f_converged(result)
     logCSM(csmc, "$(csmc.cliq.id): subfg optim converged updating variables")
     for (v, val) in vardict
-      vnd = getState(getVariable(csmc.cliqSubFg, v), :parametric)
+      _state = getState(getVariable(csmc.cliqSubFg, v), :parametric)
       # fill in the variable node data value
       logCSM(csmc, "$(csmc.cliq.id) up: updating $v : $val")
       # #calculate and fill in covariance
-      setBelief!(vnd, HomotopyDensity_legacy(getStateKind(vnd), [val.val,]; bw=val.cov, newbw=false))
+      setBelief!(_state, HomotopyDensity_legacy(getStateKind(_state), [val.val,]; bw=val.cov, newbw=false))
     end
     # elseif length(lsfPriors(csmc.cliqSubFg)) == 0 #FIXME
     #   @error "Par-3, clique $(csmc.cliq.id) failed to converge in upsolve, but ignoring since no priors" result
@@ -80,8 +80,8 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #FIXME bit of a hack, only fill in variable beliefs if there are priors or for now more than one seperator
   if length(lsfPriors(csmc.cliqSubFg)) > 0 || length(cliqSeparatorVarIds) > 1
     for si in cliqSeparatorVarIds
-      vnd = getState(getVariable(csmc.cliqSubFg, si), :parametric)
-      beliefMsg.belief[si] = deepcopy(getBelief(vnd)) # TreeBelief(deepcopy(vnd))
+      state = getState(getVariable(csmc.cliqSubFg, si), :parametric)
+      beliefMsg.belief[si] = deepcopy(getBelief(state)) # TreeBelief(deepcopy(state))
     end
   end
 

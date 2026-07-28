@@ -220,7 +220,8 @@ function HeatmapGridDensity(
     M,
     vec_preIS;
     bw,
-    weights
+    weights,
+    newbw = false,
   )
   # @cast pts[i, j] := vec_preIS[j][i]
   # bel = kde!(collect(pts), bw, weights)

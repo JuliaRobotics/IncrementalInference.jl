@@ -123,11 +123,11 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       include("testMultihypoAndChain.jl") # slower, weak numerics
       include("testPartialPrior.jl") # slowish
       include("testDefaultDeconv.jl") # slowish
-      include("testUseMsgLikelihoods.jl") # slowish
+      include("testUseMsgLikelihoods.jl") # slowish, FIX out of bounds issue
       include("testInitVariableOrder.jl") # slowish
       include("testTreeMessageUtils.jl") # slowish
       include("testEuclidDistance.jl") # test_broken
-      include("testDERelative.jl") # FIX, attempt to access [0] at index [1]
+      include("testDERelative.jl") # FIX, attempt to access [0] at index [1], _createCCW sampleFactor
 
     end
   end # basic_functional_group
