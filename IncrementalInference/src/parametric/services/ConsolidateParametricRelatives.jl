@@ -44,9 +44,8 @@ function solveFactorParametric(
   measT = [mea_]
 
   # get variable points
-  function _getParametric(vari::VariableCompute, key = :default)
-    pt = calcMean(getBelief(vari, key))
-
+  function _getParametric(vari::VariableCompute, stateLabel = :default)
+    pt = mean(getBelief(vari, stateLabel))
     return collect(getCoordinates(getStateKind(vari), pt))
   end
 

@@ -286,7 +286,9 @@ function DistributedFactorGraphs.solveGraph!(
     newKey = Symbol(:default_, nextk)
     # DFG.cloneStates!(dfgl, newKey, :default; whereSolvable = >=(1))
     for vlabel in ls(dfgl; whereSolvable = >=(1))
+      if hasState(dfgl, vlabel, :default)
         DFG.copytoState!(dfgl, vlabel, newKey, getState(dfgl, vlabel, :default))
+      end
     end
     # foreach(x->updateVariableSolverData!(dfgl, x, getState(getVariable(dfgl,x), :default), newKey, true, Symbol[]), ls(dfgl, solvable=1))
     @info "storeOld=true, previous :default deepcopied into $newKey for solvable==1 variables."
@@ -310,6 +312,7 @@ function DistributedFactorGraphs.solveGraph!(
 
   initTreeMessageChannels!(tree)
 
+  # TODO, move debug drawing of the tree as part of debug_callback instead
   # if desired, drawtree in a loop
   treetask, _dotreedraw = drawTreeAsyncLoop(tree, csmoptions.solverparams; dotreedraw = csmoptions.dotreedraw)
 

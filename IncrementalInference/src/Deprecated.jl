@@ -17,6 +17,20 @@
 #   return nothing
 # end
 
+function setVal!(
+  state::State, 
+  val::AbstractVector{P}; 
+  observability::AbstractVector{<:Real} = ones(getDimension(getStateKind(state)))
+) where {P}
+  @warn "setVal! is deprecated, use setBelief!(getState, HomotopyDensity) style instead" maxlog = 10
+  kind = getStateKind(state)
+  belief = if length(val) == 1
+    HomotopyDensity_legacy(kind,val; bw=ones(getDimension(kind)), newbw=false, observability)
+  else
+    HomotopyDensity_legacy(kind, val; observability)
+  end
+  setBelief!(state, belief)
+end
 # function setVal!(
 #   vd::State, 
 #   val::AbstractVector{P}; 
@@ -31,15 +45,20 @@
 #   observability .= observability
 #   return nothing
 # end
-# function setVal!(
-#   v::VariableCompute,
-#   val::AbstractVector{P};
-#   solveKey::Symbol = :default,
-#   observability::AbstractVector{<:Real} = [0.0;],
-# ) where {P}
-#   setVal!(getState(v, solveKey), val; observability)
-#   return nothing
-# end
+
+function setVal!(
+  v::VariableCompute,
+  val::AbstractVector{P};
+  solveKey::Symbol = :default,
+  observability::AbstractVector{<:Real} = [0.0;],
+) where {P}
+  state = if !hasState(v, solveKey)
+    solveops = solveKey == :parametric ? NLLSSolver() : NPBPSolver()
+    prepareState!(v, solveops, solveKey)
+  end
+  state = getState(v, solveKey)
+  setVal!(state, val; observability)
+end
 # function setVal!(
 #   vd::State,
 #   val::AbstractVector{P},
@@ -80,15 +99,15 @@
 #   setVal!(getState(v, solveKey), val, bw; observability)
 #   return nothing
 # end
-# function setVal!(
-#   dfg::AbstractDFG,
-#   sym::Symbol,
-#   val::AbstractVector{P};
-#   solveKey::Symbol = :default,
-#   observability::AbstractVector{<:Real} = [0.0;],
-# ) where {P}
-#   return setVal!(getVariable(dfg, sym), val; solveKey, observability)
-# end
+function setVal!(
+  dfg::AbstractDFG,
+  sym::Symbol,
+  val::AbstractVector{P};
+  solveKey::Symbol = :default,
+  observability::AbstractVector{<:Real} = [0.0;],
+) where {P}
+  return setVal!(getVariable(dfg, sym), val; solveKey, observability)
+end
 
 
 # """

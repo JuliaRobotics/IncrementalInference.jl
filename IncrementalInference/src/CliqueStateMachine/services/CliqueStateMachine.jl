@@ -220,7 +220,7 @@ function waitForUp_StateMachine(csmc::CliqStateMachineContainer)
 
   elseif csmc.csmoptions.algorithm == :parametric
     !all(all_child_status .== UPSOLVED) && error("#FIXME")
-    return solveUp_ParametricStateMachine
+    return solveUpParametric_StateMachine
 
   elseif true #TODO Currently all up goes through solveUp 
     return preUpSolve_StateMachine
