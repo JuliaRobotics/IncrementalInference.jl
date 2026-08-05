@@ -24,10 +24,18 @@ end
 
 function sampleTangent(M::AbstractLieGroup, z, p = getPointIdentity(M))
   # @info "DIM 2 or 1" manifold_dimension(M) rand(z) typeof(p)
-  _splat(s::AbstractVector) = SVector{manifold_dimension(M)}(s...)
-  _splat(s::Number) = SVector{manifold_dimension(M)}(s)
+  # _splat(s::AbstractVector) = SVector{manifold_dimension(M)}(s...)
+  # _splat(s::Number) = SVector{manifold_dimension(M)}(s)
   # _splat(s::Number) = s
-  return hat(LieAlgebra(M), _splat(rand(z)), typeof(p))
+  sp = rand(z)
+  # FIXME, hackapalooza getting to tangents from either coordinates or points/group elements
+  return if sp isa Number
+    sp
+  elseif length(sp) == manifold_dimension(M)
+    hat(LieAlgebra(M), ApproxManifoldProducts._forcestatic(sp), typeof(p))
+  else
+    ApproxManifoldProducts._forcestatic(log(M, sp[1]))
+  end
 end
 
 function sampleTangent(M::typeof(LieGroups.CircleGroup()), z::Distribution, p = getPointIdentity(M))
