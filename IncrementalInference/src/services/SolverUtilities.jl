@@ -259,8 +259,11 @@ function _checkVariableByReference(
 )
   #
 
+  M = getManifold(destType)
+
   refVal = if overridePPE !== nothing
-    overridePPE
+    # ASSUME legacy user sending coords, and legacy LieGroups only
+    ApproxManifoldProducts._forcestatic(exp(M, hat(LieAlgebra(M), overridePPE)))
   else
     # calculate and add the reference value
     # TODO refactor consolidation to use `_buildGraphByFactorAndTypes!`
@@ -271,19 +274,21 @@ function _checkVariableByReference(
     addFactor!(tfg, [:x0; :l0], factor; graphinit = false)
 
     # calculate where the landmark reference position is
-    accumulateFactorMeans(tfg, [:x0f1; :x0l0f1])
+    Xc = accumulateFactorMeans(tfg, [:x0f1; :x0l0f1])
+    ApproxManifoldProducts._forcestatic(exp(M, hat(LieAlgebra(M), Xc)))
   end
 
   varLms = ls(fg; whereLabel=contains(destRegex)) |> sortDFG
-  M = getManifold(destType)
   already = if doRef
     ppeLms = getBelief.(getVariable.(fg, varLms), refKey) .|> mean
-    @show refVal M
+    # @show refVal M
     errmask = ppeLms .|> (x -> isapprox(M, x, refVal; atol = atol))
     any(errmask)
   else
     false
   end
+
+  ppe = (mean=refVal, max=refVal, suggested=refVal)
 
   if already
     # does exist, ppe, variableLabel
@@ -313,10 +318,16 @@ function _checkVariableByReference(
 )
   #
 
+  M = getManifold(destType)
   refVal = if overridePPE !== nothing
-    overridePPE
+    # ASSUME legacy was in coords and a LieGroup
+    ApproxManifoldProducts._forcestatic(
+      exp(M, hat(LieAlgebra(M), overridePPE))
+    )
   else
-    getMeasurementParametric(factor)[1]
+    ApproxManifoldProducts._forcestatic(
+      exp(M, hat(LieAlgebra(M), getMeasurementParametric(factor)[1]))
+    )
   end
 
   ppe = (mean=refVal, max=refVal, suggested=refVal)

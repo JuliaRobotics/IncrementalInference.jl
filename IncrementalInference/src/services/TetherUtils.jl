@@ -108,6 +108,7 @@ Notes
 - Returns mean value as coordinates
 
 DevNotes
+- FIXME, don't return coords, return full point instead
 - TODO consolidate with similar [`approxConvBelief`](@ref)
 - TODO compare consolidate with [`solveParametricConditionals`](@ref)
 - TODO compare consolidate with [`solveFactorParametric`](@ref)

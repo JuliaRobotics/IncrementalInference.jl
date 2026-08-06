@@ -45,8 +45,13 @@ function solveFactorParametric(
 
   # get variable points
   function _getParametric(vari::VariableCompute, stateLabel = :default)
-    pt = mean(getBelief(vari, stateLabel))
-    return collect(getCoordinates(getStateKind(vari), pt))
+    kind = getStateKind(vari)
+    pt = if hasState(vari, stateLabel)
+      mean(getBelief(vari, stateLabel))
+    else
+      getPointDefault(kind)
+    end
+    return collect(getCoordinates(kind, pt))
   end
 
   # overwrite specific src values from user
