@@ -57,7 +57,7 @@ function prepareState!(
   belief::HomotopyDensity = defaultBelief(v,solver;num_kernels,varType),
   initialized::Bool = false,
 )
-  @error "$statelabel -- don't use prepareState!, $(hasState(v, statelabel)) it breaks all instances of null/multihypo and probably more" maxlog=10
+  @error "Don't use prepareState!, (hasState($statelabel)=$(hasState(v, statelabel))) it breaks all instances of null/multihypo and probably more" maxlog=10
   # check for early return 
   if hasState(v, statelabel)
     return 0
