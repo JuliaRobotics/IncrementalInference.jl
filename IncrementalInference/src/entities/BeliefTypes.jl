@@ -70,7 +70,6 @@ end
 function TreeBelief(state::State, solvDim::Real = 0)
   pts = getPoints(state.belief; permute=false) # TODO likely want to go back to sorted order here, DX debugging with permute=false
   cv = if length(getBW(state.belief)) <= 0 || !isassigned(getBW(state.belief), 1)
-    @info "WHY" string(getBW(state.belief)) Npts(state.belief)
     @warn "TreeBelief constructor: belief has no bandwidth, defaulting to identity, incorrect -- must refactor, see #1929" maxlog = 20
     cov(state.belief)
   else
