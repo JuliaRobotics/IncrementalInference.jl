@@ -10,7 +10,7 @@ Default linear offset between two scalar variables.
 X_2 = X_1 + η_Z
 ```
 """
-DFG.@tags struct LinearRelative{N, T <: SamplableBelief} <: RelativeObservation 
+DFG.@tags struct LinearRelative{N, T} <: RelativeObservation 
   Z::T & DFG.@packed
 end
 

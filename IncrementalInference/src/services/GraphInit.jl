@@ -3,18 +3,15 @@
 """
     $SIGNATURES
 
-For variables in `varList` check and if necessary make solverData objects for both `:default` and `:parametric` solveKeys. 
+For variables in `varList` check and if necessary make solverData objects for `solveKey`.
 
 Example
 ```julia
-num_made = makeSolverData(fg; solveKey=:parametric)
+num_made = makeSolverData!(fg; solveKey=:parametric)
 ```
 
 Notes
 - Part of solving JuliaRobotics/IncrementalInference.jl issue 1637
-
-DevNotes
-- TODO, assumes parametric solves will always just be in solveKey `:parametric`.
 
 See also: [`doautoinit!`](@ref), [`initAll!`](@ref)
 """
@@ -22,21 +19,21 @@ function makeSolverData!(
   dfg::AbstractDFG;
   solvable = 1,
   varList::AbstractVector{Symbol} = ls(dfg; whereSolvable = >=(solvable)),
-  solveKey::Symbol=:default
+  solveKey::Symbol=:default,
+  parametric::Bool = solveKey === :parametric,
 )
   count = 0
   for vl in varList
     v = getVariable(dfg,vl)
     varType = getStateKind(v) |> IIF._variableType
     vsolveKeys = listStates(dfg,vl)
-    if solveKey != :parametric && !(solveKey in vsolveKeys)
-        IIF.setDefaultNodeData!(v, 0, getSolverParams(dfg).N; initialized=false, varType, solveKey) # dodims
-        count += 1
-    elseif solveKey == :parametric && !(:parametric in vsolveKeys)
-        # global doinit = true
+    solveKey in vsolveKeys && continue
+    if parametric
         IIF.setDefaultNodeDataParametric!(v, varType; initialized=false, solveKey)
-        count += 1
+    else
+        IIF.setDefaultNodeData!(v, 0, getSolverParams(dfg).N; initialized=false, varType, solveKey) # dodims
     end
+    count += 1
   end
 
   return count
@@ -331,10 +328,11 @@ function initVariable!(
   samplable_belief::SamplableBelief,
   solveKey::Symbol = :default;
   N::Int = getSolverParams(dfg).N,
+  parametric::Bool = solveKey === :parametric,
 )
   #
   variable = getVariable(dfg, label)
-  initVariable!(variable, samplable_belief, solveKey; N)
+  initVariable!(variable, samplable_belief, solveKey; N, parametric)
   return nothing
 end
 
@@ -343,10 +341,11 @@ function initVariable!(
   samplable_belief::SamplableBelief,
   solveKey::Symbol = :default;
   N::Int = length(getVal(variable)),
+  parametric::Bool = solveKey === :parametric,
 )
   #
   M = getManifold(variable)
-  if solveKey == :parametric
+  if parametric
     μ, iΣ = getMeasurementParametric(samplable_belief)
     vnd = getState(variable, solveKey)
     DFG.refMeans(vnd)[1] = getPoint(getStateKind(variable), μ)
@@ -514,19 +513,20 @@ function initAll!(
     # does SolverData exist for this solveKey?
     vsolveKeys = listStates(vari)
     # FIXME, likely some consolidation needed with #1637
-    if !_parametricInit && !(solveKey in vsolveKeys)  
-      # accept complete defaults for a novel solveKey
-      setDefaultNodeData!(
-        vari,
-        0,
-        N;
-        solveKey,
-        initialized = false,
-        varType,
-      )
-    end
-    if _parametricInit && !(:parametric in vsolveKeys)
-      setDefaultNodeDataParametric!(vari, varType; initialized = false)
+    if !(solveKey in vsolveKeys)
+      if _parametricInit
+        setDefaultNodeDataParametric!(vari, varType; solveKey, initialized = false)
+      else
+        # accept complete defaults for a novel solveKey
+        setDefaultNodeData!(
+          vari,
+          0,
+          N;
+          solveKey,
+          initialized = false,
+          varType,
+        )
+      end
     end
   end
 

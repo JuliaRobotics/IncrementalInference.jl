@@ -84,7 +84,7 @@ function CliqStateMachineContainer(
   cliqId::CliqueId = cliq.id,
   algorithm::Symbol = :default,
   init_iter::Int = 0,
-  enableLogging::Bool = true,
+  enableLogging::Bool = false,
   solveKey::Symbol = :default,
   _csm_iter::Int = 0,
 ) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}

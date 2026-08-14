@@ -1,6 +1,7 @@
 using DistributedFactorGraphs
 using IncrementalInference
 using Interpolations
+using LinearAlgebra
 using Manifolds
 using StaticArrays
 using Test
@@ -254,8 +255,6 @@ result = solveTree!(fg; smtasks); #, recordcliqs=ls(fg))
 
 ##
 end
-
-
 
 @testset "test deconv on <:RelativeObservation" begin
 ##
