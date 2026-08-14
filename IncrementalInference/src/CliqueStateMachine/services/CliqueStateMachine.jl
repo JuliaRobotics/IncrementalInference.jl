@@ -26,6 +26,7 @@ function initStartCliqStateMachine!(
   logger::SimpleLogger = SimpleLogger(Base.stdout),
   solve_progressbar = nothing,
   algorithm::Symbol = :default,
+  solver::Union{Nothing, AbstractTreeSolver} = nothing,
   solveKey::Symbol = algorithm,
 )
 
@@ -51,8 +52,10 @@ function initStartCliqStateMachine!(
     logger,
     cliq.id,
     algorithm,
+    solver,
     0,
-    true,
+    0,
+    false,
     solveKey,
     0,
   )
@@ -192,6 +195,10 @@ function presolveChecklist_StateMachine(csmc::CliqStateMachineContainer)
     end
   end
 
+  # the linearized solve reads its starting estimate off the freshly built subgraph once, before any
+  # sweep, and carries it on the tree from there — see `setupLinear_ParametricStateMachine`
+  csmc.algorithm === :parametric && return setupLinear_ParametricStateMachine
+
   # go to 2 wait for up
   return waitForUp_StateMachine
 end
@@ -249,7 +256,7 @@ function waitForUp_StateMachine(csmc::CliqStateMachineContainer)
 
     return waitForDown_StateMachine
 
-  elseif csmc.algorithm == :parametric
+  elseif csmc.algorithm === :parametric
     !all(all_child_status .== UPSOLVED) && error("#FIXME")
     return solveUp_ParametricStateMachine
 
@@ -633,8 +640,12 @@ function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
       putErrorDown(csmc)
       return IncrementalInference.exitStateMachine
 
-    elseif csmc.algorithm == :parametric
-      beliefMsg.status != DOWNSOLVED && error("#FIXME")
+    elseif csmc.algorithm === :parametric
+      # DOWNSOLVED = another sweep follows; 
+      # CONVERGED / ITERLIMIT = last down triggered by root.  
+      #   apply the final deltas — and `checkConverged_ParametricStateMachine` acts on the verdict afterwards.
+      beliefMsg.status in (DOWNSOLVED, CONVERGED, ITERLIMIT) ||
+        error("unexpected downward status $(beliefMsg.status) in parametric solve")
       return solveDown_ParametricStateMachine
     elseif beliefMsg.status in [MARGINALIZED, DOWNSOLVED, INITIALIZED, NO_INIT]
       return preDownSolve_StateMachine
@@ -656,7 +667,7 @@ function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
 
   # The clique is a root
   # root clique down branching happens here
-  if csmc.algorithm == :parametric
+  if csmc.algorithm === :parametric
     return solveDown_ParametricStateMachine
   else
     return preDownSolve_StateMachine
@@ -925,7 +936,7 @@ Notes
 - CSM function 5
 """
 function updateFromSubgraph_StateMachine(csmc::CliqStateMachineContainer)
-  isParametricSolve = csmc.algorithm == :parametric
+  isParametricSolve = csmc.algorithm === :parametric
 
   # set solved for all frontals
   if !isParametricSolve

@@ -89,6 +89,7 @@ Specialized info logger print function to show clique state machine information
 in a standardized form.
 """
 function infocsm(csmc::CliqStateMachineContainer, str::A) where {A <: AbstractString}
+  csmc.enableLogging || return nothing
   tm = string(Dates.now())
   tmt = split(tm, 'T')[end]
 
@@ -299,7 +300,9 @@ Notes
 - Sets the color of tree clique to `lightgreen`.
 """
 function resetTreeCliquesForUpSolve!(treel::AbstractBayesTree)::Nothing
-  acclist = CliqStatus[DOWNSOLVED]
+  # CONVERGED / ITERLIMIT are the parametric loop's terminal states; without them a reused tree would
+  # start already-finished and the next solve would do nothing.
+  acclist = CliqStatus[DOWNSOLVED, CONVERGED, ITERLIMIT]
   for (clid, cliq) in getCliques(treel)
     if getCliqueStatus(cliq) in acclist
       setCliqueStatus!(cliq, INITIALIZED)

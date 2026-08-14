@@ -1,368 +1,275 @@
+# ======================================================================================
+# Clique state machine functions — parametric (linearized) path.
+# ======================================================================================
 
 """
     $SIGNATURES
 
-Notes
-- Parametric state machine function nr. 3
+Build the clique's residual/Jacobian machinery — CSM function, run **once** per state machine.
 """
-function solveUp_ParametricStateMachine_Old(csmc::CliqStateMachineContainer)
-  infocsm(csmc, "Par-3, Solving Up")
-
-  setCliqueDrawColor!(csmc.cliq, "red")
-  # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
-
-  #TODO maybe change to symbols
-  msgfcts = FactorCompute[]
-  # LITTLE WEIRD get previously set up msgs (stored in this clique)
-  # FIXME, fetch message buffered in channels
-  # see #855
-  for (idx, upmsg) in getMessageBuffer(csmc.cliq).upRx #get cached messages taken from children saved in this clique
-    #TODO remove temp msgfcts container
-    append!(msgfcts, addMsgFactors!(csmc.cliqSubFg, upmsg, UpwardPass)) # addMsgFactors_Parametric!
-  end
-  logCSM(csmc, "length mgsfcts=$(length(msgfcts))")
-  infocsm(csmc, "length mgsfcts=$(length(msgfcts))")
-
-  # store the cliqSubFg for later debugging
-  _dbgCSMSaveSubFG(csmc, "fg_beforeupsolve")
-
-  vardict, result, varIds, Σ = solveGraphParametricOptim(csmc.cliqSubFg)
-
-  logCSM(csmc, "$(csmc.cliq.id) vars $(keys(varIds))")
-  # @info "$(csmc.cliq.id) Σ $(Σ)"
-  # Pack all results in variables
-  # FIXME test f_converged, ls_success, confirm convergence check
-  if Optim.g_converged(result) || Optim.f_converged(result)
-    logCSM(csmc, "$(csmc.cliq.id): subfg optim converged updating variables")
-    for (v, val) in vardict
-      vnd = getState(getVariable(csmc.cliqSubFg, v), :parametric)
-      # fill in the variable node data value
-      logCSM(csmc, "$(csmc.cliq.id) up: updating $v : $val")
-      DFG.refMeans(vnd)[1] = val.val
-      #calculate and fill in covariance
-      #TODO rather broadcast than make new memory
-      DFG.refCovariances(vnd)[1] = val.cov
-    end
-    # elseif length(lsfPriors(csmc.cliqSubFg)) == 0 #FIXME
-    #   @error "Par-3, clique $(csmc.cliq.id) failed to converge in upsolve, but ignoring since no priors" result
-  else
-    @error "Par-3, clique $(csmc.cliq.id) failed to converge in upsolve" result
-    # propagate error to cleanly exit all cliques
-    putErrorUp(csmc)
-    if length(getParent(csmc.tree, csmc.cliq)) == 0
-      putErrorDown(csmc)
-      return IncrementalInference.exitStateMachine
-    end
-
-    return waitForDown_StateMachine
-  end
-
-  # Done with solve delete factors
-  #TODO confirm, maybe don't delete mesage factors on subgraph, maybe delete if its priors, but not conditionals
-  deleteMsgFactors!(csmc.cliqSubFg)
-
-  # store the cliqSubFg for later debugging
-  _dbgCSMSaveSubFG(csmc, "fg_afterupsolve")
-
-  #fill in belief
-  #TODO createBeliefMessageParametric(csmc.cliqSubFg, csmc.cliq, solvekey=opts.solvekey)
-  cliqSeparatorVarIds = getCliqSeparatorVarIds(csmc.cliq)
-  #Fill in CliqueLikelihood
-  cliqlikelihood =
-    calculateMarginalCliqueLikelihood(vardict, Σ, varIds, cliqSeparatorVarIds)
-  # @info "$(csmc.cliq.id) clique likelihood message $(cliqlikelihood)"
-  beliefMsg = LikelihoodMessage(;
-    sender = (; id = csmc.cliq.id.value, step = csmc._csm_iter),
-    status = UPSOLVED,
-    variableOrder = cliqSeparatorVarIds,
-    cliqueLikelihood = cliqlikelihood,
-    msgType = ParametricMessage(),
-  )
-
-  #FIXME bit of a hack, only fill in variable beliefs if there are priors or for now more than one seperator
-  if length(lsfPriors(csmc.cliqSubFg)) > 0 || length(cliqSeparatorVarIds) > 1
-    for si in cliqSeparatorVarIds
-      vnd = getState(getVariable(csmc.cliqSubFg, si), :parametric)
-      beliefMsg.belief[si] = TreeBelief(deepcopy(vnd))
-    end
-  end
-
-  for e in getEdgesParent(csmc.tree, csmc.cliq)
-    logCSM(csmc, "$(csmc.cliq.id): put! on edge $(e)")
-    getMessageBuffer(csmc.cliq).upTx = deepcopy(beliefMsg)
-    putBeliefMessageUp!(csmc.tree, e, beliefMsg)
-  end
-
-  return waitForDown_StateMachine
-end
-
-# solve relatives ignoring any priors keeping `from` at ϵ
-# if clique has priors : solve to get a prior on `from`
-# send messages as factors or just the beliefs? for now factors
-function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
-  infocsm(csmc, "Par-3, Solving Up")
-
-  setCliqueDrawColor!(csmc.cliq, "red")
-  # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
-
-  msgfcts = Symbol[]
-
-  for (idx, upmsg) in getMessageBuffer(csmc.cliq).upRx #get cached messages taken from children saved in this clique
-    child_factors = addMsgFactors_Parametric!(csmc.cliqSubFg, upmsg, UpwardPass)
-    append!(msgfcts, getLabel.(child_factors)) # addMsgFactors_Parametric!
-  end
-  logCSM(csmc, "length mgsfcts=$(length(msgfcts))")
-  infocsm(csmc, "length mgsfcts=$(length(msgfcts))")
-
-  # store the cliqSubFg for later debugging
-  _dbgCSMSaveSubFG(csmc, "fg_beforeupsolve")
+function setupLinear_ParametricStateMachine(csmc::CliqStateMachineContainer)
+  logCSM(csmc, "Par-0c $(csmc.cliq.id): setting up linearized solve")
 
   subfg = csmc.cliqSubFg
-
   frontals = getCliqFrontalVarIds(csmc.cliq)
   separators = getCliqSeparatorVarIds(csmc.cliq)
+  factorLabels = getCliqFactorIdsAll(csmc.cliq)
+  cliqdata = getCliqueData(csmc.cliq)
 
-  # if its a root do full solve
-  if length(getParent(csmc.tree, csmc.cliq)) == 0
-    # M, vartypeslist, lm_r, Σ = solve_RLM(subfg; is_sparse=false, finiteDiffCovariance=true)
-    autoinitParametric!(subfg)
-    M, vartypeslist, lm_r, Σ = solveGraphParametric!(subfg; is_sparse=false, finiteDiffCovariance=true, damping_term_min=1e-18)
+  cliqdata.cliquelayout = @something(cliqdata.cliquelayout, _cliqueLayout(subfg, frontals, separators))
 
+  cliqdata.linearizer = if isempty(factorLabels)
+    nothing
   else
-
-    # select first seperator as constant reference at the identity element
-    isempty(separators) && @warn "empty separators solving cliq $(csmc.cliq.id.value)" ls(subfg) lsf(subfg)
-    from = first(separators)
-    from_v = getVariable(subfg, from)
-    getSolverData(from_v, :parametric).val[1] = getPointIdentity(getVariableType(from_v))
-
-    #TODO handle priors
-    # Variables that are free to move
-    free_vars = [frontals; separators[2:end]]
-    # Solve for the free variables
-
-    @assert !isempty(lsf(subfg)) "No factors in clique $(csmc.cliq.id.value) ls=$(ls(subfg)) lsf=$(lsf(subfg))"
-
-    # M, vartypeslist, lm_r, Σ = solve_RLM_conditional(subfg, free_vars, [from];)
-    M, vartypeslist, lm_r, Σ = solve_RLM_conditional(subfg, free_vars, [from]; finiteDiffCovariance=false, damping_term_min=1e-18)
-
+    CliqueLinearizer(
+      subfg, cliqdata.cliquelayout, factorLabels;
+      solveKey = csmc.solveKey, partition = (frontals, separators),
+    )
   end
-  
-  # FIXME check solve convergence
-  if !true
-    @error "Par-3, clique $(csmc.cliq.id) failed to converge in upsolve" result
-    # propagate error to cleanly exit all cliques
-    putErrorUp(csmc)
-    if length(getParent(csmc.tree, csmc.cliq)) == 0
-      putErrorDown(csmc)
-      return IncrementalInference.exitStateMachine
+
+  # re-seed from the subgraph, so an edit made from outside between solves is not hidden by a
+  # carried point
+  if !isnothing(cliqdata.elimination)
+    own = cliqdata.elimination.cliquelinearization
+    n = length(own)
+    cliqdata.elimination.posterior = LinearizedBelief(
+      DensityBundlePoint(
+        own.layout,
+        _readBasePoint(subfg, getLabelpartition(own), csmc.solveKey),
+        zeros(n, n),
+      ),
+      zeros(n),
+    )
+  end
+
+  return waitForUp_StateMachine
+end
+
+"""
+    $SIGNATURES
+
+Upward pass — CSM function.  Linearize, fuse the children's messages, eliminate the frontals, send the
+separator system up.  A root has no separators and solves on the way down.
+"""
+function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
+  infocsm(csmc, "Par-3, Solving Up")
+  setCliqueDrawColor!(csmc.cliq, "red")
+
+  subfg = csmc.cliqSubFg
+  separators = getCliqSeparatorVarIds(csmc.cliq)
+
+  childMsgs = LinearizedLikelihood[]
+  for (_, upmsg) in getMessageBuffer(csmc.cliq).upRx
+    isnothing(upmsg.linearized) && continue
+    push!(childMsgs, upmsg.linearized)
+  end
+
+  relinearizeTol = csmc.solver isa TangentSpaceSolver ? csmc.solver.relinearizeTol : 0.0
+  exactJacobian = csmc.solver isa TangentSpaceSolver ? csmc.solver.exactJacobian : false
+  tol = csmc.solver isa TangentSpaceSolver ? csmc.solver.tol : 0.0
+  cliqdata = getCliqueData(csmc.cliq)
+  cache = cliqdata.elimination
+  childRelinearized = any(childMsg -> childMsg.relinearized, childMsgs)
+  childMoving = any(childMsg -> childMsg.moving, childMsgs)
+
+  # the clique's own estimate: carried between sweeps, read back from storage only on the first
+  p_current = isnothing(cache) ?
+    _readBasePoint(subfg, getLabelpartition(cliqdata.cliquelayout), csmc.solveKey) :
+    stepBasepoint(cache.posterior.bundle, cache.posterior.Δ)
+  linearizationCurrent =
+    !isnothing(cache) && _isLinearizationCurrent(cache, p_current, relinearizeTol)
+
+  elimination, relinearized = if linearizationCurrent && !childRelinearized
+    logCSM(csmc, "$(csmc.cliq.id): up skipped, cached factorization still valid")
+    (cache, false)
+  else
+    # constructs on the sweep that has none, updates in place after — and the update leaves `laststep`
+    # alone, which is what keeps PROGRESS from being reset by a re-factorization
+    newElimination =
+      eliminateCliqueFrontals!(cliqdata, p_current, childMsgs; relinearizeTol, exactJacobian)
+    logCSM(
+      csmc,
+      "$(csmc.cliq.id): up eliminated, $(length(childMsgs)) child systems, jacobian $(newElimination.reusedlinearization ? "reused" : "recomputed")",
+    )
+    (newElimination, true)
+  end
+
+  # must describe THIS pass, not whichever pass last wrote the cache
+  elimination.relinearized = relinearized
+  moving = elimination.laststep > tol || childMoving
+  elimination.moving = moving
+
+  _dbgCSMSaveSubFG(csmc, "fg_beforeupsolve")
+
+  if !isempty(separators)
+    beliefMsg = LikelihoodMessage(;
+      sender = (; id = csmc.cliq.id.value, step = csmc._csm_iter),
+      status = UPSOLVED,
+      variableOrder = separators,
+      msgType = LinearizedMessage(),
+      linearized = LinearizedLikelihood(elimination.separatorlikelihood, relinearized, moving),
+    )
+
+    getMessageBuffer(csmc.cliq).upTx = beliefMsg
+    for edge in getEdgesParent(csmc.tree, csmc.cliq)
+      logCSM(csmc, "$(csmc.cliq.id): put! on edge $(edge)")
+      putBeliefMessageUp!(csmc.tree, edge, beliefMsg)
     end
-
-    return waitForDown_StateMachine
-  end
-
-  logCSM(csmc, "$(csmc.cliq.id): subfg solve converged sending messages")
-  
-  # Pack results in massage factors
-  
-  sigmas = extractMarginalsAP(M, vartypeslist, Σ)
-  
-  # FIXME fix MsgRelativeType
-  relative_message_factors = MsgRelativeType();
-  for (i, to) in enumerate(vartypeslist)
-    if to in separators
-      #assume full dim factor
-      factype = selectFactorType(subfg, from, to)
-      # make S symetrical
-      # S = sigmas[i] # FIXME for some reason SMatrix is not invertable even though it is!!!!!!!!
-      S = Matrix(sigmas[i])# FIXME
-      S = (S + S') / 2
-      # @assert all(isapprox.(S, sigmas[i], rtol=1e-3)) "Bad covariance matrix - not symetrical"
-      !all(isapprox.(S, sigmas[i], rtol=1e-3)) && @error("Bad covariance matrix - not symetrical")
-      # @assert all(diag(S) .> 0) "Bad covariance matrix - not positive diag"
-      !all(diag(S) .> 0) && @error("Bad covariance matrix - not positive diag")
-
-      
-      M_to = getManifold(getVariableType(subfg, to))
-      ϵ = getPointIdentity(M_to)
-      μ = vee(M_to, ϵ, log(M_to, ϵ, lm_r[i]))
-        
-      message_factor = AdFactor(factype(MvNormal(μ, S)))
-      
-     
-      # logCSM(csmc, "$(csmc.cliq.id): Z=$(getMeasurementParametric(message_factor))"; loglevel = Logging.Warn)
-
-      push!(relative_message_factors, (variables=[from, to], likelihood=message_factor))
-    end
-  end
-
-  # Done with solve delete factors
-  #TODO confirm, maybe don't delete mesage factors on subgraph, maybe delete if its priors, but not conditionals
-  # deleteMsgFactors!(csmc.cliqSubFg)
-
-  # store the cliqSubFg for later debugging
-  _dbgCSMSaveSubFG(csmc, "fg_afterupsolve")
-
-  # cliqueLikelihood = calculateMarginalCliqueLikelihood(vardict, Σ, varIds, cliqSeparatorVarIds)
-
-  #Fill in CliqueLikelihood
-  beliefMsg = LikelihoodMessage(;
-    sender = (; id = csmc.cliq.id.value, step = csmc._csm_iter),
-    status = UPSOLVED,
-    variableOrder = separators,
-    # cliqueLikelihood,
-    jointmsg = _MsgJointLikelihood(;relatives=relative_message_factors),
-    msgType = ParametricMessage(),
-  )
-
-  # @assert length(separators) <= 2 "TODO length(separators) = $(length(separators)) > 2 in clique $(csmc.cliq.id.value)"
-  @assert isempty(lsfPriors(csmc.cliqSubFg)) || csmc.cliq.id.value == 1 "TODO priors in clique $(csmc.cliq.id.value)"
-  # if length(lsfPriors(csmc.cliqSubFg)) > 0 || length(separators) > 2
-    # for si in cliqSeparatorVarIds
-    #   vnd = getSolverData(getVariable(csmc.cliqSubFg, si), :parametric)
-    #   beliefMsg.belief[si] = TreeBelief(deepcopy(vnd))
-    # end
-  # end
-
-  for e in getEdgesParent(csmc.tree, csmc.cliq)
-    logCSM(csmc, "$(csmc.cliq.id): put! on edge $(e)")
-    getMessageBuffer(csmc.cliq).upTx = deepcopy(beliefMsg)
-    putBeliefMessageUp!(csmc.tree, e, beliefMsg)
   end
 
   return waitForDown_StateMachine
 end
 
-global g_n = nothing
+"""
+    $SIGNATURES
+The parent's belief and this clique's separator deltas, re-expressed onto this clique's reference
+points.  A root has neither.
+"""
+function _downwardInputs(csmc::CliqStateMachineContainer, elimination::CliqueElimination)
+  length(getParent(csmc.tree, csmc.cliq)) == 0 && return (nothing, Float64[])
+  downmsg = getMessageBuffer(csmc.cliq).downRx
+  @assert !isnothing(downmsg) && !isnothing(downmsg.linearized) "no linearized downward message in clique $(csmc.cliq.id.value)"
+  # NOTE separator order is the PARTITION's, which `idx_S`, `W` and `separatorlikelihood.fibre.Λ`
+  # were all built in
+  sepLabels = elimination.separatorlikelihood.labels
+  return (
+    downmsg.linearized.bundle,
+    _reanchorDeltas(downmsg.linearized, sepLabels, elimination.cliquelinearization),
+  )
+end
 
 """
     $SIGNATURES
 
-Notes
-- Parametric state machine function nr. 5
+Downward pass — CSM function.  Back-substitute against the parent's deltas, forward the result to the
+children, and broadcast the root's termination verdict.  The mathematics is in
+[`downsolveClique`](@ref).
 """
 function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
-  infocsm(csmc, "Par-5, Solving down")
-
+  infocsm(csmc, "Lin-5, Solving down (linearized)")
   setCliqueDrawColor!(csmc.cliq, "red")
-  # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
-  # TODO create function: 
-  # updateMsgSeparators!(csmc.cliqSubFg, downmsg)
-  downmsg = getMessageBuffer(csmc.cliq).downRx  #see #855
-  svars = getCliqSeparatorVarIds(csmc.cliq)
-  if !isnothing(downmsg)
-    for (msym, belief) in downmsg.belief
-      if msym in svars
-        #TODO maybe combine variable and factor in new prior?
-        vnd = getState(getVariable(csmc.cliqSubFg, msym), :parametric)
-        logCSM(csmc, "$(csmc.cliq.id): Updating separator $msym from message $(belief.val)")
-        DFG.refMeans(vnd)[1] = belief.val[1] #FIXME 🦨 shares data structure in belief
-        DFG.refCovariances(vnd)[1] = belief.bw
-        p = belief.val[1]
+  subfg = csmc.cliqSubFg
+  isroot = length(getParent(csmc.tree, csmc.cliq)) == 0
 
-        S = belief.bw
-        S = (S + S') / 2
-        # vnd.bw .= S
-        
-        nd = MvNormal(getCoordinates(Main.Pose2, p), S)
-        addFactor!(csmc.cliqSubFg, [msym], Main.PriorPose2(nd))
-      end
+  # reuse the upward pass's factorization — recomputing would double the clique cost, Jacobian included
+  cliqdata = getCliqueData(csmc.cliq)
+  cache = cliqdata.elimination
+  elimination = if isnothing(cache)
+    @warn "linearized down solve: no cached factorization for clique $(csmc.cliq.id.value), recomputing"
+    childMsgs = LinearizedLikelihood[]
+    for (_, upmsg) in getMessageBuffer(csmc.cliq).upRx
+      isnothing(upmsg.linearized) && continue
+      push!(childMsgs, upmsg.linearized)
     end
+    eliminateCliqueFrontals!(
+      cliqdata,
+      _readBasePoint(subfg, getLabelpartition(cliqdata.cliquelayout), csmc.solveKey), childMsgs;
+      exactJacobian = csmc.solver isa TangentSpaceSolver ? csmc.solver.exactJacobian : false,
+    )
+  else
+    cache
   end
 
-  # store the cliqSubFg for later debugging
-  # NOTE ITS not changed for now but keep here for possible future use
-  # _dbgCSMSaveSubFG(csmc, "fg_beforedownsolve")
+  parentBelief, ΔS = _downwardInputs(csmc, elimination)
 
-  # DownSolve cliqSubFg
-  #only down solve if its not a root
-  if length(getParent(csmc.tree, csmc.cliq)) != 0
-    frontals = getCliqFrontalVarIds(csmc.cliq)
-    # vardict, result, flatvars, Σ = solveConditionalsParametric(csmc.cliqSubFg, frontals)
-    #TEMP testing difference
-    # vardict, result = solveGraphParametric(csmc.cliqSubFg)
-    # Pack all results in variables
-    @assert !isempty(lsf(csmc.cliqSubFg)) "No factors in clique $(csmc.cliq.id.value) ls=$(ls(csmc.cliqSubFg)) lsf=$(lsf(csmc.cliqSubFg))"
-
-    # M, vartypeslist, lm_r, Σ = solve_RLM_conditional(csmc.cliqSubFg, frontals; finiteDiffCovariance=false, damping_term_min=1e-18)
-    M, vartypeslist, lm_r, Σ = solve_RLM(csmc.cliqSubFg; finiteDiffCovariance=false, damping_term_min=1e-18)
-    sigmas = extractMarginalsAP(M, vartypeslist, Σ)
-
-    if true # TODO check for convergence result.g_converged || result.f_converged
-      logCSM(
-        csmc,
-        "$(csmc.cliq.id): subfg optim converged updating variables";
-        loglevel = Logging.Debug,
-      )
-      for (i, v) in enumerate(vartypeslist)
-        if v in frontals
-          # logCSM(csmc, "$(csmc.cliq.id) down: updating $v"; val, loglevel = Logging.Debug)
-          vnd = getState(getVariable(csmc.cliqSubFg, v), :parametric)
-          
-          S = Matrix(sigmas[i])# FIXME
-          S = (S + S') / 2
-          # @assert all(isapprox.(S, sigmas[i], rtol=1e-3)) "Bad covariance matrix - not symetrical"
-          !all(isapprox.(S, sigmas[i], rtol=1e-3)) && @error("Bad covariance matrix - not symetrical")
-          # @assert all(diag(S) .> 0) "Bad covariance matrix - not positive diag"
-          !all(diag(S) .> 0) && @error("Bad covariance matrix - not positive diag")
-
-          
-          #Update subfg variables
-          DFG.refMeans(vnd)[1] = lm_r[i]
-          DFG.refCovariances(vnd)[1] = S
-        end
-      end
-      # for (v, val) in vardict
-      #   logCSM(csmc, "$(csmc.cliq.id) down: updating $v"; val, loglevel = Logging.Debug)
-      #   vnd = getSolverData(getVariable(csmc.cliqSubFg, v), :parametric)
-        
-      #   #Update subfg variables
-      #   vnd.val[1] = val.val
-      #   vnd.bw .= val.cov
-      # end
+  # Decided at the ROOT and broadcast, never locally — a clique that stopped on its own judgement
+  # would leave a sibling blocked forever.
+  status = if isroot
+    csmc.parIter += 1
+    getCliqueData(csmc.cliq).parIter = csmc.parIter
+    iters = csmc.solver isa TangentSpaceSolver ? csmc.solver.iters : 1
+    tol = csmc.solver isa TangentSpaceSolver ? csmc.solver.tol : 0.0
+    relin = getCliqueData(csmc.cliq).elimination.relinearized
+    still_moving = getCliqueData(csmc.cliq).elimination.moving
+    if !still_moving || !relin
+      why = !relin ? "nothing re-linearized" : "step < tol"
+      logCSM(csmc, "$(csmc.cliq.id): CONVERGED after $(csmc.parIter) sweeps ($why)")
+      CONVERGED
+    elseif csmc.parIter >= iters
+      # NOT `CONVERGED`: it stopped because it ran out, and a log should not make you infer which
+      logCSM(csmc, "$(csmc.cliq.id): ITERLIMIT at $(csmc.parIter) sweeps, still re-linearizing")
+      ITERLIMIT
     else
-      @error "Par-5, clique $(csmc.cliq.id) failed to converge in down solve" result
-      #propagate error to cleanly exit all cliques
-      putErrorDown(csmc)
-      return IncrementalInference.exitStateMachine
+      DOWNSOLVED
     end
+  else
+    getMessageBuffer(csmc.cliq).downRx.status
   end
+  setCliqueStatus!(csmc.cliq, status)
 
-  #TODO fill in belief
-  cliqFrontalVarIds = getCliqFrontalVarIds(csmc.cliq)
-  #TODO createBeliefMessageParametric
-  # beliefMsg = createBeliefMessageParametric(csmc.cliqSubFg, cliqFrontalVarIds, solvekey=opts.solvekey)
+  down = downsolveClique(elimination, ΔS, parentBelief)
+  getCliqueData(csmc.cliq).elimination.laststep = norm(down.ΔF)
+
+  _dbgCSMSaveSubFG(csmc, "fg_afterdownsolve_$(csmc.parIter)")
+
+  # kept rather than dropped: the children receive it and `finalizeLinear` converts it to the
+  # covariance without re-deriving it.  `η === nothing` — the mean travels as `Δ_full`, which survives
+  # a singular `Λ_exact` where `η = ΛΔ` would silently drop the minimum-norm choice.
+  posterior = LinearizedBelief(
+    DensityBundlePoint(
+      elimination.cliquelinearization.layout, elimination.cliquelinearization.point,
+      Matrix(down.Λ_exact),
+    ),
+    down.Δ_full,
+  )
+  getCliqueData(csmc.cliq).elimination.posterior = posterior
+
   beliefMsg = LikelihoodMessage(;
     sender = (; id = csmc.cliq.id.value, step = csmc._csm_iter),
-    status = DOWNSOLVED,
-    msgType = ParametricMessage(),
+    status = status,
+    variableOrder = elimination.cliquelinearization.labels,
+    msgType = LinearizedMessage(),
+    linearized = posterior,
   )
-  for fi in cliqFrontalVarIds
-    vnd = getState(getVariable(csmc.cliqSubFg, fi), :parametric)
-    beliefMsg.belief[fi] = TreeBelief(vnd)
-    logCSM(csmc, "$(csmc.cliq.id): down message $fi"; beliefMsg=beliefMsg.belief[fi], loglevel = Logging.Debug)
+
+  @sync for edge in getEdgesChildren(csmc.tree, csmc.cliq)
+    logCSM(csmc, "$(csmc.cliq.id): put! on edge $(edge)")
+    @async putBeliefMessageDown!(csmc.tree, edge, beliefMsg)
   end
 
-  # pass through the frontal variables that were sent from above
-  if !isnothing(downmsg)
-    pass_through_separators = intersect(svars, keys(downmsg.belief))
-    for si in pass_through_separators
-      beliefMsg.belief[si] = downmsg.belief[si]
-      logCSM(csmc, "adding parent message"; sym = si, msg = downmsg.belief[si])
-    end
+  logCSM(csmc, "$(csmc.cliq.id): linearized sweep completed, status $status")
+
+  return checkConverged_ParametricStateMachine
+end
+
+"""
+    $SIGNATURES
+Loop or finish — CSM function closing one sweep.  Terminates only on a status the root broadcast.
+"""
+function checkConverged_ParametricStateMachine(csmc::CliqStateMachineContainer)
+  status = getCliqueStatus(csmc.cliq)
+  if status in (CONVERGED, ITERLIMIT)
+    setCliqueDrawColor!(csmc.cliq, status === CONVERGED ? "green" : "orange")
+    logCSM(csmc, "$(csmc.cliq.id): finishing on $status")
+    return finalizeLinear_ParametricStateMachine
+  end
+  logCSM(csmc, "$(csmc.cliq.id): another sweep")
+  return waitForUp_StateMachine
+end
+
+"""
+    $SIGNATURES
+
+Write the converged clique back into its subgraph — CSM function, run **once** per state machine.
+Solves nothing: the last downward pass left the answer in `elimination.posterior`.
+"""
+function finalizeLinear_ParametricStateMachine(csmc::CliqStateMachineContainer)
+  elimination = getCliqueData(csmc.cliq).elimination
+  posterior = isnothing(elimination) ? nothing : elimination.posterior
+  if isnothing(posterior)
+    logCSM(csmc, "$(csmc.cliq.id): nothing to finalize, no downward solve ran")
+    return updateFromSubgraph_StateMachine
   end
 
-  #TODO sendBeliefMessageParametric(csmc, beliefMsg)
-  #TODO maybe send a specific message to only the child that needs it
-  @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-    logCSM(csmc, "$(csmc.cliq.id): put! on edge $(e)")
-    @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messageChannels[e.index].downMsg, beliefMsg)
-  end
-
-  logCSM(csmc, "$(csmc.cliq.id): Solve completed")
+  # convert BEFORE stepping: a covariance must never be made by inverting a transported precision.
+  # Frontals only, but it takes the whole joint to produce them — `Σ_FF` is a block of `Λ⁻¹`.
+  _writeBundle!(
+    csmc.cliqSubFg,
+    stepBelief(calcMomentform(posterior.bundle), posterior.Δ),
+    csmc.solveKey;
+    covarianceLabels = getCliqFrontalVarIds(csmc.cliq),
+  )
 
   return updateFromSubgraph_StateMachine
 end
-
-#

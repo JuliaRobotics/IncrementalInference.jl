@@ -97,7 +97,7 @@ end
 ## ======================================================================================
 ## adjoint factor - adjoint action applied to the measurement
 ## ======================================================================================
-function Ad(::Union{typeof(SpecialEuclidean(2)), typeof(SpecialEuclidean(3))}, p, X)
+function Ad(::Union{typeof(SpecialEuclideanGroup(2)), typeof(SpecialEuclideanGroup(3))}, p, X)
   t = p.x[1]
   R = p.x[2]
   v = X.x[1]
@@ -105,7 +105,7 @@ function Ad(::Union{typeof(SpecialEuclidean(2)), typeof(SpecialEuclidean(3))}, p
   ArrayPartition(-R*Ω*R'*t + R*v, R*Ω*R')
 end
 
-function Ad(::typeof(SpecialEuclidean(3)), p)
+function Ad(::typeof(SpecialEuclideanGroup(3)), p)
   t = p.x[1]
   R = p.x[2]
   vcat(
@@ -114,7 +114,7 @@ function Ad(::typeof(SpecialEuclidean(3)), p)
   )
 end
 
-function Ad(::typeof(SpecialEuclidean(2)), p)
+function Ad(::typeof(SpecialEuclideanGroup(2)), p)
   t = p.x[1]
   R = p.x[2]
   vcat(
@@ -123,14 +123,14 @@ function Ad(::typeof(SpecialEuclidean(2)), p)
   )
 end
 
-function Ad(::Motion(2), p)
-  t = p.x[1]
-  R = p.x[2]
-  vcat(
-      hcat(R, -SA[0 -1; 1 0]*t),
-      SA[0 0 1]
-  )
-end
+# function Ad(::Motion(2), p)
+#   t = p.x[1]
+#   R = p.x[2]
+#   vcat(
+#       hcat(R, -SA[0 -1; 1 0]*t),
+#       SA[0 0 1]
+#   )
+# end
 
 struct AdFactor{F <: AbstractManifoldMinimize} <: AbstractManifoldMinimize
   factor::F

@@ -49,7 +49,12 @@ mutable struct CliqStateMachineContainer{
   logger::SimpleLogger
   cliqId::CliqueId
   algorithm::Symbol
+  """solver options for `algorithm`; `nothing` for the non-parametric path, which has no solver
+  struct yet.  Towards eventually retiring `algorithm::Symbol` entirely."""
+  solver::Union{Nothing, AbstractTreeSolver}
   init_iter::Int
+  """parametric relinearization sweep counter - only the ROOT consults it and propagates a termination decision downward."""
+  parIter::Int
   enableLogging::Bool
   solveKey::Symbol
   _csm_iter::Int

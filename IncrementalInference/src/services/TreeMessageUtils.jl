@@ -88,21 +88,6 @@ function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
   return MsgPrior(kdePr, belief_.infoPerCoord, getManifold(belief_))
 end
 
-function generateMsgPrior(belief_::TreeBelief, ::ParametricMessage)
-  msgPrior = if length(belief_.val[1]) == 1 #FIXME ? && length(belief_.val) == 1
-    MsgPrior(
-      Normal(belief_.val[1][1], sqrt(belief_.bw[1])),
-      belief_.infoPerCoord,
-      getManifold(belief_),
-    )
-  elseif length(belief_.val[1]) > 1 #FIXME ? length(belief_.val) == 1
-    mvnorm = createMvNormal(belief_.val[1], belief_.bw)
-    mvnorm !== nothing ? nothing : (return FactorCompute[])
-    MsgPrior(mvnorm, belief_.infoPerCoord, getManifold(belief_))
-  end
-  return msgPrior
-end
-
 """
     $SIGNATURES
 
@@ -573,28 +558,6 @@ function addMsgFactors!(
   return msgfcts
 end
 
-function addMsgFactors_Parametric!(
-  subfg::AbstractDFG,
-  msg::LikelihoodMessage,
-  ::Type{UpwardPass};
-  tags::Vector{Symbol} = Symbol[],
-  # attemptPriors::Bool = true,
-)
-  # add differential(relative) message factors
-
-  msgfcts = map(msg.jointmsg.relatives) do difflikl
-    addFactor!(
-      subfg,
-      difflikl.variables,
-      difflikl.likelihood;
-      graphinit = false,
-      tags = union(tags, [:__LIKELIHOODMESSAGE__; :__UPWARD_DIFFERENTIAL__]),
-    )
-  end
-
-  return msgfcts
-end
-
 function addMsgFactors!(
   subfg::AbstractDFG,
   allmsgs::Dict{Int, LikelihoodMessage},
@@ -720,6 +683,7 @@ function prepCliqueMsgUp(
   return msg
 end
 
+#TODO prepCliqueMsgDown is dead code.
 """
     $SIGNATURES
 

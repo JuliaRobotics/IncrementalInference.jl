@@ -6,6 +6,23 @@ export fetchCliqHistoryAll!
 ## ==============================================================================================
 ## Launch the tasks/treads for cliques
 ## ==============================================================================================
+
+"""
+    $TYPEDEF
+
+A `ProgressMeter` meter that every clique state machine may update, serialized by an explicit lock to prevent 
+garbled progress spam when multiple tasks try to update it concurrently (not needed for multithreaded mode).
+"""
+struct LockedProgress{P}
+  meter::P
+  lock::ReentrantLock
+end
+
+LockedProgress(meter) = LockedProgress(meter, ReentrantLock())
+
+ProgressMeter.next!(p::LockedProgress; kw...) = lock(() -> next!(p.meter; kw...), p.lock)
+ProgressMeter.finish!(p::LockedProgress; kw...) = lock(() -> finish!(p.meter; kw...), p.lock)
+
 """
     $SIGNATURES
 
@@ -29,6 +46,7 @@ function taskSolveTree!(
   delaycliqs::Vector{Symbol} = Symbol[],
   smtasks = Task[],
   algorithm::Symbol = :default,
+  solver::Union{Nothing, AbstractTreeSolver} = nothing,
   solveKey::Symbol = algorithm,
 )
   #
@@ -41,9 +59,17 @@ function taskSolveTree!(
 
   resize!(smtasks, getNumCliqs(treel))
 
-  approx_iters = getNumCliqs(treel) * 24
-  solve_progressbar =
-    verbose ? nothing : ProgressUnknown(; desc = "Solve Progress: approx max $approx_iters, at iter")
+  # `ProgressMeter` rewrites one line in place on a terminal, but emits a *new* line per update when
+  # stdout is not a TTY (piped to a file, a CI log, a captured `@time`).  The parametric CSM loops
+  # internally, so that is thousands of lines of noise — only show the meter where it can redraw.
+  approx_iters = _approxCSMIters(getNumCliqs(treel), solver)
+  solve_progressbar = if verbose || !isa(stdout, Base.TTY)
+    nothing
+  else
+    LockedProgress(
+      ProgressUnknown(; dt = 1, desc = "Solve Progress: approx max $approx_iters, at iter"),
+    )
+  end
 
   # queue all the tasks/threads
   if !isTreeSolved(treel; skipinitialized = true)
@@ -64,6 +90,7 @@ function taskSolveTree!(
               timeout;
               solveKey = solveKey,
               algorithm = algorithm,
+              solver = solver,
               oldtree = oldtree,
               verbose = verbose,
               verbosefid = verbosefid,
@@ -83,6 +110,7 @@ function taskSolveTree!(
               timeout;
               solveKey = solveKey,
               algorithm = algorithm,
+              solver = solver,
               oldtree = oldtree,
               verbose = verbose,
               verbosefid = verbosefid,
@@ -124,6 +152,7 @@ function tryCliqStateMachineSolve!(
   recordcliqs::Vector{Symbol} = Symbol[],
   solve_progressbar = nothing,
   algorithm::Symbol = :default,
+  solver::Union{Nothing, AbstractTreeSolver} = nothing,
   solveKey::Symbol = algorithm,
 ) where {G <: AbstractDFG}
   #
@@ -160,6 +189,7 @@ function tryCliqStateMachineSolve!(
       logger = logger,
       solve_progressbar = solve_progressbar,
       algorithm = algorithm,
+      solver = solver,
       solveKey = solveKey,
     )
     #
@@ -201,6 +231,119 @@ function tryCliqStateMachineSolve!(
   #   error("Clique $(cliq.id), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
   # end
   return history
+end
+
+"""
+    $SIGNATURES
+
+Build a Bayes (Junction) tree for `dfgl` and initialize its message channels, ready for
+[`solveTreePass!`](@ref).
+
+Separated from [`solveTree!`](@ref) so that a tree can be built once and reused across several
+passes.
+"""
+function buildSolveTree!(
+  dfgl::AbstractDFG;
+  eliminationOrder::Union{Nothing, Vector{Symbol}} = nothing,
+  eliminationConstraints::Vector{Symbol} = Symbol[],
+)
+  opt = getSolverParams(dfgl)
+  orderMethod = 0 < length(eliminationConstraints) ? :ccolamd : :qr
+
+  # current incremental solver builds a new tree and matches against old tree for recycling.
+  tree = buildTreeReset!(
+    dfgl,
+    eliminationOrder;
+    drawpdf = false,
+    show = opt.showtree,
+    ensureSolvable = false,
+    filepath = joinpath(opt.logpath, "bt.pdf"),
+    eliminationConstraints = eliminationConstraints,
+    ordering = orderMethod,
+  )
+
+  initTreeMessageChannels!(tree)
+
+  return tree
+end
+
+"""
+    $SIGNATURES
+
+Run one full up/down pass of the clique state machines over an **existing** `tree`, returning
+`(smtasks, hist)`.
+
+Dev note: A tree is safe to reuse across passes: [`taskSolveTree!`](@ref) reverts `DOWNSOLVED` cliques to
+`INITIALIZED` before starting, and each clique empties its own `upRx` buffer before taking new child
+messages, so nothing accumulates from the previous pass.
+
+See also [`buildSolveTree!`](@ref), [`solveTree!`](@ref), [`solveTreeParametric!`](@ref).
+"""
+function solveTreePass!(
+  dfgl::AbstractDFG,
+  tree::AbstractBayesTree;
+  timeout::Union{Nothing, <:Real} = nothing,
+  verbose::Bool = false,
+  verbosefid = stdout,
+  delaycliqs::Vector{Symbol} = Symbol[],
+  recordcliqs::Vector{Symbol} = Symbol[],
+  limititercliqs::Vector{Pair{Symbol, Int}} = Pair{Symbol, Int}[],
+  skipcliqids::Vector{Symbol} = Symbol[],
+  smtasks::Vector{Task} = Task[],
+  dotreedraw = Int[1;],
+  oldtree::AbstractBayesTree = BayesTree(),
+  solver::Union{Nothing, AbstractTreeSolver} = nothing,
+  algorithm::Symbol = isnothing(solver) ? :default : _algorithmLabel(solver),
+  solveKey::Symbol = algorithm,
+  multithread::Bool = false,
+)
+  opt = getSolverParams(dfgl)
+  hist = Dict{Int, Vector{CSMHistoryTuple}}()
+
+  # if desired, drawtree in a loop.  NOTE re-arm the flag: a previous pass sets it to 0 to stop its
+  # own draw task, and this vector is shared across passes.
+  dotreedraw[1] = 1
+  treetask, _dotreedraw = drawTreeAsyncLoop(tree, opt; dotreedraw = dotreedraw)
+
+  @info "Do tree based init-ference"
+
+  _runtasks() = taskSolveTree!(
+    dfgl,
+    tree,
+    timeout;
+    solveKey = solveKey,
+    algorithm = algorithm,
+    solver = solver,
+    multithread = multithread,
+    smtasks = smtasks,
+    oldtree = oldtree,
+    verbose = verbose,
+    verbosefid = verbosefid,
+    drawtree = opt.drawtree,
+    recordcliqs = recordcliqs,
+    limititers = opt.limititers,
+    downsolve = opt.downsolve,
+    incremental = opt.incremental,
+    skipcliqids = skipcliqids,
+    delaycliqs = delaycliqs,
+    limititercliqs = limititercliqs,
+  )
+
+  if opt.async
+    @async smtasks, hist = _runtasks()
+  else
+    smtasks, hist = _runtasks()
+    @info "Finished tree based init-ference"
+  end
+
+  if opt.drawtree && opt.async
+    @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"
+    push!(smtasks, treetask)
+  else
+    dotreedraw[1] = 0
+  end
+
+  return smtasks, hist
 end
 
 """
@@ -340,11 +483,26 @@ function solveTree!(
   smtasks::Vector{Task} = Task[],
   dotreedraw = Int[1;],
   runtaskmonitor::Bool = true,
-  algorithm::Symbol = :default,
+  solver::Union{Nothing, AbstractTreeSolver} = nothing,
+  algorithm::Symbol = isnothing(solver) ? :default : _algorithmLabel(solver),
   solveKey::Symbol = algorithm,
   multithread::Bool = false,
 )
   #
+  # `:parametric` is a tangent-space solve: one tree pass is a single Gauss-Newton step, so it has
+  # its own entry point that builds the tree once and iterates passes over it.
+  if algorithm === :parametric
+    tree, _, _ = solveTreeParametric!(
+      dfgl;
+      solver = @something(solver, TangentSpaceSolver()),
+      solveKey,
+      eliminationOrder, eliminationConstraints,
+      timeout, verbose, verbosefid, delaycliqs, recordcliqs, limititercliqs,
+      skipcliqids, smtasks, dotreedraw, multithread,
+    )
+    return tree
+  end
+
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
   opt = getSolverParams(dfgl)
@@ -365,20 +523,13 @@ function solveTree!(
     opt.multiproc = false
   end
   
+  # NOTE `:parametric` returned above and does its own parametric graphinit in `solveTreeParametric!`
   if opt.graphinit
     @info "Ensure variables are all initialized (graphinit)"
-    if algorithm == :parametric
-      @warn "Parametric is using default graphinit (and ignoring solveKey)"
-      initAll!(dfgl)
-      initParametricFrom!(dfgl)
-    else
-      initAll!(dfgl, solveKey)
-    end
+    initAll!(dfgl, solveKey)
   end
   # construct tree
   @info "Solving over the Bayes (Junction) tree."
-
-  hist = Dict{Int, Vector{CSMHistoryTuple}}()
 
   if opt.isfixedlag
     @info "Quasi fixed-lag is enabled (a feature currently in testing, and ignoring solveKey)!"
@@ -401,75 +552,16 @@ function solveTree!(
     @info "storeOld=true, previous :default deepcopied into $newKey for solvable==1 variables."
   end
 
-  orderMethod = 0 < length(eliminationConstraints) ? :ccolamd : :qr
+  !storeOld ? nothing : @error("storeOld keyword not wired up yet.")
 
-  # current incremental solver builds a new tree and matches against old tree for recycling.
-  tree = buildTreeReset!(
+  tree = buildSolveTree!(dfgl; eliminationOrder, eliminationConstraints)
+
+  smtasks, hist = solveTreePass!(
     dfgl,
-    eliminationOrder;
-    drawpdf = false,
-    show = opt.showtree,
-    ensureSolvable = false,
-    filepath = joinpath(opt.logpath, "bt.pdf"),
-    eliminationConstraints = eliminationConstraints,
-    ordering = orderMethod,
+    tree;
+    timeout, verbose, verbosefid, delaycliqs, recordcliqs, limititercliqs,
+    skipcliqids, smtasks, dotreedraw, oldtree, algorithm, solveKey, multithread,
   )
-
-  # setAllSolveFlags!(tree, false)
-
-  initTreeMessageChannels!(tree)
-
-  # if desired, drawtree in a loop
-  treetask, _dotreedraw = drawTreeAsyncLoop(tree, opt; dotreedraw = dotreedraw)
-
-  @info "Do tree based init-ference"
-  algorithm != :parametric ? nothing : @error("Under development, do not use, see #539")
-  !storeOld ? nothing : @error("parametric storeOld keyword not wired up yet.")
-
-  if opt.async
-    @async smtasks, hist = taskSolveTree!(
-      dfgl,
-      tree,
-      timeout;
-      solveKey = solveKey,
-      algorithm = algorithm,
-      multithread = multithread,
-      smtasks = smtasks,
-      oldtree = oldtree,
-      verbose = verbose,
-      verbosefid = verbosefid,
-      drawtree = opt.drawtree,
-      recordcliqs = recordcliqs,
-      limititers = opt.limititers,
-      downsolve = opt.downsolve,
-      incremental = opt.incremental,
-      skipcliqids = skipcliqids,
-      delaycliqs = delaycliqs,
-      limititercliqs = limititercliqs,
-    )
-  else
-    smtasks, hist = taskSolveTree!(
-      dfgl,
-      tree,
-      timeout;
-      solveKey = solveKey,
-      algorithm = algorithm,
-      multithread = multithread,
-      smtasks = smtasks,
-      oldtree = oldtree,
-      verbose = verbose,
-      verbosefid = verbosefid,
-      drawtree = opt.drawtree,
-      recordcliqs = recordcliqs,
-      limititers = opt.limititers,
-      downsolve = opt.downsolve,
-      incremental = opt.incremental,
-      skipcliqids = skipcliqids,
-      delaycliqs = delaycliqs,
-      limititercliqs = limititercliqs,
-    )
-    @info "Finished tree based init-ference"
-  end
 
   # NOTE copy of data from new tree in to replace outisde oldtree
   oldtree.bt = tree.bt
@@ -478,13 +570,6 @@ function solveTree!(
   oldtree.frontals = tree.frontals
   oldtree.eliminationOrder = tree.eliminationOrder
   oldtree.buildTime = tree.buildTime
-
-  if opt.drawtree && opt.async
-    @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"
-    push!(smtasks, treetask)
-  else
-    dotreedraw[1] = 0
-  end
 
   # if debugging and not async then also print the CSMHistory
   if opt.dbg && !opt.async
