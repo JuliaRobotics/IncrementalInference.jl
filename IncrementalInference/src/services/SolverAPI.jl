@@ -6,6 +6,23 @@ export fetchCliqHistoryAll!
 ## ==============================================================================================
 ## Launch the tasks/treads for cliques
 ## ==============================================================================================
+
+"""
+    $TYPEDEF
+
+A `ProgressMeter` meter that every clique state machine may update, serialized by an explicit lock to prevent 
+garbled progress spam when multiple tasks try to update it concurrently (not needed for multithreaded mode).
+"""
+struct LockedProgress{P}
+  meter::P
+  lock::ReentrantLock
+end
+
+LockedProgress(meter) = LockedProgress(meter, ReentrantLock())
+
+ProgressMeter.next!(p::LockedProgress; kw...) = lock(() -> next!(p.meter; kw...), p.lock)
+ProgressMeter.finish!(p::LockedProgress; kw...) = lock(() -> finish!(p.meter; kw...), p.lock)
+
 """
     $SIGNATURES
 
@@ -31,15 +48,22 @@ function taskSolveTree!(
 
   resize!(smtasks, getNumCliqs(treel))
 
-  approx_iters = getNumCliqs(treel) * 24
-  solve_progressbar =
-    csmoptions.verbose ? nothing : ProgressUnknown(; desc = "Solve Progress: approx max $approx_iters, at iter")
-
+  # `ProgressMeter` rewrites one line in place on a terminal, but emits a *new* line per update when
+  # stdout is not a TTY (piped to a file, a CI log, a captured `@time`).  The parametric CSM loops
+  # internally, so that is thousands of lines of noise — only show the meter where it can redraw.
+  approx_iters = _approxCSMIters(getNumCliqs(treel), csmoptions.solver)
+  csmoptions.solve_progressbar = if csmoptions.verbose || !isa(stdout, Base.TTY)
+    nothing
+  else
+    LockedProgress(
+      ProgressUnknown(; dt = 1, desc = "Solve Progress: approx max $approx_iters, at iter"),
+    )
+  end
 
   # queue all the tasks/threads
   if !isTreeSolved(treel; skipinitialized = true)
     @sync begin
-      # monitortask = monitorCSMs(treel, smtasks)
+      monitortask = monitorCSMs(treel, smtasks)
       # duplicate int i into async (important for concurrency)
       for i = 1:getNumCliqs(treel) # TODO, this might not always work?
         scsym = getCliqFrontalVarIds(getClique(treel, i))
@@ -75,7 +99,7 @@ function taskSolveTree!(
   # if record cliques is in use, else skip computational delay
   0 == length(csmoptions.recordcliqs) ? nothing : fetchCliqHistoryAll!(smtasks, cliqHistories)
 
-  !isnothing(solve_progressbar) && finish!(solve_progressbar)
+  !isnothing(csmoptions.solve_progressbar) && finish!(csmoptions.solve_progressbar)
 
   return smtasks, cliqHistories
 end
@@ -161,6 +185,102 @@ function solveClique!(
 end
 
 
+"""
+    $SIGNATURES
+
+Build a Bayes (Junction) tree for `dfgl` and initialize its message channels, ready for
+[`solveTreePass!`](@ref).
+
+Separated from [`solveTree!`](@ref) so that a tree can be built once and reused across several
+passes.
+"""
+function buildSolveTree!(
+  dfgl::AbstractDFG;
+  eliminationOrder::Union{Nothing, Vector{Symbol}} = nothing,
+  eliminationConstraints::Vector{Symbol} = Symbol[],
+)
+  opt = getSolverParams(dfgl)
+  orderMethod = 0 < length(eliminationConstraints) ? :ccolamd : :qr
+
+  # current incremental solver builds a new tree and matches against old tree for recycling.
+  tree = buildTreeReset!(
+    dfgl,
+    eliminationOrder;
+    drawpdf = false,
+    show = opt.showtree,
+    ensureSolvable = false,
+    filepath = joinpath(opt.logpath, "bt.pdf"),
+    eliminationConstraints = eliminationConstraints,
+    ordering = orderMethod,
+  )
+
+  initTreeMessageChannels!(tree)
+
+  return tree
+end
+
+"""
+    $SIGNATURES
+
+Run one full up/down pass of the clique state machines over an **existing** `tree`, returning
+`(smtasks, hist)`.
+
+Dev note: A tree is safe to reuse across passes: [`taskSolveTree!`](@ref) reverts `DOWNSOLVED` cliques to
+`INITIALIZED` before starting, and each clique empties its own `upRx` buffer before taking new child
+messages, so nothing accumulates from the previous pass.
+
+See also [`buildSolveTree!`](@ref), [`solveTree!`](@ref), [`solveTreeParametric!`](@ref).
+"""
+function solveTreePass!(
+  dfgl::AbstractDFG,
+  tree::AbstractBayesTree;
+  smtasks::Vector{Task} = Task[],
+  oldtree::AbstractBayesTree = BayesTree(),
+  csmoptions::CSMOptions = CSMOptions(; solverparams = getSolverParams(dfgl)),
+  # which solver to run, taken from `csmoptions` unless named here
+  solver::Union{Nothing, AbstractTreeSolver} = csmoptions.solver,
+  algorithm::Symbol = isnothing(solver) ? csmoptions.algorithm : _algorithmLabel(solver),
+  solveKey::Symbol = csmoptions.solveKey,
+)
+  csmoptions.solver = solver
+  csmoptions.algorithm = algorithm
+  csmoptions.solveKey = solveKey
+
+  opt = csmoptions.solverparams
+  hist = Dict{Int, Vector{CSMHistoryTuple}}()
+
+  # if desired, drawtree in a loop.  NOTE re-arm the flag: a previous pass sets it to 0 to stop its
+  # own draw task, and this vector is shared across passes.
+  csmoptions.dotreedraw[1] = 1
+  treetask, _dotreedraw = drawTreeAsyncLoop(tree, opt; dotreedraw = csmoptions.dotreedraw)
+
+  @info "Do tree based init-ference"
+
+  _runtasks() = taskSolveTree!(
+    dfgl,
+    tree,
+    csmoptions.timeout;
+    smtasks,
+    oldtree,
+    csmoptions,
+  )
+
+  if opt.async
+    @async smtasks, hist = _runtasks()
+  else
+    smtasks, hist = _runtasks()
+    @info "Finished tree based init-ference"
+  end
+
+  if opt.drawtree && opt.async
+    @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"
+    push!(smtasks, treetask)
+  else
+    csmoptions.dotreedraw[1] = 0
+  end
+
+  return smtasks, hist
+end
 
 ## ==============================================================================================
 # Prepare CSM (based on FSM) entry points
@@ -231,12 +351,28 @@ function DistributedFactorGraphs.solveGraph!(
   # tree options
   eliminationOrder::Union{Nothing, Vector{Symbol}} = nothing,
   eliminationConstraints::Vector{Symbol} = Symbol[],
-  smtasks = Task[],
+  smtasks::Vector{Task} = Task[],
   # solve/execution options
   csmoptions = CSMOptions(;
     solverparams = getSolverParams(dfgl),
   ),
 )
+  #
+  # `:parametric` is a tangent-space solve: one tree pass is a single Gauss-Newton step, so it has
+  # its own entry point that builds the tree once and iterates passes over it.
+  if csmoptions.algorithm === :parametric
+    tree, _, _ = solveTreeParametric!(
+      dfgl;
+      solver = @something(csmoptions.solver, TangentSpaceSolver()),
+      solveKey = csmoptions.solveKey,
+      eliminationOrder,
+      eliminationConstraints,
+      smtasks,
+      csmoptions,
+    )
+    return tree
+  end
+
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
 
@@ -256,20 +392,13 @@ function DistributedFactorGraphs.solveGraph!(
     csmoptions.solverparams.multiproc = false
   end
   
+  # NOTE `:parametric` returned above and does its own parametric graphinit in `solveTreeParametric!`
   if csmoptions.solverparams.graphinit
     @info "Ensure variables are all initialized (graphinit)"
-    if csmoptions.algorithm == :parametric
-      @warn "Parametric is using default graphinit (and ignoring solveKey)"
-      initAll!(dfgl)
-      initParametricFrom!(dfgl)
-    else
-      initAll!(dfgl, csmoptions.solveKey)
-    end
+    initAll!(dfgl, csmoptions.solveKey)
   end
   # construct tree
   @info "Solving over the Bayes (Junction) tree."
-
-  hist = Dict{Int, Vector{CSMHistoryTuple}}()
 
   if csmoptions.solverparams.isfixedlag
     @info "Quasi fixed-lag is enabled (a feature currently in testing, and ignoring solveKey)!"
@@ -294,53 +423,17 @@ function DistributedFactorGraphs.solveGraph!(
     @info "storeOld=true, previous :default deepcopied into $newKey for solvable==1 variables."
   end
 
-  orderMethod = 0 < length(eliminationConstraints) ? :ccolamd : :qr
+  !csmoptions.storeOld ? nothing : @error("storeOld keyword not wired up yet.")
 
-  # current incremental solver builds a new tree and matches against old tree for recycling.
-  tree = buildTreeReset!(
+  tree = buildSolveTree!(dfgl; eliminationOrder, eliminationConstraints)
+
+  smtasks, hist = solveTreePass!(
     dfgl,
-    eliminationOrder;
-    drawpdf = false,
-    show = csmoptions.solverparams.showtree,
-    ensureSolvable = false,
-    filepath = joinpath(csmoptions.solverparams.logpath, "bt.pdf"),
-    eliminationConstraints = eliminationConstraints,
-    ordering = orderMethod,
+    tree;
+    smtasks,
+    oldtree,
+    csmoptions,
   )
-
-  # setAllSolveFlags!(tree, false)
-
-  initTreeMessageChannels!(tree)
-
-  # TODO, move debug drawing of the tree as part of debug_callback instead
-  # if desired, drawtree in a loop
-  treetask, _dotreedraw = drawTreeAsyncLoop(tree, csmoptions.solverparams; dotreedraw = csmoptions.dotreedraw)
-
-  @info "Do tree based init-ference"
-  csmoptions.algorithm != :parametric ? nothing : @error("Under development, do not use, see #539")
-  !csmoptions.storeOld ? nothing : @error("parametric storeOld keyword not wired up yet.")
-
-  #TODO rename solveGraph!
-  if csmoptions.solverparams.async
-    @async smtasks, hist = taskSolveTree!(
-      dfgl,
-      tree,
-      csmoptions.timeout;
-      oldtree = oldtree,
-      smtasks = smtasks,
-      csmoptions,
-    )
-  else
-    smtasks, hist = taskSolveTree!(
-      dfgl,
-      tree,
-      csmoptions.timeout;
-      oldtree = oldtree,
-      smtasks = smtasks,
-      csmoptions,
-    )
-    @info "Finished tree based init-ference"
-  end
 
   # NOTE copy of data from new tree in to replace outisde oldtree
   oldtree.bt = tree.bt
@@ -349,13 +442,6 @@ function DistributedFactorGraphs.solveGraph!(
   oldtree.frontals = tree.frontals
   oldtree.eliminationOrder = tree.eliminationOrder
   oldtree.buildTime = tree.buildTime
-
-  if csmoptions.solverparams.drawtree && csmoptions.solverparams.async
-    @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"
-    push!(smtasks, treetask)
-  else
-    csmoptions.dotreedraw[1] = 0
-  end
 
   # if debugging and not async then also print the CSMHistory
   if csmoptions.solverparams.dbg && !csmoptions.solverparams.async

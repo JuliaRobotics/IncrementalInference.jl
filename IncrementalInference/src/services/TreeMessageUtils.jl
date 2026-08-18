@@ -84,30 +84,6 @@ function generateMsgPrior(hode::HomotopyDensity, ::NonparametricMessage)
   return MsgPrior(hode, hode.observability, getManifold(hode))
 end
 
-function generateMsgPrior(hode::HomotopyDensity, ::ParametricMessage)
-  _Log(m::AbstractManifold, p) = vee(m, identity_element(m), log(m, identity_element(m), p))
-  _Log(m::AbstractLieGroup, p) = vee(LieAlgebra(m), log(m, identity_element(m), p))
-
-  manif = getManifold(hode)
-  Xc = _Log(manif, mean(hode))
-  msgPrior = if getDimension(hode) == 1 # FIXME not type-stable
-    MsgPrior(
-      Normal(Xc[1], sqrt(cov(hode)[1])),
-      hode.observability,
-      manif,
-    )
-  elseif getDimension(hode) > 1
-    mvnorm = createMvNormal(Xc, cov(hode))
-    mvnorm !== nothing ? nothing : (return FactorCompute[])
-    MsgPrior(
-      mvnorm, 
-      hode.observability, 
-      manif
-    )
-  end
-  return msgPrior
-end
-
 """
     $SIGNATURES
 
@@ -695,6 +671,7 @@ function prepCliqueMsgUp(
   return msg
 end
 
+#TODO prepCliqueMsgDown is dead code.
 """
     $SIGNATURES
 

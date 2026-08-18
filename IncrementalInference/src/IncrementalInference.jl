@@ -43,6 +43,7 @@ using LieGroups:
   ProductLieGroup,
   hat,
   vee,
+  jacobian_exp,
   compose,
   AbstractProductGroupOperation,
   AdditionGroupOperation,
@@ -176,6 +177,8 @@ include("services/VariableStatistics.jl")
 include("Factors/MsgPrior.jl")
 include("Factors/MetaPrior.jl")
 
+include("entities/TreeSolverTypes.jl")
+include("entities/DensityBundles.jl")
 include("entities/CliqueTypes.jl")
 include("entities/JunctionTreeTypes.jl")
 
@@ -214,6 +217,7 @@ include("Factors/LinearRelative.jl")
 include("Factors/EuclidDistance.jl")
 include("Factors/Circular.jl")
 include("Factors/PartialPrior.jl")
+include("Factors/PartialExpCoordPrior.jl")
 include("Factors/PartialPriorPassThrough.jl")
 
 # older file
@@ -243,10 +247,12 @@ include("CliqueStateMachine/services/CliqStateMachineUtils.jl")
 # FIXME CONSOLIDATE
 include("parametric/services/ConsolidateParametricRelatives.jl")
 #EXPERIMENTAL parametric
-include("parametric/services/ParametricCSMFunctions.jl")
 include("parametric/services/ParametricUtils.jl")
 include("parametric/services/ParametricOptim.jl")
 include("parametric/services/ParametricManopt.jl")
+include("parametric/services/BeliefAlgebra.jl")
+include("parametric/services/ParametricTreeSolve.jl")
+include("parametric/services/ParametricCSMFunctions.jl")
 include("services/MaxMixture.jl")
 
 #X-stroke

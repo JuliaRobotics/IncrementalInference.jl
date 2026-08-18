@@ -1,42 +1,3 @@
-# NLLSSolver is now defined in GraphInit.jl
-
-# ================================================================================================
-# FlatVariables - used for packing variables for optimization
-# ================================================================================================
-
-struct FlatVariables{T <: Real}
-  X::Vector{T}
-  idx::OrderedDict{Symbol, UnitRange{Int}}
-end
-
-function FlatVariables(fg::AbstractDFG, varIds::Vector{Symbol})
-  index = 1
-  idx = OrderedDict{Symbol, UnitRange{Int}}()
-  for vid in varIds
-    v = getVariable(fg, vid)
-    dims = getDimension(v)
-    idx[vid] = index:(index + dims - 1)
-    index += dims
-  end
-  return FlatVariables(Vector{Float64}(undef, index - 1), idx)
-end
-
-function Base.setindex!(
-  flatVar::FlatVariables{T},
-  val::AbstractVector{T},
-  vId::Symbol,
-) where {T <: Real}
-  if length(val) == length(flatVar.idx[vId])
-    flatVar.X[flatVar.idx[vId]] .= val
-  else
-    error("array could not be broadcast to match destination")
-  end
-end
-
-function Base.getindex(flatVar::FlatVariables{T}, vId::Symbol) where {T <: Real}
-  return flatVar.X[flatVar.idx[vId]]
-end
-
 # ================================================================================================
 # Parametric Factors
 # ================================================================================================
@@ -131,64 +92,6 @@ end
 getFactorMeasurementParametric(fct::FactorCompute) = getFactorMeasurementParametric(getObservation(fct))
 getFactorMeasurementParametric(dfg::AbstractDFG, flb::Symbol) = getFactorMeasurementParametric(getFactor(dfg, flb))
 
-# ================================================================================================
-# Parametric solve with Mahalanobis distance - CalcFactor
-# ================================================================================================
-
-function CalcFactorMahalanobis(fg, fct::FactorCompute)
-  fac_func = getObservation(fct)
-  varOrder = collect(getVariableOrder(fct))
-
-  # NOTE, use getMeasurementParametric on FactorCompute{<:CCW} to allow special cases like OAS factors
-  _meas, _iΣ = getFactorMeasurementParametric(fct) # fac_func
-  
-  # make sure its a tuple TODO Fix with mixture rework #1504
-  meas = typeof(_meas) <: Tuple ? _meas : (_meas,)
-  iΣ = typeof(_iΣ) <: Tuple ? _iΣ : (_iΣ,)
-
-  cache = preambleCache(fg, getVariable.(fg, varOrder), getObservation(fct))
-
-  multihypo = fct.hyper.multihypo
-  nullhypo = fct.hyper.nullhypo
-
-  # FIXME, type instability
-  if length(multihypo) > 0
-    special = MaxMultihypo(multihypo)
-  elseif nullhypo > 0
-    special = MaxNullhypo(nullhypo)
-  elseif fac_func isa Mixture
-    special = MaxMixture(fac_func.diversity.p, Ref(0))
-  else
-    special = nothing
-  end
-
-  return CalcFactorMahalanobis(fct.label, fac_func, cache, varOrder, meas, iΣ, special)
-end
-
-# This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
-# function (cfp::CalcFactorMahalanobis{FT, 1, C, MEAS, D, L, Nothing})(variables...) where {FT, C, MEAS, D, L, Nothing}# AbstractArray{T} where T <: Real
-#   # call the user function
-#   res = cfp.calcfactor!(cfp.meas..., variables...)
-#   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  # k = dim(μ)
-#   return res' * cfp.iΣ[1] * res
-# end
-
-# function (cfm::CalcFactorMahalanobis)(variables...)
-#   meas = cfm.meas
-#   points = map(idx->p[idx], cfm.varOrderIdxs)
-#   return cfm.sqrt_iΣ * cfm(meas, points...)
-# end
-
-function calcFactorMahalanobisDict(fg)
-  calcFactors = OrderedDict{Symbol, CalcFactorMahalanobis}()
-  for fct in getFactors(fg)
-    # skip non-numeric prior
-    getObservation(fct) isa MetaPrior ? continue : nothing
-    calcFactors[fct.label] = CalcFactorMahalanobis(fg, fct)
-  end
-  return calcFactors
-end
-
 function getFactorTypesCount(facs::Vector{<:FactorCompute})
   typedict = OrderedDict{DataType, Int}()
   alltypes = OrderedDict{DataType, Vector{Symbol}}()
@@ -206,59 +109,11 @@ function getFactorTypesCount(facs::Vector{<:FactorCompute})
   return factypes, typedict, alltypes
 end
 
-function calcFactorMahalanobisVec(fg)
-  factypes, typedict, alltypes = getFactorTypesCount(getFactors(fg))
-  
-  # skip non-numeric prior (MetaPrior)
-  #TODO test... remove MetaPrior{T} something like this
-  metaPriorKeys = filter(k->contains(string(k), "MetaPrior"), collect(keys(alltypes)))
-  delete!.(Ref(alltypes), metaPriorKeys)
-
-  parts = map(values(alltypes)) do labels
-    map(getFactor.(fg, labels)) do fct
-      CalcFactorMahalanobis(fg, fct)
-    end
-  end
-  parts_tuple = (parts...,)
-  return ArrayPartition{CalcFactorMahalanobis, typeof(parts_tuple)}(parts_tuple)
-end
-
 # ================================================================================================
 # ================================================================================================
 # New Parametric refactor WIP
 # ================================================================================================
 # ================================================================================================
-
-# ================================================================================================
-# LazyCase based on LazyBufferCache from PreallocationTools.jl
-# ================================================================================================
-
-"""
-  $SIGNATURES
-A lazily allocated cache object.
-"""
-struct LazyCache{F <: Function}
-  dict::Dict{Tuple{DataType, Symbol}, Any}
-  fnc::F
-end
-function LazyCache(f::F = allocate) where {F <: Function}
-  return LazyCache(Dict{Tuple{DataType, Symbol}, Any}(), f)
-end
-
-# override the [] method
-function Base.getindex(cache::LazyCache, u::T, varname::Symbol) where {T}
-  val = get!(cache.dict, (T, varname)) do
-    return cache.fnc(u)
-  end::T
-  return val
-end
-
-function getCoordCache!(cache::LazyCache, M, T::DataType, varname::Symbol)
-  val = get!(cache.dict, (T, varname)) do
-    return Vector{T}(undef, manifold_dimension(M))
-  end::Vector{T}
-  return val
-end
 
 # ================================================================================================
 # GraphSolveStructures
@@ -306,206 +161,38 @@ function buildGraphSolveManifold(vars::Vector{<:VariableCompute})
   return M, vartypes, vartypeslist
 end
 
-struct GraphSolveBuffers{T <: Real, U}
-  ϵ::U
-  p::U
-  X::U
-  Xc::Vector{T}
-end
+"""
+    $SIGNATURES
 
-function GraphSolveBuffers(@nospecialize(M), ::Type{T}) where {T}
-  ϵ = getPointIdentity(M, T)
-  p = deepcopy(ϵ)# allocate_result(M, getPointIdentity)
-  X = deepcopy(ϵ) #allcoate(p)
-  #FIXME update to ProductLieGroup first, but only 2 groups supported.
-  Xc = Manifolds.get_coordinates(M, ϵ, X, DefaultOrthogonalBasis())
-  # Xc = vee(LieGroup(M), X)
-  return GraphSolveBuffers(ϵ, p, X, Xc)
-end
+Product manifold and label partition for variables taken in **partition order**: each group is grouped
+by state type on its own, and the groups are concatenated.
 
-struct GraphSolveContainer{CFT}
-  M::AbstractManifold # ProductManifold or ProductGroup
-  buffers::OrderedDict{DataType, GraphSolveBuffers}
-  varTypes::Vector{DataType}
-  varTypesIds::OrderedDict{DataType, Vector{Symbol}}
-  varOrderDict::OrderedDict{Symbol, Tuple{Int, Vararg{Int}}}
-  cfv::ArrayPartition{CalcFactorMahalanobis, CFT}
-end
-
-function GraphSolveContainer(fg)
-  M, varTypes, varTypesIds = buildGraphSolveManifold(fg)
-  varTypesIndexes = ArrayPartition(values(varTypesIds)...)
-  buffs = OrderedDict{DataType, GraphSolveBuffers}()
-  cfvec = calcFactorMahalanobisVec(fg)
-
-  varOrderDict = OrderedDict{Symbol, Tuple{Int, Vararg{Int}}}()
-  for cfp in cfvec
-    fid = cfp.faclbl
-    varOrder = cfp.varOrder
-    var_idx = map(varOrder) do v
-      return findfirst(==(v), varTypesIndexes)
+Returns `(M, varlabelsAP, varIntLabel)`; the block order of `M` and of `varlabelsAP` agree, which is
+the invariant that keeps a Jacobian's columns aligned with `Λ`'s coordinates.
+"""
+function buildPartitionedSolveManifold(varsets)
+  PMs = []
+  blocks = Vector{Symbol}[]
+  for vars in varsets
+    isempty(vars) && continue
+    vartypes, vartypecount, vartypeslist = getVariableTypesCount(vars)
+    for vartype in vartypes
+      G = getManifold(vartype)
+      if G isa LieGroups.ValidationLieGroup
+        G = G.lie_group
+      end
+      push!(PMs, NPowerManifold(G, vartypecount[vartype]))
     end
-    varOrderDict[fid] = tuple(var_idx...)
+    _, ap = getVarIntLabelMap(vartypeslist)
+    append!(blocks, collect(ap.x))
   end
-
-  return GraphSolveContainer(M, buffs, varTypes, varTypesIds,  varOrderDict, cfvec)
+  M = ProductManifold(PMs...)
+  blocks_tuple = (blocks...,)
+  varlabelsAP = ArrayPartition{Symbol, typeof(blocks_tuple)}(blocks_tuple)
+  varIntLabel = OrderedDict{Symbol, Int}(l => i for (i, l) in enumerate(varlabelsAP))
+  return M, varlabelsAP, varIntLabel
 end
 
-function getGraphSolveCache!(gsc::GraphSolveContainer, ::Type{T}) where {T <: Real}
-  cache = gsc.buffers
-  M = gsc.M
-  val = get!(cache, T) do
-    @debug "cache miss, cacheing" T
-    return GraphSolveBuffers(M, T)
-  end
-  return val
-end
-
-function _toPoints2!(
-  M::AbstractManifold,
-  buffs::GraphSolveBuffers{T, U},
-  Xc::Vector{T},
-) where {T, U}
-  ϵ = buffs.ϵ
-  p = buffs.p
-  X = buffs.X
-  get_vector!(M, X, ϵ, Xc, DefaultOrthogonalBasis())
-  exp!(M, p, ϵ, X)
-  return p::U
-end
-
-function cost_cfp(
-  cfp::CalcFactorMahalanobis,
-  p::AbstractArray{T},
-  vi::NTuple{N, Int},
-) where {T,N}
-  # cfp(map(v->p[v],vi)...)
-  res = cfp(cfp.meas..., map(v->p[v],vi)...)
-  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  # k = dim(μ)
-  return res' * cfp.iΣ[1] * res
-
-end
-# function cost_cfp(
-#   @nospecialize(cfp::CalcFactorMahalanobis),
-#   @nospecialize(p::AbstractArray),
-#   vi::NTuple{1, Int},
-# )
-#   return cfp(p[vi[1]])
-# end
-# function cost_cfp(
-#   @nospecialize(cfp::CalcFactorMahalanobis),
-#   @nospecialize(p::AbstractArray),
-#   vi::NTuple{2, Int},
-# )
-#   return cfp(p[vi[1]], p[vi[2]])
-# end
-# function cost_cfp(
-#   @nospecialize(cfp::CalcFactorMahalanobis),
-#   @nospecialize(p::AbstractArray),
-#   vi::NTuple{3, Int},
-# )
-#   return cfp(p[vi[1]], p[vi[2]], p[vi[3]])
-# end
-
-
-# function (gsc::GraphSolveContainer)(f::Vector{T}, Xc::Vector{T}, ::Val{true}) where T <: Real
-#   #
-#   buffs = getGraphSolveCache!(gsc, T)
-
-#   cfdict = gsc.cfdict
-#   varOrderDict = gsc.varOrderDict
-
-#   M = gsc.M 
-
-#   p = _toPoints2!(M, buffs, Xc)
-
-#   for (i,(fid, cfp)) in enumerate(cfdict)
-#     varOrder_idx = varOrderDict[fid]
-
-#     # call the user function
-#     f[i] = cost_cfp(cfp, p, varOrder_idx)/2
-#   end
-
-#   return f
-# end
-
-# the cost function
-function (gsc::GraphSolveContainer)(Xc::Vector{T}) where {T <: Real}
-  #
-  buffs = getGraphSolveCache!(gsc, T)
-
-  varOrderDict = gsc.varOrderDict
-
-  M = gsc.M
-
-  p = _toPoints2!(M, buffs, Xc)
-  
-  obj = mapreduce(+, eachindex(gsc.cfv)) do i
-    cfp = gsc.cfv[i]
-    varOrder_idx = varOrderDict[cfp.faclbl]
-    # # call the user function
-    cost::T = cost_cfp(cfp, p, varOrder_idx)
-    
-    return cost
-  end
-
-  return obj / 2
-end
-
-
-# FIXME, deprecate and improve legacy use of `MultiThreaded` type
-struct MultiThreaded end
-
-function (gsc::GraphSolveContainer)(Xc::Vector{T}, ::MultiThreaded) where {T <: Real}
-  #
-  buffs = getGraphSolveCache!(gsc, T)
-
-  cfdict = gsc.cfdict
-  varOrderDict = gsc.varOrderDict
-
-  M = gsc.M
-
-  p = _toPoints2!(M, buffs, Xc)
-
-  #NOTE multi threaded option
-  obj = zeros(T, (Threads.nthreads()))
-  Threads.@threads for fid in collect(keys(cfdict))
-    cfp = cfdict[fid]
-
-    #NOTE single thread option
-    # obj::T = zero(T)
-    # for (fid, cfp) in cfdict 
-
-    varOrder_idx = varOrderDict[fid]
-
-    # call the user function
-    retval = cost_cfp(cfp, p, varOrder_idx)
-
-    #NOTE multi threaded option
-    obj[Threads.threadid()] += retval
-    # NOTE single thread option
-    # obj += retval
-  end
-
-  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  # k = dim(μ)
-
-  #NOTE multi threaded option
-  return sum(obj) / 2
-  # NOTE single thread option
-  # return obj/2
-end
-
-#fg = generateCanonicalFG_Honeycomb!()
-
-# copy variables from graph
-function initPoints!(p, gsc, fg::AbstractDFG, solveKey = :parametric)
-  for (i, vartype) in enumerate(gsc.varTypes)
-    varIds = gsc.varTypesIds[vartype]
-    for (j, vId) in enumerate(varIds)
-      p[gsc.M, i][j] = mean(getBelief(getState(fg, vId, solveKey)))
-    end
-  end
-end
 
 function _get_dim_ranges(dims::NTuple{N,Any}) where {N}
   dims_acc = accumulate(+, vcat(1, SVector(dims)))
@@ -548,271 +235,130 @@ function _getComponentsCovar(@nospecialize(PM::NPowerManifold), Σ::AbstractMatr
   return subsigmas
 end
 
-function solveGraphParametricOptim(
-  fg::AbstractDFG;
-  verbose::Bool = false,
-  computeCovariance::Bool = true,
-  solveKey::Symbol = :parametric,
-  autodiff = :forward,
-  algorithm = Optim.BFGS,
-  algorithmkwargs = (), # add manifold to overwrite computed one
-  # algorithmkwargs = (linesearch=Optim.BackTracking(),), # add manifold to overwrite computed one
-  options = Optim.Options(;
-    allow_f_increases = true,
-    time_limit = 100,
-    # show_trace = true,
-    # show_every = 1,
-  ),
-)
-  # 
-  # Build the container  
-  gsc = GraphSolveContainer(fg)
-  buffs = getGraphSolveCache!(gsc, Float64)
 
-  M = gsc.M
-  ϵ = buffs.ϵ
-  p = buffs.p
-  X = buffs.X
-  Xc = buffs.Xc
 
-  #initialize points in buffer from fg, TODO maybe do in constructor
-  initPoints!(p, gsc, fg, solveKey)
-
-  # log!(M, X, Identity(ProductOperation), p)
-  # calculate initial coordinates vector for Optim
-  log!(M, X, ϵ, p)
-  #FIXME update to ProductLieGroup first, but only 2 groups supported.
-  get_coordinates!(M, Xc, ϵ, X, DefaultOrthogonalBasis())
-  # vee!(LieGroup(M), Xc, X)
-
-  initValues = Xc
-  #FIXME, for some reason we get NANs and adding a small random value works
-  initValues .+= randn(length(Xc)) * 0.0001
-
-  #optim setup and solve
-  alg = algorithm(; algorithmkwargs...)
-
-  tdtotalCost = Optim.TwiceDifferentiable(gsc, initValues; autodiff = autodiff)
-
-  result = Optim.optimize(tdtotalCost, initValues, alg, options)
-  !verbose ? nothing : @show(result)
-
-  rv = Optim.minimizer(result)
-
-  # optionally compute hessian for covariance
-  Σ = if computeCovariance
-    H = Optim.hessian!(tdtotalCost, rv)
-    pinv(H)
-  else
-    N = length(initValues)
-    zeros(N, N)
-  end
-
-  #TODO better return 
-
-  #get point (p) values form results
-  get_vector!(M, X, ϵ, rv, DefaultOrthogonalBasis())
-  exp!(M, p, ϵ, X)
-
-  #extract covariances from result
-  # sigmas = getComponentsCovar(M, Σ)
-
-  # d = OrderedDict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
-  d = OrderedDict{Symbol, NamedTuple{(:val, :cov), Tuple{AbstractArray, Matrix{Float64}}}}()
-
-  varIds = vcat(values(gsc.varTypesIds)...)
-  varIdDict = FlatVariables(fg, varIds).idx
-  for (i, key) in enumerate(varIds)
-    r = varIdDict[key]
-    push!(d, key => (val = p[i], cov = Σ[r, r]))
-    # push!(d,key=>(val=p[i], cov=sigmas[i]))
-  end
-
-  return (opti = d, stat = result, varIds = varIdDict, Σ = Σ)
-end
-
-# Original
-# ==============================
-
-function _totalCost(fg, cfdict::OrderedDict{Symbol, <:CalcFactorMahalanobis}, flatvar, Xc)
-  #
-  obj = zero(eltype(Xc))
-  for (fid, cfp) in cfdict
-    varOrder = cfp.varOrder
-
-    Xparams = [
-      getPoint(getStateKind(fg, varId), view(Xc, flatvar.idx[varId])) for
-      varId in varOrder
-    ]
-
-    # call the user function
-    # retval = cfp(Xparams...)
-    res = cfp(cfp.meas..., Xparams...)
-    # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  # k = dim(μ)
-    obj += 1 / 2 * res' * cfp.iΣ[1] * res
-  end
-
-  return obj
-end
-
-"""
-$SIGNATURES
-Solve for frontal values only with values in seprarators fixed
-  
-DevNotes
-- WIP
-- Relates to: https://github.com/JuliaRobotics/IncrementalInference.jl/issues/466#issuecomment-562556953
-- Consolidation
-  - Related to [`approxConv`](@ref)
-  - Definitely with [`solveFactorParametric`](@ref)
-  - Maybe with [`solveGraphParametric`](@ref)
-    - https://github.com/JuliaRobotics/IncrementalInference.jl/pull/1588#issuecomment-1210406683
-"""
-function solveConditionalsParametric(
-  fg::AbstractDFG,
-  frontals::Vector{Symbol},
-  separators::Vector{Symbol} = setdiff(listVariables(fg), frontals);
-  solvekey::Symbol = :parametric,
-  autodiff = :forward,
-  algorithm = Optim.BFGS,
-  algorithmkwargs = (), # add manifold to overwrite computed one
-  options = Optim.Options(;
-    allow_f_increases = true,
-    time_limit = 100,
-    # show_trace = true,
-    # show_every = 1,
-  ),
-)
-  varIds = [frontals; separators]
-
-  sfg = issetequal(varIds, listVariables(fg)) ? fg : getSubgraph(fg, varIds, 1)
-
-  flatvar = FlatVariables(fg, varIds)
-
-  for vId in varIds
-    p = mean(getBelief(getState(fg, vId, solvekey)))
-    flatvar[vId] = getCoordinates(getStateKind(fg, vId), p)
-  end
-  initValues = flatvar.X
-
-  frontalsLength = sum(map(v -> getDimension(getVariable(fg, v)), frontals))
-
-  # build variables for frontals and seperators
-  # fX = view(initValues, 1:frontalsLength)
-  fX = initValues[1:frontalsLength]
-  # sX = view(initValues, (frontalsLength+1):length(initValues))
-  sX = initValues[(frontalsLength + 1):end]
-
-  alg = algorithm(; algorithmkwargs...)
-  # alg = algorithm(; algorithmkwargs...)
-  cfd = calcFactorMahalanobisDict(sfg)
-  tdtotalCost = Optim.TwiceDifferentiable(
-    (x) -> _totalCost(fg, cfd, flatvar, [x; sX]),
-    fX;
-    autodiff = autodiff,
-  )
-
-  # result = Optim.optimize((x)->_totalCost(fg, flatvar, [x;sX]), fX, alg, options)
-  result = Optim.optimize(tdtotalCost, fX, alg, options)
-
-  if !Optim.converged(result)
-    @warn "Optim did not converge:" result maxlog=10
-  end
-
-  rv = Optim.minimizer(result)
-
-  H = Optim.hessian!(tdtotalCost, rv)
-
-  Σ = pinv(H)
-
-  d = OrderedDict{Symbol, NamedTuple{(:val, :cov), Tuple{AbstractArray, Matrix{Float64}}}}()
-
-  for key in frontals
-    r = flatvar.idx[key]
-    p = getPoint(getStateKind(fg, key), rv[r])
-    push!(d, key => (val = p, cov = Σ[r, r]))
-  end
-
-  return (opti = d, stat = result, varIds = flatvar.idx, Σ = Σ)
-end
-
-# ================================================================================================
-# UNDER DEVELOPMENT Parametric solveTree utils
-# ================================================================================================
-
-"""
-    $SIGNATURES
-Get the indexes for labels in FlatVariables
-"""
-function collectIdx(varinds, labels)
-  idx = Int[]
-  for lbl in labels
-    append!(idx, varinds[lbl])
-  end
-  return idx
-end
-
-"""
-    $SIGNATURES
-Calculate the marginal distribution for a clique over subsetVarIds.
-#FIXME update to support manifolds
-"""
-function calculateMarginalCliqueLikelihood(vardict, Σ, varindxs, subsetVarIds)
-  μₘ = Float64[]
-  for lbl in subsetVarIds
-    append!(μₘ, vardict[lbl].val)
-  end
-
-  Aidx = collectIdx(varindxs, subsetVarIds)
-  Σₘ = Σ[Aidx, Aidx]
-
-  return createMvNormal(μₘ, Σₘ)
-end
-
-#FIXME delete!!!
-function calculateCoBeliefMessage(soldict, Σ, flatvars, separators, frontals)
-  Aidx = IIF.collectIdx(flatvars, separators)
-  Cidx = IIF.collectIdx(flatvars, frontals)
-
-  #marginalize separators
-  A = Σ[Aidx, Aidx]
-  #marginalize frontals
-  C = Σ[Cidx, Cidx]
-  # cross
-  B = Σ[Aidx, Cidx]
-
-  Σₘ = deepcopy(A)
-  if length(separators) == 0
-    return (varlbl = Symbol[], μ = Float64[], Σ = Matrix{Float64}(undef, 0, 0))
-
-  elseif length(separators) == 1
-
-    # create messages
-    return (varlbl = deepcopy(separators), μ = soldict[separators[1]].val, Σ = A)
-
-  elseif length(separators) == 2
-    A = Σₘ[1, 1]
-    C = Σₘ[2, 2]
-    B = Σₘ[1, 2]
-
-    #calculate covariance between separators
-    ΣA_B = A - B * inv(C) * B'
-    # create messages
-    m2lbl = deepcopy(separators)
-    m2cov = isa(ΣA_B, Matrix) ? ΣA_B : fill(ΣA_B, 1, 1)
-    m2val = soldict[m2lbl[2]].val - soldict[m2lbl[1]].val
-    return (varlbl = m2lbl, μ = m2val, Σ = m2cov)
-
-  else
-    error("Messages with more than 2 seperators are not supported yet")
-  end
-end
 
 # ================================================================================================
 # Parametric utils
 # ================================================================================================
 
 # SANDBOX of usefull development functions to be cleaned up
+## ==========================================================================================
+## Single-mode belief: one point, one form
+## ==========================================================================================
+
+# a single-mode belief has one component and no tree, so no `principal_*` node is populated;
+# `DefaultFormKind` deliberately says nothing about what `trailing_forms[1]` holds, which keeps AMP's
+# kernel machinery (`sample`, `rand`, `resample`) from reading it as a covariance
+const SINGLEMODE_TOPOLOGY = DFG.DefaultTopologyKind()
+const SINGLEMODE_FORM = DFG.DefaultFormKind()
+
+"""
+    $SIGNATURES
+
+Build a single-mode belief: the one point `μ` carrying form `Σ`.
+
+Reads go through [`getSingleModePoint`](@ref) and [`getSingleModeCovariance`](@ref), which take
+`points[1]` and `trailing_forms[1]`; those are also what AMP's `mean` and `cov` read for one point.
+
+See also: [`setSingleModeBelief!`](@ref)
+"""
+function buildSingleModeBelief(
+  statekind::StateType,
+  μ,
+  Σ::AbstractMatrix;
+  observability::AbstractVector{<:Real} = zeros(getDimension(statekind)),
+)
+  P = DFG.getPointType(statekind)
+  return DFG.HomotopyDensityDFG{typeof(statekind), P}(;
+    reprkind = DFG.HomotopyReprDFG(
+      SINGLEMODE_TOPOLOGY,
+      SINGLEMODE_FORM,
+      statekind,
+      AMP.PartialNoSerde(),
+    ),
+    observability = collect(Float64, observability),
+    weights = [1.0],
+    points = P[convert(P, μ)],
+    trailing_forms = sparsevec(Dict(1 => Matrix{Float64}(Σ))),
+    structure = sparsevec(Dict(1 => [1])),
+  )
+end
+
+# the invariant every accessor below rests on
+function _assertSingleMode(bel)
+  npts = length(bel.points)
+  npts == 1 || error(
+    "single-mode accessors need a belief with exactly one point, this one has $npts; \
+build it with `buildSingleModeBelief` or write it with `setSingleModeBelief!`",
+  )
+  return bel
+end
+
+"""
+    $SIGNATURES
+
+Set the point and form of a single-mode `state` -- the only writer of a single-mode belief.
+
+Writes through when `state` already holds a lone leaf, so a solve sweep does not rebuild a density
+per variable; otherwise replaces the belief with a fresh single-mode one.
+"""
+function setSingleModeBelief!(
+  state::State,
+  μ,
+  Σ::AbstractMatrix;
+  initialized::Bool = true,
+)
+  bel = getBelief(state)
+  if length(bel.points) == 1 && SparseArrays.nnz(bel.trailing_forms) == 1
+    P = eltype(bel.points)
+    bel.points[1] = convert(P, μ)
+    copyto!(bel.trailing_forms[1], Σ)
+  else
+    state.belief = buildSingleModeBelief(getStateKind(state), μ, Σ; bel.observability)
+  end
+  initialized && (state.initialized = true)
+  return state
+end
+
+""" $SIGNATURES
+Set the point of a single-mode `state`, keeping its current form.
+"""
+setSingleModeBelief!(state::State, μ; kwargs...) =
+  setSingleModeBelief!(state, μ, getSingleModeCovariance(state); kwargs...)
+
+function setSingleModeBelief!(
+  v::VariableCompute,
+  μ,
+  Σ::AbstractMatrix;
+  solveKey::Symbol = :parametric,
+  kwargs...,
+)
+  return setSingleModeBelief!(getState(v, solveKey), μ, Σ; kwargs...)
+end
+
+""" $SIGNATURES
+The point of a single-mode belief.  Errors unless there is exactly one.
+See [`setSingleModeBelief!`](@ref).
+"""
+getSingleModePoint(bel::HomotopyDensity) = _assertSingleMode(bel).points[1]
+getSingleModePoint(state::State) = getSingleModePoint(getBelief(state))
+getSingleModePoint(v::VariableCompute, solveKey::Symbol = :parametric) =
+  getSingleModePoint(getState(v, solveKey))
+getSingleModePoint(dfg::AbstractDFG, lbl::Symbol, solveKey::Symbol = :parametric) =
+  getSingleModePoint(getState(dfg, lbl, solveKey))
+
+""" $SIGNATURES
+The covariance of a single-mode belief.  Errors unless there is exactly one point.
+See [`setSingleModeBelief!`](@ref).
+"""
+getSingleModeCovariance(bel::HomotopyDensity) = _assertSingleMode(bel).trailing_forms[1]
+getSingleModeCovariance(state::State) = getSingleModeCovariance(getBelief(state))
+getSingleModeCovariance(v::VariableCompute, solveKey::Symbol = :parametric) =
+  getSingleModeCovariance(getState(v, solveKey))
+getSingleModeCovariance(dfg::AbstractDFG, lbl::Symbol, solveKey::Symbol = :parametric) =
+  getSingleModeCovariance(getState(dfg, lbl, solveKey))
+
 """
     $SIGNATURES
 Update the parametric solver data value and covariance.
@@ -820,13 +366,11 @@ Update the parametric solver data value and covariance.
 function updateSolverDataParametric! end
 
 function updateSolverDataParametric!(
-  state::State,
+  vnd::State,
   val::AbstractArray,
   cov::AbstractMatrix,
 )
-  statekind = getStateKind(state)
-  setBelief!(state, HomotopyDensity_legacy(statekind, [val,]; bw=cov, newbw=false))
-  return state
+  return setSingleModeBelief!(vnd, val, cov)
 end
 
 function updateSolverDataParametric!(
@@ -839,32 +383,6 @@ function updateSolverDataParametric!(
   return updateSolverDataParametric!(vnd, val, cov)
 end
 
-
-"""
-    $SIGNATURES
-Add parametric solver to fg, batch solve using [`solveGraphParametric`](@ref) and update fg.
-"""
-function solveGraphParametricOptim!(
-  fg::AbstractDFG; 
-  init::Bool = true, 
-  solveKey::Symbol = :parametric, # FIXME, moot since only :parametric used for parametric solves
-  initSolveKey::Symbol = :default, 
-  verbose = false,
-  kwargs...
-)
-  # make sure variables has solverData, see #1637
-  prepare!(fg, NLLSSolver(), solveKey)
-  if init
-    autoinitParametric!(fg, solveKey; solveKey)
-    # initParametricFrom!(fg, initSolveKey; parkey=solveKey)
-  end  
-
-  vardict, result, varIds, Σ = solveGraphParametricOptim(fg; verbose, kwargs...)
-
-  updateParametricSolution!(fg, vardict)
-
-  return vardict, result, varIds, Σ
-end
 
 """
     $SIGNATURES
@@ -881,23 +399,37 @@ function initParametricFrom!(
   force::Bool = false,
 )
   #
-  # Ensure parametric states exist
-  prepareStates!(fg, NLLSSolver(), parkey)
-
-  # New HomotopyDensity always provides mean() / cov() for use in single Guassian
-  for var in getVariables(fg)
-    bel = getBelief(getState(var, fromkey))
-    pbel = HomotopyDensity_legacy(getStateKind(var), [mean(bel),], bw=cov(bel), newbw=false)
-    setBelief!(getState(var, parkey), pbel)
+  if onepoint
+    for v in getVariables(fg)
+      dims = getDimension(v)
+      setSingleModeBelief!(getState(v, parkey), getSingleModePoint(v, fromkey), LinearAlgebra.I(dims))
+    end
+  else
+    for var in getVariables(fg)
+      μ, Σ = calcMeanCovar(var, fromkey)
+      setSingleModeBelief!(getState(var, parkey), μ, Σ)
+    end
   end
 end
 
 """
     $SIGNATURES
-Prepare the fg for solving using the Non-linear Least Squares solver for results in state label.
+Add a parametric state label to all the variables in fg if it doesn't exist.
 """
-function prepare!(fg, ::NLLSSolver, statelabel)
-  return prepareStates!(fg, NLLSSolver(), statelabel; whereSolvable = >=(0))
+function addParametricSolver!(fg; init = true, solveKey::Symbol = :parametric)
+  if !(solveKey in fg.solverParams.algorithms)
+    push!(fg.solverParams.algorithms, solveKey)
+    foreach(
+      v -> IIF.setDefaultNodeDataParametric!(v, getStateKind(v); solveKey, initialized = false),
+      getVariables(fg),
+    )
+    if init
+      autoinitParametric!(fg; solveKey)
+    end
+  else
+    error("parametric solvekey $solveKey already exists")
+  end
+  return nothing
 end
 
 """
@@ -933,7 +465,7 @@ function updateParametricSolution!(fg, M, labels::AbstractArray{Symbol}, vals, �
 
   for (i, (v, val)) in enumerate(zip(labels, vals))
     vnd = getState(getVariable(fg, v), solveKey)
-    covar = isnothing(covars) ? DFG.refCovariances(vnd)[1] : covars[i]
+    covar = isnothing(covars) ? getSingleModeCovariance(vnd) : covars[i]
     # Update the variable node data value and covariance
     updateSolverDataParametric!(vnd, val, covar)
   end
@@ -951,14 +483,19 @@ function createMvNormal(val, cov)
   end
 end
 
-function createMvNormal(v::VariableCompute, key = :parametric)
-  state = getState(v, :parametric)
-  bel = getBelief(state)
-  if key == :parametric
-    return createMvNormal(mean(bel), cov(bel))
+function createMvNormal(
+  v::VariableCompute,
+  key = :parametric;
+  parametric::Bool = key === :parametric,
+)
+  if parametric
+    vnd = getState(v, key)
+    val = getSingleModePoint(vnd)
+    cov = getSingleModeCovariance(vnd)
+    return createMvNormal(val, cov)
   else
     @warn "Trying MvNormal Fit"
-    return fit(MvNormal, getPoints(bel))
+    return fit(MvNormal, DFG.refPoints(getState(v, key)))
   end
 end
 
@@ -997,64 +534,5 @@ function getInitOrderParametric(fg; ordering::Symbol = :qr)
   return clique_order
 end
 
-function autoinitParametricOptim!(
-  fg,
-  clique_order = getInitOrderParametric(fg);
-  reinit = false,
-  algorithm = Optim.NelderMead,
-  algorithmkwargs = (initial_simplex = Optim.AffineSimplexer(0.025, 0.1),),
-  kwargs...
-)
-  @showprogress for cliq in clique_order
-    for vIdx in cliq.frontals
-      autoinitParametricOptim!(fg, vIdx; reinit, algorithm, algorithmkwargs, kwargs...)
-    end
-  end
-  return nothing
-end
-
-function autoinitParametricOptim!(dfg::AbstractDFG, initme::Symbol; kwargs...)
-  return autoinitParametricOptim!(dfg, getVariable(dfg, initme); kwargs...)
-end
-
-function autoinitParametricOptim!(
-  dfg::AbstractDFG,
-  xi::VariableCompute;
-  solveKey = :parametric,
-  reinit::Bool = false,
-  kwargs...,
-)
-  #
-
-  initme = getLabel(xi)
-  vnd = getState(xi, solveKey)
-  # don't initialize a variable more than once
-  if reinit || !isInitialized(xi, solveKey)
-
-    # frontals - initme
-    # separators - inifrom
-
-    initfrom = ls2(dfg, initme)
-    filter!(initfrom) do vl
-      return isInitialized(dfg, vl, solveKey)
-    end
-
-    vardict, result, flatvars, Σ =
-      solveConditionalsParametric(dfg, [initme], initfrom; kwargs...)
-
-    val, cov = vardict[initme]
-
-    updateSolverDataParametric!(vnd, val, cov)
-
-    vnd.initialized = true
-
-    # updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent=false)    
-    # updateVariableSolverData!(dfg, xi.label, getState(xi, solveKey), :graphinit, true, Symbol[]; warn_if_absent=false)
-  else
-    result = nothing
-  end
-
-  return result#isInitialized(xi, solveKey)
-end
 
 #

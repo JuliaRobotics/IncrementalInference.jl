@@ -5,16 +5,21 @@
     CliqStatus
 Clique status message enumerated type with status.
 """
-@enum CliqStatus NULL NO_INIT INITIALIZED UPSOLVED MARGINALIZED DOWNSOLVED UPRECYCLED ERROR_STATUS
+@enum CliqStatus NULL NO_INIT INITIALIZED UPSOLVED MARGINALIZED DOWNSOLVED UPRECYCLED ERROR_STATUS CONVERGED ITERLIMIT
 
 # Used for UPWARD_DIFFERENTIAL, UPWARD_COMMON, DOWNWARD_COMMON marginalized types
 abstract type MessagePassDirection end
 struct UpwardPass <: MessagePassDirection end
 struct DownwardPass <: MessagePassDirection end
 
+#TODO consolidate later as per #1954 
+# Tree message forms, distinguished by what the PAYLOAD is:
+#   NonparametricMessage  kernel density -> MsgPrior factor
+#   LinearizedMessage     linear system over tangent *deltas* at the sender's linearization point,
+#                         not absolute manifold values
 abstract type MessageType end
 struct NonparametricMessage <: MessageType end
-struct ParametricMessage <: MessageType end
+struct LinearizedMessage <: MessageType end
 
 using DistributedFactorGraphs: PackedBelief
 
@@ -28,9 +33,6 @@ const SamplableBelief = Union{
   <:LevelSetGridNormal,
   <:Mixture,
 }
-
-#Supported types for parametric
-const ParametricTypes = Union{Normal, MvNormal}
 
 """
     $TYPEDEF

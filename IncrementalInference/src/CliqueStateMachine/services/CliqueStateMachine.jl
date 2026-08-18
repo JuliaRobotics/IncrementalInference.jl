@@ -101,7 +101,7 @@ function setCliqueRecycling_StateMachine(csmc::CliqStateMachineContainer)
     # canCliqIncrRecycle
     # check if should be trying and can recycle clique computations
   elseif csmc.csmoptions.incremental && oldstatus == DOWNSOLVED
-    csmc.csmoptions.dodownsolve && (csmc.cliq.data.isCliqReused = true)
+    csmc.cliq.data.isCliqReused = true
     setCliqueStatus!(csmc.cliq, UPRECYCLED)
   end
   logCSM(
@@ -160,6 +160,10 @@ function presolveChecklist_StateMachine(csmc::CliqStateMachineContainer)
       )
     end
   end
+
+  # the linearized solve reads its starting estimate off the freshly built subgraph once, before any
+  # sweep, and carries it on the tree from there — see `setupLinear_ParametricStateMachine`
+  csmc.csmoptions.algorithm === :parametric && return setupLinear_ParametricStateMachine
 
   # go to 2 wait for up
   return waitForUp_StateMachine
@@ -220,7 +224,7 @@ function waitForUp_StateMachine(csmc::CliqStateMachineContainer)
 
   elseif csmc.csmoptions.algorithm == :parametric
     !all(all_child_status .== UPSOLVED) && error("#FIXME")
-    return solveUpParametric_StateMachine
+    return solveUp_ParametricStateMachine
 
   elseif true #TODO Currently all up goes through solveUp 
     return preUpSolve_StateMachine
@@ -605,7 +609,11 @@ function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
       return IncrementalInference.exitStateMachine
 
     elseif csmc.csmoptions.algorithm == :parametric
-      beliefMsg.status != DOWNSOLVED && error("#FIXME")
+      # DOWNSOLVED = another sweep follows;
+      # CONVERGED / ITERLIMIT = last down triggered by root.
+      #   apply the final deltas — and `checkConverged_ParametricStateMachine` acts on the verdict afterwards.
+      beliefMsg.status in (DOWNSOLVED, CONVERGED, ITERLIMIT) ||
+        error("unexpected downward status $(beliefMsg.status) in parametric solve")
       return solveDown_ParametricStateMachine
     elseif beliefMsg.status in [MARGINALIZED, DOWNSOLVED, INITIALIZED, NO_INIT]
       return preDownSolve_StateMachine

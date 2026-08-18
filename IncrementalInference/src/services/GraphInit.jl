@@ -20,13 +20,15 @@ function defaultBelief(
   dims = getDimension(v)
   @assert getPointType(varType) != DataType "cannot add manifold point type $(getPointType(varType)), make sure the identity element argument in @defStateType $varType arguments is correct"
   ϵ = getPointIdentity(varType)
-  belief = HomotopyDensity_legacy(
-    varType, 
-    [ϵ for _ in 1:num_kernels]; 
-    bw = zeros(dims), 
+  # a parametric belief is one point and one form, built direct -- the tree build behind
+  # `HomotopyDensity_legacy` leaves a single-point density without any nodes
+  solver isa NLLSSolver && return buildSingleModeBelief(varType, ϵ, diagm(ones(dims)))
+  return HomotopyDensity_legacy(
+    varType,
+    [ϵ for _ in 1:num_kernels];
+    bw = zeros(dims),
     newbw = false
   )
-  return belief
 end
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
@@ -124,18 +126,15 @@ end
 """
     $SIGNATURES
 
-For variables in `varList` check and if necessary make solverData objects for both `:default` and `:parametric` solveKeys. 
+For variables in `varList` check and if necessary make solverData objects for `solveKey`.
 
 Example
 ```julia
-num_made = makeSolverData(fg; solveKey=:parametric)
+num_made = makeSolverData!(fg; solveKey=:parametric)
 ```
 
 Notes
 - Part of solving JuliaRobotics/IncrementalInference.jl issue 1637
-
-DevNotes
-- TODO, assumes parametric solves will always just be in solveKey `:parametric`.
 
 See also: [`doautoinit!`](@ref), [`initAll!`](@ref)
 """
@@ -145,16 +144,20 @@ function makeSolverData!(
   varList::AbstractVector{Symbol} = ls(dfg; whereSolvable = >=(solvable)),
   solveKey::Symbol=:default,
   N::Int = getSolverParams(dfg).N,
+  # WHICH KIND of state to make, which the solveKey name only suggests: `:parametric` is the
+  # algorithm, not the label, and a parametric solve may run under any solveKey.
+  parametric::Bool = solveKey === :parametric,
 )
   Base.depwarn("`makeSolverData!` is deprecated, use `prepareStates!(dfg, solver, solveKey)` instead.", :makeSolverData!)
   count = 0
   for vl in varList
     v = getVariable(dfg,vl)
-    if solveKey != :parametric
+    if !parametric
         count += prepareState!(v, NPBPSolver(), solveKey; num_kernels=N)
     else
         count += prepareState!(v, NLLSSolver(), solveKey)
     end
+    count += 1
   end
 
   return count
@@ -460,10 +463,11 @@ function initVariable!(
   samplable_belief::SamplableBelief,
   solveKey::Symbol = :default;
   N::Int = getSolverParams(dfg).N,
+  parametric::Bool = solveKey === :parametric,
 )
   #
   variable = getVariable(dfg, label)
-  initVariable!(variable, samplable_belief, solveKey; N)
+  initVariable!(variable, samplable_belief, solveKey; N, parametric)
   return nothing
 end
 
@@ -472,6 +476,7 @@ function initVariable!(
   samplable_belief::SamplableBelief,
   solveKey::Symbol = :default;
   N::Int = length(getVal(variable)),
+  parametric::Bool = solveKey === :parametric,
 )
   #
   M = getManifold(variable)
@@ -479,12 +484,7 @@ function initVariable!(
     prepareState!(variable, NLLSSolver(), solveKey)
     μ, iΣ = getMeasurementParametric(samplable_belief)
     vnd = getState(variable, solveKey)
-
-    hode = HomotopyDensity_legacy(getStateKind(variable), [μ,]; bw=inv(iΣ), newbw=false)
-    # DFG.refMeans(vnd)[1] = getPoint(getStateKind(variable), μ)
-    # DFG.refCovariances(vnd)[1] .= inv(iΣ)
-    setBelief!(vnd, hode)
-    vnd.initialized = true
+    setSingleModeBelief!(vnd, getPoint(getStateKind(variable), μ), inv(iΣ))
   else
     points = [samplePoint(M, samplable_belief) for _ = 1:N]
     initVariable!(variable, points, solveKey)
@@ -652,6 +652,16 @@ function prepare!(
   end
 
   return count
+end
+
+"""
+    $SIGNATURES
+
+Prepare the factor graph for solving with the Non-linear Least Squares solver, results under
+`statelabel`.
+"""
+function prepare!(dfg::AbstractDFG, solver::NLLSSolver, statelabel::Symbol)
+  return prepareStates!(dfg, solver, statelabel; whereSolvable = >=(0))
 end
 
 """

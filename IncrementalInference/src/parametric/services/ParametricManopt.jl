@@ -17,6 +17,28 @@ function getVarIntLabelMap(
   return varIntLabel, varlabelsAP
 end
 
+"""
+    $SIGNATURES
+
+Coordinate index ranges per variable label, following the coordinate ordering of the
+product manifold `M` and matching the `varlabelsAP` returned by [`getVarIntLabelMap`](@ref).
+
+The container-level counterpart of `DensityBundlePoint.ranges`, for the RLM path that has a manifold
+and a label partition but no bundle.
+"""
+function getCoordranges(M::AbstractManifold, varlabelsAP::ArrayPartition)
+  ranges = OrderedDict{Symbol, UnitRange{Int}}()
+  st = 1
+  for i in eachindex(varlabelsAP.x)
+    l = manifold_dimension(M.manifolds[i]) ÷ length(varlabelsAP.x[i])
+    for j in eachindex(varlabelsAP.x[i])
+      ranges[varlabelsAP.x[i][j]] = st:(st + l - 1)
+      st += l
+    end
+  end
+  return ranges
+end
+
 function CalcFactorResidual(
   fg, 
   fct::FactorCompute, 
@@ -61,7 +83,7 @@ function CalcFactorResidualAP(
   
   # skip non-numeric prior (MetaPrior)
   #TODO test... remove MetaPrior{T} something like this
-  metaPriorKeys = filter(k->contains(string(k), "MetaPrior"), collect(keys(alltypes)))
+  metaPriorKeys = filter(k->contains(string(nameof(k)), "MetaPrior"), keys(alltypes))
   delete!.(Ref(alltypes), metaPriorKeys)
 
   parts = map(values(alltypes)) do labels
@@ -79,7 +101,7 @@ function (cfm::CalcFactorResidual)(p)
   return cfm.sqrt_iΣ * cfm(meas, points...)
 end
 
-# cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
+# cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt
 struct CostFres_cond!{PT, CFT}
   points::PT
   costfuns::ArrayPartition{CalcFactorResidual, CFT}
@@ -400,6 +422,7 @@ end
 
 Manopt `DebugAction` that prints the tension (reduced chi-squared) at each iteration.
 Tension = 2*cost / dof, where `dof = N - M` (residual dimension minus state dimension).
+Ideal value is 1.0, with values >> 1.0 indicating underfitting and < 1.0 indicating overfitting.
 
 Usage in `solve_RLM`:
 ```julia
@@ -436,8 +459,7 @@ function solve_RLM(
   finiteDiffCovariance = false,
   jacobian_method::Symbol = :finitediff,
   solveKey::Symbol = :parametric,
-  # linear_subsolver! = Manopt.default_lm_lin_solve!,
-  linear_subsolver! = qr_linear_subsolver!,
+  linear_subsolver! = Manopt.default_lm_lin_solve!,
   kwargs...
 )
 
@@ -450,7 +472,7 @@ function solve_RLM(
 
   #Can use varIntLabel (because its an OrderedDict), but varLabelsAP makes the ArrayPartition.
   p0 = map(varlabelsAP) do label
-    mean(getBelief(getState(fg, label, solveKey)))
+    getSingleModePoint(fg, label, solveKey)
   end
 
   # create an ArrayPartition{CalcFactorResidual} for faclabels
@@ -540,18 +562,25 @@ function build_costF_jacF(
     varlabels = ls(fg),
     faclabels = lsf(fg);
     is_sparse = false,
+    solveKey::Symbol = :parametric,
+    p0 = nothing,
+    partition = nothing,
 )
-  
-  # get the manifold and variable types
-  vars = getVariable.(fg, varlabels)
-    
-  M, varTypes, vartypeslist = buildGraphSolveManifold(vars)
 
-  varIntLabel, varlabelsAP = getVarIntLabelMap(vartypeslist)
+  # get the manifold and variable types.
+  M, varIntLabel, varlabelsAP = if isnothing(partition)
+    vars = getVariable.(fg, varlabels)
+    M_, _, vartypeslist = buildGraphSolveManifold(vars)
+    vil, ap = getVarIntLabelMap(vartypeslist)
+    (M_, vil, ap)
+  else
+    M_, ap, vil = buildPartitionedSolveManifold(map(g -> getVariable.(fg, g), partition))
+    (M_, vil, ap)
+  end
 
   #Can use varIntLabel (because its an OrderedDict), but varLabelsAP makes the ArrayPartition.
-  p0 = map(varlabelsAP) do label
-    getVal(fg, label, solveKey = :parametric)[1]
+  if isnothing(p0)
+    p0 = _readBasePoint(fg, varlabelsAP, solveKey)
   end
 
   # create an ArrayPartition{CalcFactorResidual} for faclabels
@@ -564,21 +593,98 @@ function build_costF_jacF(
   # jacobian of function for Riemannian Levenberg-Marquardt
   jacF! = JacF_RLM!(M, costF!, p0, fg; is_sparse)
   
-  return M, costF!, jacF!, p0
+  return M, costF!, jacF!, p0, varlabelsAP
 end
 
-function solve_RLM_conditional(
+"""
+    _inflateFactorWeight(cf, fg, all_points, separator_set, solveKey)
+
+Return `cf` with its whitening matrix `sqrt_iΣ` replaced by `sqrt(inv(Σ_eff))`, where the frozen
+separator uncertainty has been folded into the factor's effective measurement covariance
+
+    Σ_eff = Σ_fc + Σ_k J_sk Σ_sk J_skᵀ
+
+`J_sk = ∂r/∂(separator k)` is evaluated once at the operating point `all_points`, by finite differences
+of the unwhitened residual; per `dev/factor_jacobians.md` §4 a single evaluation suffices at `r ≈ 0`.
+Factors between frontals only are returned unchanged.
+"""
+function _inflateFactorWeight(cf::CalcFactorResidual, fg, all_points, separator_set, solveKey::Symbol)
+  sep_positions = findall(vl -> vl in separator_set, cf.varOrder)
+  isempty(sep_positions) && return cf # frontal-only factor: weight unchanged
+
+  D = getDimension(cf)
+  points = map(idx -> all_points[idx], cf.varOrderIdxs)
+  Σeff = inv(Symmetric(Matrix(cf.sqrt_iΣ' * cf.sqrt_iΣ))) # Σ_fc = inv(iΣ_fc)
+  for pos in sep_positions
+    svar = getVariable(fg, cf.varOrder[pos])
+    G = getManifold(typeof(getStateKind(svar)))
+    if G isa LieGroups.ValidationLieGroup
+      G = G.lie_group #strip away ValidationLieGroup
+    end
+    Σ_s = Matrix{Float64}(getSingleModeCovariance(getState(svar, solveKey)))
+    s0 = points[pos]
+    # J_s = ∂(unwhitened residual)/∂(separator tangent), once, at the operating point
+    Js = FiniteDiff.finite_difference_jacobian(zeros(manifold_dimension(G))) do Xc
+      s = exp(G, s0, get_vector(G, s0, Xc, DefaultOrthogonalBasis()))
+      cf(cf.meas, Base.setindex(points, s, pos)...)
+    end
+    Σeff = Σeff + Js * Σ_s * Js'
+  end
+  sqrt_iΣ_eff = convert(SMatrix{D, D}, sqrt(inv(Symmetric(Σeff))))
+  return CalcFactorResidual(
+    cf.faclbl, cf.factor, cf.varOrder, cf.varOrderIdxs, cf.meas, sqrt_iΣ_eff, cf.cache,
+  )
+end
+
+"""
+    _inflateSeparatorWeights(calcfacs, fg, all_points, separator_set, solveKey)
+
+Copy the `calcfacs` `ArrayPartition`, inflating the whitening matrix of every factor that touches a
+(frozen) separator via [`_inflateFactorWeight`](@ref). Preserves the partition/type structure.
+"""
+function _inflateSeparatorWeights(calcfacs, fg, all_points, separator_set, solveKey::Symbol)
+  inflate(cf) = _inflateFactorWeight(cf, fg, all_points, separator_set, solveKey)
+  parts = map(part -> map(inflate, part), calcfacs.x)
+  return ArrayPartition{CalcFactorResidual, typeof(parts)}(parts)
+end
+
+## ================================================================================================
+## Frontal solves: solve only `frontals`, with `separators` held at their means.
+##
+## Three probabilistic questions over one core, kept as separate functions because they carry
+## different correctness contracts:
+##
+##   solve_RLM_conditional  P(F | S = μ_S)                       separators exact/frozen
+##   solve_RLM_marginal     P(F) = ∫ P(F | S=s) P(S=s) ds        needs the separators' joint Σ_S
+##   solve_RLM_propagate    joint MAP over (F,S) given S's prior  init/propagation; MOVES the mean
+## ================================================================================================
+
+"""
+    $SIGNATURES
+
+Internal shared core of [`solve_RLM_conditional`](@ref), [`solve_RLM_marginal`](@ref) and
+[`solve_RLM_propagate`](@ref).  Solves `frontals` only, with `separators` frozen at their `solveKey`
+means, and returns the solution plus the pieces each flavour needs to finish: the frozen operating
+point `all_points`, the label partitions, the clique factor set, and the frontal-block precision
+`Λ_FF`.
+
+`reweight_separators=true` adds the second reweighted solve that makes an uncertain separator
+*soften* rather than clamp its factors (see [`_inflateSeparatorWeights`](@ref)).  This changes the
+point estimate and is only for [`solve_RLM_propagate`](@ref).
+"""
+function _solve_RLM_frontals_core(
   fg,
-  frontals::Vector{Symbol} = ls(fg),
-  separators::Vector{Symbol} = setdiff(ls(fg), frontals);
+  frontals::Vector{Symbol},
+  separators::Vector{Symbol};
   is_sparse=false,
   finiteDiffCovariance=true,
   jacobian_method::Symbol = :finitediff,
   solveKey::Symbol = :parametric,
-  linear_subsolver! = qr_linear_subsolver!,
+  reweight_separators::Bool = false,
+  linear_subsolver! = Manopt.default_lm_lin_solve!,
   kwargs...
 )
-  is_sparse && error("Sparse solve_RLM_conditional not supported yet")
+  is_sparse && error("Sparse frontal solve not supported yet")
 
   # get the subgraph formed by all frontals, separators and fully connected factors
   varlabels = union(frontals, separators)
@@ -609,9 +715,9 @@ function solve_RLM_conditional(
   all_varlabelsAP = ArrayPartition((frontal_varlabelsAP.x..., separator_varlabelsAP.x...))
 
   all_points = map(all_varlabelsAP) do label
-    mean(getBelief(getState(fg, label, solveKey)))
+    getSingleModePoint(fg, label, solveKey)
   end
-  
+
   p0 = ArrayPartition(all_points.x[1:length(frontal_varlabelsAP.x)])
 
   all_varIntLabel = OrderedDict{Symbol,Int}(
@@ -619,71 +725,221 @@ function solve_RLM_conditional(
       l=>i
     end
   )
-  # varIntLabel_frontals = filter(p->first(p) in frontals, varIntLabel)
-  # varIntLabel_separators = filter(p->first(p) in separators, varIntLabel)
 
   calcfacs = CalcFactorResidualAP(fg, faclabels, all_varIntLabel)
 
   # get the manifold and variable types
-   
   M, varTypes, vartypeslist = buildGraphSolveManifold(frontal_vars)
-  
-  #cost and jacobian functions
-  # cost function f: M->ℝᵈ for Riemannian Levenberg-Marquardt 
-  costF! = CostFres_cond!(all_points, calcfacs, Vector{Symbol}(collect(all_varlabelsAP)))
 
-  # jacobian of function for Riemannian Levenberg-Marquardt
-  if jacobian_method == :forwarddiff
-    jacF! = JacF_RLM_ForwardDiff!(M, costF!, p0, fg; all_points, is_sparse)
-  else
-    jacF! = JacF_RLM!(M, costF!, p0, fg; all_points, is_sparse)
+  # build cost + jacobian for a residual set and solve (separators stay frozen in `all_points`)
+  function _build_and_solve(cfacs, p_start)
+    costF! = CostFres_cond!(all_points, cfacs, Vector{Symbol}(collect(all_varlabelsAP)))
+    if jacobian_method == :forwarddiff
+      jacF! = JacF_RLM_ForwardDiff!(M, costF!, p_start, fg; all_points, is_sparse)
+    else
+      jacF! = JacF_RLM!(M, costF!, p_start, fg; all_points, is_sparse)
+    end
+    num_components = length(jacF!.res)
+    initial_jacobian_f = if jacF! isa JacF_RLM! && is_sparse
+      jacF!.Jcache.sparsity
+    elseif jacF! isa JacF_RLM_ForwardDiff! && !isnothing(jacF!.sparsity)
+      jacF!.sparsity
+    else
+      zeros(num_components, manifold_dimension(M))
+    end
+    dof = num_components - manifold_dimension(M)
+    # inject DebugTension for :tension symbol in debug kwarg (local copy, safe to call twice)
+    solve_kwargs = kwargs
+    if haskey(solve_kwargs, :debug)
+      solve_kwargs = (; solve_kwargs..., debug = _inject_tension(solve_kwargs[:debug], dof))
+    end
+    lm_r = LevenbergMarquardt(
+      M,
+      costF!,
+      jacF!,
+      p_start,
+      num_components;
+      evaluation=InplaceEvaluation(),
+      initial_residual_values = zeros(num_components),
+      initial_jacobian_f,
+      linear_subsolver!,
+      solve_kwargs...
+    )
+    return (; costF!, jacF!, lm_r, initial_jacobian_f, num_components, dof)
   end
 
-  num_components = length(jacF!.res)
+  # 1. frozen solve: separators clamped at their means (the classic conditional solve)
+  s = _build_and_solve(calcfacs, p0)
 
-  initial_residual_values = zeros(num_components)
-
-  initial_jacobian_f = if jacF! isa JacF_RLM! && is_sparse
-    jacF!.Jcache.sparsity
-  elseif jacF! isa JacF_RLM_ForwardDiff! && !isnothing(jacF!.sparsity)
-    jacF!.sparsity
-  else
-    zeros(num_components, manifold_dimension(M))
+  # 2. optional reweight step (`solve_RLM_propagate`): at the operating point (r≈0) fold each frozen
+  #    separator's covariance into its factor's effective noise, then 3. resolve reweighted so an
+  #    uncertain separator *softens* (rather than clamps) its factor.  This yields the joint MAP over
+  #    (F,S) and therefore MOVES the point estimate — off for the conditional/marginal inference path.
+  #    See dev/factor_jacobians.md §4.
+  if reweight_separators && !isempty(separators)
+    all_points[1:length(s.lm_r)] .= s.lm_r
+    calcfacs = _inflateSeparatorWeights(calcfacs, fg, all_points, Set(separators), solveKey)
+    s = _build_and_solve(calcfacs, s.lm_r)
   end
 
-  # inject DebugTension for :tension symbol in debug kwarg
-  dof = num_components - manifold_dimension(M)
-  if haskey(kwargs, :debug)
-    kwargs = (; kwargs..., debug = _inject_tension(kwargs[:debug], dof))
-  end
+  lm_r = s.lm_r
 
-  lm_r = LevenbergMarquardt(
-    M,
-    costF!,
-    jacF!,
-    p0,
-    num_components;
-    evaluation=InplaceEvaluation(),
-    initial_residual_values,
-    initial_jacobian_f,
-    linear_subsolver!,
-    kwargs...
-  )
-
+  # Frontal-block precision Λ_FF (separators frozen ⇒ this is the *conditional* precision).
+  # With `reweight_separators`, the inflated `Σ_eff` weights already fold the separator uncertainty
+  # into this ordinary frontal J'J — no separator block needed.
   if finiteDiffCovariance
-    Λ = precisionFiniteDiff(M, jacF!, lm_r)
+    Λ_FF = precisionFiniteDiff(M, s.jacF!, lm_r)
   else
-    jacF!(M, initial_jacobian_f, lm_r)
-    Λ = Symmetric(initial_jacobian_f' * initial_jacobian_f)
+    s.jacF!(M, s.initial_jacobian_f, lm_r)
+    Λ_FF = Symmetric(s.initial_jacobian_f' * s.initial_jacobian_f)
   end
 
   # tension (reduced chi-squared): ||r||^2 / (N-M) = 2*cost / (N-M)
-  final_res = zeros(num_components)
-  costF!(M, final_res, lm_r)
-  tension = sum(abs2, final_res) / dof
-  
-  return M, frontal_varlabelsAP, lm_r, Λ, tension
+  final_res = zeros(s.num_components)
+  s.costF!(M, final_res, lm_r)
+  tension = s.dof > 0 ? sum(abs2, final_res) / s.dof : NaN
+
+  return (;
+    M,
+    frontal_varlabelsAP,
+    lm_r,
+    Λ_FF,
+    tension,
+    all_points,
+    all_varlabelsAP,
+    faclabels,
+  )
 end
+
+"""
+    $SIGNATURES
+
+Conditional frontal solve: **`P(F | S = μ_S)`**, i.e. the separators are treated as *exactly* known
+and clamped at their `solveKey` means.
+
+Returns `(M, frontal_varlabelsAP, lm_r, Λ_FF, tension)` where `Λ_FF` is the **conditional** precision
+of the frontals (it carries no separator uncertainty).
+
+Use when the separators really are exact — e.g. the gauge anchor of a prior-free clique on the Bayes
+tree upward pass, or a variable being initialised from already-fixed neighbours.  If the separators
+carry uncertainty that should widen the frontals, use [`solve_RLM_marginal`](@ref) instead; if the
+separators should be allowed to *move*, use [`solve_RLM_propagate`](@ref).
+"""
+function solve_RLM_conditional(
+  fg,
+  frontals::Vector{Symbol} = ls(fg),
+  separators::Vector{Symbol} = setdiff(ls(fg), frontals);
+  kwargs...
+)
+  c = _solve_RLM_frontals_core(fg, frontals, separators; kwargs...)
+  return c.M, c.frontal_varlabelsAP, c.lm_r, c.Λ_FF, c.tension
+end
+
+"""
+    $SIGNATURES
+
+Marginal frontal solve: **`P(F) = ∫ P(F | S=s) P(S=s) ds`**, marginalising the separators out against
+their supplied joint covariance `Σ_S`.
+
+The point estimate is identical to [`solve_RLM_conditional`](@ref); only the covariance differs, by the
+law of total covariance.  `Σ_S` must be the separators' **joint** covariance in the order of the
+`separators` argument.  Returned `Σ_F`/`Σ_FS` follow the `frontals`/`separators` argument order, not
+the type-grouped `frontal_varlabelsAP` order.
+
+!!! note "Λ_SS is deliberately unused"
+    Only the local `Λ_FF`/`Λ_FS` enter.  On the Bayes tree `Λ_SS` is the block that already left in
+    this clique's upward message and is therefore already inside the parent's `Σ_S` — using it would
+    double count.  That omission is what makes the downward pass correct with no cavity division.
+
+Returns a NamedTuple `(; M, frontal_varlabelsAP, lm_r, Λ_FF, Λ_FS, Σ_F, Σ_FS, tension)`.
+"""
+function solve_RLM_marginal(
+  fg,
+  frontals::Vector{Symbol},
+  separators::Vector{Symbol},
+  Σ_S::AbstractMatrix;
+  solveKey::Symbol = :parametric,
+  finiteDiffCovariance = false,
+  kwargs...
+)
+  c = _solve_RLM_frontals_core(
+    fg, frontals, separators; solveKey, finiteDiffCovariance, kwargs...
+  )
+
+  # Joint [F;S] information at the solution.  Built over *all* clique variables so both blocks land
+  # in one uniform tangent basis (the frontal-only jacF! of the core cannot supply Λ_FS).
+  all_vars = Symbol[collect(c.all_varlabelsAP)...]
+  _, _, all_vartypeslist = getVariableTypesCount(getVariable.(fg, all_vars))
+  _, joint_varlabelsAP = getVarIntLabelMap(all_vartypeslist)
+
+  # operating point: frontals at the solution, separators frozen at their means
+  point_of = Dict{Symbol, Any}()
+  for (i, lbl) in enumerate(collect(c.all_varlabelsAP))
+    point_of[lbl] = c.all_points[i]
+  end
+  for i in eachindex(c.frontal_varlabelsAP.x), j in eachindex(c.frontal_varlabelsAP.x[i])
+    point_of[c.frontal_varlabelsAP.x[i][j]] = c.lm_r.x[i][j]
+  end
+
+  M_all, _, jacF_all!, _ =
+    build_costF_jacF(fg, all_vars, c.faclabels; is_sparse = false, solveKey)
+  p_at = map(lbl -> point_of[lbl], joint_varlabelsAP)
+  J = zeros(length(jacF_all!.res), manifold_dimension(M_all))
+  jacF_all!(M_all, J, p_at)
+  Λ_joint = J' * J
+
+  ranges = getCoordranges(M_all, joint_varlabelsAP)
+  idx_F = reduce(vcat, (collect(ranges[s]) for s in frontals))
+  idx_S = reduce(vcat, (collect(ranges[s]) for s in separators))
+
+  Λ_FF = Symmetric(Λ_joint[idx_F, idx_F])
+  Λ_FS = Λ_joint[idx_F, idx_S]
+
+  # marginalise S out — law of total covariance.  NOTE Λ_SS deliberately unused, see docstring.
+  A = -(Λ_FF \ Λ_FS)
+  Σ_F = Symmetric(A * Matrix(Σ_S) * A' + inv(Λ_FF))
+  Σ_FS = A * Matrix(Σ_S)
+
+  return (;
+    c.M,
+    c.frontal_varlabelsAP,
+    c.lm_r,
+    Λ_FF,
+    Λ_FS,
+    Σ_F,
+    Σ_FS,
+    c.tension,
+  )
+end
+
+"""
+    $SIGNATURES
+
+Propagation / initialisation solve: the **joint MAP over `(F,S)`** given the separators' own
+uncertainty, obtained by folding each frozen separator's covariance into its factors' effective noise
+(`Σ_eff = Σ_fc + J_s Σ_s J_sᵀ`) and re-solving reweighted, so an uncertain separator *softens* rather
+than clamps its factor.
+
+Separator covariances are read per-variable from the graph's `solveKey` state, unlike
+[`solve_RLM_marginal`](@ref), which takes an explicit joint `Σ_S`.
+
+Returns `(M, frontal_varlabelsAP, lm_r, Λ, tension)`, with the separator uncertainty already in `Λ`.
+
+!!! note "This moves the point estimate"
+    The result is **not** the conditional mean and **not** the mean of `P(F)`.
+"""
+function solve_RLM_propagate(
+  fg,
+  frontals::Vector{Symbol} = ls(fg),
+  separators::Vector{Symbol} = setdiff(ls(fg), frontals);
+  kwargs...
+)
+  c = _solve_RLM_frontals_core(
+    fg, frontals, separators; reweight_separators = true, kwargs...
+  )
+  return c.M, c.frontal_varlabelsAP, c.lm_r, c.Λ_FF, c.tension
+end
+
 
 function extractMarginalsAP(M, labelsAP::ArrayPartition{Symbol}, Σ::AbstractArray{<:Real})
   st = 1
@@ -736,15 +992,66 @@ function getInitOrderWavefront(fg, state_label::Symbol=:parametric; depth::Int=1
     return cliques
 end
 
+"""
+    getInitOrderSerial(fg, state_label=:parametric; depth=1)
+
+Init order that advances **one variable at a time** — BFS from the prior-carrying variables outward,
+each new frontal conditioned on its already-initialized neighbours.  Use via
+`autoinitParametric!(fg, getInitOrderSerial(fg))`.
+
+Prefer [`getInitOrderWavefront`](@ref) when variables are only *jointly* determined, e.g. partial priors,
+where one variable cannot be initialized alone.
+"""
+function getInitOrderSerial(fg, state_label::Symbol=:parametric; depth::Int=1)
+    cliques = NamedTuple{(:frontals, :separators), Tuple{Vector{Symbol}, Vector{Symbol}}}[]
+
+    all_vls = listVariables(fg)
+    knowns = filter(vl -> hasState(fg, vl, state_label) && isInitialized(fg, vl, state_label), all_vls)
+    unknowns = setdiff(all_vls, knowns)
+
+    # prior-carrying variables can be initialized on their own -> do them first, as anchors
+    prior_neighbours, _ = listNeighborhood(fg, lsfPriors(fg), 1)
+    prior_vls = intersect(prior_neighbours, unknowns)
+    if !isempty(prior_vls)
+        push!(cliques, (; frontals = prior_vls, separators = Symbol[]))
+        union!(knowns, prior_vls)
+        setdiff!(unknowns, prior_vls)
+    end
+
+    # then one variable per step, each conditioned on its already-initialized neighbours
+    while !isempty(unknowns) && !isempty(knowns)
+        ring_vls, _ = listNeighborhood(fg, knowns, 2 * depth)
+        frontier = intersect(ring_vls, unknowns)
+        isempty(frontier) && break
+
+        v = first(frontier)
+        v_neighbors, _ = listNeighborhood(fg, [v], 2)
+        separators = intersect(v_neighbors, knowns)
+
+        push!(cliques, (; frontals = [v], separators))
+        push!(knowns, v)
+        setdiff!(unknowns, [v])
+    end
+
+    return cliques
+end
+
 function autoinitParametric!(
   fg,
-  clique_order = getInitOrderWavefront(fg; depth=3);
+  clique_order = nothing;
+  solveKey::Symbol = :parametric,
   reinit = false,
   kwargs...
 )
+  order = if isnothing(clique_order)
+    getInitOrderWavefront(fg, solveKey; depth=3) #TODO maybe make default depth=1
+  else
+    clique_order
+  end
+
   did_init = false
-  @showprogress for cliq in clique_order
-    did_init |= autoinitParametric!(fg, cliq.frontals, cliq.separators; reinit, kwargs...)
+  @showprogress for cliq in order
+    did_init |= autoinitParametric!(fg, cliq.frontals, cliq.separators; solveKey, reinit, kwargs...)
   end
 
   return did_init
@@ -756,7 +1063,6 @@ end
 
 function autoinitParametric!(dfg::AbstractDFG, xi::VariableCompute; solveKey = :parametric, kwargs...)
   initme = getLabel(xi)
-  prepareState!(xi, NLLSSolver(), solveKey)
   separators = ls2(dfg, initme)
   filter!(separators) do vl
     return hasState(dfg, vl, solveKey) && isInitialized(dfg, vl, solveKey)
@@ -770,11 +1076,12 @@ function autoinitParametric!(
   separators::Vector{Symbol} = Symbol[];
   solveKey = :parametric,
   reinit::Bool = false,
-  linear_subsolver! = pinv_subsolver!,
+  linear_subsolver! = Manopt.default_lm_lin_solve!,
   kwargs...,
 )
   #TODO prepare only the relevant states.
   prepareStates!(dfg, NLLSSolver(), solveKey)
+
   # Filter to only uninitialized variables (unless reinit)
   to_init = if reinit
     frontals
@@ -811,63 +1118,49 @@ function autoinitParametric!(
   for v in to_init
     xi = getVariable(dfg, v)
     vnd = getState(xi, solveKey)
-    has_prior = any(isPrior.(dfg, listNeighbors(dfg, v)))
-    if !has_prior && !isempty(active_separators)
+    # has_prior = any(isPrior.(dfg, listNeighbors(dfg, v)))
+    # if !has_prior && !isempty(active_separators)
+    if !isempty(active_separators)
       my_kind = getStateKind(xi)
       same_kind = filter(active_separators) do vl
         getStateKind(getVariable(dfg, vl)) === my_kind
       end
       if !isempty(same_kind)
-        mn = mean(getBelief(getState(dfg, same_kind[1], solveKey)))
-        _bw = cov(getBelief(vnd))
-        # BW = getBW(getBelief(vnd))
-        # _bw = (0<length(BW)) && isassigned(BW,1) ? BW[1] : nothing
-        _hode = HomotopyDensity_legacy(getStateKind(vnd),[mn,]; bw=_bw, newbw=false)
-        setBelief!(vnd, _hode)
+        setSingleModeBelief!(vnd, getSingleModePoint(dfg, same_kind[1], solveKey); initialized = false)
       end
     end
-    
+
     # perturb point slightly
     _M = getManifold(xi)
     tangent_coords = randn(manifold_dimension(_M)) * 1e-3
-    mn = mean(getBelief(vnd))
+    mn = getSingleModePoint(vnd)
     X = hat(LieAlgebra(_M), tangent_coords, typeof(mn))
-    mn_ = exp(_M, mn, X)
-    bw = cov(getBelief(vnd))
-    hode = HomotopyDensity_legacy(getStateKind(vnd), [mn_,]; bw, newbw=false)
-    setBelief!(vnd, hode)
+    setSingleModeBelief!(vnd, exp(_M, mn, X); initialized = false)
   end
 
   # Solve
   M, varlabelsAP, lm_r, Λ, _ = solve_RLM_conditional(dfg, to_init, active_separators; solveKey, linear_subsolver!, kwargs...)
 
-  _Σ = (I)(size(Λ, 1))
-  _Σ_ = sparse(1.0*I, size(Λ, 1), size(Λ, 1)) # create a sparse identity matrix
-  # _Σ_ = (1.0*I)(size(Λ, 1)) # legacy was Bool, weird refactor forced premature Float64
-
-  offset = 0
-
-  invertonce = true
   # Update each frontal variable with result
   for (i, v) in enumerate(varlabelsAP)
-    vrb = getVariable(dfg, v)
-    state = getState(vrb, solveKey)
+    vnd = getState(dfg, v, solveKey)
+    setSingleModeBelief!(vnd, lm_r[i])
+  end
 
-    # Update covariances from joint precision if positive definite
-    if invertonce && !isnothing(Λ)
-      F = cholesky!(Λ; check = false)
-      if issuccess(F)
-        invertonce = false
-        _Σ_ .= (F \ _Σ) 
+  # Update covariances from joint precision if positive definite
+  if !isnothing(Λ)
+    F = cholesky!(Λ; check = false)
+    if issuccess(F)
+      Σ = F \ I(size(Λ, 1))
+      offset = 0
+      for (i, v) in enumerate(varlabelsAP)
+        dim = manifold_dimension(getManifold(getVariable(dfg, v)))
+        r = (offset + 1):(offset + dim)
+        vnd = getState(dfg, v, solveKey)
+        setSingleModeBelief!(vnd, getSingleModePoint(vnd), Σ[r, r])
+        offset += dim
       end
     end
-    dim = getDimension(vrb)
-    r = (offset + 1):(offset + dim)
-    offset += dim
-    bw = ApproxManifoldProducts._forcestatic(_Σ_[r,r])
-    # @info "WHAT" string(r) string(lm_r[i]) string(bw)
-    hode = HomotopyDensity_legacy(getStateKind(state),[lm_r[i],]; bw, newbw=false)
-    setBelief!(state, hode, true)
   end
 
   return true
@@ -895,9 +1188,9 @@ function DFG.solveGraphParametric!(
   prepare!(fg, NLLSSolver(), solveKey)
   init && autoinitParametric!(fg; solveKey)
 
-  M, v, r, Λ, tension = solve_RLM(fg, args...; is_sparse, kwargs...)
+  M, v, r, Λ, tension = solve_RLM(fg, args...; solveKey, is_sparse, kwargs...)
 
-  updateParametricSolution!(fg, M, v, r, Λ)
+  updateParametricSolution!(fg, M, v, r, Λ; solveKey)
 
   return M, v, r, Λ
 end
@@ -916,7 +1209,7 @@ function CalcFactorResidualWrapper(fg, factorLabels::Vector{Symbol}, varIntLabel
   
   # skip non-numeric prior (MetaPrior)
   #TODO test... remove MetaPrior{T} something like this
-  metaPriorKeys = filter(k->contains(string(k), "MetaPrior"), collect(keys(alltypes)))
+  metaPriorKeys = filter(k->contains(string(nameof(k)), "MetaPrior"), keys(alltypes))
   delete!.(Ref(alltypes), metaPriorKeys)
 
   calcfacs = map(factorLabels) do labels
