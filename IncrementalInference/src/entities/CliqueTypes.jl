@@ -24,20 +24,10 @@ end
 
 Payload of a [`LinearizedMessage`](@ref).
 
-The concrete subtype says **what the density is**, which is what the receiver needs in order to know
-what to do with it — the distinction is not cosmetic, and getting it wrong is silent (the solve still
-converges, to the wrong covariance):
-
 | subtype | is | receiver must |
 |---|---|---|
-| [`LinearizedLikelihood`](@ref) | `p(z_subtree │ S)` — evidence from **inside** the sender's subtree | pull back, then [`fuse`](@ref) |
+| [`LinearizedLikelihood`](@ref) | `p(z_subtree │ S)` — evidence from the sender's subtree | pull back, then [`fuse`](@ref) |
 | [`LinearizedBelief`](@ref) | `p(x │ z_all)` — the sender's full posterior | pull back, subtract its own upward message ([`calcCavityprecision`](@ref)), then use |
-
-A cavity — `p(z_outside │ S)`, the complement of a likelihood — would be a third subtype, used
-directly with no subtraction.  Nothing sends one yet.
-
-Every subtype must be pulled back onto the receiver's tangent space first, since cliques re-linearize
-independently ([`pullback`](@ref)).
 """
 abstract type LinearizedContent end
 
@@ -48,22 +38,16 @@ abstract type LinearizedContent end
 """
     $TYPEDEF
 
-**Upward** payload: the eliminated separator system, `p(z_subtree │ S)`, anchored at `bundle.point`.
-
-A likelihood — it summarizes only the sender's subtree, so the receiver **fuses** it.
+**Upward** payload: the eliminated separator system `p(z_subtree │ S)`, anchored at `bundle.point`.
 
 $(TYPEDFIELDS)
 """
 struct LinearizedLikelihood <: LinearizedContent
   """the separator marginal being sent, with its base point"""
   bundle::DensityBundlePoint
-  """did this clique **or anything in its subtree** re-linearize this pass?  The receiver must re-fuse
-  even when its own base point held, because its `Λ` sums its children's."""
+  """did this clique or anything below it re-linearize this pass? Receiver must re-fuse even if its own base point held."""
   relinearized::Bool
-  """is this clique — or anything below it — still stepping by more than `tol`?
-
-  `relinearized`: that asks "is my cached Jacobian stale" (`relinearizeTol`, a work decision), 
-  `moving` asks "has the solve stopped" (`tol`, a convergence decision)."""
+  """is this clique or anything below it still stepping by more than `tol`?"""
   moving::Bool
 end
 
@@ -76,14 +60,9 @@ LinearizedLikelihood(bundle::DensityBundlePoint, relinearized::Bool) =
 """
     $TYPEDEF
 
-**Downward** payload: the sender's joint posterior over its own variables, plus the solved tangent mean.
-
-A belief — it already contains the receiver's own upward contribution, so the
-receiver must subtract that ([`calcCavityprecision`](@ref)) before using the precision.  The *mean* half
-needs no such correction, since back-substitution conditions on it rather than fusing it.
-
-`Δ` stays a separate vector rather than folding into `η = ΛΔ`: a descendant's mean is largely
-null-space content whenever the graph has gauge freedom, and `η` would discard exactly that.
+**Downward** payload: the sender's joint posterior plus the solved tangent mean.
+Receiver must subtract its own upward contribution via [`calcCavityprecision`](@ref) before using the precision.
+`Δ` is kept separate from `η` to preserve null-space (gauge) content.
 
 $(TYPEDFIELDS)
 """
@@ -99,22 +78,11 @@ LinearizedBelief(bundle::DensityBundlePoint, Δ::AbstractVector) =
 
 """
   $(TYPEDEF)
-Belief message for message passing on the tree.  This should be considered an incomplete joint probility.
+Belief message for message passing on the tree.  Incomplete joint probability.
 
-Notes:
-- belief -> Dictionary of [`TreeBelief`](@ref)
-- variableOrder -> Ordered variable id list of the seperators in cliqueLikelihood
-- cliqueLikelihood -> marginal distribution (<: `SamplableBelief`) over clique seperators.
-- Older names include: productFactor, Fnew, MsgPrior, LikelihoodMessage
-
-DevNotes:
+Notes
 - Used by both nonparametric and parametric.
-- Objective for parametric case: `MvNormal(μ=[:x0;:x2;:l5], Σ=[+ * *; * + *; * * +])`.
-- Part of the consolidation effort, see #459.
-- Better conditioning for joint structure in the works using deconvolution, see #579, #635.
-  - TODO confirm why <: Singleton.
-- Probably need to solve IIF #1010 before this type will stabilize.
-- TBD, store joint dimension names along side a pure density, or inside HomotopyDensity?
+- See #459, #1010 for consolidation status.
 
 $(TYPEDFIELDS)
 """
@@ -162,34 +130,29 @@ MessageBuffer() = MessageBuffer(Dict{Int, LikelihoodMessage}(), nothing, nothing
 """
     $TYPEDEF
 
-A clique's reusable residual/Jacobian machinery, plus the buffers they write into.  Call it through
-[`linearize!`](@ref).
-
-Lifetime is the tree's: rebuilding the tree clears it.
+A clique's reusable residual/Jacobian machinery. Call via [`linearize!`](@ref). Lifetime is the tree's.
 
 $(TYPEDFIELDS)
 """
 struct CliqueLinearizer{MT, CF, JF}
-  """joint manifold of the clique's variables, so callers need not rebuild it"""
+  """joint manifold of the clique's variables"""
   M::MT
   """stacked residual `r(p)` over the clique's own factors"""
   costF!::CF
-  """Jacobian `J(p)` of that residual, in the tangent basis at `p`"""
+  """Jacobian `J(p)` of that residual in the tangent basis at `p`"""
   jacF!::JF
   """`m×n` Jacobian buffer, overwritten by every [`linearize!`](@ref)"""
   J::Matrix{Float64}
   """length-`m` residual buffer, overwritten by every [`linearize!`](@ref)"""
   r::Vector{Float64}
-  """the clique's layout object"""
+  """the clique's layout"""
   layout::JointLayout
 end
 
 """
     $SIGNATURES
 
-Linearize the clique's own factors at `p`, returning `(J, r)`.
-
-Return **views onto reused buffers**, overwritten by the next call.
+Linearize at `p`, returning `(J, r)` as views onto reused buffers (overwritten on the next call).
 """
 function linearize!(linearizer::CliqueLinearizer, p)
   linearizer.jacF!(linearizer.M, linearizer.J, p)
@@ -203,13 +166,11 @@ covers(linearizer::Union{Nothing, CliqueLinearizer}, layout::JointLayout) =
 """
     $TYPEDEF
 
-What [`eliminateCliqueFrontals!`](@ref) produced for one clique, retained for the downward pass and for later sweeps.
+What [`eliminateCliqueFrontals!`](@ref) produced for one clique, retained for the downward pass and later sweeps.
 
-Two axes name the fields:
- - **whose factors** (this clique alone, or the whole subtree rooted here) and
- - **which variables**
+Fields span two axes — *whose factors* (own vs. whole subtree) and *which variables*:
 
-| | own factors only | own **+** every descendant's |
+| | own factors only | own + every descendant's |
 |---|---|---|
 | all clique variables | `cliquelinearization` | `Λ_subtree` |
 | separators only | — | `separatorlikelihood` |
@@ -218,56 +179,30 @@ Two axes name the fields:
 $(TYPEDFIELDS)
 """
 Base.@kwdef mutable struct CliqueElimination
-  """frontal coordinate indices, in clique frontal order"""
+  """frontal coordinate indices"""
   idx_F::UnitRange{Int}
-  """separator coordinate indices, in **partition** order (see `separatorlikelihood.labels`)"""
+  """separator coordinate indices, in partition order (see `separatorlikelihood.labels`)"""
   idx_S::UnitRange{Int}
-  """this clique's own factors only, **before** child fusion.
-
-  `cliquelinearization.point` is the **linearization point**: where the Jacobian was evaluated, not where
-  the clique currently sits.  `_isLinearizationCurrent` measures the distance between the two against
-  `relinearizeTol` to decide whether the Jacobian can be reused, which is the whole caching mechanism."""
+  """own factors only, before child fusion, anchored at the linearization point.
+  `_isLinearizationCurrent` checks distance from this point to decide whether to reuse the Jacobian."""
   cliquelinearization::DensityBundlePoint
-  """joint precision over `[frontals; separators]` for the whole subtree — `cliquelinearization`'s with
-  every descendant's upward message fused in.  The difference is the fusion, not the variable set.
-  Coordinate layout of `idx_F`/`idx_S`.
-
-  Only precision needed because elimination consumes the joint information vector."""
+  """joint precision over `[frontals; separators]` for the whole subtree (own + all children fused in)"""
   Λ_subtree::Matrix{Float64}
-  """the subtree's likelihood over the **separators alone**, `p(z_subtree │ S)` — what goes on the wire
-  upward as a [`LinearizedLikelihood`](@ref).
-
-  Needed for the downward pass, derivable from `Λ_subtree` but kept as elimination already provides it.
-  `Λ_subtree` is the joint over `F ∪ S`, which is what carries the frontal covariance; this is the `S`
-  block of it.
-  """
+  """subtree likelihood over separators `p(z_subtree │ S)` — the upward wire message"""
   separatorlikelihood::DensityBundlePoint
-  """the conditional `p(F│S)`, completed on the down pass as `ΔF = v - W·ΔS`.
-
-  `W` is recomputable from `Λ_subtree`, but `v` is not."""
+  """conditional `p(F│S)`; completed on the down pass as `ΔF = v - W·ΔS`. `v` is not rederivable from `Λ_subtree`."""
   conditional::GaussianConditional
 
-  """did the call that produced this **skip** the Jacobian and reuse a previous `cliquelinearization`?
-  Describes that one call, so it is read only on the path that just made it."""
+  """was the Jacobian reused (not re-evaluated) for this elimination?"""
   reusedlinearization::Bool = false
-  """norm of the frontal step this clique last took, `Inf` until it has solved once.  Movement happens
-  on the DOWN pass, after the up message has gone, so it is reported upward on the NEXT sweep."""
+  """norm of the last frontal step; `Inf` until the clique has solved once"""
   laststep::Float64 = Inf
-  """did this clique re-linearize on the pass that wrote this — **or** any clique below it?
-  Staleness propagates upward, so the ROOT's flag is the fixed-point test for the whole loop."""
+  """did this clique or anything below it re-linearize this pass? Root's flag is the whole-tree fixed-point test."""
   relinearized::Bool = true
-  """is this clique — or anything below it — still stepping by more than `tol`?  The convergence
-  reduction, carried here so the DOWN pass can read what the UP pass computed."""
+  """is this clique or anything below it still stepping by more than `tol`?"""
   moving::Bool = true
-  """The clique's state between sweeps: where it sits and what it believes (joint over all clique variables), 
-  as a **base point plus a tangent offset** rather than a materialized point.
-
-  After a downward pass this is what that pass solved — `Λ_subtree` with the cavity folded into its
-  separator block, and the total offset from `cliquelinearization.point`.  `Δ` is a total, not an
-  increment: back-substitution solves against the conditional built at that base, so successive sweeps
-  that reuse a linearization overwrite it rather than accumulate.
-
-  Anchored at the **pre-step** point because that is the tangent space children pull back from."""
+  """clique state between sweeps: base point + tangent offset over all clique variables.
+  Written by the downward pass; `Δ` is a total (not an increment) anchored at `cliquelinearization.point`."""
   posterior::LinearizedBelief
 end
 
@@ -307,18 +242,12 @@ mutable struct BayesTreeNodeData
   # JT Local messages saved for cache and debugging, see IIF #675
   messages::MessageBuffer
 
-  # Linearized solve option: the clique's factorization, reused by the downward pass.
+  # Linearized solve: clique factorization, reused by the downward pass
   elimination::Union{Nothing, CliqueElimination}
-  # the clique's coordinate layout — labels in clique order and their frontal/separator blocking.
-  #  THE clique's copy: everything below points at this object, so `===` is the coverage check.
-  #  Depends only on the clique's variables, rebuilt only when when the tree is.
+  # THE clique's layout; everything below points at this object (`===` is the coverage check)
   cliquelayout::Union{Nothing, JointLayout}
-  # the clique's residual/Jacobian machinery, reused across sweeps.
-  #  It survives a re-linearization, which `elimination` does not — see [`CliqueLinearizer`](@ref).
+  # clique's residual/Jacobian machinery, survives re-linearization (unlike `elimination`)
   linearizer::Union{Nothing, CliqueLinearizer}
-  # """parametric relinearization sweeps this clique ran.  Only meaningful on a ROOT, which is where
-  # termination is decided; lives on the tree rather than the state machine container so it survives a
-  # pass and can be reported by `solveTreeParametric!`."""
   parIter::Int
 end
 
