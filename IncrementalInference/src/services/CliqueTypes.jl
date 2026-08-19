@@ -34,6 +34,7 @@ function LikelihoodMessage(;
   hasPriors::Bool = true,
   childSolvDims::Dict{Int, Float64} = Dict{Int, Float64}(),
   jointmsg::_MsgJointLikelihood = _MsgJointLikelihood(),
+  linearized::Union{Nothing, LinearizedContent} = nothing,
 ) where {T <: MessageType}
   return LikelihoodMessage{T}(
     sender,
@@ -45,6 +46,7 @@ function LikelihoodMessage(;
     hasPriors,
     childSolvDims,
     jointmsg,
+    linearized,
   )
 end
 #
@@ -109,6 +111,10 @@ function BayesTreeNodeData(;
   downsolved = false,
   isCliqReused = false,
   messages = MessageBuffer(),
+  elimination = nothing,
+  cliquelayout = nothing,
+  linearizer = nothing,
+  parIter = 0,
 )
   btnd = BayesTreeNodeData(
     status,
@@ -135,6 +141,10 @@ function BayesTreeNodeData(;
     downsolved,
     isCliqReused,
     messages,
+    elimination,
+    cliquelayout,
+    linearizer,
+    parIter,
   )
   #
   return btnd

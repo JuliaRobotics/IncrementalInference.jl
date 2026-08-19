@@ -126,11 +126,11 @@ result = solveTree!(fg; smtasks, verbose=true)
 IIF.solveGraphParametric!(fg; is_sparse = false, damping_term_min=1e-12)
 
 vnd = getState(fg, :x0, :parametric)
-@test all(isapprox(M, DFG.refMeans(vnd)[1], p0, atol=1e-6))
+@test all(isapprox(M, IIF.getSingleModePoint(vnd), p0, atol=1e-6))
 vnd = getState(fg, :x1, :parametric)
-@test all(isapprox(M, DFG.refMeans(vnd)[1], p1, atol=1e-6))
+@test all(isapprox(M, IIF.getSingleModePoint(vnd), p1, atol=1e-6))
 vnd = getState(fg, :x2, :parametric)
-@test all(isapprox(M, DFG.refMeans(vnd)[1], p2, atol=1e-6))
+@test all(isapprox(M, IIF.getSingleModePoint(vnd), p2, atol=1e-6))
 
 ## test partial prior issue
 fg = initfg()
@@ -214,7 +214,7 @@ IIF.solveGraphParametric!(fg; is_sparse = false, damping_term_min=1e-12)
 vnd = getState(fg, :x0, :default)
 @test isapprox(M, mean(M, DFG.refPoints(vnd)), ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.2)
 vnd = getState(fg, :x0, :parametric)
-@test isapprox(M, DFG.refMeans(vnd)[1], ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=1e-6)
+@test isapprox(M, IIF.getSingleModePoint(vnd), ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=1e-6)
 
 # calculate the reference solution
 p0 = ArrayPartition(Vector([10.0,10.0]), Matrix([-1.0 0.0; 0.0 -1.0]))
@@ -223,14 +223,14 @@ ref = exp(SE2, p0, hat(LieAlgebra(SE2), [10.0,0,pi/3], typeof(p0)))
 vnd = getState(fg, :x1, :default)
 @test isapprox(M, mean(M, DFG.refPoints(vnd)), ref, atol=0.4)
 vnd = getState(fg, :x1, :parametric)
-@test isapprox(M, DFG.refMeans(vnd)[1], ref, atol=1e-6)
+@test isapprox(M, IIF.getSingleModePoint(vnd), ref, atol=1e-6)
 
 vnd = getState(fg, :x6, :default)
 @test isapprox(M, mean(M, DFG.refPoints(vnd)), ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=0.5)
 vnd = getState(fg, :x6, :parametric)
-@test isapprox(M, DFG.refMeans(vnd)[1], ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=1e-6)
+@test isapprox(M, IIF.getSingleModePoint(vnd), ArrayPartition([10.0,10.0], [-1.0 0.0; 0.0 -1.0]), atol=1e-6)
 
-@test isapprox(M, DFG.refMeans(getState(fg, :x0, :parametric))[1], DFG.refMeans(getState(fg, :x6, :parametric))[1], atol=1e-6)
+@test isapprox(M, IIF.getSingleModePoint(fg, :x0, :parametric), IIF.getSingleModePoint(fg, :x6, :parametric), atol=1e-6)
 
 if false
 fix, ax, plt = lines(points2(fg); label="parametric")
@@ -254,8 +254,6 @@ result = solveTree!(fg; smtasks); #, recordcliqs=ls(fg))
 
 ##
 end
-
-
 
 @testset "test deconv on <:RelativeObservation" begin
 ##

@@ -1,4 +1,5 @@
 using IncrementalInference
+using DistributedFactorGraphs
 using Test
 
 ## a new factor that is broken
@@ -53,7 +54,9 @@ sleep(0.1)
 
 ## Test parametric solve also
 
-
+# Manually set to initialized for factor to error in the tree solve, otherwise the parametric init will error first.
+IIF.prepareStates!(fg, IIF.NLLSSolver(), :parametric)
+foreach(v -> getState(v, :parametric).initialized = true, getVariables(fg))
 
 addFactor!(fg, [:x9, :lm10], BrokenFactor(Normal()); graphinit=false)
 ##

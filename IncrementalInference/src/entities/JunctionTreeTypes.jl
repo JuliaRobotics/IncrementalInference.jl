@@ -25,10 +25,13 @@ const BayesTree = MetaBayesTree
   solve_progressbar::Any = nothing
   # execution options
   solverparams::Any #FIXME deprecation step
-  downsolve::Bool = false
-  upsolve::Bool = true # TODO unchecked consolidation, consolidate from solverparams
-  incremental::Bool = false
+  downsolve::Bool = true
+  upsolve::Bool = true
+  incremental::Bool = true
   algorithm::Symbol = :default
+  """solver options for `algorithm`; `nothing` for the non-parametric path, which has no solver
+  struct yet.  Towards eventually retiring `algorithm::Symbol` entirely."""
+  solver::Union{Nothing, AbstractTreeSolver} = nothing
   solveKey::Symbol = algorithm
   delay::Bool = false
   multithread::Bool = false
@@ -73,6 +76,9 @@ DevNotes
   logger::SimpleLogger = SimpleLogger(Base.stdout)
   cliqId::CliqueId = cliq.id # obsolete?
   init_iter::Int = 0
+  """parametric relinearization sweep counter state — only the ROOT consults it and propagates a
+  termination decision downward."""
+  parIter::Int = 0
   enableLogging::Bool = true
   _csm_iter::Int = 0
   csmoptions::CSMOptions = CSMOptions(solverparams = opts)

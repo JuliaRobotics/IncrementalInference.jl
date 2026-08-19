@@ -4,9 +4,6 @@ using DistributedFactorGraphs
 using IncrementalInference
 using LieGroups
 using LinearAlgebra
-# using Logging
-
-##
 
 @testset "Test consolidation of factors #467" begin
 ##
@@ -373,9 +370,7 @@ end
 
 ##
 @testset "Parametric: uninitializable variable (ternary bias factor)" begin
-##
-
-  fg = initfg()
+    fg = initfg()
     fg.solverParams.graphinit = false
 
     # Chain: x0 --[biased]--> x1 --[biased]--> x2
@@ -399,85 +394,51 @@ end
     # The global parametric solve should still work and find the correct solution
     M, v, r, Λ = IIF.solveGraphParametric!(fg; init=false)
 
-    x0 = mean(getBelief(getState(fg, :x0, :parametric)))
-    x1 = mean(getBelief(getState(fg, :x1, :parametric)))
-    x2 = mean(getBelief(getState(fg, :x2, :parametric)))
-    b  = mean(getBelief(getState(fg, :b, :parametric)))
+    x0 = IIF.getSingleModePoint(fg, :x0, :parametric)
+    x1 = IIF.getSingleModePoint(fg, :x1, :parametric)
+    x2 = IIF.getSingleModePoint(fg, :x2, :parametric)
+    b  = IIF.getSingleModePoint(fg, :b, :parametric)
 
     @test isapprox(x0[1], 0.0, atol=0.05)
     @test isapprox(x2[1], 2.5, atol=0.05)
     @test isapprox(b[1], 0.25, atol=0.05)
     @test isapprox(x1[1], x0[1] + 1.0 + b[1], atol=0.05)
-##
 end
 
-##
-
-"""
-    PartialExpCoordPrior
-
-A partial prior that constrains specific exponential coordinates of a Lie group variable.
-
-Mathematically, this factor applies a prior to a subset of the tangent coordinates `vee(log(G, g))`. 
-It acts as a locally valid submersion on any Lie group, provided the variable remains within 
-the injectivity radius where the parameterization in exponential coordinates is well-defined.
-The `partial` tuple selects which coordinates of the vee representation are observed.
-"""
-struct PartialExpCoordPrior{G <: LieGroups.AbstractLieGroup, T <: IIF.SamplableBelief, P <: Tuple} <: IIF.AbstractPriorObservation
-    G::G
-    Z::T
-    partial::P
-end
-
-# Factor manifold is the residual space: ℝ^k where k = length(partial)
-DFG.getManifold(pp::PartialExpCoordPrior) = LieGroups.TranslationGroup(length(pp.partial))
-
-function (cf::CalcFactor{<:PartialExpCoordPrior})(z, x1)
-    G = cf.factor.G
-    # Get exponential coordinates
-    X = log(G, x1) 
-    Xc = vee(LieAlgebra(G), X)
-    return z .- Xc[collect(cf.factor.partial)]   # Residual on selected coords
-end
-
-##
 
 @testset "Parametric: PartialExpCoordPrior on 2D variable (locally rank-deficient)" begin
-##
-  fg = initfg()
-  fg.solverParams.graphinit = false
+    fg = initfg()
+    fg.solverParams.graphinit = false
 
-  G = LieGroups.TranslationGroup(2)
+    G = LieGroups.TranslationGroup(2)
 
-  # x0 has partial prior on x-coord only (y unconstrained locally)
-  # x2 has partial prior on y-coord only (x unconstrained locally)
-  # LinearRelative{2} chain makes the full graph solvable
-  addVariable!(fg, :x0, ContinuousEuclid{2})
-  addVariable!(fg, :x1, ContinuousEuclid{2})
-  addVariable!(fg, :x2, ContinuousEuclid{2})
+    # x0 has partial prior on x-coord only (y unconstrained locally)
+    # x2 has partial prior on y-coord only (x unconstrained locally)
+    # LinearRelative{2} chain makes the full graph solvable
+    addVariable!(fg, :x0, ContinuousEuclid{2})
+    addVariable!(fg, :x1, ContinuousEuclid{2})
+    addVariable!(fg, :x2, ContinuousEuclid{2})
 
-  # x0: only x-coordinate known via partial prior on coord 1
-  addFactor!(fg, [:x0], PartialExpCoordPrior(G, Normal(0.0, 0.1), (1,)))
-  # x2: only y-coordinate known via partial prior on coord 2
-  addFactor!(fg, [:x2], PartialExpCoordPrior(G, Normal(3.0, 0.1), (2,)))
+    # x0: only x-coordinate known via partial prior on coord 1
+    addFactor!(fg, [:x0], IIF.PartialExpCoordPrior(G, Normal(0.0, 0.1), (1,)))
+    # x2: only y-coordinate known via partial prior on coord 2
+    addFactor!(fg, [:x2], IIF.PartialExpCoordPrior(G, Normal(3.0, 0.1), (2,)))
 
-  # Relative factors that constrain both dimensions
-  addFactor!(fg, [:x0, :x1], LinearRelative{2}(MvNormal([1.0, 1.0], 0.1*I(2))))
-  addFactor!(fg, [:x1, :x2], LinearRelative{2}(MvNormal([1.0, 1.0], 0.1*I(2))))
+    # Relative factors that constrain both dimensions
+    addFactor!(fg, [:x0, :x1], LinearRelative{2}(MvNormal([1.0, 1.0], 0.1*I(2))))
+    addFactor!(fg, [:x1, :x2], LinearRelative{2}(MvNormal([1.0, 1.0], 0.1*I(2))))
 
-  IIF.autoinitParametric!(fg)
+    IIF.autoinitParametric!(fg)
 
-  M, v, r, Λ = IIF.solveGraphParametric!(fg; init=false)
+    M, v, r, Λ = IIF.solveGraphParametric!(fg; init=false)
 
-  x0 = mean(getBelief(getState(fg, :x0, :parametric)))
-  x1 = mean(getBelief(getState(fg, :x1, :parametric)))
-  x2 = mean(getBelief(getState(fg, :x2, :parametric)))
+    x0 = IIF.getSingleModePoint(fg, :x0, :parametric)
+    x1 = IIF.getSingleModePoint(fg, :x1, :parametric)
+    x2 = IIF.getSingleModePoint(fg, :x2, :parametric)
 
-  # x0[1] ≈ 0.0 (from prior), x2[2] ≈ 3.0 (from prior)
-  # Propagation: x0[2] = x2[2] - 2.0 = 1.0, x2[1] = x0[1] + 2.0 = 2.0
-  @test isapprox(x0, [0.0, 1.0], atol=0.05)
-  @test isapprox(x1, [1.0, 2.0], atol=0.05)
-  @test isapprox(x2, [2.0, 3.0], atol=0.05)
-
-##
+    # x0[1] ≈ 0.0 (from prior), x2[2] ≈ 3.0 (from prior)
+    # Propagation: x0[2] = x2[2] - 2.0 = 1.0, x2[1] = x0[1] + 2.0 = 2.0
+    @test isapprox(x0, [0.0, 1.0], atol=0.05)
+    @test isapprox(x1, [1.0, 2.0], atol=0.05)
+    @test isapprox(x2, [2.0, 3.0], atol=0.05)
 end
