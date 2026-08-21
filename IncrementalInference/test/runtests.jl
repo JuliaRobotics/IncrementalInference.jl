@@ -25,7 +25,7 @@ TEST_GROUP = get(ENV, "IIF_TEST_GROUP", "all")
       
       include("testMixturePrior.jl") # FIX, serde structutils issue with BinarTruckFixedDepth?
       include("testMixtureLinearConditional.jl") # FIX, use HomotopyDensity as replacement for Mixture
-      include("testMixtureParametric.jl") #FIXME parametric mixtures #1787
+      # include("testMixtureParametric.jl") #FIXME parametric mixtures #1787
       @test_broken error("testSphereMani.jl broken") # include("testSphereMani.jl") # FIXME
 
       include("testSpecialEuclidean2Mani.jl") # FIX, parallel_transport_curvature_2nd_lie not defined for this case

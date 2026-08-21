@@ -22,6 +22,25 @@ function getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol = :default; n
   return getBelief(getVariable(dfg, lbl), solvekey; newbw)
 end
 
+# graph-level conveniences onto AMP.getPoints(::HomotopyDensity, ...)
+function AMP.getPoints(
+  v::VariableCompute,
+  aspartial::Bool = true,
+  solvekey::Symbol = :default;
+  permute::Bool = false,
+)
+  return getPoints(getBelief(v, solvekey; newbw = false), aspartial; permute)
+end
+function AMP.getPoints(
+  dfg::AbstractDFG,
+  lbl::Symbol,
+  aspartial::Bool = true,
+  solvekey::Symbol = :default;
+  permute::Bool = false,
+)
+  return getPoints(getVariable(dfg, lbl), aspartial, solvekey; permute)
+end
+
 
 
 

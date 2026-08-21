@@ -30,6 +30,22 @@ function compareAllSpecial(
 end
 
 
+function compare(
+  p1::ApproxManifoldProducts.HomotopyDensity,
+  p2::ApproxManifoldProducts.HomotopyDensity;
+  show::Bool = true,
+  skip::Vector{Symbol} = Symbol[],
+)
+  getStateKind(p1) == getStateKind(p2) || return false
+  return compareAll(
+    getPoints(p1; permute = false),
+    getPoints(p2; permute = false);
+    show,
+    skip,
+  ) && compareAll(collect(p1.weights), collect(p2.weights); show, skip)
+end
+
+
 function compare(c1::TreeClique, c2::TreeClique)
   #
   TP = true
