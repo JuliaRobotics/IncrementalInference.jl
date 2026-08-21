@@ -324,6 +324,12 @@ end
   kw...,
 ) HomotopyDensity_legacy(varT, (t -> ArrayPartition(t...)).(pts); kw...)
 
+@deprecate manikde!(
+  varT::InstanceType{<:StateType},
+  pts::AbstractVector{<:Union{<:AbstractArray, <:Number, <:ArrayPartition}};
+  kw...,
+) HomotopyDensity_legacy(getStateKind(varT), pts; kw...)
+
 
 # """
 #     $SIGNATURES
@@ -428,7 +434,7 @@ function setValKDE!_NONPARTL(
   setinit::Bool = true,
   ipc::AbstractVector{<:Real} = [0.0;],
 )
-  @warn("setValKDE! is obsolete, use setBelief! instead")
+  Base.depwarn("setValKDE! is obsolete, use setBelief! instead", :setValKDE!)
   setBelief!(state, hode, setinit)
   #
   # ptsArr = AMP.getPoints(hode) # , false) # for not partial

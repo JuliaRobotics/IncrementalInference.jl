@@ -158,10 +158,11 @@ tree = solveTree!(fg)
 
 ##
 
-btd = getBelief(getVariable(fg, :x0))
-@test isapprox(mean(getKDEfit(btd,distribution=Normal)), 0.0; atol=0.1) 
+bel = getBelief(getVariable(fg, :x0))
+@test isapprox(mean(bel)[1], 0.0; atol=0.1)
 
-@test isapprox(std(getKDEfit(btd,distribution=Normal)), 0.1; atol=0.05) 
+# FIXME looks like a legitimate bug, x0 has prior of 0.1.
+@test isapprox(std(bel), 0.1; atol=0.05)
 
 btd = getBelief(getVariable(fg, :x1))
 pts_ = getPoints(btd)
@@ -171,10 +172,12 @@ pts_n = pts[pts .< 0]
 
 nfit_p = fit(Normal, pts_p)
 @test isapprox(mean(nfit_p), 1.0; atol=0.1)
+# FIXME flakyness looks like bug
 @test isapprox(std(nfit_p), 0.14; atol=0.05) #TODO confirm the correct value and tolerance
 
 nfit_n = fit(Normal, pts_n)
 @test isapprox(mean(nfit_n), -1.0; atol=0.1)
+# FIXME flakyness looks like bug
 @test isapprox(std(nfit_n), 0.14; atol=0.05) #TODO confirm the correct value and tolerance
 
 # To look at your results

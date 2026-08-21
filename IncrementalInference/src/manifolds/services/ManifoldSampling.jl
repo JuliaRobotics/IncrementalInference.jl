@@ -29,16 +29,19 @@ function sampleTangent(M::AbstractLieGroup, z, p = getPointIdentity(M))
   # _splat(s::Number) = s
   sp = rand(z)
   # FIXME, hackapalooza getting to tangents from either coordinates or points/group elements
-  return if sp isa Number
-    sp
-  elseif length(sp) == manifold_dimension(M)
+  return if length(sp) == manifold_dimension(M)
     hat(LieAlgebra(M), ApproxManifoldProducts._forcestatic(sp), typeof(p))
   else
     ApproxManifoldProducts._forcestatic(log(M, sp[1]))
   end
 end
 
-function sampleTangent(M::typeof(LieGroups.CircleGroup()), z::Distribution, p = getPointIdentity(M))
+# univariate distributions sample a bare number, which is the single coordinate here
+function sampleTangent(M::TranslationGroup{ℝ, ManifoldsBase.TypeParameter{Tuple{1}}}, z, p = getPointIdentity(M))
+  return hat(LieAlgebra(M), SVector{1}(rand(z)), typeof(p))
+end
+
+function sampleTangent(M::typeof(LieGroups.CircleGroup()), z, p = getPointIdentity(M))
   return hat(LieAlgebra(M), rand(z))
 end
 

@@ -57,7 +57,8 @@ function approxConvBelief(
   return res
 end
 
-approxConv(w...; kw...) = getPoints(approxConvBelief(w...; kw...), false)
+# NOTE `permute=false` to keep sample order, matching `getVal` and `getPoints`.
+approxConv(w...; kw...) = getPoints(approxConvBelief(w...; kw...), false; permute = false)
 
 """
     $SIGNATURES

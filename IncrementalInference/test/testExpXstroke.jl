@@ -50,7 +50,7 @@ hist = IIF.solveTree!(fg; smtasks=smtasks, multithread=false); #, recordcliqs=ls
 
 
 for var in sortDFG(ls(fg))
-  sppe = mean(getState(fg, var, :default))[1]
+  sppe = mean(getBelief(fg, var, :default))[1]
   println("Testing ", var,": ", sppe)
   @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end

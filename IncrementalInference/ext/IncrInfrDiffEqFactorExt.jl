@@ -294,6 +294,19 @@ function IncrementalInference.sampleFactor(cf::CalcFactor{<:DERelative}, N::Int 
   meas = [allocate(getPointIdentity(v2T)) for _ = 1:N]
   # meas = [zeros(getDimension(cf.fullvariables[2])) for _ = 1:N]
 
+  allparams = map(1:length(cf._legacyParams)) do k
+    prms = cf._legacyParams[k]
+    isempty(prms) || return prms
+    return getPoints(
+      IncrementalInference.defaultBelief(
+        cf.fullvariables[k],
+        IncrementalInference.NPBPSolver();
+        num_kernels = N,
+      );
+      permute = false,
+    )
+  end
+
   # pick forward or backward direction
   # set boundary condition
   u0pts, M = if cf.solvefor == 1
@@ -304,7 +317,7 @@ function IncrementalInference.sampleFactor(cf::CalcFactor{<:DERelative}, N::Int 
     #   AMP._manifoldtuple(M_),
     # )
     # getBelief(cf.fullvariables[2]) |> getPoints
-    cf._legacyParams[2], M_
+    allparams[2], M_
   else
     # forward backward
     prob = oder.forwardProblem
@@ -314,7 +327,7 @@ function IncrementalInference.sampleFactor(cf::CalcFactor{<:DERelative}, N::Int 
     #   AMP._manifoldtuple(M_),
     # )
     # getBelief(cf.fullvariables[1]) |> getPoints
-    cf._legacyParams[1], M_
+    allparams[1], M_
   end
 
   # solve ODE for N many particles transiting this factor
@@ -329,7 +342,7 @@ function IncrementalInference.sampleFactor(cf::CalcFactor{<:DERelative}, N::Int 
   # solve likely elements
   for i = 1:N
     # TODO, does this respect hyporecipe ???
-    idxArr = (k -> cf._legacyParams[k][i]).(1:length(cf._legacyParams))
+    idxArr = (k -> allparams[k][i]).(1:length(allparams))
     oderes = _solveFactorODE!(meas[i], prob, u0pts[i], _maketuplebeyond2args(idxArr...)...)
     if !isnothing( kS )
       resize!(kS[i].t, length(oderes.t))

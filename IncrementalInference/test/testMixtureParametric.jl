@@ -11,7 +11,7 @@ fg = LocalDFG(;solverParams=SolverParams(algorithms=[:default, :parametric]))
 
 addVariable!(fg, :x0, ContinuousScalar)
 
-p = Mixture(Prior(I), [Normal(0.8, 0.4), Normal(1.0, 0.1)], Categorical([0.1; 0.9]))
+p = Mixture(Prior, [Normal(0.8, 0.4), Normal(1.0, 0.1)], Categorical([0.1; 0.9]))
 f = addFactor!(fg, [:x0], p)
 
 addVariable!(fg, :x1, ContinuousScalar)
@@ -39,12 +39,12 @@ addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
 addFactor!(fg, [:x0], Prior(Normal(0.0,0.1)))
 
-mlr = Mixture(LinearRelative(I), [Normal(-1.0, 0.2), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
+mlr = Mixture(LinearRelative, [Normal(-1.0, 0.2), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
 
 addFactor!(fg, [:x0,:x1], mlr)
 
 addVariable!(fg, :l1, ContinuousScalar)
-p = Mixture(Prior(I), [Normal(-1.5, 0.1), Normal(0.9, 0.2)], Categorical([0.5; 0.5]))
+p = Mixture(Prior, [Normal(-1.5, 0.1), Normal(0.9, 0.2)], Categorical([0.5; 0.5]))
 # p = Prior(Normal(0.9, 0.1))
 addFactor!(fg, [:l1], p)
 
@@ -62,7 +62,7 @@ fg = LocalDFG(;solverParams=SolverParams(algorithms=[:default, :parametric]))
 
 addVariable!(fg, :x0, ContinuousEuclid(2))
 
-p = Mixture(Prior(MvNormal(2,1.0)), [MvNormal([0.8, 0.5], [0.4, 0.4]), MvNormal([1.0, 0.5], [0.1, 0.1])], Categorical([0.1; 0.9]))
+p = Mixture(Prior, [MvNormal([0.8, 0.5], [0.4, 0.4]), MvNormal([1.0, 0.5], [0.1, 0.1])], Categorical([0.1; 0.9]))
 f = addFactor!(fg, [:x0], p)
 
 
@@ -106,13 +106,13 @@ addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
 addFactor!(fg, [:x0], Prior(Normal(0.0,0.1)))
 
-mlr = Mixture(LinearRelative(I), [Normal(-1.0, 0.2), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
-# mlr = Mixture(LinearRelative(I), [Normal(-0.2, 0.05), Normal(0.2, 0.1)], Categorical([0.5; 0.5]))
-# mlr = Mixture(LinearRelative(I), [Normal(0.0, 0.9), Normal(0.0, 0.1)], Categorical([0.5; 0.5]))
+mlr = Mixture(LinearRelative, [Normal(-1.0, 0.2), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
+# mlr = Mixture(LinearRelative, [Normal(-0.2, 0.05), Normal(0.2, 0.1)], Categorical([0.5; 0.5]))
+# mlr = Mixture(LinearRelative, [Normal(0.0, 0.9), Normal(0.0, 0.1)], Categorical([0.5; 0.5]))
 
-# mlr = Mixture(LinearRelative(I), [Normal(-0.2, 0.1), Normal(0.2, 0.1)], Categorical([0.9; 0.1]))
-# mlr = Mixture(LinearRelative(I), [Normal(-0.2, 0.15), Normal(0.2, 0.1)], Categorical([0.5; 0.5]))
-# mlr = Mixture(LinearRelative(I), [Normal(-1.0, 0.2), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
+# mlr = Mixture(LinearRelative, [Normal(-0.2, 0.1), Normal(0.2, 0.1)], Categorical([0.9; 0.1]))
+# mlr = Mixture(LinearRelative, [Normal(-0.2, 0.15), Normal(0.2, 0.1)], Categorical([0.5; 0.5]))
+# mlr = Mixture(LinearRelative, [Normal(-1.0, 0.2), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
 
 addFactor!(fg, [:x0,:x1], mlr)
 
@@ -127,7 +127,7 @@ plot(x1,r1)
 
 ##
 addVariable!(fg, :l1, ContinuousScalar)
-p = Mixture(Prior(I), [Normal(-1.5, 0.1), Normal(0.9, 0.2)], Categorical([0.5; 0.5]))
+p = Mixture(Prior, [Normal(-1.5, 0.1), Normal(0.9, 0.2)], Categorical([0.5; 0.5]))
 # p = Prior(Normal(0.9, 0.1))
 addFactor!(fg, [:l1], p)
 
@@ -191,7 +191,7 @@ addFactor!(fg, [:x0], PriorPose2(prpo))
 addVariable!(fg, :x1, Pose2)
 pp1 = MvNormal([1.0,0,0], od_noise_1)
 pp2 = MvNormal([1.0,0,0], od_noise_2)
-mpp = Mixture(Pose2Pose2(I), [pp1, pp2], Categorical([0.5; 0.5]))
+mpp = Mixture(Pose2Pose2, [pp1, pp2], Categorical([0.5; 0.5]))
 
 f = addFactor!(fg, [:x0,:x1], mpp)
 
@@ -214,7 +214,7 @@ plot(x,r)
 # addVariable!(fg, :x2, Pose2)
 # pp1 = MvNormal([1.0,0,0], od_noise_1)
 # pp2 = MvNormal([1.0,0,0], od_noise_2)
-# mpp = Mixture(Pose2Pose2(I), [pp1, pp2], Categorical([0.5; 0.5]))
+# mpp = Mixture(Pose2Pose2, [pp1, pp2], Categorical([0.5; 0.5]))
 # addFactor!(fg, [:x1,:x2], mpp)
 
 # vardict, result, varIds, Σ = solveFactorGraphParametric(fg)

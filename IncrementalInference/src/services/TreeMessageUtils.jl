@@ -289,6 +289,12 @@ function addLikelihoodsDifferentialCHILD!(
       if isHom
         _sft = selectFactorType(tfg, sym1_, sym2_)
         sft = _sft(MvNormal( getDimension(getManifold(_sft)), 1.0)) #FIXME empty factor observation constructor
+        if typeof(sft).name != ftyps[1]
+          @debug(
+            "addLikelihoodsDifferentialCHILD! skipping $(sym1_)--$(sym2_), `selectFactorType` gives $(typeof(sft).name) but the path factors are $(ftyps[1])",
+            _group = :check_addLHDiff
+          )
+        end
         # only take factors that are homogeneous with the generic relative
         if typeof(sft).name == ftyps[1]
           # assume default helper function # buildFactorDefault(nfactype)
@@ -304,8 +310,20 @@ function addLikelihoodsDifferentialCHILD!(
           deleteFactor!(tfg, afc.label)
           push!(retlist, (; variables = [sym1_; sym2_], likelihood = fullFct))
         end
+      else
+        @debug(
+          "addLikelihoodsDifferentialCHILD! skipping $(sym1_)--$(sym2_), path factors are not homogeneous: $(ftyps)",
+          _group = :check_addLHDiff
+        )
       end
     end
+  end
+
+  if length(retlist) == 0 && 1 < length(seps)
+    @warn(
+      "addLikelihoodsDifferentialCHILD! produced no differential likelihoods for separators $(seps), this clique will send no upward differential message",
+      maxlog = 5
+    )
   end
 
   return retlist

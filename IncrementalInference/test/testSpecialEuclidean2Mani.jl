@@ -146,8 +146,8 @@ pbel_ = approxConvBelief(fg, :x0f1, :x0)
 
 @test isPartial(pbel_)
 
-@test pbel_._partial == [1;2]
-@test length(pbel_.infoPerCoord) == 3
+@test collect(getPartial(pbel_)) == [1;2]
+@test length(getObservability(pbel_, false)) == 3
 ##
 end
 
@@ -192,16 +192,16 @@ for i in 0:5
     psym = Symbol("x$i")
     nsym = Symbol("x$(i+1)")
     addVariable!(fg, nsym, SpecialEuclidean2)
-    mf = ManifoldFactor(SE2, MvNormal([10.0,0,pi/3], [0.1,0.1,0.01]))
+    mf = SE2SE2(MvNormal([10.0,0,pi/3], [0.1,0.1,0.01]))
     f = addFactor!(fg, [psym;nsym], mf)
 end
 
 
 addVariable!(fg, :l1, SpecialEuclidean2, tags=[:LANDMARK;])
-mf = ManifoldFactor(SE2, MvNormal([10.0,0,0], [0.1,0.1,0.01]))
+mf = SE2SE2(MvNormal([10.0,0,0], [0.1,0.1,0.01]))
 addFactor!(fg, [:x0; :l1], mf)
 
-mf = ManifoldFactor(SE2, MvNormal([10.0,0,0], [0.1,0.1,0.01]))
+mf = SE2SE2(MvNormal([10.0,0,0], [0.1,0.1,0.01]))
 addFactor!(fg, [:x6; :l1], mf)
 
 ##
@@ -576,6 +576,7 @@ initAll!(fg)
 end
 
 @testset "Test SE2 to TranslationGroup(2) multihypo" begin
+
 ##
 
 fg = initfg()
@@ -641,6 +642,7 @@ pnts = getPoints(fg, :x0)
 end
 
 @testset "Test SE2 to SE2 multihypo" begin
+
 ##
 
 fg = initfg()

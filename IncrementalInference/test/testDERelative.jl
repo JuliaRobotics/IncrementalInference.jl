@@ -146,7 +146,8 @@ pts_ = approxConv(fg, :x0x1f1, :x0)
 @cast pts[i,j] := pts_[j][i]
 
 # check the reverse solve to be relatively accurate
-ref_ = (getBelief(fg, :x0) |> getPoints)
+# NOTE `permute=false` to match the sample order `approxConv` returns above
+ref_ = getPoints(getBelief(fg, :x0); permute = false)
 @cast ref[i,j] := ref_[j][i]
 @test norm(pts - ref) < 1e-4
 
@@ -404,7 +405,8 @@ pts_ = approxConv(fg, :x0x1f1, :x0)
 @cast pts[i,j] := pts_[j][i]
 
 # check forward then backward convolves are reversible
-@test_broken isapprox(0, norm(X0_ - pts); atol=1e-2)
+# FIXME Not a flaky test, but seems to be showing a real bug 
+@test isapprox(0, norm(X0_ - pts); atol=1e-2)
 
 
 ##
@@ -572,7 +574,7 @@ initVariable!(fg, :x1, pts_)
 pts_ = approxConv(fg, :x0x1ωβf1, :x0)
 @cast pts[i,j] := pts_[j][i]
 
-@test_broken (X0_ - pts) |> norm < 1e-2
+@test (X0_ - pts) |> norm < 1e-2
 
 
 ##

@@ -208,11 +208,12 @@ end
 
 thefac = getFactor(fg, :x1x2f1)
 
+# NOTE these checks compare elementwise against `getVal`, so the proposal points must come back in sample order.
 X2lpts_ = getVal(getVariable(fg, :x2))
 @cast X2lpts[i,j] := X2lpts_[j][i]
 keepaside, = (calcProposalBelief(fg, thefac, :x2; N),)
 @test Ndim(keepaside) == 2
-lpts_ = getPoints(keepaside, false)
+lpts_ = getPoints(keepaside, false; permute = false)
 @cast lpts[i,j] := lpts_[j][i]
 @test length(lpts_) == N
 
@@ -234,7 +235,7 @@ X2lpts_ = getVal(v2)
 @cast X2lpts[i,j] := X2lpts_[j][i]
 p4 = calcProposalBelief(fg, f4, v2.label; N)
 @test Ndim(p4) == 2
-lpts_ = getPoints(keepaside, false)
+lpts_ = getPoints(keepaside, false; permute = false)
 @cast lpts[i,j] := lpts_[j][i]
 @test length(lpts_) == N
 
@@ -261,7 +262,7 @@ X2pts_ = getVal(v2)
 @cast X2pts[i,j] := X2pts_[j][i]
 # NOTE, SUPER IMPORTANT, predictbelief returns full dimension points (even if only partials are sent in for proposals)
 valB, = propagateBelief(fg, v2, [f4]; N)
-val_ = getPoints(valB, false)
+val_ = getPoints(valB, false; permute = false)
 @cast val[i,j] := val_[j][i]
 @show X2pts_[1]';
 @show val_[1]';
@@ -274,7 +275,7 @@ val_ = getPoints(valB, false)
 X2pts_ = getVal(v2)
 @cast X2pts[i,j] := X2pts_[j][i]
 valB, = propagateBelief(fg, v2, [f3]; N)
-val_ = getPoints(valB, false)
+val_ = getPoints(valB, false; permute = false)
 @cast val[i,j] := val_[j][i]
 @test norm(X2pts[1,:] - val[1,:]) < 1e-10
 @test 0.0 < norm(X2pts[2,:] - val[2,:])
@@ -286,7 +287,7 @@ val2_ = getVal(v1)
 
 # combination of partials
 valB, = propagateBelief(fg, v2, [f3;f4]; N)
-val_ = getPoints(valB, false)
+val_ = getPoints(valB, false; permute = false)
 @cast val[i,j] := val_[j][i]
 # plotKDE(kde!(val),levels=3)
 @test norm(Statistics.mean(val,dims=2)[1] .- [-20.0]) < 1
